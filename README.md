@@ -1,6 +1,3 @@
-Here's a refined version of your GitHub profile README that's optimized for GitHub Pages and can serve as a front page:
-
-```markdown
 # Abdul Wahab Junaid  
 ### Cyber-Security Specialist | Quantum Cryptography Researcher  
 
@@ -69,4 +66,3 @@ I am a Social Engineer and Cyber Researcher with a passion for identifying syste
 <p align="center"> 
   <img src="https://komarev.com/ghpvc/?username=aw-junaid&label=Profile+Views&color=blue&style=flat" alt="Profile views">
 </p>
-```
