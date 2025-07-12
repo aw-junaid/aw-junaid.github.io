@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tainted Trails: Unmasking Vulnerabilities with Source and Sink Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!--
+    Narrative & Structure Plan:
+    1.  **Title & Hook:** Introduce Taint Analysis as a critical cybersecurity technique.
+    2.  **Core Concepts Flowchart:** Visually explain the Source -> Taint -> Sink -> Vulnerability process using structured HTML/CSS.
+    3.  **Concept Definitions:** Use cards to define Source, Sink, and Sanitizer with examples.
+    4.  **Anatomy of an Attack:** Focus on the buffer overflow example, using a Donut chart to show the payload overwhelming the buffer.
+    5.  **Vulnerability Landscape:** Use a Bar chart to compare different types of sinks to show the broader applicability of taint analysis.
+    6.  **Defense Mechanisms:** Compare code-level fixes and compiler protections using side-by-side cards and a Radar chart for layered security.
+    7.  **Conclusion:** Summarize the key takeaways.
+
+    Visualization Selection:
+    * **Taint Flow Diagram:** Goal: Organize. Method: HTML/CSS with Tailwind. Justification: A simple, clear process flow is needed, and this can be achieved without complex libraries, adhering to the NO SVG constraint.
+    * **Overflow Comparison:** Goal: Compare. Method: Chart.js Donut Chart. Justification: Effectively shows the drastic proportion of the malicious payload relative to the buffer's capacity.
+    * **Sink Types:** Goal: Compare. Method: Chart.js Bar Chart. Justification: Best for comparing distinct categories (vulnerability types). Requires label wrapping.
+    * **Layered Security:** Goal: Organize/Compare. Method: Chart.js Radar Chart. Justification: Excellent for showing how multiple, different defense strategies contribute to a whole security posture. Requires label wrapping.
+    * **Confirmation:** NEITHER Mermaid JS NOR SVG were used. All visuals are either Chart.js on Canvas or structured HTML/CSS with Tailwind.
+
+    Color Palette: "Brilliant Blues"
+    * Dark Blue: #00449E
+    * Medium Blue: #0169C8
+    * Bright Blue: #289BFF
+    * Light Blue: #65B9FF
+    * Background/Lightest: #F0F8FF (AliceBlue, a very light blue-white)
+    -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F0F8FF;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .text-shadow {
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-[#00449E] text-white text-center py-12 md:py-20 px-4">
+        <h1 class="text-4xl md:text-6xl font-black text-shadow">Tainted Trails</h1>
+        <p class="mt-4 text-lg md:text-2xl font-light text-shadow max-w-4xl mx-auto">Unmasking software vulnerabilities by tracking the perilous journey of untrusted data from source to sink.</p>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        
+        <section id="introduction" class="mb-16 text-center">
+             <h2 class="text-3xl font-bold text-[#00449E] mb-4">The Essence of Taint Analysis</h2>
+             <p class="max-w-3xl mx-auto text-lg">
+                In cybersecurity, many vulnerabilities arise when an application trusts data it shouldn't. Taint analysis is a powerful technique for automatically tracking this "tainted" data—input an attacker can control—to see if it reaches a sensitive part of the program, a "sink," without being properly cleaned.
+             </p>
+        </section>
+        
+        <section id="flow" class="mb-16">
+            <div class="flex flex-col md:flex-row items-center justify-center space-y-8 md:space-y-0 md:space-x-8 text-center">
+                <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/4">
+                    <div class="text-4xl mb-2">📥</div>
+                    <h3 class="text-xl font-bold text-[#0169C8]">Source</h3>
+                    <p class="mt-2">Where untrusted data enters the application (e.g., user forms, network data).</p>
+                </div>
+
+                <div class="text-5xl font-bold text-[#0169C8] transform md:-translate-y-4">→</div>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/4 relative">
+                    <div class="absolute -top-4 -right-4 bg-[#65B9FF] text-white p-2 rounded-full shadow-md text-2xl">🛡️</div>
+                    <h3 class="text-xl font-bold text-[#0169C8]">Sanitizer (Optional)</h3>
+                    <p class="mt-2">A crucial checkpoint that should validate or clean the data, removing the "taint".</p>
+                </div>
+
+                <div class="text-5xl font-bold text-[#0169C8] transform md:-translate-y-4">→</div>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/4">
+                     <div class="text-4xl mb-2">☣️</div>
+                    <h3 class="text-xl font-bold text-[#0169C8]">Sink</h3>
+                    <p class="mt-2">A sensitive operation that, if it receives tainted data, leads to a vulnerability.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="anatomy" class="mb-16 bg-white rounded-lg shadow-md p-6 md:p-8">
+            <h2 class="text-3xl font-bold text-[#00449E] mb-2 text-center">Anatomy of an Attack: Buffer Overflow</h2>
+            <p class="text-lg text-center mb-8 max-w-3xl mx-auto">A classic vulnerability found through taint analysis is the buffer overflow. This occurs when an application tries to store more data in a memory buffer than it can hold, causing the excess data to overwrite adjacent memory, which can lead to a crash or arbitrary code execution.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="text-center md:text-left">
+                    <h3 class="text-2xl font-bold text-[#0169C8] mb-4">The Vulnerability Explained</h3>
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-[#289BFF]">
+                            <p><strong class="text-[#00449E]">The Source:</strong> The program receives data from a network socket using `recv()` without limiting the total amount of data received.</p>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
+                             <p><strong class="text-red-600]">The Sink:</strong> The `memcpy()` function is used inside a loop to copy the incoming data into a fixed-size 128-byte buffer. No checks are performed to prevent writing more than 128 bytes.</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                            <p><strong class="text-green-600]">The Result:</strong> A malicious payload larger than 128 bytes overwrites the buffer, corrupts the program's memory, and causes a crash (segmentation fault).</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="bufferOverflowChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <section id="landscape" class="mb-16 bg-white rounded-lg shadow-md p-6 md:p-8">
+            <h2 class="text-3xl font-bold text-[#00449E] mb-2 text-center">The Vulnerability Landscape</h2>
+            <p class="text-lg text-center mb-8 max-w-3xl mx-auto">Buffer overflows are just one type of vulnerability. Taint analysis helps find many others by identifying different kinds of dangerous sinks.</p>
+             <div class="chart-container h-[450px] md:h-[500px]">
+                <canvas id="sinkTypesChart"></canvas>
+            </div>
+        </section>
+
+        <section id="defenses" class="mb-16">
+            <h2 class="text-3xl font-bold text-[#00449E] mb-8 text-center">Building Defenses: Mitigation Strategies</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-2xl font-bold text-[#0169C8] mb-4">Layered Security Model</h3>
+                    <p class="mb-4">No single defense is perfect. A strong security posture relies on multiple layers of protection working together.</p>
+                    <div class="chart-container h-[300px]">
+                        <canvas id="defenseRadarChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                     <h3 class="text-2xl font-bold text-[#0169C8] mb-4">Practical Mitigations</h3>
+                     <div class="space-y-4">
+                        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-[#289BFF]">
+                            <h4 class="font-bold text-[#00449E]">Code Sanitization</h4>
+                            <p>The most direct fix. Add checks in the code to validate the size of input before it reaches the sink. This stops the overflow before it can happen.</p>
+                            <pre class="bg-gray-800 text-white p-2 rounded-md mt-2 text-sm overflow-x-auto"><code>if (offset + bytesRead > MAX_SIZE) { <br>  // Handle error, don't copy! <br>}</code></pre>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-[#289BFF]">
+                             <h4 class="font-bold text-[#00449E]">Compiler Protections</h4>
+                            <p>Modern compilers can automatically add "stack canaries"—secret values placed in memory. If an overflow overwrites a canary, the program terminates safely before an attacker can take control.</p>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </section>
+
+         <footer class="text-center mt-16 py-8 border-t border-[#B4DAFF]">
+             <p class="text-lg font-bold text-[#00449E]">Taint analysis is a fundamental skill in modern software security.</p>
+             <p class="text-gray-600">By understanding how data flows through your applications, you can proactively find and fix flaws before they are exploited.</p>
+        </footer>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const brilliantBlues = {
+                dark: '#00449E',
+                medium: '#0169C8',
+                bright: '#289BFF',
+                light: '#65B9FF',
+                lightest: '#B4DAFF',
+                background: '#F0F8FF'
+            };
+
+            const commonTooltipCallback = {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                      return label.join(' ');
+                    }
+                    return label;
+                }
+            };
+            
+            function wrapLabel(label, maxWidth) {
+                const words = label.split(' ');
+                const lines = [];
+                let currentLine = '';
+                words.forEach(word => {
+                    if ((currentLine + ' ' + word).trim().length > maxWidth && currentLine.length > 0) {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine = (currentLine + ' ' + word).trim();
+                    }
+                });
+                if (currentLine) {
+                    lines.push(currentLine);
+                }
+                return lines;
+            }
+
+            const ctxBuffer = document.getElementById('bufferOverflowChart');
+            if(ctxBuffer) {
+                new Chart(ctxBuffer, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Buffer Capacity (128 bytes)', 'Malicious Payload (1024 bytes)'],
+                        datasets: [{
+                            label: 'Bytes',
+                            data: [128, 1024],
+                            backgroundColor: [brilliantBlues.light, '#ef4444'],
+                            borderColor: [brilliantBlues.medium, '#dc2626'],
+                            borderWidth: 2,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Payload vs. Buffer Size',
+                                font: { size: 16 }
+                            },
+                            tooltip: { callbacks: commonTooltipCallback }
+                        }
+                    }
+                });
+            }
+
+            const sinkLabels = ['Memory Operations (e.g., Buffer Overflow)', 'System Command Execution', 'SQL Database Queries', 'File Path Operations', 'Cross-Site Scripting (XSS) Sinks'].map(label => wrapLabel(label, 16));
+            const ctxSinks = document.getElementById('sinkTypesChart');
+             if(ctxSinks) {
+                new Chart(ctxSinks, {
+                    type: 'bar',
+                    data: {
+                        labels: sinkLabels,
+                        datasets: [{
+                            label: 'Potential Impact Score',
+                            data: [90, 95, 85, 80, 75],
+                            backgroundColor: [
+                                brilliantBlues.dark,
+                                brilliantBlues.medium,
+                                brilliantBlues.bright,
+                                brilliantBlues.light,
+                                brilliantBlues.lightest
+                            ],
+                            borderColor: brilliantBlues.dark,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Common Vulnerability Sinks by Impact',
+                                font: { size: 16 }
+                            },
+                            tooltip: { callbacks: commonTooltipCallback }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                            },
+                            y: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            const defenseLabels = ['Input Sanitization', 'Stack Canaries', 'Address Space Layout Randomization (ASLR)', 'Data Execution Prevention (DEP)', 'Secure Coding Practices'].map(label => wrapLabel(label, 16));
+            const ctxDefense = document.getElementById('defenseRadarChart');
+            if(ctxDefense) {
+                new Chart(ctxDefense, {
+                    type: 'radar',
+                    data: {
+                        labels: defenseLabels,
+                        datasets: [{
+                            label: 'Effectiveness',
+                            data: [9, 8, 7, 8, 10],
+                            fill: true,
+                            backgroundColor: 'rgba(40, 155, 255, 0.2)',
+                            borderColor: brilliantBlues.bright,
+                            pointBackgroundColor: brilliantBlues.bright,
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: brilliantBlues.bright
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                         plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: commonTooltipCallback }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 10,
+                                pointLabels: { font: { size: 12 } },
+                                grid: { color: 'rgba(0, 68, 158, 0.2)' },
+                                angleLines: { color: 'rgba(0, 68, 158, 0.2)' }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
