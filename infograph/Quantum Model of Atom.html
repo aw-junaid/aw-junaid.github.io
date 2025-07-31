@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Model of Atom: Infographic & 3D Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F0F8FF; /* Alice Blue from Brilliant Blues */
+            margin: 0;
+            overflow-x: hidden; /* Prevent horizontal scrollbars */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .flow-arrow {
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 10px solid #007FFF;
+        }
+        .down-arrow {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #007FFF;
+        }
+        .orbital-s {
+            width: 80px; height: 80px; border-radius: 50%; background-color: #89CFF0;
+        }
+        .orbital-p {
+            position: relative; width: 120px; height: 60px;
+        }
+        .orbital-p::before, .orbital-p::after {
+            content: ''; position: absolute; top: 0; width: 60px; height: 60px; border-radius: 50%; background-color: #89CFF0;
+        }
+        .orbital-p::before { left: 0; clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%); }
+        .orbital-p::after { right: 0; clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%); }
+
+        /* 3D Model specific styles */
+        #atomCanvas {
+            display: block;
+            width: 100%;
+            height: 500px; /* Fixed height for 3D canvas within the page */
+            background-color: #F0F8FF; /* Alice Blue */
+            border-radius: 0.75rem;
+            margin-top: 1rem;
+        }
+        .controls-panel-3d {
+            background-color: #FFFFFF; /* White */
+            padding: 1rem;
+            border-radius: 0.75rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn-3d {
+            background-color: #007FFF; /* Azure */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem; /* rounded-md */
+            font-weight: 600; /* font-semibold */
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .btn-3d:hover {
+            background-color: #004AAD; /* Deep Blue */
+        }
+
+        /* Standard Model specific styles */
+        .particle-category {
+            border: 2px solid #004AAD;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background-color: #E0FFFF; /* Light Cyan */
+            text-align: center;
+        }
+        .particle-sub-category {
+            border: 1px dashed #007FFF;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            background-color: #F5FFFA; /* Mint Cream */
+        }
+        .particle-item {
+            background-color: #89CFF0; /* Baby Blue */
+            color: #004AAD;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            margin: 0.25rem;
+            display: inline-block;
+        }
+        .force-item {
+            background-color: #007FFF; /* Azure */
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            margin: 0.25rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-6xl font-black text-[#004AAD] mb-2">The Quantum Model of the Atom</h1>
+            <p class="text-lg md:text-xl text-[#007FFF]">Unveiling the Probabilistic World of Electrons</p>
+        </header>
+
+        <main class="space-y-12">
+
+            <section id="timeline" class="bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-3xl font-bold text-[#004AAD] mb-4 text-center">A Leap in Understanding</h2>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">Our view of the atom evolved from simple planetary orbits to a complex model of probability clouds. Early models couldn't explain why atoms were stable, leading to the quantum revolution.</p>
+                <div class="relative wrap overflow-hidden p-4 h-full">
+                    <div class="border-2-2 absolute border-opacity-20 border-gray-700 h-full border" style="left: 50%"></div>
+                    <div class="mb-8 flex justify-between items-center w-full right-timeline">
+                        <div class="order-1 w-5/12"></div>
+                        <div class="z-20 flex items-center order-1 bg-[#007FFF] shadow-xl w-8 h-8 rounded-full">
+                            <h1 class="mx-auto font-semibold text-lg text-white">1</h1>
+                        </div>
+                        <div class="order-1 bg-[#89CFF0] rounded-lg shadow-xl w-5/12 px-6 py-4">
+                            <h3 class="font-bold text-gray-800 text-xl">Rutherford (1911)</h3>
+                            <p class="text-sm leading-snug tracking-wide text-gray-900 text-opacity-100">Proposed a nuclear model with electrons orbiting a dense nucleus, but couldn't explain their stability.</p>
+                        </div>
+                    </div>
+                    <div class="mb-8 flex justify-between flex-row-reverse items-center w-full left-timeline">
+                        <div class="order-1 w-5/12"></div>
+                        <div class="z-20 flex items-center order-1 bg-[#007FFF] shadow-xl w-8 h-8 rounded-full">
+                            <h1 class="mx-auto text-white font-semibold text-lg">2</h1>
+                        </div>
+                        <div class="order-1 bg-[#004AAD] text-white rounded-lg shadow-xl w-5/12 px-6 py-4">
+                            <h3 class="font-bold text-xl">Bohr (1913)</h3>
+                            <p class="text-sm">Introduced quantized energy levels, placing electrons in fixed, stable orbits. It worked for hydrogen but failed for other atoms.</p>
+                        </div>
+                    </div>
+                    <div class="mb-8 flex justify-between items-center w-full right-timeline">
+                        <div class="order-1 w-5/12"></div>
+                        <div class="z-20 flex items-center order-1 bg-[#007FFF] shadow-xl w-8 h-8 rounded-full">
+                            <h1 class="mx-auto font-semibold text-lg text-white">3</h1>
+                        </div>
+                        <div class="order-1 bg-[#89CFF0] rounded-lg shadow-xl w-5/12 px-6 py-4">
+                            <h3 class="font-bold text-gray-800 text-xl">Quantum Model (1920s)</h3>
+                            <p class="text-sm leading-snug tracking-wide text-gray-900 text-opacity-100">Based on work by Schrödinger and Heisenberg, it describes electrons not in orbits, but in orbitals—3D regions of probability.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="quantum-numbers" class="bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-3xl font-bold text-[#004AAD] mb-4 text-center">The Electron's Address: Quantum Numbers</h2>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">Four quantum numbers arise from the Schrödinger equation, each defining a specific property of an electron and its orbital. Together, they form a unique quantum state for every electron in an atom.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="border-l-4 border-[#004AAD] p-4 bg-blue-50 rounded-r-lg">
+                        <h3 class="text-xl font-bold text-[#004AAD]">Principal (n)</h3>
+                        <p class="font-mono text-2xl text-[#007FFF]">n = 1, 2, 3...</p>
+                        <p class="mt-2 text-gray-700">Determines the main **energy level** or shell and the orbital's average distance from the nucleus.</p>
+                    </div>
+                    <div class="border-l-4 border-[#007FFF] p-4 bg-blue-50 rounded-r-lg">
+                        <h3 class="text-xl font-bold text-[#004AAD]">Angular Momentum (l)</h3>
+                        <p class="font-mono text-2xl text-[#007FFF]">l = 0 to n-1</p>
+                        <p class="mt-2 text-gray-700">Defines the **shape** of the orbital (s, p, d, f). Also known as the subshell.</p>
+                    </div>
+                    <div class="border-l-4 border-[#89CFF0] p-4 bg-blue-50 rounded-r-lg">
+                        <h3 class="text-xl font-bold text-[#004AAD]">Magnetic (mₗ)</h3>
+                        <p class="font-mono text-2xl text-[#007FFF]">mₗ = -l to +l</p>
+                        <p class="mt-2 text-gray-700">Describes the **orientation** of the orbital in 3D space.</p>
+                    </div>
+                    <div class="border-l-4 border-gray-400 p-4 bg-blue-50 rounded-r-lg">
+                        <h3 class="text-xl font-bold text-[#004AAD]">Spin (mₛ)</h3>
+                        <p class="font-mono text-2xl text-[#007FFF]">mₛ = +½, -½</p>
+                        <p class="mt-2 text-gray-700">Specifies the intrinsic angular momentum of the electron, its "spin" direction.</p>
+                    </div>
+                </div>
+            </section>
+            
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
+                <section id="orbitals" class="md:col-span-3 bg-white rounded-lg shadow-lg p-6 md:p-8">
+                    <h2 class="text-3xl font-bold text-[#004AAD] mb-4 text-center">Mapping the Electron's World</h2>
+                    <p class="text-center text-gray-600 max-w-2xl mx-auto mb-8">Orbitals are not paths, but 3D probability maps. The Angular Momentum number (l) dictates their shape, which grows more complex as its value increases.</p>
+                    <div class="flex flex-col space-y-6">
+                        <div class="flex items-center space-x-6">
+                            <div class="orbital-s flex-shrink-0"></div>
+                            <div>
+                                <h3 class="text-xl font-bold text-[#004AAD]">s-Orbital (l=0)</h3>
+                                <p class="text-gray-700">A perfect sphere. There is one s-orbital for every energy level (n).</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-6">
+                            <div class="orbital-p flex-shrink-0"></div>
+                            <div>
+                                <h3 class="text-xl font-bold text-[#004AAD]">p-Orbitals (l=1)</h3>
+                                <p class="text-gray-700">Three dumbbell-shaped orbitals oriented along the x, y, and z axes. They appear from n=2 onwards.</p>
+                            </div>
+                        </div>
+                         <div class="flex items-center space-x-6">
+                            <p class="text-5xl font-black text-[#89CFF0] flex-shrink-0">d</p>
+                            <div>
+                                <h3 class="text-xl font-bold text-[#004AAD]">d-Orbitals (l=2) & f-Orbitals (l=3)</h3>
+                                <p class="text-gray-700">These have more intricate shapes, like cloverleaves. There are five d-orbitals (from n=3) and seven f-orbitals (from n=4).</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="orbital-count" class="md:col-span-2 bg-white rounded-lg shadow-lg p-6 md:p-8 flex flex-col">
+                    <h2 class="text-3xl font-bold text-[#004AAD] mb-4 text-center">Orbitals per Subshell</h2>
+                    <p class="text-center text-gray-600 mb-6">The magnetic quantum number (mₗ) determines how many orbitals exist for each subshell shape. The number of orbitals is always 2l + 1.</p>
+                    <div class="chart-container flex-grow">
+                        <canvas id="orbitalsChart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <section id="rules" class="bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-3xl font-bold text-[#004AAD] mb-4 text-center">The Rules of Occupancy</h2>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">Electrons don't just fill orbitals randomly. Three fundamental rules govern how they create the most stable arrangement, defining an element's electron configuration.</p>
+                <div class="flex flex-col md:flex-row justify-around items-center space-y-8 md:space-y-0 md:space-x-8">
+                    <div class="text-center max-w-xs">
+                        <div class="mx-auto bg-[#004AAD] text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black mb-4">1</div>
+                        <h3 class="text-xl font-bold text-[#004AAD]">Aufbau Principle</h3>
+                        <p class="text-gray-700">Electrons fill the lowest energy orbitals available first before moving to higher energy orbitals.</p>
+                    </div>
+                    <div class="down-arrow hidden md:block"></div>
+                    <div class="text-center max-w-xs">
+                        <div class="mx-auto bg-[#007FFF] text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black mb-4">2</div>
+                        <h3 class="text-xl font-bold text-[#004AAD]">Pauli Exclusion Principle</h3>
+                        <p class="text-gray-700">No two electrons in an atom can have the same four quantum numbers. This means an orbital can hold a maximum of two electrons, and they must have opposite spins.</p>
+                    </div>
+                    <div class="down-arrow hidden md:block"></div>
+                    <div class="text-center max-w-xs">
+                        <div class="mx-auto bg-[#89CFF0] text-gray-800 w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black mb-4">3</div>
+                        <h3 class="text-xl font-bold text-[#004AAD]">Hund's Rule</h3>
+                        <p class="text-gray-700">Within a subshell, electrons will occupy each orbital singly with parallel spins before any orbital is doubly occupied. This minimizes electron-electron repulsion.</p>
+                    </div>
+                </div>
+            </section>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <section id="shell-capacity" class="bg-white rounded-lg shadow-lg p-6 md:p-8 flex flex-col">
+                    <h2 class="text-3xl font-bold text-[#004AAD] mb-4 text-center">Electron Shell Capacity</h2>
+                    <p class="text-center text-gray-600 mb-6">The total number of electrons that can fit into a principal energy level (n) is given by the formula 2n². As you move further from the nucleus, the shells can hold significantly more electrons.</p>
+                    <div class="chart-container flex-grow">
+                        <canvas id="shellCapacityChart"></canvas>
+                    </div>
+                </section>
+                
+                <section id="applications" class="bg-white rounded-lg shadow-lg p-6 md:p-8">
+                    <h2 class="text-3xl font-bold text-[#004AAD] mb-4 text-center">Why It Matters</h2>
+                    <p class="text-center text-gray-600 mb-8">The quantum model isn't just theory; it's the foundation of modern chemistry and physics, explaining real-world phenomena.</p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start space-x-4">
+                            <span class="text-2xl text-[#007FFF]">🔗</span>
+                            <div>
+                                <h3 class="font-bold text-lg text-[#004AAD]">Chemical Bonding</h3>
+                                <p class="text-gray-700">Explains how atoms share or transfer electrons based on orbital shapes and energies, determining molecular geometry and reactivity.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start space-x-4">
+                            <span class="text-2xl text-[#007FFF]">💡</span>
+                            <div>
+                                <h3 class="font-bold text-lg text-[#004AAD]">Spectroscopy</h3>
+                                <p class="text-gray-700">The quantization of energy levels perfectly explains why elements emit and absorb light at specific, unique wavelengths.</p>
+                            </div>
+                        </li>
+                         <li class="flex items-start space-x-4">
+                            <span class="text-2xl text-[#007FFF]">💎</span>
+                            <div>
+                                <h3 class="font-bold text-lg text-[#004AAD]">Material Properties</h3>
+                                <p class="text-gray-700">Electron configurations determine if a material is a conductor, insulator, or semiconductor, and define its magnetic properties.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start space-x-4">
+                            <span class="text-2xl text-[#007FFF]">周期表</span>
+                            <div>
+                                <h3 class="font-bold text-lg text-[#004AAD]">The Periodic Table</h3>
+                                <p class="text-gray-700">The structure of the periodic table is a direct consequence of the systematic filling of electron orbitals according to quantum rules.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+
+            ---
+
+            <section id="standard-model" class="bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <h2 class="text-3xl font-bold text-[#004AAD] mb-4 text-center">The Standard Model of Particle Physics</h2>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">Beyond the atom, the Standard Model describes the fundamental particles and forces that make up everything in the universe. It's our most complete understanding of matter and its interactions.</p>
+
+                <h3 class="text-2xl font-bold text-[#004AAD] mb-4 text-center">Fundamental Particles (2D Overview)</h3>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">Particles are categorized into two main groups: **Fermions** (matter particles) and **Bosons** (force-carrying particles).</p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                    <div class="particle-category">
+                        <h4 class="text-xl font-bold text-[#004AAD] mb-4">Fermions (Matter Particles)</h4>
+                        <p class="text-gray-700 mb-4">These are the building blocks of matter, each having a half-integer spin. They obey the Pauli Exclusion Principle.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="particle-sub-category">
+                                <h5 class="font-bold text-[#007FFF] mb-2">Quarks</h5>
+                                <p class="text-sm text-gray-800 mb-2">Combine to form composite particles like protons and neutrons.</p>
+                                <div class="flex flex-wrap justify-center">
+                                    <span class="particle-item">Up (u)</span>
+                                    <span class="particle-item">Down (d)</span>
+                                    <span class="particle-item">Charm (c)</span>
+                                    <span class="particle-item">Strange (s)</span>
+                                    <span class="particle-item">Top (t)</span>
+                                    <span class="particle-item">Bottom (b)</span>
+                                </div>
+                            </div>
+                            <div class="particle-sub-category">
+                                <h5 class="font-bold text-[#007FFF] mb-2">Leptons</h5>
+                                <p class="text-sm text-gray-800 mb-2">Fundamental particles that do not experience the strong nuclear force.</p>
+                                <div class="flex flex-wrap justify-center">
+                                    <span class="particle-item">Electron (e⁻)</span>
+                                    <span class="particle-item">Muon (μ⁻)</span>
+                                    <span class="particle-item">Tau (τ⁻)</span>
+                                    <span class="particle-item">Electron Neutrino (νₑ)</span>
+                                    <span class="particle-item">Muon Neutrino (νᵨ)</span>
+                                    <span class="particle-item">Tau Neutrino (νₓ)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="particle-category">
+                        <h4 class="text-xl font-bold text-[#004AAD] mb-4">Bosons (Force-Carrying Particles)</h4>
+                        <p class="text-gray-700 mb-4">These particles mediate the fundamental forces, each having an integer spin. They do not obey the Pauli Exclusion Principle.</p>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="particle-sub-category">
+                                <h5 class="font-bold text-[#007FFF] mb-2">Fundamental Forces & Their Bosons</h5>
+                                <div class="flex flex-wrap justify-center">
+                                    <span class="force-item">Photon (γ) - Electromagnetic</span>
+                                    <span class="force-item">Gluon (g) - Strong Nuclear</span>
+                                    <span class="force-item">W⁺, W⁻, Z⁰ - Weak Nuclear</span>
+                                </div>
+                            </div>
+                            <div class="particle-sub-category">
+                                <h5 class="font-bold text-[#007FFF] mb-2">Higgs Boson</h5>
+                                <div class="flex flex-wrap justify-center">
+                                    <span class="force-item">Higgs (H⁰) - Mass-giving field</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-2xl font-bold text-[#004AAD] mb-4 text-center">The Standard Model in 3D</h3>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">Explore a conceptual 3D visualization of the Standard Model's main components. The central sphere represents the Higgs Boson, surrounded by rings of Matter Particles (Fermions) and Force Carriers (Bosons).</p>
+                <div class="controls-panel-3d">
+                    <button id="hydrogenBtn" class="btn-3d">Hydrogen (H)</button>
+                    <button id="heliumBtn" class="btn-3d">Helium (He)</button>
+                    <button id="lithiumBtn" class="btn-3d">Lithium (Li)</button>
+                    <button id="showStandardModelBtn" class="btn-3d">Show Standard Model</button>
+                </div>
+                <canvas id="atomCanvas"></canvas>
+            </section>
+
+        </main>
+        
+        <footer class="text-center mt-12 py-6 border-t border-gray-300">
+            <p class="text-gray-600">An infographic by Canvas Infographics. Data sourced from the principles of quantum mechanics.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Brilliant Blues color palette (re-declared for clarity in combined file)
+        const brilliantBlues = {
+            deepBlue: '#004AAD',
+            azure: '#007FFF',
+            babyBlue: '#89CFF0',
+            aliceBlue: '#F0F8FF'
+        };
+
+        // --- Chart.js Initialization ---
+        document.addEventListener('DOMContentLoaded', function() {
+            function wrapLabel(str, maxWidth) {
+                if (str.length <= maxWidth) {
+                    return str;
+                }
+                const words = str.split(' ');
+                let lines = [];
+                let currentLine = words[0];
+
+                for (let i = 1; i < words.length; i++) {
+                    if (currentLine.length + words[i].length + 1 < maxWidth) {
+                        currentLine += ' ' + words[i];
+                    } else {
+                        lines.push(currentLine);
+                        currentLine = words[i];
+                    }
+                }
+                lines.push(currentLine);
+                return lines;
+            }
+            
+            const defaultTooltipCallback = {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const item = tooltipItems[0];
+                                let label = item.chart.data.labels[item.dataIndex];
+                                if (Array.isArray(label)) {
+                                  return label.join(' ');
+                                } else {
+                                  return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const orbitalsCtx = document.getElementById('orbitalsChart').getContext('2d');
+            new Chart(orbitalsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['s-subshell (l=0)', 'p-subshell (l=1)', 'd-subshell (l=2)', 'f-subshell (l=3)'],
+                    datasets: [{
+                        label: 'Number of Orbitals',
+                        data: [1, 3, 5, 7],
+                        backgroundColor: [
+                            brilliantBlues.babyBlue,
+                            brilliantBlues.azure,
+                            brilliantBlues.deepBlue,
+                            '#003380'
+                        ],
+                        borderColor: brilliantBlues.deepBlue,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    ...defaultTooltipCallback,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...defaultTooltipCallback.plugins,
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            const shellCapacityCtx = document.getElementById('shellCapacityChart').getContext('2d');
+            const shellLabels = [
+                '1st Shell (n=1)', 
+                '2nd Shell (n=2)', 
+                '3rd Shell (n=3)', 
+                '4th Shell (n=4)'
+            ].map(label => wrapLabel(label, 16));
+
+            new Chart(shellCapacityCtx, {
+                type: 'bar',
+                data: {
+                    labels: shellLabels,
+                    datasets: [{
+                        label: 'Maximum Electrons (2n²)',
+                        data: [2, 8, 18, 32],
+                        backgroundColor: [
+                            brilliantBlues.babyBlue,
+                            brilliantBlues.azure,
+                            brilliantBlues.deepBlue,
+                            '#003380'
+                        ],
+                        borderColor: brilliantBlues.deepBlue,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    ...defaultTooltipCallback,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Max Electron Capacity'
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...defaultTooltipCallback.plugins,
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // --- Three.js Initialization and Model Switching ---
+            let scene, camera, renderer, controls;
+            let current3DModelGroup; // Group to hold the current 3D model (atom or standard model)
+            let currentModelType = 'atom'; // Default to atom model
+
+            function initThreeJS() {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(brilliantBlues.aliceBlue);
+
+                const canvasElement = document.getElementById('atomCanvas');
+                camera = new THREE.PerspectiveCamera(75, canvasElement.clientWidth / canvasElement.clientHeight, 0.1, 1000);
+                camera.position.z = 5;
+
+                renderer = new THREE.WebGLRenderer({ canvas: canvasElement, antialias: true });
+                renderer.setSize(canvasElement.clientWidth, canvasElement.clientHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.screenSpacePanning = false;
+                controls.minDistance = 2;
+                controls.maxDistance = 10;
+
+                const ambientLight = new THREE.AmbientLight(0x404040);
+                scene.add(ambientLight);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(1, 1, 1).normalize();
+                scene.add(directionalLight);
+
+                // Event listeners for 3D model buttons
+                document.getElementById('hydrogenBtn').addEventListener('click', () => set3DModel('hydrogen'));
+                document.getElementById('heliumBtn').addEventListener('click', () => set3DModel('helium'));
+                document.getElementById('lithiumBtn').addEventListener('click', () => set3DModel('lithium'));
+                // Removed 'showAtomsBtn' as its functionality is covered by hydrogenBtn for initial state
+                document.getElementById('showStandardModelBtn').addEventListener('click', () => set3DModel('standardModel'));
+
+                window.addEventListener('resize', onWindowResizeThreeJS, false);
+
+                // Initialize with hydrogen atom
+                set3DModel('hydrogen');
+            }
+
+            function onWindowResizeThreeJS() {
+                const canvasElement = document.getElementById('atomCanvas');
+                camera.aspect = canvasElement.clientWidth / canvasElement.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvasElement.clientWidth, canvasElement.clientHeight);
+            }
+
+            function createSphere(radius, color, x, y, z) {
+                const geometry = new THREE.SphereGeometry(radius, 32, 32);
+                const material = new THREE.MeshPhongMaterial({ color: color });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(x, y, z);
+                return sphere;
+            }
+
+            function createOrbitalPath(radius, segments, color) {
+                const points = [];
+                for (let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0));
+                }
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineDashedMaterial({
+                    color: color,
+                    linewidth: 1,
+                    scale: 1,
+                    dashSize: 0.1,
+                    gapSize: 0.1
+                });
+                const line = new THREE.LineLoop(geometry, material);
+                line.computeLineDistances();
+                return line;
+            }
+
+            function clearCurrent3DModel() {
+                if (current3DModelGroup) {
+                    scene.remove(current3DModelGroup);
+                    current3DModelGroup.traverse(object => {
+                        if (object.geometry) object.geometry.dispose();
+                        if (object.material) object.material.dispose();
+                    });
+                }
+                current3DModelGroup = new THREE.Group();
+                scene.add(current3DModelGroup);
+            }
+
+            function createAtomModel(type) {
+                clearCurrent3DModel();
+                currentModelType = 'atom';
+
+                const nucleusRadius = 0.3;
+                const nucleusColor = brilliantBlues.deepBlue;
+                const nucleus = createSphere(nucleusRadius, nucleusColor, 0, 0, 0);
+                current3DModelGroup.add(nucleus);
+
+                const electronRadius = 0.08;
+                const electronColor = brilliantBlues.azure;
+                const orbitalColor = brilliantBlues.babyBlue;
+
+                if (type === 'hydrogen') {
+                    const electron1 = createSphere(electronRadius, electronColor, 1, 0, 0);
+                    const orbital1 = createOrbitalPath(1, 64, orbitalColor);
+                    current3DModelGroup.add(electron1);
+                    current3DModelGroup.add(orbital1);
+
+                    electron1.userData.orbitalRadius = 1;
+                    electron1.userData.orbitalSpeed = 0.02;
+                    electron1.userData.angle = 0;
+                    electron1.tick = function() {
+                        this.userData.angle += this.userData.orbitalSpeed;
+                        this.position.x = Math.cos(this.userData.angle) * this.userData.orbitalRadius;
+                        this.position.y = Math.sin(this.userData.angle) * this.userData.orbitalRadius;
+                    };
+
+                } else if (type === 'helium') {
+                    const electron1 = createSphere(electronRadius, electronColor, 0.8, 0, 0);
+                    const electron2 = createSphere(electronRadius, electronColor, -0.8, 0, 0);
+                    const orbital1 = createOrbitalPath(0.8, 64, orbitalColor);
+                    current3DModelGroup.add(electron1);
+                    current3DModelGroup.add(electron2);
+                    current3DModelGroup.add(orbital1);
+
+                    electron1.userData.orbitalRadius = 0.8;
+                    electron1.userData.orbitalSpeed = 0.03;
+                    electron1.userData.angle = 0;
+                    electron1.tick = function() {
+                        this.userData.angle += this.userData.orbitalSpeed;
+                        this.position.x = Math.cos(this.userData.angle) * this.userData.orbitalRadius;
+                        this.position.y = Math.sin(this.userData.angle) * this.userData.orbitalRadius;
+                    };
+
+                    electron2.userData.orbitalRadius = 0.8;
+                    electron2.userData.orbitalSpeed = 0.03;
+                    electron2.userData.angle = Math.PI;
+                    electron2.tick = function() {
+                        this.userData.angle += this.userData.orbitalSpeed;
+                        this.position.x = Math.cos(this.userData.angle) * this.userData.orbitalRadius;
+                        this.position.y = Math.sin(this.userData.angle) * this.userData.orbitalRadius;
+                    };
+
+                } else if (type === 'lithium') {
+                    const electron1 = createSphere(electronRadius, electronColor, 0.7, 0, 0);
+                    const electron2 = createSphere(electronRadius, electronColor, -0.7, 0, 0);
+                    const orbital1 = createOrbitalPath(0.7, 64, orbitalColor);
+                    current3DModelGroup.add(electron1);
+                    current3DModelGroup.add(electron2);
+                    current3DModelGroup.add(orbital1);
+
+                    electron1.userData.orbitalRadius = 0.7;
+                    electron1.userData.orbitalSpeed = 0.04;
+                    electron1.userData.angle = 0;
+                    electron1.tick = function() {
+                        this.userData.angle += this.userData.orbitalSpeed;
+                        this.position.x = Math.cos(this.userData.angle) * this.userData.orbitalRadius;
+                        this.position.y = Math.sin(this.userData.angle) * this.userData.orbitalRadius;
+                    };
+
+                    electron2.userData.orbitalRadius = 0.7;
+                    electron2.userData.orbitalSpeed = 0.04;
+                    electron2.userData.angle = Math.PI;
+                    electron2.tick = function() {
+                        this.userData.angle += this.userData.orbitalSpeed;
+                        this.position.x = Math.cos(this.userData.angle) * this.userData.orbitalRadius;
+                        this.position.y = Math.sin(this.userData.angle) * this.userData.orbitalRadius;
+                    };
+
+                    const electron3 = createSphere(electronRadius, electronColor, 1.5, 0, 0);
+                    const orbital2 = createOrbitalPath(1.5, 64, orbitalColor);
+                    current3DModelGroup.add(electron3);
+                    current3DModelGroup.add(orbital2);
+
+                    electron3.userData.orbitalRadius = 1.5;
+                    electron3.userData.orbitalSpeed = 0.015;
+                    electron3.userData.angle = Math.PI / 2;
+                    electron3.tick = function() {
+                        this.userData.angle += this.userData.orbitalSpeed;
+                        this.position.x = Math.cos(this.userData.angle) * this.userData.orbitalRadius;
+                        this.position.y = Math.sin(this.userData.angle) * this.userData.orbitalRadius;
+                        this.position.z = Math.sin(this.userData.angle * 0.5) * 0.2;
+                    };
+                }
+                // Reset camera for atom models
+                camera.position.set(0, 0, 5);
+                controls.update();
+            }
+
+            function createStandardModel() {
+                clearCurrent3DModel();
+                currentModelType = 'standardModel';
+
+                // Central Higgs Boson
+                const higgs = createSphere(0.4, '#FFD700', 0, 0, 0); // Gold for Higgs
+                current3DModelGroup.add(higgs);
+
+                // Fermions (Matter Particles)
+                const fermionOrbitalRadius = 1.5;
+                const fermionParticles = [
+                    { name: 'Quarks', count: 6, color: brilliantBlues.azure },
+                    { name: 'Leptons', count: 6, color: brilliantBlues.babyBlue }
+                ];
+                let fermionAngle = 0;
+                const fermionAngleIncrement = (Math.PI * 2) / (fermionParticles[0].count + fermionParticles[1].count);
+
+                fermionParticles.forEach(category => {
+                    for (let i = 0; i < category.count; i++) {
+                        const particle = createSphere(0.1, category.color,
+                            Math.cos(fermionAngle) * fermionOrbitalRadius,
+                            Math.sin(fermionAngle) * fermionOrbitalRadius,
+                            0
+                        );
+                        particle.userData.orbitalRadius = fermionOrbitalRadius;
+                        particle.userData.orbitalSpeed = 0.01;
+                        particle.userData.angle = fermionAngle;
+                        particle.tick = function() {
+                            this.userData.angle += this.userData.orbitalSpeed;
+                            this.position.x = Math.cos(this.userData.angle) * this.userData.orbitalRadius;
+                            this.position.y = Math.sin(this.userData.angle) * this.userData.orbitalRadius;
+                        };
+                        current3DModelGroup.add(particle);
+                        fermionAngle += fermionAngleIncrement;
+                    }
+                });
+                current3DModelGroup.add(createOrbitalPath(fermionOrbitalRadius, 64, brilliantBlues.deepBlue));
+
+
+                // Bosons (Force Carriers)
+                const bosonOrbitalRadius = 2.5;
+                const bosonParticles = [
+                    { name: 'Photon', color: '#FF0000' }, // Red
+                    { name: 'Gluon', color: '#00FF00' }, // Green
+                    { name: 'W/Z Bosons', color: '#0000FF' }, // Blue
+                ];
+                let bosonAngle = 0;
+                const bosonAngleIncrement = (Math.PI * 2) / bosonParticles.length;
+
+                bosonParticles.forEach(particleInfo => {
+                    const particle = createSphere(0.12, particleInfo.color,
+                        Math.cos(bosonAngle) * bosonOrbitalRadius,
+                        0,
+                        Math.sin(bosonAngle) * bosonOrbitalRadius
+                    );
+                    particle.userData.orbitalRadius = bosonOrbitalRadius;
+                    particle.userData.orbitalSpeed = 0.008;
+                    particle.userData.angle = bosonAngle;
+                    particle.tick = function() {
+                        this.userData.angle += this.userData.orbitalSpeed;
+                        this.position.x = Math.cos(this.userData.angle) * this.userData.orbitalRadius;
+                        this.position.z = Math.sin(this.userData.angle) * this.userData.orbitalRadius;
+                    };
+                    current3DModelGroup.add(particle);
+                    bosonAngle += bosonAngleIncrement;
+                });
+                current3DModelGroup.add(createOrbitalPath(bosonOrbitalRadius, 64, brilliantBlues.deepBlue));
+
+
+                // Reset camera for standard model
+                camera.position.set(0, 0, 6);
+                controls.update();
+            }
+
+            function set3DModel(modelType) {
+                if (modelType === 'standardModel') {
+                    createStandardModel();
+                } else {
+                    createAtomModel(modelType);
+                }
+            }
+
+            function animateLoopThreeJS() {
+                requestAnimationFrame(animateLoopThreeJS);
+
+                if (current3DModelGroup) {
+                    current3DModelGroup.children.forEach(child => {
+                        if (child.tick) {
+                            child.tick();
+                        }
+                    });
+                }
+
+                controls.update();
+                renderer.render(scene, camera);
+            }
+
+            // Start Three.js initialization and animation loop after DOM is ready
+            initThreeJS();
+            animateLoopThreeJS();
+        });
+    </script>
+</body>
+</html>
