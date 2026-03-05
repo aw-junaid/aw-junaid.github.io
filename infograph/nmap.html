@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>awjunaid — Nmap Pentest Suite</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e13;--s1:#161b22;--s2:#1c2128;
+  --b1:#21262d;--b2:#30363d;
+  --acc:#58a6ff;--grn:#3fb950;--red:#f85149;
+  --ylw:#e3b341;--pur:#d2a8ff;--org:#ffa657;
+  --txt:#e6edf3;--t2:#c9d1d9;--mut:#8b949e;--m2:#6e7681;
+  --mono:'Fira Code','JetBrains Mono',monospace;
+  --r:10px;--rs:6px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(88,166,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(88,166,255,.025) 1px,transparent 1px);
+  background-size:44px 44px}
+header{position:sticky;top:0;z-index:200;background:rgba(10,14,19,.97);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--b1);padding:.75rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.hlogo{display:flex;align-items:center;gap:.65rem}
+.hico{width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#58a6ff1a,#3fb9501a);border:1px solid #58a6ff33;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.hname{font-size:1.1rem;font-weight:800;
+  background:linear-gradient(135deg,#58a6ff,#3fb950);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hsub{font-size:.65rem;color:var(--mut);margin-top:1px}
+.hbadges{display:flex;gap:.35rem;flex-wrap:wrap}
+.hb{font-size:.65rem;padding:.16rem .5rem;border-radius:2rem;border:1px solid var(--b2);color:var(--mut);background:var(--s1)}
+.hb.g{color:var(--grn);border-color:#3fb95030;background:#3fb95010}
+.hb.b{color:var(--acc);border-color:#58a6ff30;background:#58a6ff10}
+.hb.y{color:var(--ylw);border-color:#e3b34130;background:#e3b34110}
+.hb.r{color:var(--red);border-color:#f8514930;background:#f851490d}
+.hero{position:relative;z-index:1;max-width:800px;margin:2.5rem auto 2rem;padding:0 1.2rem;text-align:center}
+.chip{display:inline-flex;align-items:center;gap:.4rem;font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--acc);background:#58a6ff0e;border:1px solid #58a6ff2a;padding:.26rem .85rem;border-radius:2rem;margin-bottom:.9rem}
+.hero h2{font-size:2rem;font-weight:800;color:var(--txt);line-height:1.2}
+.grad{background:linear-gradient(135deg,#58a6ff,#3fb950,#d2a8ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:var(--mut);margin-top:.55rem;font-size:.88rem;max-width:560px;margin-inline:auto}
+.panel{margin-top:1.6rem;background:var(--s1);border:1px solid var(--b2);border-radius:14px;
+  padding:1.2rem 1.3rem;box-shadow:0 8px 40px rgba(0,0,0,.45)}
+.irow{display:flex;gap:.45rem;flex-wrap:wrap}
+.ipfx{display:flex;align-items:center;padding:.68rem .85rem;background:var(--s2);
+  border:1px solid var(--b2);border-radius:var(--rs);color:var(--mut);font-family:var(--mono);font-size:.8rem;white-space:nowrap}
+#inp{flex:1;min-width:160px;padding:.7rem .95rem;border:1px solid var(--b2);border-radius:var(--rs);
+  background:#0d1117;color:var(--txt);font-size:.93rem;outline:none;font-family:var(--mono);
+  transition:border-color .18s,box-shadow .18s}
+#inp:focus{border-color:var(--acc);box-shadow:0 0 0 3px #58a6ff1a}
+#inp::placeholder{color:var(--m2)}
+.gbtn{padding:.7rem 1.5rem;border:none;border-radius:var(--rs);
+  background:linear-gradient(135deg,#58a6ff,#1f6feb);color:#fff;font-size:.88rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:opacity .18s,transform .1s}
+.gbtn:hover{opacity:.85}.gbtn:active{transform:scale(.97)}
+.errbox{display:none;margin-top:.55rem;background:#f8514910;border:1px solid #f8514930;
+  border-radius:var(--rs);padding:.42rem .65rem;font-size:.78rem;color:var(--red)}
+.statsbar{display:none;gap:1rem;margin-top:.75rem;flex-wrap:wrap}
+.sc{display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--mut)}
+.sc strong{color:var(--txt)}
+.sdot{width:6px;height:6px;border-radius:50%}
+.toolbar{display:none;position:relative;z-index:1;max-width:1360px;margin:.7rem auto .3rem;
+  padding:0 1.2rem;gap:.4rem;flex-wrap:wrap;align-items:center}
+.vbtn{padding:.28rem .7rem;font-size:.73rem;border:1px solid var(--b1);border-radius:var(--rs);
+  background:var(--s1);color:var(--mut);cursor:pointer;display:flex;align-items:center;gap:.3rem;transition:all .14s}
+.vbtn.on{background:var(--s2);border-color:var(--b2);color:var(--txt)}
+.srch{position:relative;margin-left:auto}
+.srch input{padding:.3rem .75rem .3rem 2rem;width:230px;background:var(--s1);
+  border:1px solid var(--b1);border-radius:var(--rs);color:var(--t2);font-size:.76rem;
+  outline:none;transition:border-color .18s;font-family:inherit}
+.srch input:focus{border-color:var(--acc)}
+.sico{position:absolute;left:.55rem;top:50%;transform:translateY(-50%);color:var(--mut);font-size:.78rem;pointer-events:none}
+.pills{display:none;position:relative;z-index:1;max-width:1360px;margin:0 auto .55rem;
+  padding:0 1.2rem;gap:.35rem;flex-wrap:wrap}
+.pill{padding:.24rem .68rem;border-radius:2rem;border:1px solid var(--b1);background:var(--s1);
+  color:var(--mut);font-size:.72rem;cursor:pointer;transition:all .14s}
+.pill:hover{border-color:var(--b2);color:var(--t2)}
+.pill.on{background:var(--acc);color:#0d1117;border-color:var(--acc);font-weight:700}
+.layout{display:none;position:relative;z-index:1;max-width:1360px;margin:0 auto 4rem;
+  padding:0 1.2rem;gap:1.1rem;grid-template-columns:205px 1fr}
+@media(max-width:820px){.layout{grid-template-columns:1fr}}
+.sidebar{position:sticky;top:68px;height:fit-content;display:flex;flex-direction:column;gap:.2rem}
+@media(max-width:820px){.sidebar{display:none}}
+.sbt{font-size:.61rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--m2);padding:.3rem .48rem;margin-top:.28rem}
+.sbtn{display:flex;align-items:center;gap:.45rem;padding:.38rem .55rem;border-radius:var(--rs);
+  border:none;background:none;color:var(--mut);font-size:.77rem;cursor:pointer;width:100%;text-align:left;
+  transition:all .14s;border-left:2px solid transparent}
+.sbtn:hover{background:var(--s1);color:var(--t2)}
+.sbtn.on{background:var(--s2);color:var(--acc);border-left-color:var(--acc)}
+.sbico{font-size:.92rem;width:17px;text-align:center;flex-shrink:0}
+.sblbl{flex:1}
+.sbcnt{font-size:.61rem;padding:.06rem .35rem;border-radius:2rem;background:var(--s1);
+  border:1px solid var(--b1);color:var(--m2);flex-shrink:0}
+.sbtn.on .sbcnt{background:#58a6ff1a;border-color:#58a6ff33;color:var(--acc)}
+.sbsep{height:1px;background:var(--b1);margin:.28rem 0}
+.sec{margin-bottom:1.8rem}
+.sechdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;padding-bottom:.65rem;border-bottom:1px solid var(--b1)}
+.secico{font-size:1.3rem}
+.sectitle{font-size:.92rem;font-weight:700;color:var(--txt)}
+.secsub{font-size:.72rem;color:var(--mut);margin-top:1px}
+.seccnt{margin-left:auto;font-size:.65rem;padding:.15rem .48rem;border-radius:2rem;
+  background:var(--s2);border:1px solid var(--b2);color:var(--mut);white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:.85rem}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;transition:border-color .18s,box-shadow .18s}
+.card:hover{border-color:var(--b2);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.ch{padding:.85rem 1rem .65rem;border-bottom:1px solid var(--b1);
+  background:linear-gradient(135deg,var(--s2),var(--s1))}
+.ctrow{display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.45rem}
+.cico{font-size:1.15rem;flex-shrink:0;margin-top:1px}
+.cname{font-weight:700;font-size:.9rem;color:var(--txt);flex:1;line-height:1.3}
+.cbadges{display:flex;gap:.28rem;flex-wrap:wrap;flex-shrink:0}
+.bdg{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid}
+.b-disc{color:#79c0ff;border-color:#79c0ff2a;background:#79c0ff0a}
+.b-scan{color:#3fb950;border-color:#3fb9502a;background:#3fb9500a}
+.b-os{color:#f778ba;border-color:#f778ba2a;background:#f778ba0a}
+.b-script{color:#d2a8ff;border-color:#d2a8ff2a;background:#d2a8ff0a}
+.b-vuln{color:#f85149;border-color:#f851492a;background:#f851490a}
+.b-stealth{color:#e3b341;border-color:#e3b3412a;background:#e3b3410a}
+.b-web{color:#38bdf8;border-color:#38bdf82a;background:#38bdf80a}
+.b-firewall{color:#fb923c;border-color:#fb923c2a;background:#fb923c0a}
+.b-output{color:#a3e635;border-color:#a3e6352a;background:#a3e6350a}
+.b-perf{color:#c084fc;border-color:#c084fc2a;background:#c084fc0a}
+.b-ipv6{color:#a5f3fc;border-color:#a5f3fc2a;background:#a5f3fc0a}
+.b-auth{color:#f87171;border-color:#f871712a;background:#f871710a}
+.rb{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid;font-weight:700}
+.r-info{color:#58a6ff;border-color:#58a6ff33;background:#58a6ff0d}
+.r-low{color:#3fb950;border-color:#3fb95033;background:#3fb9500d}
+.r-medium{color:#e3b341;border-color:#e3b34133;background:#e3b3410d}
+.r-high{color:#ffa657;border-color:#ffa65733;background:#ffa6570d}
+.r-critical{color:#f85149;border-color:#f8514933;background:#f851490d}
+.what{background:#58a6ff07;border:1px solid #58a6ff1a;border-radius:var(--rs);
+  padding:.42rem .6rem;font-size:.73rem;color:var(--t2);line-height:1.5}
+.wlbl{font-size:.6rem;letter-spacing:.8px;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:.15rem}
+.cb{padding:.8rem 1rem;display:flex;flex-direction:column;gap:.6rem}
+.dblk{background:#0d1117;border:1px solid var(--b1);border-radius:var(--rs);overflow:hidden}
+.dbar{display:flex;align-items:center;justify-content:space-between;padding:.26rem .65rem;
+  border-bottom:1px solid var(--b1);background:var(--s1)}
+.dbar-l{display:flex;align-items:center;gap:.45rem}
+.dots{display:flex;gap:3px}
+.dots span{width:8px;height:8px;border-radius:50%}
+.d1{background:#f85149}.d2{background:#e3b341}.d3{background:#3fb950}
+.dbar-r{display:flex;align-items:center;gap:.35rem}
+.cbtn{background:none;border:1px solid var(--b2);color:var(--mut);font-size:.65rem;padding:.13rem .42rem;
+  border-radius:3px;cursor:pointer;transition:all .14s;font-family:var(--mono)}
+.cbtn:hover{border-color:var(--acc);color:var(--acc)}
+.cbtn.ok{border-color:var(--grn)!important;color:var(--grn)!important}
+.dpre{padding:.62rem .88rem;font-family:var(--mono);font-size:.78rem;color:#a5f3a5;
+  line-height:1.72;white-space:pre-wrap;word-break:break-all;margin:0}
+.dpre .kw{color:#79c0ff;font-weight:700}
+.dpre .fl{color:#ffa657;font-weight:600}
+.dpre .tgt{color:#f85149;font-weight:700}
+.dpre .val{color:#a5d6ff}
+.ptog{display:flex;align-items:center;justify-content:space-between;background:var(--s2);
+  border:1px solid var(--b1);border-radius:var(--rs);padding:.32rem .65rem;
+  font-size:.7rem;color:var(--mut);cursor:pointer;transition:all .14s;width:100%}
+.ptog:hover{border-color:var(--b2);color:var(--t2)}
+.ptog .arr{transition:transform .18s;font-size:.58rem}
+.ptog.open .arr{transform:rotate(180deg)}
+.pwrap{display:none;border:1px solid var(--b1);border-top:none;border-radius:0 0 var(--rs) var(--rs);overflow:hidden}
+.pwrap.open{display:block}
+.ptbl{width:100%;border-collapse:collapse;font-size:.7rem}
+.ptbl th{text-align:left;padding:.3rem .58rem;background:var(--bg);color:var(--m2);
+  font-size:.61rem;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--b1)}
+.ptbl td{padding:.3rem .58rem;border-bottom:1px solid var(--b1);vertical-align:top}
+.ptbl tr:last-child td{border-bottom:none}
+.ptbl tr:hover td{background:var(--s2)}
+.pf{font-family:var(--mono);color:var(--grn);font-size:.68rem}
+.pd{color:var(--mut);font-size:.68rem}
+.tip{background:#e3b34110;border:1px solid #e3b34128;border-radius:var(--rs);padding:.44rem .65rem;
+  font-size:.71rem;color:#e3b341;display:flex;gap:.42rem;line-height:1.5}
+.wrn{background:#f8514910;border:1px solid #f8514928;border-radius:var(--rs);padding:.44rem .65rem;
+  font-size:.71rem;color:#f85149;display:flex;gap:.42rem;line-height:1.5}
+.ctable{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.chdr{display:grid;grid-template-columns:190px 1fr 82px 110px;gap:.4rem;padding:.36rem .75rem;
+  background:var(--s2);border-bottom:1px solid var(--b1);font-size:.62rem;color:var(--m2);
+  letter-spacing:.5px;text-transform:uppercase}
+.crow{display:grid;grid-template-columns:190px 1fr 82px 110px;gap:.4rem;padding:.42rem .75rem;
+  border-bottom:1px solid var(--b1);align-items:center;transition:background .14s}
+.crow:last-child{border-bottom:none}
+.crow:hover{background:var(--s2)}
+.cr-name{font-size:.75rem;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-cmd{font-family:var(--mono);font-size:.68rem;color:#a5f3a5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-act{display:flex;gap:.28rem;align-items:center}
+.crc{background:none;border:1px solid var(--b2);color:var(--mut);font-size:.62rem;padding:.1rem .35rem;
+  border-radius:3px;cursor:pointer;transition:all .14s}
+.crc:hover{border-color:var(--acc);color:var(--acc)}
+.crc.ok{border-color:var(--grn)!important;color:var(--grn)!important}
+@media(max-width:640px){.chdr,.crow{grid-template-columns:130px 1fr 80px}}
+.nores{text-align:center;padding:3rem;color:var(--mut)}
+.nores h3{font-size:.95rem;color:var(--t2);margin-bottom:.38rem}
+footer{position:relative;z-index:1;border-top:1px solid var(--b1);padding:1.3rem 1.5rem;text-align:center;font-size:.74rem;color:var(--mut)}
+.legal{display:inline-block;background:#f8514910;border:1px solid #f8514928;border-radius:var(--rs);
+  padding:.48rem 1.1rem;max-width:680px;color:#f85149;margin-bottom:.75rem;font-size:.72rem;line-height:1.5}
+footer a{color:var(--acc);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.fbrand{font-weight:800;font-size:.8rem;background:linear-gradient(135deg,#58a6ff,#3fb950);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hlogo">
+    <div class="hico">&#128269;</div>
+    <div>
+      <div class="hname">awjunaid</div>
+      <div class="hsub">Nmap Web Penetration Testing Suite</div>
+    </div>
+  </div>
+  <div class="hbadges">
+    <span class="hb g">&#10003; 200+ Commands</span>
+    <span class="hb b">&#128296; Nmap</span>
+    <span class="hb y">&#128027; Pentest</span>
+    <span class="hb r">&#9888; Authorized Only</span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="chip">&#128296; Nmap Command Generator</div>
+  <h2>Enter Target &#8594; Get <span class="grad">Nmap Commands</span></h2>
+  <p>Type any target IP or domain and instantly get copy-paste ready Nmap commands for every stage of your web penetration testing workflow.</p>
+  <div class="panel">
+    <div class="irow">
+      <div class="ipfx">&#127919; target:</div>
+      <input id="inp" type="text" placeholder="192.168.1.1 or example.com" autocomplete="off" spellcheck="false"/>
+      <button class="gbtn" id="genbtn">Generate &#128296;</button>
+    </div>
+    <div class="errbox" id="errbox">&#9888; Please enter a valid IP address or domain e.g. <strong>192.168.1.1</strong> or <strong>example.com</strong></div>
+    <div class="statsbar" id="statsbar">
+      <div class="sc"><div class="sdot" style="background:var(--acc)"></div>Categories: <strong id="sc1">0</strong></div>
+      <div class="sc"><div class="sdot" style="background:var(--grn)"></div>Commands: <strong id="sc2">0</strong></div>
+      <div class="sc"><div class="sdot" style="background:var(--ylw)"></div>Target: <strong id="sc3">&#8212;</strong></div>
+    </div>
+  </div>
+</section>
+
+<div class="toolbar" id="toolbar">
+  <button class="vbtn on" id="vcard">&#9635; Cards</button>
+  <button class="vbtn" id="vcomp">&#9776; Compact</button>
+  <div class="srch">
+    <span class="sico">&#128269;</span>
+    <input type="text" id="searchinp" placeholder="Search commands, flags..."/>
+  </div>
+</div>
+
+<div class="pills" id="pills"></div>
+
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main id="content"></main>
+</div>
+
+<footer>
+  <div class="legal">
+    &#9888; <strong>Legal Disclaimer:</strong> These Nmap commands are for <strong>authorized security research and penetration testing only</strong>.
+    Only use them on systems you own or have explicit written permission to test.
+    Unauthorized port scanning may violate computer fraud laws in your jurisdiction.
+  </div>
+  <br/>
+  <span>Built for ethical hackers &amp; penetration testers &bull; </span>
+  <a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a>
+  <span> &bull; </span>
+  <a href="https://nmap.org/docs.html" target="_blank" rel="noopener">Nmap Official Docs</a>
+  <br/><br/>
+  <span class="fbrand">awjunaid</span>
+  <span> &mdash; Copyright &copy; 2025 </span>
+  <a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a>
+  <span>. All rights reserved.</span>
+</footer>
+
+<script>
+var CATS = [
+  {
+    id:"discovery", icon:"&#128270;", badge:"b-disc",
+    title:"Host Discovery",
+    desc:"Identify live hosts on the network before port scanning. Essential first step in any pentest engagement.",
+    tip:"Always run host discovery before full scans to avoid wasting time on offline hosts.",
+    warn:"",
+    flags:[
+      {f:"-sn", d:"Ping scan only — no port scan"},
+      {f:"-Pn", d:"Skip host discovery, treat all hosts as up"},
+      {f:"-PS", d:"TCP SYN ping on specified ports"},
+      {f:"-PA", d:"TCP ACK ping on specified ports"},
+      {f:"-PE", d:"ICMP echo request ping"},
+      {f:"--traceroute", d:"Trace hop path to each host"}
+    ],
+    cmds:[
+      {l:"Ping sweep subnet",r:"low",c:"nmap -sn {T}/24",e:"Sends ICMP echo requests to all hosts in the /24 subnet to find live hosts. No port scan is performed. Fast and quiet for initial recon."},
+      {l:"Single host ping check",r:"low",c:"nmap -sn {T}",e:"Checks if a single host is alive using ICMP, TCP SYN to port 443, TCP ACK to port 80, and ICMP timestamp. Does not scan ports."},
+      {l:"Disable ping treat host up",r:"medium",c:"nmap -Pn {T}",e:"Skips host discovery entirely and assumes the target is online. Use when ICMP is blocked by firewalls. Goes straight to port scanning."},
+      {l:"TCP SYN ping discovery",r:"medium",c:"nmap -PS22,80,443 {T}",e:"Sends TCP SYN packets to ports 22, 80, and 443 to discover live hosts. Useful when ICMP is filtered but web ports are open."},
+      {l:"TCP ACK ping discovery",r:"medium",c:"nmap -PA80,443 {T}",e:"Sends TCP ACK packets to check if host is alive. May bypass stateful firewalls as ACK packets look like established connections."},
+      {l:"ICMP echo ping",r:"low",c:"nmap -PE {T}",e:"Classic ICMP echo request (ping). Fast but often blocked by firewalls and Windows hosts. Best used inside trusted networks."},
+      {l:"UDP ping discovery",r:"medium",c:"nmap -PU53,161 {T}",e:"Sends UDP packets to ports 53 (DNS) and 161 (SNMP) to discover hosts. Useful when TCP pings are blocked."},
+      {l:"ARP scan local network",r:"low",c:"nmap -PR {T}/24",e:"ARP scan for hosts on the same local network segment. Most reliable discovery method on LANs — cannot be blocked by firewalls."},
+      {l:"Traceroute to target",r:"low",c:"nmap -sn --traceroute {T}",e:"Discovers live hosts and maps the network hop path to each one. Reveals intermediate routers and network topology."},
+      {l:"List scan no packets",r:"info",c:"nmap -sL {T}/24",e:"Lists all IP addresses in the range without sending any packets. Performs reverse DNS lookup only. Zero network noise."},
+      {l:"Scan entire subnet",r:"medium",c:"nmap -sn {T}/24 --open",e:"Ping sweep showing only hosts that respond. Clean output showing just live hosts in the subnet for quick asset inventory."},
+      {l:"Multiple target ranges",r:"medium",c:"nmap -sn {T}/24 192.168.2.0/24",e:"Scans multiple network ranges in a single command. Useful for discovering hosts across multiple subnets simultaneously."}
+    ]
+  },
+  {
+    id:"portscan", icon:"&#128268;", badge:"b-scan",
+    title:"Port Scanning Techniques",
+    desc:"Core Nmap scanning methods to identify open TCP and UDP ports and the services running on them.",
+    tip:"SYN scan (-sS) requires root/admin privileges and is the most reliable and stealthy scan type.",
+    warn:"UDP scanning is slow — always specify specific ports with -p to avoid hour-long scans.",
+    flags:[
+      {f:"-sS", d:"TCP SYN (half-open) scan — stealthy, requires root"},
+      {f:"-sT", d:"TCP connect scan — no root needed, more detectable"},
+      {f:"-sU", d:"UDP port scan"},
+      {f:"-sA", d:"TCP ACK scan — maps firewall rules"},
+      {f:"-sW", d:"TCP Window scan — distinguishes open from closed"},
+      {f:"-sN/-sF/-sX", d:"NULL, FIN, Xmas stealth scans"},
+      {f:"-p", d:"Specify port range or list"},
+      {f:"--open", d:"Show only open ports"}
+    ],
+    cmds:[
+      {l:"SYN stealth scan",r:"medium",c:"nmap -sS {T}",e:"TCP SYN scan sends SYN packets and never completes the handshake. Faster and stealthier than connect scan. Requires root/admin. Default scan type when privileged."},
+      {l:"TCP connect scan",r:"medium",c:"nmap -sT {T}",e:"Full TCP connection scan. Does not require root privileges. More detectable as it completes the three-way handshake and leaves connection logs."},
+      {l:"UDP scan common ports",r:"high",c:"nmap -sU -p 53,67,68,69,123,161,162,500,514,1900 {T}",e:"Scans critical UDP services: DNS (53), DHCP (67/68), TFTP (69), NTP (123), SNMP (161/162), IKE (500), Syslog (514), UPnP (1900)."},
+      {l:"ACK scan firewall mapping",r:"medium",c:"nmap -sA {T}",e:"TCP ACK scan to map firewall rules. Open and closed ports both return RST. Ports that don't respond are filtered. Shows which ports are behind a stateful firewall."},
+      {l:"Window scan",r:"medium",c:"nmap -sW {T}",e:"TCP Window scan analyzes the TCP window size in RST packets. On some systems can distinguish open from closed ports. Similar to ACK scan but more refined."},
+      {l:"NULL scan stealth",r:"high",c:"nmap -sN {T}",e:"Sends TCP packets with no flags set. Open ports do not respond. Closed ports send RST. Can bypass non-stateful firewalls and some IDS systems."},
+      {l:"FIN scan stealth",r:"high",c:"nmap -sF {T}",e:"Sends TCP FIN packets. Open ports ignore it, closed ports reply with RST. Can slip through some firewalls that only look for SYN packets."},
+      {l:"Xmas scan stealth",r:"high",c:"nmap -sX {T}",e:"Sets FIN, PSH, and URG flags simultaneously — like a Christmas tree. Same behavior as NULL and FIN scans. RFC 793 compliant systems respond predictably."},
+      {l:"All ports full scan",r:"high",c:"nmap -sS -p- {T}",e:"Scans all 65535 TCP ports. Takes longer but ensures no service is missed. Critical for thorough pentests where targets may run services on non-standard ports."},
+      {l:"Top 1000 ports",r:"medium",c:"nmap -sS --top-ports 1000 {T}",e:"Scans the 1000 most commonly used ports based on real-world frequency data. Good balance between speed and coverage for initial recon."},
+      {l:"Common web ports only",r:"low",c:"nmap -sS -p 80,443,8080,8443,8000,8888,3000,5000 {T}",e:"Focuses exclusively on common web application ports. Fast initial scan to identify web services before running deeper web-specific scans."},
+      {l:"Combined TCP and UDP",r:"high",c:"nmap -sS -sU -p T:80,443,U:53,161 {T}",e:"Simultaneously scans specific TCP and UDP ports in one command. Efficient way to check both protocol types without running two separate scans."},
+      {l:"Show only open ports",r:"medium",c:"nmap -sS --open {T}",e:"Filters output to display only open ports, hiding closed and filtered ports. Cleaner output for large scans with many non-responsive ports."},
+      {l:"Fast scan top 100",r:"low",c:"nmap -F {T}",e:"Fast mode scans only the 100 most common ports instead of the default 1000. Roughly 5x faster than the default scan. Good for quick initial assessments."}
+    ]
+  },
+  {
+    id:"web", icon:"&#127760;", badge:"b-web",
+    title:"Web Application Scanning",
+    desc:"Targeted Nmap scans and NSE scripts specifically designed for web application penetration testing.",
+    tip:"Combine with -sV for service version detection to identify exact web server versions for CVE research.",
+    warn:"",
+    flags:[
+      {f:"-p 80,443,8080", d:"Target web ports specifically"},
+      {f:"--script http-*", d:"Run all HTTP NSE scripts"},
+      {f:"-sV", d:"Service version detection"},
+      {f:"--script-args", d:"Pass arguments to NSE scripts"}
+    ],
+    cmds:[
+      {l:"HTTP title enumeration",r:"low",c:"nmap -sV -p 80,443,8080,8443 --script http-title {T}",e:"Grabs the HTML title tag from all web servers found. Quickly identifies what application is running on each port without deep inspection."},
+      {l:"HTTP headers enumeration",r:"low",c:"nmap -p 80,443 --script http-headers {T}",e:"Retrieves and displays all HTTP response headers. Reveals server type, X-Powered-By headers, security headers presence, and framework information."},
+      {l:"HTTP methods allowed",r:"medium",c:"nmap -p 80,443 --script http-methods {T}",e:"Tests which HTTP methods are allowed (GET, POST, PUT, DELETE, OPTIONS, TRACE). TRACE enabled allows XST attacks. PUT/DELETE may allow file upload."},
+      {l:"HTTP auth finder",r:"medium",c:"nmap -p 80,443 --script http-auth-finder {T}",e:"Identifies authentication schemes used by the web server such as Basic, Digest, NTLM, or Negotiate. Helps select the right attack vector."},
+      {l:"HTTP brute force login",r:"critical",c:"nmap -p 80 --script http-brute {T}",e:"Performs dictionary-based brute force against HTTP Basic Authentication. Tests common username and password combinations against protected directories."},
+      {l:"HTTP form brute force",r:"critical",c:"nmap -p 80,443 --script http-form-brute --script-args userdb=users.txt,passdb=pass.txt {T}",e:"Brute forces HTML login forms by submitting POST requests with credential lists. Detects login forms automatically and tests all combinations."},
+      {l:"HTTP default credentials",r:"high",c:"nmap -p 80,443 --script http-default-accounts {T}",e:"Tests web interfaces for default manufacturer credentials. Covers common devices like routers, cameras, switches, and management panels."},
+      {l:"Web directory enum",r:"medium",c:"nmap -p 80,443 --script http-enum {T}",e:"Enumerates directories and files on web servers against a built-in database of common paths. Finds admin panels, login pages, and sensitive directories."},
+      {l:"HTTP robots.txt",r:"low",c:"nmap -p 80,443 --script http-robots.txt {T}",e:"Retrieves and displays the robots.txt file which often reveals hidden directories that administrators want to keep out of search engine indexes."},
+      {l:"HTTP sitemap spider",r:"low",c:"nmap -p 80,443 --script http-sitemap-generator {T}",e:"Spiders the web application and generates a sitemap of all discovered URLs. Helps map the full attack surface of a web application."},
+      {l:"WordPress scan",r:"high",c:"nmap -p 80,443 --script http-wordpress-enum {T}",e:"Enumerates WordPress installations including installed plugins and themes. Discovered plugin versions can be cross-referenced with WPScan CVE database."},
+      {l:"WordPress brute force",r:"critical",c:"nmap -p 80,443 --script http-wordpress-brute {T}",e:"Brute forces WordPress xmlrpc.php login. WordPress xmlrpc allows testing multiple passwords per request making it faster than standard form brute force."},
+      {l:"Joomla vulnerability scan",r:"high",c:"nmap -p 80,443 --script http-joomla-brute {T}",e:"Brute forces Joomla administrator login panel. Tests common and default Joomla credentials against the /administrator/index.php endpoint."},
+      {l:"HTTP SQL injection detect",r:"critical",c:"nmap -p 80,443 --script http-sql-injection {T}",e:"Spiders the web application and tests all discovered form inputs and URL parameters for SQL injection vulnerabilities using error-based detection."},
+      {l:"HTTP XSS detect",r:"high",c:"nmap -p 80,443 --script http-xssed {T}",e:"Checks the target against the XSSed database of known XSS vulnerabilities. Identifies previously reported XSS issues in web applications."},
+      {l:"HTTP stored XSS test",r:"high",c:"nmap -p 80,443 --script http-stored-xss {T}",e:"Tests for stored Cross-Site Scripting vulnerabilities by submitting payloads to input fields and checking if they are reflected back in subsequent responses."},
+      {l:"HTTP LFI detection",r:"critical",c:"nmap -p 80,443 --script http-shellshock {T}",e:"Tests for Shellshock vulnerability (CVE-2014-6271) in CGI scripts. Sends specially crafted HTTP headers to detect if the server executes bash commands."},
+      {l:"HTTP CSRF token check",r:"medium",c:"nmap -p 80,443 --script http-csrf {T}",e:"Identifies forms that are missing CSRF token protection. Forms without CSRF tokens are vulnerable to Cross-Site Request Forgery attacks."},
+      {l:"HTTP security headers",r:"medium",c:"nmap -p 80,443 --script http-security-headers {T}",e:"Checks for the presence of important security headers: HSTS, X-Frame-Options, X-XSS-Protection, Content-Security-Policy, and X-Content-Type-Options."},
+      {l:"SSL certificate info",r:"low",c:"nmap -p 443,8443 --script ssl-cert {T}",e:"Retrieves and displays the SSL/TLS certificate details including subject, issuer, validity dates, and SANs. Reveals organization info and subdomains."},
+      {l:"SSL cipher enumeration",r:"medium",c:"nmap -p 443 --script ssl-enum-ciphers {T}",e:"Enumerates all supported SSL/TLS cipher suites and protocol versions. Identifies weak ciphers (RC4, DES, EXPORT) and outdated protocols (SSLv2, SSLv3, TLS 1.0)."},
+      {l:"Heartbleed SSL test",r:"critical",c:"nmap -p 443 --script ssl-heartbleed {T}",e:"Tests for the Heartbleed vulnerability (CVE-2014-0160) in OpenSSL. Heartbleed allows reading server memory including private keys and session tokens."},
+      {l:"DROWN SSL test",r:"critical",c:"nmap -p 443 --script ssl-drown {T}",e:"Tests for the DROWN attack (CVE-2016-0800). If SSLv2 is supported, modern TLS connections can be decrypted using the SSLv2 vulnerability."},
+      {l:"HTTP PUT file upload",r:"critical",c:"nmap -p 80,443 --script http-put --script-args http-put.url=/uploads/test.txt,http-put.file=test.txt {T}",e:"Tests if HTTP PUT method is enabled and can upload files. Unrestricted PUT allows uploading web shells and arbitrary files to the server."},
+      {l:"HTTP open proxy test",r:"high",c:"nmap -p 80,3128,8080 --script http-open-proxy {T}",e:"Detects open HTTP proxy servers that can be used to route attack traffic anonymously. Open proxies can be abused for SSRF and credential theft."}
+    ]
+  },
+  {
+    id:"service", icon:"&#128203;", badge:"b-scan",
+    title:"Service and Version Detection",
+    desc:"Identify exact software versions, service banners, and application fingerprints for CVE research.",
+    tip:"Version detection data maps directly to CVE databases — always run -sV on discovered open ports.",
+    warn:"",
+    flags:[
+      {f:"-sV", d:"Enable service version detection"},
+      {f:"--version-intensity", d:"Set detection intensity 0-9"},
+      {f:"-A", d:"Aggressive scan: OS + version + scripts + traceroute"},
+      {f:"--version-all", d:"Try every probe for version detection"}
+    ],
+    cmds:[
+      {l:"Service version detection",r:"medium",c:"nmap -sV {T}",e:"Probes open ports to determine the service name and exact version. Returns banners like Apache/2.4.51, OpenSSH_8.2p1. Use versions to find CVEs in NVD."},
+      {l:"Aggressive version scan",r:"high",c:"nmap -sV --version-intensity 9 {T}",e:"Maximum intensity version detection tries all probes against every open port. Slowest but most accurate method. Intensity 0 is fastest, 9 is most thorough."},
+      {l:"All info aggressive scan",r:"high",c:"nmap -A {T}",e:"Enables OS detection, version detection, script scanning, and traceroute simultaneously. Single command for comprehensive host profiling. Loud but thorough."},
+      {l:"Banner grabbing",r:"low",c:"nmap -sV --script banner {T}",e:"Connects to open ports and captures service banners. Banners often reveal exact software names and versions, sometimes including build dates and OS info."},
+      {l:"Service scan with scripts",r:"high",c:"nmap -sV --script=default {T}",e:"Runs default NSE scripts alongside version detection. Default scripts are safe and non-intrusive. Provides rich service information for common protocols."},
+      {l:"Web service versions",r:"medium",c:"nmap -sV -p 80,443,8080,8443 {T}",e:"Focused version detection on web ports only. Identifies exact Apache, Nginx, IIS, Tomcat versions for targeted CVE research and exploit selection."},
+      {l:"Database service detect",r:"high",c:"nmap -sV -p 1433,1521,3306,5432,6379,27017 {T}",e:"Detects database services: MSSQL (1433), Oracle (1521), MySQL (3306), PostgreSQL (5432), Redis (6379), MongoDB (27017). Reveals DB type and version."},
+      {l:"Mail service versions",r:"medium",c:"nmap -sV -p 25,110,143,465,587,993,995 {T}",e:"Identifies mail server software and versions: SMTP (25/465/587), POP3 (110/995), IMAP (143/993). Reveals Exim, Postfix, Exchange versions."},
+      {l:"FTP service detection",r:"medium",c:"nmap -sV -p 21 --script ftp-anon,ftp-syst {T}",e:"Detects FTP service version and tests for anonymous login. Anonymous FTP access allows unauthenticated file download and sometimes upload."},
+      {l:"SSH version and algos",r:"medium",c:"nmap -sV -p 22 --script ssh2-enum-algos {T}",e:"Identifies SSH software version and enumerates all supported encryption algorithms. Weak algorithms like arcfour and CBC mode may be exploitable."}
+    ]
+  },
+  {
+    id:"os", icon:"&#128187;", badge:"b-os",
+    title:"OS Detection and Fingerprinting",
+    desc:"Determine the operating system running on target hosts using TCP/IP stack fingerprinting techniques.",
+    tip:"OS detection requires at least one open and one closed port for accurate fingerprinting results.",
+    warn:"OS detection accuracy varies — always verify with multiple methods and banner information.",
+    flags:[
+      {f:"-O", d:"Enable OS detection"},
+      {f:"--osscan-guess", d:"Guess OS more aggressively"},
+      {f:"--osscan-limit", d:"Only run against likely targets"},
+      {f:"-A", d:"OS + version + scripts + traceroute"}
+    ],
+    cmds:[
+      {l:"Basic OS detection",r:"medium",c:"nmap -O {T}",e:"Uses TCP/IP stack fingerprinting to determine the operating system. Analyzes packet characteristics like TTL, window size, and TCP options to identify the OS family and version."},
+      {l:"Aggressive OS guess",r:"medium",c:"nmap -O --osscan-guess {T}",e:"When Nmap cannot perfectly match a fingerprint it guesses the closest match and shows confidence percentages. Useful when target OS is unusual or hardened."},
+      {l:"OS plus version detection",r:"high",c:"nmap -O -sV {T}",e:"Combines OS fingerprinting with service version detection. Provides complete host profiling showing both the OS and every service version in a single scan."},
+      {l:"Full aggressive scan",r:"high",c:"nmap -A {T}",e:"Runs OS detection, service version detection, default NSE scripts, and traceroute together. Most comprehensive single-command scan. Very loud — detected by most IDS."},
+      {l:"OS detection all ports",r:"high",c:"nmap -O -p- {T}",e:"Runs OS detection after scanning all 65535 ports. Ensures maximum open/closed port ratio for most accurate OS fingerprinting, especially on filtered hosts."},
+      {l:"OS detection subnet",r:"medium",c:"nmap -O {T}/24",e:"Performs OS detection across an entire subnet. Useful for asset inventory to identify Windows, Linux, and network device types across the infrastructure."},
+      {l:"TTL based OS inference",r:"low",c:"nmap -sS -O --script=banner {T}",e:"Combines SYN scan with OS detection and banner grabbing. TTL values in responses help confirm OS type: Windows typically 128, Linux typically 64."},
+      {l:"OS detect limit hosts",r:"medium",c:"nmap -O --osscan-limit {T}/24",e:"Skips OS detection on hosts without both an open and a closed TCP port. Saves time on large subnet scans by only fingerprinting hosts where detection will succeed."}
+    ]
+  },
+  {
+    id:"scripts", icon:"&#128220;", badge:"b-script",
+    title:"NSE Script Scanning",
+    desc:"Nmap Scripting Engine scripts for advanced vulnerability detection, enumeration, and exploitation.",
+    tip:"Use --script-help <scriptname> to see documentation for any NSE script before running it.",
+    warn:"Intrusive scripts can crash services or trigger alerts. Always use safe category in production environments.",
+    flags:[
+      {f:"--script", d:"Run specific scripts or categories"},
+      {f:"--script-args", d:"Pass arguments to scripts"},
+      {f:"--script-trace", d:"Show all script network traffic"},
+      {f:"-sC", d:"Shorthand for --script=default"}
+    ],
+    cmds:[
+      {l:"Default safe scripts",r:"medium",c:"nmap -sC {T}",e:"Runs the default set of NSE scripts which are safe, non-intrusive, and provide rich information. Equivalent to --script=default. Good first script run."},
+      {l:"All vuln scripts",r:"high",c:"nmap --script vuln {T}",e:"Runs all scripts in the vuln category to detect known vulnerabilities. Checks for common CVEs, misconfigurations, and security weaknesses across all open services."},
+      {l:"Auth scripts",r:"high",c:"nmap --script auth {T}",e:"Runs authentication-related scripts including default credential testing, anonymous access checks, and auth bypass detection across all discovered services."},
+      {l:"Discovery scripts",r:"low",c:"nmap --script discovery {T}",e:"Runs all discovery scripts to enumerate services, gather hostnames, collect SNMP data, list network shares, and extract service information."},
+      {l:"Safe category scripts",r:"low",c:"nmap --script safe {T}",e:"Runs only scripts marked as safe — they will not crash services or perform intrusive actions. Suitable for scanning production systems with minimal risk."},
+      {l:"Intrusive scripts",r:"critical",c:"nmap --script intrusive {T}",e:"Runs intrusive scripts that may crash services, generate significant noise, or cause denial of service. NEVER use on production systems without approval."},
+      {l:"Exploit category",r:"critical",c:"nmap --script exploit {T}",e:"Attempts to exploit detected vulnerabilities. Only use in fully authorized penetration tests. Can compromise systems and cause service disruption."},
+      {l:"Brute force scripts",r:"critical",c:"nmap --script brute {T}",e:"Runs all brute force scripts against discovered services. Tests SSH, FTP, HTTP, SMB, databases, and more with common credential lists."},
+      {l:"Malware detection",r:"high",c:"nmap --script malware {T}",e:"Checks for signs of malware infection including backdoors, IRC bots, compromised services, and malicious processes listening on unusual ports."},
+      {l:"External scripts",r:"medium",c:"nmap --script external {T}",e:"Scripts that query external third-party services like DNS, whois, and reputation databases. Requires internet access. May leak target information to external services."},
+      {l:"Fuzzer scripts",r:"high",c:"nmap --script fuzzer {T}",e:"Runs fuzzing scripts that send malformed or unexpected input to services to discover crashes, memory corruption, and input validation bugs."},
+      {l:"Vuln and safe combo",r:"high",c:"nmap --script vuln,safe {T}",e:"Combines vulnerability detection with safe scripts. Comprehensive scan that checks for known CVEs while keeping the scan non-destructive."},
+      {l:"Script with args",r:"high",c:"nmap --script http-brute --script-args brute.mode=user,brute.firstonly=true {T}",e:"Passes specific arguments to NSE scripts to control their behavior. Here limits brute force to username enumeration only and stops after first success."},
+      {l:"Script trace debug",r:"low",c:"nmap --script default --script-trace {T}",e:"Shows all network traffic generated by NSE scripts. Useful for debugging script behavior and understanding exactly what data is being sent to the target."}
+    ]
+  },
+  {
+    id:"vuln", icon:"&#128272;", badge:"b-vuln",
+    title:"Vulnerability Detection",
+    desc:"Detect specific known CVEs and vulnerabilities using targeted Nmap NSE scripts.",
+    tip:"Always verify vulnerability findings manually — NSE scripts can produce false positives.",
+    warn:"Some vulnerability scripts send exploit payloads and may crash vulnerable services.",
+    flags:[
+      {f:"--script vuln", d:"Run all vulnerability detection scripts"},
+      {f:"-sV", d:"Required for accurate vuln detection"},
+      {f:"--script-args", d:"Pass CVE-specific arguments"}
+    ],
+    cmds:[
+      {l:"Heartbleed OpenSSL",r:"critical",c:"nmap -p 443 --script ssl-heartbleed {T}",e:"Tests for CVE-2014-0160 Heartbleed in OpenSSL 1.0.1 through 1.0.1f. Allows attackers to read 64KB of server memory per request including private keys and passwords."},
+      {l:"EternalBlue SMB",r:"critical",c:"nmap -p 445 --script smb-vuln-ms17-010 {T}",e:"Tests for CVE-2017-0144 EternalBlue in SMBv1. Used by WannaCry and NotPetya ransomware. Allows unauthenticated remote code execution on unpatched Windows systems."},
+      {l:"MS08-067 NetAPI",r:"critical",c:"nmap -p 445 --script smb-vuln-ms08-067 {T}",e:"Tests for CVE-2008-4250 MS08-067 used by Conficker worm. Remote code execution via malformed RPC request to NetAPI service on Windows XP and 2003."},
+      {l:"BlueKeep RDP",r:"critical",c:"nmap -p 3389 --script rdp-vuln-ms12-020 {T}",e:"Tests for MS12-020 Remote Desktop vulnerability causing denial of service or potential code execution. Checks RDP service for dangerous memory corruption vulnerability."},
+      {l:"Shellshock CGI",r:"critical",c:"nmap -p 80,443 --script http-shellshock --script-args uri=/cgi-bin/test.cgi {T}",e:"Tests CGI scripts for Shellshock CVE-2014-6271. Sends malformed environment variables in HTTP headers. Affected servers execute arbitrary commands in bash."},
+      {l:"SMB signing check",r:"medium",c:"nmap -p 445 --script smb-security-mode {T}",e:"Checks SMB security mode and signing configuration. SMB signing disabled allows NTLM relay attacks where captured authentication can be replayed to other services."},
+      {l:"SMB vulnerabilities all",r:"critical",c:"nmap -p 445 --script smb-vuln-* {T}",e:"Runs all SMB vulnerability scripts simultaneously. Tests for EternalBlue, MS08-067, MS10-054, MS10-061 print spooler, and other critical SMB vulnerabilities."},
+      {l:"FTP anonymous access",r:"high",c:"nmap -p 21 --script ftp-anon {T}",e:"Tests if FTP server allows anonymous login. Anonymous FTP access can expose sensitive files and may allow uploading web shells if write permissions exist."},
+      {l:"FTP bounce scan",r:"high",c:"nmap -p 21 --script ftp-bounce {T}",e:"Tests if FTP server allows PORT command abuse for bounce attacks. Vulnerable FTP servers can be used to scan other hosts and bypass firewall rules."},
+      {l:"SNMP community strings",r:"high",c:"nmap -sU -p 161 --script snmp-brute {T}",e:"Brute forces SNMP community strings (default: public, private). Valid community strings allow reading full network configuration, routing tables, and system info."},
+      {l:"SNMP full info dump",r:"high",c:"nmap -sU -p 161 --script snmp-info,snmp-sysdescr,snmp-win32-users {T}",e:"Retrieves comprehensive SNMP data including system description, installed software, running processes, and Windows user accounts if community string is known."},
+      {l:"Telnet weak auth",r:"high",c:"nmap -p 23 --script telnet-brute {T}",e:"Brute forces Telnet login with common credentials. Telnet transmits credentials in plaintext making it a critical finding when combined with weak passwords."},
+      {l:"VNC no auth check",r:"critical",c:"nmap -p 5900 --script vnc-info,vnc-brute {T}",e:"Checks VNC server information and tests for no-authentication mode. VNC without password authentication allows full graphical access to the desktop."},
+      {l:"RDP brute force",r:"critical",c:"nmap -p 3389 --script rdp-brute {T}",e:"Brute forces Windows Remote Desktop login. Tests common Administrator and user credentials. Successful access provides full interactive Windows session."},
+      {l:"MySQL empty password",r:"critical",c:"nmap -p 3306 --script mysql-empty-password {T}",e:"Tests if MySQL root account has an empty password. Default MySQL installations often have root without a password — provides full database access."},
+      {l:"MySQL databases enum",r:"high",c:"nmap -p 3306 --script mysql-databases --script-args mysqluser=root {T}",e:"Enumerates all databases on MySQL server. With valid credentials lists every database name, revealing the full application data structure."},
+      {l:"MSSQL info and auth",r:"critical",c:"nmap -p 1433 --script ms-sql-info,ms-sql-empty-password,ms-sql-config {T}",e:"Gathers MSSQL server information, tests for empty SA password, and retrieves configuration. Empty SA account allows complete database server compromise."},
+      {l:"Redis no auth",r:"critical",c:"nmap -p 6379 --script redis-info {T}",e:"Connects to Redis without authentication. Unauthenticated Redis allows reading all cached data, writing arbitrary keys, and in some versions executing commands via replication."},
+      {l:"MongoDB open access",r:"critical",c:"nmap -p 27017 --script mongodb-info {T}",e:"Tests MongoDB for unauthenticated access. Many MongoDB instances are deployed without authentication exposing entire database contents to the internet."},
+      {l:"Elasticsearch open",r:"critical",c:"nmap -p 9200 --script http-get --script-args http-get.path=/_cat/indices {T}",e:"Tests Elasticsearch REST API for unauthenticated access. Open Elasticsearch indexes expose all stored data including logs, credentials, and business data."}
+    ]
+  },
+  {
+    id:"stealth", icon:"&#128274;", badge:"b-stealth",
+    title:"Stealth and Evasion",
+    desc:"Techniques to evade IDS/IPS, firewall detection, and reduce scan noise during engagements.",
+    tip:"Always confirm evasion techniques work in a test environment before using them in a real engagement.",
+    warn:"Evasion techniques may still be logged. Assume all activity is monitored even with stealth options.",
+    flags:[
+      {f:"-T0 to -T5", d:"Timing template: paranoid to insane"},
+      {f:"-D", d:"Decoy scanning with spoofed IPs"},
+      {f:"-S", d:"Spoof source IP address"},
+      {f:"-f", d:"Fragment packets to evade inspection"},
+      {f:"--data-length", d:"Append random data to packets"},
+      {f:"--randomize-hosts", d:"Scan targets in random order"}
+    ],
+    cmds:[
+      {l:"Paranoid timing T0",r:"high",c:"nmap -T0 -sS {T}",e:"Slowest possible timing — one probe every 5 minutes. Designed to evade IDS systems that detect port scans by rate limiting. A full scan can take days."},
+      {l:"Sneaky timing T1",r:"high",c:"nmap -T1 -sS {T}",e:"Very slow timing with 15 seconds between probes. Evades most IDS systems and rate-based detection mechanisms while being faster than T0."},
+      {l:"Polite timing T2",r:"medium",c:"nmap -T2 -sS {T}",e:"Slows scan to use minimal bandwidth. 400ms between probes. Polite to network resources and reduces chance of overwhelming network monitoring tools."},
+      {l:"Normal timing T3",r:"low",c:"nmap -T3 -sS {T}",e:"Default timing template. Balances speed with reliability. Suitable for most internal network scans. Adaptive based on network response times."},
+      {l:"Aggressive timing T4",r:"medium",c:"nmap -T4 -sS {T}",e:"Faster scanning assuming reliable network. Commonly used with -A for comprehensive scans. May trigger IDS alerts. Good for controlled pentest environments."},
+      {l:"Insane timing T5",r:"high",c:"nmap -T5 -sS {T}",e:"Maximum speed — may miss ports if the network cannot keep up. Sacrifices accuracy for speed. Very likely to trigger IDS/IPS alerts and may overwhelm targets."},
+      {l:"Decoy scan",r:"high",c:"nmap -D RND:10 {T}",e:"Generates 10 random decoy IP addresses alongside the real scan. Target sees probes from 11 different sources making it very difficult to identify the real attacker IP."},
+      {l:"Decoy with real IP hidden",r:"high",c:"nmap -D decoy1,decoy2,ME,decoy3 {T}",e:"Specifies exact decoy IPs with ME indicating where your real IP appears in the decoy list. Requires decoy hosts to be online for maximum effectiveness."},
+      {l:"Spoof source address",r:"critical",c:"nmap -S 192.168.1.100 -e eth0 {T}",e:"Spoofs the source IP address of all scan packets. Results are sent to the spoofed address so responses are not received. Use for confusion only, not real results."},
+      {l:"Packet fragmentation",r:"high",c:"nmap -f {T}",e:"Splits TCP header across multiple IP fragments. Many older firewalls and IDS systems cannot reassemble fragments for inspection, allowing packets to pass undetected."},
+      {l:"Max fragmentation",r:"high",c:"nmap -ff {T}",e:"Uses 16-byte fragments instead of 8-byte. Greater fragmentation increases the chance of evading IDS systems that have limited fragment reassembly capabilities."},
+      {l:"MTU custom fragmentation",r:"high",c:"nmap --mtu 16 {T}",e:"Sets custom MTU for packet fragmentation. Must be a multiple of 8. Smaller values create more fragments providing greater evasion but slower scanning."},
+      {l:"Random data padding",r:"medium",c:"nmap --data-length 25 {T}",e:"Appends 25 bytes of random data to all packets. Changes packet signatures that IDS systems use for fingerprinting scan tools. Makes scan look less like standard Nmap."},
+      {l:"Randomize host order",r:"medium",c:"nmap --randomize-hosts -sS {T}/24",e:"Scans hosts in random order instead of sequentially. Distributes scan activity across time making it harder for IDS systems to correlate packets as a coordinated scan."},
+      {l:"Source port spoofing",r:"high",c:"nmap --source-port 53 -sS {T}",e:"Sets source port to 53 (DNS). Some firewalls allow all traffic from port 53 assuming it is legitimate DNS traffic. Can bypass simple firewall rules."},
+      {l:"Idle zombie scan",r:"critical",c:"nmap -sI zombie_host {T}",e:"Uses a third-party zombie host to perform a truly blind scan. Nmap uses the zombie's IP ID sequence to infer port states without sending any packets directly from attacker IP."},
+      {l:"Slow stealth scan combo",r:"high",c:"nmap -T1 -f --data-length 15 -D RND:5 {T}",e:"Combines slow timing, fragmentation, data padding, and decoys for maximum stealth. Slowest and stealthiest combination — may take hours but very hard to detect."}
+    ]
+  },
+  {
+    id:"firewall", icon:"&#128293;", badge:"b-firewall",
+    title:"Firewall and IDS Bypass",
+    desc:"Techniques to probe through and bypass firewalls, packet filters, and intrusion detection systems.",
+    tip:"ACK scans are the most effective way to map firewall rules without triggering stateful inspection.",
+    warn:"",
+    flags:[
+      {f:"-sA", d:"ACK scan to map firewall rules"},
+      {f:"-sW", d:"Window scan for filtered port detection"},
+      {f:"--badsum", d:"Send packets with bad checksums"},
+      {f:"--ttl", d:"Set custom TTL value"}
+    ],
+    cmds:[
+      {l:"ACK firewall map",r:"medium",c:"nmap -sA {T}",e:"TCP ACK scan sends ACK packets to determine which ports are filtered vs unfiltered. Filtered ports get no response, unfiltered ports respond with RST. Maps firewall rules precisely."},
+      {l:"Window scan firewall",r:"medium",c:"nmap -sW {T}",e:"TCP Window scan analyzes TCP window size in RST packets. On some OSes can distinguish open from closed on filtered hosts. Complements ACK scan for firewall mapping."},
+      {l:"Scan through firewall T4",r:"medium",c:"nmap -T4 -Pn -sS {T}",e:"Combines skip-host-discovery with SYN scan at aggressive timing. Used when target is known to be up but ICMP is blocked. Forces scanning even when ping is filtered."},
+      {l:"Bad checksum probe",r:"medium",c:"nmap --badsum {T}",e:"Sends packets with intentionally incorrect TCP/UDP checksums. Legitimate systems drop these packets. If a response is received it came from a firewall or IDS, not the real host."},
+      {l:"Custom TTL evasion",r:"high",c:"nmap --ttl 128 -sS {T}",e:"Sets TTL to 128 (Windows default). Helps blend scan traffic in with legitimate Windows traffic patterns. Some IDS systems filter based on TTL anomalies."},
+      {l:"FIN scan firewall bypass",r:"high",c:"nmap -sF {T}",e:"FIN scan bypasses non-stateful packet filters that only block SYN packets. Stateless firewalls pass FIN packets while blocking SYN, allowing port state detection."},
+      {l:"Null scan bypass",r:"high",c:"nmap -sN {T}",e:"NULL scan (no TCP flags) bypasses firewalls filtering based on TCP flag inspection. Open ports ignore the probe, closed ports respond with RST."},
+      {l:"Xmas scan bypass",r:"high",c:"nmap -sX {T}",e:"Xmas scan with FIN, PSH, and URG flags bypasses some stateless firewalls. Effective against BSD-based systems. Windows ignores Xmas scans making all ports appear filtered."},
+      {l:"IP protocol scan",r:"medium",c:"nmap -sO {T}",e:"Scans for supported IP protocols (TCP, UDP, ICMP, IGMP, GRE, etc.) by sending raw IP packets with different protocol numbers. Maps allowed protocols through firewall."},
+      {l:"SCTP init scan",r:"medium",c:"nmap -sY {T}",e:"SCTP INIT scan for Stream Control Transmission Protocol services. SCTP is used in VoIP and telecom infrastructure. Can bypass firewalls configured only for TCP/UDP."},
+      {l:"IP ID idle scan",r:"critical",c:"nmap -sI {T}",e:"Blind idle scan using a zombie host. Exploits predictable IP ID increments of a third-party host to scan target without sending packets from attacker IP. Truly anonymous."},
+      {l:"Firewall detect combo",r:"high",c:"nmap -sA -sW -p 80,443,22 {T}",e:"Combines ACK and Window scans on common ports to build a detailed picture of the firewall ruleset — which ports are allowed, which are blocked, and which are rate-limited."}
+    ]
+  },
+  {
+    id:"output", icon:"&#128196;", badge:"b-output",
+    title:"Output and Reporting",
+    desc:"Save and format Nmap scan results for documentation, analysis, and reporting.",
+    tip:"Always save scans in XML format (-oX) for easy import into Metasploit, Maltego, and reporting tools.",
+    warn:"",
+    flags:[
+      {f:"-oN", d:"Normal output to file"},
+      {f:"-oX", d:"XML output to file"},
+      {f:"-oG", d:"Grepable output to file"},
+      {f:"-oA", d:"All formats simultaneously"},
+      {f:"-v / -vv", d:"Verbose / very verbose output"},
+      {f:"--reason", d:"Show reason for port state"}
+    ],
+    cmds:[
+      {l:"Normal text output",r:"low",c:"nmap -oN scan_results.txt {T}",e:"Saves scan results in human-readable normal format to a file. Same as terminal output. Good for manual review and sharing with non-technical stakeholders."},
+      {l:"XML output for tools",r:"low",c:"nmap -oX scan_results.xml {T}",e:"Saves results in XML format compatible with Metasploit, Maltego, and vulnerability management platforms. Best format for automated processing and tool integration."},
+      {l:"Grepable output",r:"low",c:"nmap -oG scan_results.gnmap {T}",e:"Saves results in a format optimized for grep and awk processing. Each host on one line making it easy to extract specific data with command-line tools."},
+      {l:"All formats at once",r:"low",c:"nmap -oA full_scan {T}",e:"Saves results in all three formats (normal, XML, grepable) simultaneously with the same base filename. Best practice — always have all formats available."},
+      {l:"Verbose scan output",r:"low",c:"nmap -v -sS {T}",e:"Increases verbosity showing open ports as they are discovered in real-time instead of waiting for the scan to complete. Useful for monitoring progress of long scans."},
+      {l:"Very verbose output",r:"low",c:"nmap -vv -sS {T}",e:"Maximum verbosity showing detailed information about every probe sent and received. Useful for debugging scan behavior and understanding exactly what Nmap is doing."},
+      {l:"Show port state reason",r:"low",c:"nmap --reason -sS {T}",e:"Shows the reason each port is in its state: open (syn-ack), closed (reset), filtered (no-response). Helps understand firewall behavior and verify findings."},
+      {l:"Resume interrupted scan",r:"low",c:"nmap --resume scan_results.gnmap",e:"Resumes a previously interrupted scan from where it left off. Requires a grepable output file from the interrupted scan. Essential for large slow scans."},
+      {l:"Append to existing file",r:"low",c:"nmap --append-output -oN results.txt {T}",e:"Appends new scan results to an existing output file instead of overwriting it. Useful for incrementally building scan output across multiple scanning sessions."},
+      {l:"Packet trace capture",r:"medium",c:"nmap --packet-trace -sS {T}",e:"Shows every packet sent and received during the scan. Provides deep visibility into scan behavior. Useful for protocol analysis and troubleshooting firewall interactions."},
+      {l:"Full pentest report scan",r:"high",c:"nmap -A -oA pentest_report -v {T}",e:"Comprehensive scan saving all output formats with verbose logging. Single command for documentation-ready pentest scans covering OS, version, scripts, and traceroute."}
+    ]
+  },
+  {
+    id:"perf", icon:"&#9889;", badge:"b-perf",
+    title:"Performance Tuning",
+    desc:"Optimize Nmap scan speed and resource usage for different network environments and time constraints.",
+    tip:"Increase --min-rate for fast internal scans. Use -T2 or -T3 for external targets to avoid triggering IDS.",
+    warn:"",
+    flags:[
+      {f:"--min-rate", d:"Minimum packets per second"},
+      {f:"--max-rate", d:"Maximum packets per second"},
+      {f:"--min-parallelism", d:"Minimum number of parallel probes"},
+      {f:"--max-retries", d:"Max probe retransmissions"},
+      {f:"--host-timeout", d:"Give up on slow hosts after this time"}
+    ],
+    cmds:[
+      {l:"Fast internal scan",r:"medium",c:"nmap -T4 --min-rate 1000 -sS {T}",e:"Aggressive timing with minimum 1000 packets per second. Ideal for fast internal network scanning where speed is critical and IDS evasion is not required."},
+      {l:"Ultra fast scan",r:"high",c:"nmap -T5 --min-rate 5000 --max-retries 1 -sS {T}",e:"Maximum speed scan with high packet rate and minimal retries. May miss some ports on slow or lossy networks. Use only on reliable high-speed local networks."},
+      {l:"Slow reliable scan",r:"low",c:"nmap -T2 --max-rate 100 {T}",e:"Rate-limited scan for unstable networks or when accuracy is prioritized over speed. 100 packets per second is gentle on network resources and IDS systems."},
+      {l:"Parallel probes increase",r:"medium",c:"nmap --min-parallelism 100 -sS {T}",e:"Forces Nmap to send at least 100 simultaneous probes regardless of network conditions. Significantly speeds up scans on reliable high-bandwidth networks."},
+      {l:"Reduce max retries",r:"medium",c:"nmap --max-retries 1 -sS {T}",e:"Only retries each probe once instead of the default 10. Dramatically speeds up scans but may miss ports on networks with packet loss. Good for initial quick scans."},
+      {l:"Host timeout limit",r:"medium",c:"nmap --host-timeout 30s -sS {T}/24",e:"Gives up on any host that takes more than 30 seconds to complete. Prevents slow or unresponsive hosts from blocking subnet scans. Essential for large range scans."},
+      {l:"Scan delay between probes",r:"medium",c:"nmap --scan-delay 1s {T}",e:"Waits 1 second between probes to each host. Useful for rate-limited services that close connections when scanned too quickly. Also helps evade rate-based IDS."},
+      {l:"Max scan delay cap",r:"medium",c:"nmap --max-scan-delay 100ms {T}",e:"Caps the adaptive scan delay at 100ms. Prevents Nmap from slowing down too much on packet loss by setting a maximum wait time between retransmissions."},
+      {l:"Large subnet fast scan",r:"high",c:"nmap -T4 -F --min-rate 1000 --max-retries 2 {T}/16",e:"Optimized settings for scanning large /16 networks quickly. Fast mode with 1000+ packet rate, minimal retries, and aggressive timing for rapid asset discovery."}
+    ]
+  },
+  {
+    id:"smb", icon:"&#128194;", badge:"b-script",
+    title:"SMB and Windows Enumeration",
+    desc:"Enumerate Windows networks, shares, users, and detect SMB vulnerabilities in Windows environments.",
+    tip:"SMB enumeration provides the most valuable data in Windows Active Directory environments.",
+    warn:"EternalBlue and other exploit scripts may crash unpatched Windows hosts. Test in maintenance windows.",
+    flags:[
+      {f:"-p 445,139", d:"Target SMB ports"},
+      {f:"--script smb-*", d:"Run all SMB scripts"},
+      {f:"--script-args smbuser=", d:"Provide SMB credentials"}
+    ],
+    cmds:[
+      {l:"SMB OS discovery",r:"medium",c:"nmap -p 445 --script smb-os-discovery {T}",e:"Queries SMB to determine exact Windows version, hostname, NetBIOS name, domain, and forest name. More accurate than TCP stack fingerprinting for Windows hosts."},
+      {l:"SMB share enumeration",r:"high",c:"nmap -p 445 --script smb-enum-shares {T}",e:"Lists all SMB network shares on the target including hidden administrative shares (C$, ADMIN$, IPC$). Identifies accessible shares that may contain sensitive data."},
+      {l:"SMB user enumeration",r:"high",c:"nmap -p 445 --script smb-enum-users {T}",e:"Enumerates Windows user accounts via SMB. Lists usernames, full names, and account status. Provides target list for brute force and password spray attacks."},
+      {l:"SMB session enum",r:"high",c:"nmap -p 445 --script smb-enum-sessions {T}",e:"Lists currently active SMB sessions on the target. Shows who is logged in and from where. Valuable for understanding current user activity and session hijacking opportunities."},
+      {l:"SMB domain info",r:"medium",c:"nmap -p 445 --script smb-enum-domains {T}",e:"Enumerates Windows domain information including domain name, domain SID, password policy, and lockout settings. Critical for Active Directory attack planning."},
+      {l:"SMB security mode",r:"medium",c:"nmap -p 445 --script smb-security-mode {T}",e:"Checks SMB security configuration: message signing required/disabled, authentication level, and security support. Disabled signing enables NTLM relay attacks."},
+      {l:"SMB brute force",r:"critical",c:"nmap -p 445 --script smb-brute {T}",e:"Brute forces SMB authentication with common credentials. Tests administrator and common Windows account names. Successful access provides network file system access."},
+      {l:"SMB vuln EternalBlue",r:"critical",c:"nmap -p 445 --script smb-vuln-ms17-010 {T}",e:"Tests for EternalBlue CVE-2017-0144 in SMBv1. Provides unauthenticated remote code execution on unpatched Windows 7, Server 2008, and older systems."},
+      {l:"SMB all vuln scripts",r:"critical",c:"nmap -p 445 --script smb-vuln-* {T}",e:"Runs every SMB vulnerability script: EternalBlue, MS08-067, MS10-054, MS10-061 (print spooler), and others. Complete SMB vulnerability assessment in one command."},
+      {l:"SMB full enumeration",r:"high",c:"nmap -p 445 --script smb-os-discovery,smb-enum-shares,smb-enum-users,smb-security-mode {T}",e:"Combines the most important SMB enumeration scripts in a single scan. Provides OS info, all shares, all users, and security configuration — complete SMB profile."},
+      {l:"NetBIOS enumeration",r:"medium",c:"nmap -p 137 --script nbstat {T}",e:"Queries NetBIOS Name Service to get the hostname, MAC address, and currently logged-in users. Works even when SMB is firewalled. Useful for host identification."}
+    ]
+  },
+  {
+    id:"auth", icon:"&#128272;", badge:"b-auth",
+    title:"Authentication and Brute Force",
+    desc:"Test authentication mechanisms across multiple protocols using Nmap NSE brute force scripts.",
+    tip:"Always use a wordlist specific to the target organization — company names, keyboard walks, and seasonal patterns.",
+    warn:"Brute force attacks will cause account lockouts. Confirm lockout policy before running brute force scripts.",
+    flags:[
+      {f:"--script brute", d:"Run all brute force scripts"},
+      {f:"--script-args userdb=", d:"Specify username wordlist"},
+      {f:"--script-args passdb=", d:"Specify password wordlist"},
+      {f:"brute.firstonly=true", d:"Stop after first valid credential"}
+    ],
+    cmds:[
+      {l:"SSH brute force",r:"critical",c:"nmap -p 22 --script ssh-brute {T}",e:"Brute forces SSH login with common credentials. Tests root and common usernames against password lists. Successful access provides command shell on target system."},
+      {l:"SSH user enumeration",r:"high",c:"nmap -p 22 --script ssh-auth-methods --script-args ssh.user=root {T}",e:"Checks which authentication methods are accepted for a specific user. Identifies if password auth, public key, or keyboard-interactive is enabled for targeted accounts."},
+      {l:"FTP brute force",r:"critical",c:"nmap -p 21 --script ftp-brute {T}",e:"Brute forces FTP login credentials. Tests common username and password combinations. Successful access provides file system access and potentially shell upload capability."},
+      {l:"HTTP basic auth brute",r:"critical",c:"nmap -p 80,443 --script http-brute {T}",e:"Brute forces HTTP Basic Authentication protected directories. Tests common admin credentials against password-protected web resources."},
+      {l:"HTTP form login brute",r:"critical",c:"nmap -p 80,443 --script http-form-brute --script-args http-form-brute.path=/login {T}",e:"Brute forces HTML login form at specified path. Automatically detects form fields and submits credential combinations. Tests for weak application passwords."},
+      {l:"MySQL brute force",r:"critical",c:"nmap -p 3306 --script mysql-brute {T}",e:"Brute forces MySQL database authentication. Tests root and common DB usernames. Successful access provides full database read and write capabilities."},
+      {l:"MSSQL brute force",r:"critical",c:"nmap -p 1433 --script ms-sql-brute {T}",e:"Brute forces Microsoft SQL Server SA and other accounts. Default SA with blank password is extremely common in legacy environments."},
+      {l:"PostgreSQL brute",r:"critical",c:"nmap -p 5432 --script pgsql-brute {T}",e:"Brute forces PostgreSQL database authentication. Tests postgres superuser and common application account names against common password lists."},
+      {l:"VNC brute force",r:"critical",c:"nmap -p 5900 --script vnc-brute {T}",e:"Brute forces VNC server password. VNC passwords are typically short (8 chars max in DES encryption). Successful access provides full graphical desktop control."},
+      {l:"Telnet brute force",r:"critical",c:"nmap -p 23 --script telnet-brute {T}",e:"Brute forces Telnet login. Telnet is unencrypted so captured credentials are visible in plaintext. Common on legacy network equipment and embedded systems."},
+      {l:"SMTP user enumeration",r:"medium",c:"nmap -p 25 --script smtp-enum-users {T}",e:"Enumerates valid email usernames via SMTP VRFY and EXPN commands. Valid usernames confirm email addresses for phishing and provide targets for password attacks."},
+      {l:"SNMP brute community",r:"high",c:"nmap -sU -p 161 --script snmp-brute {T}",e:"Brute forces SNMP community strings starting with public and private. Valid community strings provide access to full network device configuration and management data."},
+      {l:"LDAP brute force",r:"critical",c:"nmap -p 389 --script ldap-brute --script-args ldap.base=dc=example,dc=com {T}",e:"Brute forces LDAP directory authentication against Active Directory or LDAP servers. Valid credentials allow querying all directory objects including user accounts."},
+      {l:"Wordpress brute force",r:"critical",c:"nmap -p 80,443 --script http-wordpress-brute --script-args passdb=rockyou.txt {T}",e:"Brute forces WordPress login via xmlrpc.php which allows testing multiple passwords per request — significantly faster than form-based brute force."}
+    ]
+  },
+  {
+    id:"ipv6", icon:"&#127760;", badge:"b-ipv6",
+    title:"IPv6 and Advanced Scanning",
+    desc:"IPv6 scanning techniques, SCTP scanning, and advanced Nmap features for modern network environments.",
+    tip:"IPv6 networks often have weaker security than IPv4 — check for misconfigured IPv6 services on dual-stack hosts.",
+    warn:"",
+    flags:[
+      {f:"-6", d:"Enable IPv6 scanning"},
+      {f:"-sY", d:"SCTP INIT scan"},
+      {f:"-sZ", d:"SCTP COOKIE-ECHO scan"},
+      {f:"--script ipv6-*", d:"IPv6-specific NSE scripts"}
+    ],
+    cmds:[
+      {l:"IPv6 host scan",r:"medium",c:"nmap -6 {T}",e:"Enables IPv6 mode for scanning IPv6 addresses. Must provide IPv6 target address or hostname that resolves to AAAA record. All scan types work with IPv6."},
+      {l:"IPv6 comprehensive scan",r:"high",c:"nmap -6 -A {T}",e:"Full aggressive scan on IPv6 target including OS detection, version detection, default scripts, and traceroute over IPv6 network path."},
+      {l:"IPv6 neighbor discovery",r:"medium",c:"nmap -6 --script ipv6-neighbor-discovery {T}",e:"Performs IPv6 neighbor discovery to find hosts on the local link-local network. Equivalent to ARP scanning for IPv6 — discovers all hosts on the same segment."},
+      {l:"SCTP init scan",r:"medium",c:"nmap -sY {T}",e:"SCTP INIT scan for Stream Control Transmission Protocol. Used in VoIP (SIP), SS7 signaling, and telecom infrastructure. Often overlooked in security assessments."},
+      {l:"SCTP cookie echo",r:"medium",c:"nmap -sZ {T}",e:"SCTP COOKIE-ECHO stealth scan. Open ports do not respond to COOKIE-ECHO chunks. Cannot distinguish closed from filtered. More stealthy than INIT scan."},
+      {l:"IP protocol detection",r:"medium",c:"nmap -sO {T}",e:"Scans for which IP protocols are supported (1=ICMP, 6=TCP, 17=UDP, 47=GRE, 50=ESP). Reveals all protocols allowed through firewall — useful for tunnel identification."},
+      {l:"Broadcast scripts",r:"medium",c:"nmap --script broadcast {T}",e:"Runs broadcast discovery scripts that send broadcast or multicast probes to discover services. Finds DNS-SD, mDNS, DHCP, SNMP, and other broadcast-based services."},
+      {l:"DHCP info discovery",r:"low",c:"nmap --script broadcast-dhcp-discover",e:"Sends a DHCP discovery broadcast to find DHCP servers. Reveals DHCP server addresses, DNS servers, default gateway, domain name, and lease time information."}
+    ]
+  }
+];
+
+var ST = {target:"", filter:"all", query:"", view:"cards"};
+
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function validTarget(t){
+  t = t.trim();
+  // IP address
+  if(/^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(t)) return true;
+  // IPv6
+  if(/^[0-9a-fA-F:]+$/.test(t) && t.indexOf(":") >= 0) return true;
+  // Domain
+  if(/^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(t)) return true;
+  // hostname
+  if(/^[a-zA-Z0-9\-]+$/.test(t) && t.length > 0) return true;
+  return false;
+}
+
+function fill(c){return c.replace(/\{T\}/g, ST.target);}
+function totalCmds(){var n=0;for(var i=0;i<CATS.length;i++)n+=CATS[i].cmds.length;return n;}
+
+function colorCmd(raw){
+  var filled = fill(raw);
+  var s = esc(filled);
+  // nmap keyword
+  s = s.replace(/^(nmap)/,"<span class='kw'>$1</span>");
+  // flags starting with - or --
+  s = s.replace(/(\s)(--?[a-zA-Z][a-zA-Z0-9\-]*)/g,"$1<span class='fl'>$2</span>");
+  // numbers after flags
+  s = s.replace(/(<\/span>)(\s+\d[\d\/\.]*)/g,"$1<span class='val'>$2</span>");
+  // target IP or domain
+  if(ST.target){
+    var et = esc(ST.target);
+    s = s.replace(new RegExp(et,"g"),"<span class='tgt'>"+et+"</span>");
+  }
+  return s;
+}
+
+function visibleCats(){
+  return CATS.filter(function(cat){
+    if(ST.filter !== "all" && cat.id !== ST.filter) return false;
+    if(!ST.query) return true;
+    var q = ST.query.toLowerCase();
+    if(cat.title.toLowerCase().indexOf(q) >= 0) return true;
+    if(cat.desc.toLowerCase().indexOf(q) >= 0) return true;
+    for(var i=0;i<cat.cmds.length;i++){
+      var cm = cat.cmds[i];
+      if(cm.l.toLowerCase().indexOf(q)>=0||cm.c.toLowerCase().indexOf(q)>=0||cm.e.toLowerCase().indexOf(q)>=0) return true;
+    }
+    return false;
+  });
+}
+
+function filteredCmds(cat){
+  if(!ST.query) return cat.cmds;
+  var q = ST.query.toLowerCase();
+  return cat.cmds.filter(function(cm){
+    return cm.l.toLowerCase().indexOf(q)>=0||cm.c.toLowerCase().indexOf(q)>=0||cm.e.toLowerCase().indexOf(q)>=0;
+  });
+}
+
+function doCopy(text, btn){
+  var prev = btn.textContent;
+  function ok(){btn.textContent="Copied!";btn.classList.add("ok");setTimeout(function(){btn.textContent=prev;btn.classList.remove("ok");},2000);}
+  function fb(){var ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;top:0;left:0;opacity:0;";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand("copy");ok();}catch(e){}document.body.removeChild(ta);}
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();}
+}
+function copyCmd(bid, btn){
+  var el=document.getElementById(bid);if(!el)return;
+  var pre=el.querySelector(".dpre");if(!pre)return;
+  doCopy(pre.innerText.trim(),btn);
+}
+function copyInline(btn){doCopy(btn.getAttribute("data-v"),btn);}
+
+function generate(){
+  var raw = document.getElementById("inp").value.trim();
+  var err = document.getElementById("errbox");
+  if(!validTarget(raw)){err.style.display="block";return;}
+  err.style.display="none";
+  ST.target=raw; ST.filter="all"; ST.query="";
+  document.getElementById("searchinp").value="";
+  document.getElementById("sc1").textContent=CATS.length;
+  document.getElementById("sc2").textContent=totalCmds();
+  document.getElementById("sc3").textContent=raw;
+  document.getElementById("statsbar").style.display="flex";
+  document.getElementById("toolbar").style.display="flex";
+  document.getElementById("pills").style.display="flex";
+  document.getElementById("layout").style.display="grid";
+  buildSidebar(); buildPills(); render();
+  setTimeout(function(){document.getElementById("layout").scrollIntoView({behavior:"smooth",block:"start"});},100);
+}
+
+function buildSidebar(){
+  var h="<div class='sbt'>Navigation</div>";
+  h+="<button class='sbtn on' data-cat='all' onclick='setFilter(\"all\",this)'><span class='sbico'>&#128203;</span><span class='sblbl'>All Categories</span><span class='sbcnt'>"+CATS.length+"</span></button>";
+  h+="<div class='sbsep'></div><div class='sbt'>Categories</div>";
+  for(var i=0;i<CATS.length;i++){
+    var c=CATS[i];
+    h+="<button class='sbtn' data-cat='"+c.id+"' onclick='setFilter(\""+c.id+"\",this)'>";
+    h+="<span class='sbico'>"+c.icon+"</span><span class='sblbl'>"+esc(c.title)+"</span><span class='sbcnt'>"+c.cmds.length+"</span></button>";
+  }
+  document.getElementById("sidebar").innerHTML=h;
+}
+
+function buildPills(){
+  var h="<span class='pill on' data-cat='all' onclick='setFilter(\"all\",this)'>All</span>";
+  for(var i=0;i<CATS.length;i++){
+    var c=CATS[i];
+    h+="<span class='pill' data-cat='"+c.id+"' onclick='setFilter(\""+c.id+"\",this)'>"+c.icon+" "+esc(c.title)+"</span>";
+  }
+  document.getElementById("pills").innerHTML=h;
+}
+
+function render(){
+  var content=document.getElementById("content");
+  var cats=visibleCats();
+  if(!cats.length){content.innerHTML="<div class='nores'><h3>No commands found</h3><p>Try a different search term or category.</p></div>";return;}
+  if(ST.view==="compact"){renderCompact(content,cats);}else{renderCards(content,cats);}
+}
+
+function renderCards(content,cats){
+  var html="";
+  for(var i=0;i<cats.length;i++){
+    var cat=cats[i]; var cmds=filteredCmds(cat);
+    if(!cmds.length) continue;
+    html+="<div class='sec' id='sec-"+cat.id+"'>";
+    html+="<div class='sechdr'><span class='secico'>"+cat.icon+"</span>";
+    html+="<div><div class='sectitle'>"+esc(cat.title)+"</div><div class='secsub'>"+esc(cat.desc)+"</div></div>";
+    html+="<span class='seccnt'>"+cmds.length+" cmd"+(cmds.length!==1?"s":"")+"</span></div>";
+    html+="<div class='grid'>";
+    for(var j=0;j<cmds.length;j++){html+=buildCard(cat,cmds[j],i+"_"+j);}
+    html+="</div></div>";
+  }
+  content.innerHTML=html;
+}
+
+function buildCard(cat,cm,uid){
+  var bid="blk_"+uid; var ptid="pt_"+uid; var togid="ptog_"+uid;
+  var filledCmd=fill(cm.c); var risk=cm.r||"info";
+  var h="<div class='card'>";
+  h+="<div class='ch'><div class='ctrow'><span class='cico'>"+cat.icon+"</span><span class='cname'>"+esc(cm.l)+"</span>";
+  h+="<div class='cbadges'><span class='bdg "+cat.badge+"'>"+cat.id+"</span><span class='rb r-"+risk+"'>"+risk+"</span></div></div>";
+  h+="<div class='what'><div class='wlbl'>What This Command Does</div>"+esc(cm.e)+"</div></div>";
+  h+="<div class='cb'>";
+  h+="<div class='dblk' id='"+bid+"'>";
+  h+="<div class='dbar'><div class='dbar-l'><div class='dots'><span class='d1'></span><span class='d2'></span><span class='d3'></span></div>";
+  h+="<span style='font-family:var(--mono);font-size:.66rem;color:var(--mut)'>terminal</span></div>";
+  h+="<div class='dbar-r'><span class='rb r-"+risk+"'>"+risk+"</span>";
+  h+="<button class='cbtn' onclick='copyCmd(\""+bid+"\",this)'>Copy</button></div></div>";
+  h+="<pre class='dpre'>"+colorCmd(cm.c)+"</pre>";
+  h+="</div>";
+  if(cat.flags&&cat.flags.length){
+    h+="<button class='ptog' id='"+togid+"' onclick='togParams(\""+ptid+"\",\""+togid+"\")'>";
+    h+="<span>Flags Reference ("+cat.flags.length+")</span><span class='arr'>&#9660;</span></button>";
+    h+="<div class='pwrap' id='"+ptid+"'><table class='ptbl'><thead><tr><th>Flag</th><th>Description</th></tr></thead><tbody>";
+    for(var k=0;k<cat.flags.length;k++){
+      h+="<tr><td class='pf'>"+esc(cat.flags[k].f)+"</td><td class='pd'>"+esc(cat.flags[k].d)+"</td></tr>";
+    }
+    h+="</tbody></table></div>";
+  }
+  if(cat.tip){h+="<div class='tip'><span>&#128161;</span><span>"+esc(cat.tip)+"</span></div>";}
+  if(cat.warn){h+="<div class='wrn'><span>&#9888;</span><span>"+esc(cat.warn)+"</span></div>";}
+  h+="</div></div>";
+  return h;
+}
+
+function renderCompact(content,cats){
+  var html="<div class='ctable'><div class='chdr'><div>Command Name</div><div>Command</div><div>Risk</div><div>Actions</div></div>";
+  for(var i=0;i<cats.length;i++){
+    var cat=cats[i]; var cmds=filteredCmds(cat);
+    for(var j=0;j<cmds.length;j++){
+      var cm=cmds[j]; var filled=fill(cm.c); var risk=cm.r||"info";
+      html+="<div class='crow'>";
+      html+="<span class='cr-name' title='"+esc(cat.title)+"'>"+cat.icon+" "+esc(cm.l)+"</span>";
+      html+="<span class='cr-cmd' title='"+esc(filled)+"'>"+esc(filled)+"</span>";
+      html+="<span><span class='rb r-"+risk+"'>"+risk+"</span></span>";
+      html+="<span class='cr-act'><button class='crc' data-v='"+esc(filled)+"' onclick='copyInline(this)'>Copy</button></span>";
+      html+="</div>";
+    }
+  }
+  html+="</div>";
+  content.innerHTML=html;
+}
+
+function togParams(wid,tid){
+  var w=document.getElementById(wid); var t=document.getElementById(tid);
+  if(!w||!t)return;
+  if(w.classList.contains("open")){w.classList.remove("open");t.classList.remove("open");}
+  else{w.classList.add("open");t.classList.add("open");}
+}
+
+function setFilter(id,el){
+  ST.filter=id;
+  var all=document.querySelectorAll(".pill,.sbtn");
+  for(var i=0;i<all.length;i++) all[i].classList.remove("on");
+  var targets=document.querySelectorAll("[data-cat='"+id+"']");
+  for(var i=0;i<targets.length;i++) targets[i].classList.add("on");
+  render();
+}
+
+function onSearch(v){ST.query=v.trim();render();}
+
+function setView(v){
+  ST.view=v;
+  document.getElementById("vcard").classList.toggle("on",v==="cards");
+  document.getElementById("vcomp").classList.toggle("on",v==="compact");
+  render();
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  document.getElementById("inp").addEventListener("keydown",function(e){if(e.key==="Enter")generate();});
+  document.getElementById("genbtn").addEventListener("click",function(){generate();});
+  document.getElementById("searchinp").addEventListener("input",function(){onSearch(this.value);});
+  document.getElementById("vcard").addEventListener("click",function(){setView("cards");});
+  document.getElementById("vcomp").addEventListener("click",function(){setView("compact");});
+});
+</script>
+</body>
+</html>
