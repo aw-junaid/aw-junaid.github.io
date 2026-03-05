@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>awjunaid — DNS & Subdomain Recon Suite</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e13;--s1:#161b22;--s2:#1c2128;
+  --b1:#21262d;--b2:#30363d;
+  --acc:#58a6ff;--grn:#3fb950;--red:#f85149;
+  --ylw:#e3b341;--pur:#d2a8ff;--org:#ffa657;
+  --txt:#e6edf3;--t2:#c9d1d9;--mut:#8b949e;--m2:#6e7681;
+  --mono:'Fira Code','JetBrains Mono',monospace;
+  --r:10px;--rs:6px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+/* FIX: pointer-events:none on pseudo-element so it never blocks clicks */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(88,166,255,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(88,166,255,.025) 1px,transparent 1px);
+  background-size:44px 44px}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;background:rgba(10,14,19,.97);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--b1);padding:.75rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.hlogo{display:flex;align-items:center;gap:.65rem}
+.hico{width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#58a6ff1a,#3fb9501a);border:1px solid #58a6ff33;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.hname{font-size:1.1rem;font-weight:800;
+  background:linear-gradient(135deg,#58a6ff,#3fb950);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hsub{font-size:.65rem;color:var(--mut);margin-top:1px}
+.hbadges{display:flex;gap:.35rem;flex-wrap:wrap}
+.hb{font-size:.65rem;padding:.16rem .5rem;border-radius:2rem;border:1px solid var(--b2);color:var(--mut);background:var(--s1)}
+.hb.g{color:var(--grn);border-color:#3fb95030;background:#3fb95010}
+.hb.b{color:var(--acc);border-color:#58a6ff30;background:#58a6ff10}
+.hb.y{color:var(--ylw);border-color:#e3b34130;background:#e3b34110}
+.hb.r{color:var(--red);border-color:#f8514930;background:#f851490d}
+
+/* HERO */
+.hero{position:relative;z-index:1;max-width:800px;margin:2.5rem auto 2rem;padding:0 1.2rem;text-align:center}
+.chip{display:inline-flex;align-items:center;gap:.4rem;font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--acc);background:#58a6ff0e;border:1px solid #58a6ff2a;padding:.26rem .85rem;border-radius:2rem;margin-bottom:.9rem}
+.hero h2{font-size:2rem;font-weight:800;color:var(--txt);line-height:1.2}
+.grad{background:linear-gradient(135deg,#58a6ff,#3fb950,#d2a8ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:var(--mut);margin-top:.55rem;font-size:.88rem;max-width:560px;margin-inline:auto}
+
+/* INPUT PANEL */
+.panel{margin-top:1.6rem;background:var(--s1);border:1px solid var(--b2);border-radius:14px;
+  padding:1.2rem 1.3rem;box-shadow:0 8px 40px rgba(0,0,0,.45);position:relative;z-index:2}
+.irow{display:flex;gap:.45rem;flex-wrap:wrap}
+.ipfx{display:flex;align-items:center;padding:.68rem .85rem;background:var(--s2);
+  border:1px solid var(--b2);border-radius:var(--rs);color:var(--mut);font-family:var(--mono);font-size:.8rem;white-space:nowrap}
+#inp{flex:1;min-width:160px;padding:.7rem .95rem;border:1px solid var(--b2);border-radius:var(--rs);
+  background:#0d1117;color:var(--txt);font-size:.93rem;outline:none;font-family:var(--mono);
+  transition:border-color .18s,box-shadow .18s;position:relative;z-index:2;cursor:text}
+#inp:focus{border-color:var(--acc);box-shadow:0 0 0 3px #58a6ff1a}
+#inp::placeholder{color:var(--m2)}
+.gbtn{padding:.7rem 1.5rem;border:none;border-radius:var(--rs);
+  background:linear-gradient(135deg,#58a6ff,#1f6feb);color:#fff;font-size:.88rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:opacity .18s,transform .1s;position:relative;z-index:2}
+.gbtn:hover{opacity:.85}.gbtn:active{transform:scale(.97)}
+.errbox{display:none;margin-top:.55rem;background:#f8514910;border:1px solid #f8514930;
+  border-radius:var(--rs);padding:.42rem .65rem;font-size:.78rem;color:var(--red)}
+.statsbar{display:none;gap:1rem;margin-top:.75rem;flex-wrap:wrap}
+.sc{display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--mut)}
+.sc strong{color:var(--txt)}
+.sdot{width:6px;height:6px;border-radius:50%}
+
+/* TOOLBAR — FIX: position:relative + z-index so clicks always register */
+.toolbar{display:none;position:relative;z-index:10;max-width:1360px;margin:.7rem auto .3rem;
+  padding:0 1.2rem;gap:.4rem;flex-wrap:wrap;align-items:center}
+.vbtn{padding:.28rem .7rem;font-size:.73rem;border:1px solid var(--b1);border-radius:var(--rs);
+  background:var(--s1);color:var(--mut);cursor:pointer;display:flex;align-items:center;gap:.3rem;
+  transition:all .14s;position:relative;z-index:10}
+.vbtn.on{background:var(--s2);border-color:var(--b2);color:var(--txt)}
+
+/* SEARCH — FIX: position:relative z-index:10, input fully interactive */
+.srch{position:relative;margin-left:auto;z-index:10}
+.srch input{
+  display:block;
+  padding:.38rem .85rem .38rem 2.1rem;
+  width:240px;
+  background:var(--s1);
+  border:1px solid var(--b2);
+  border-radius:var(--rs);
+  color:var(--txt);
+  font-size:.8rem;
+  outline:none;
+  transition:border-color .18s,box-shadow .18s;
+  font-family:inherit;
+  cursor:text;
+  position:relative;
+  z-index:10;
+  -webkit-appearance:none;
+  appearance:none}
+.srch input:hover{border-color:var(--b2)}
+.srch input:focus{border-color:var(--acc);box-shadow:0 0 0 3px #58a6ff1a}
+.srch input::placeholder{color:var(--m2)}
+.sico{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);
+  color:var(--mut);font-size:.78rem;pointer-events:none;z-index:11}
+
+/* PILLS */
+.pills{display:none;position:relative;z-index:5;max-width:1360px;margin:0 auto .55rem;
+  padding:0 1.2rem;gap:.35rem;flex-wrap:wrap}
+.pill{padding:.24rem .68rem;border-radius:2rem;border:1px solid var(--b1);background:var(--s1);
+  color:var(--mut);font-size:.72rem;cursor:pointer;transition:all .14s;user-select:none}
+.pill:hover{border-color:var(--b2);color:var(--t2)}
+.pill.on{background:var(--acc);color:#0d1117;border-color:var(--acc);font-weight:700}
+
+/* LAYOUT */
+.layout{display:none;position:relative;z-index:1;max-width:1360px;margin:0 auto 4rem;
+  padding:0 1.2rem;gap:1.1rem;grid-template-columns:210px 1fr}
+@media(max-width:820px){.layout{grid-template-columns:1fr}}
+
+/* SIDEBAR */
+.sidebar{position:sticky;top:68px;height:fit-content;display:flex;flex-direction:column;gap:.2rem}
+@media(max-width:820px){.sidebar{display:none}}
+.sbt{font-size:.61rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--m2);padding:.3rem .48rem;margin-top:.28rem}
+.sbtn{display:flex;align-items:center;gap:.45rem;padding:.38rem .55rem;border-radius:var(--rs);
+  border:none;background:none;color:var(--mut);font-size:.77rem;cursor:pointer;width:100%;text-align:left;
+  transition:all .14s;border-left:2px solid transparent}
+.sbtn:hover{background:var(--s1);color:var(--t2)}
+.sbtn.on{background:var(--s2);color:var(--acc);border-left-color:var(--acc)}
+.sbico{font-size:.92rem;width:17px;text-align:center;flex-shrink:0}
+.sblbl{flex:1}
+.sbcnt{font-size:.61rem;padding:.06rem .35rem;border-radius:2rem;background:var(--s1);
+  border:1px solid var(--b1);color:var(--m2);flex-shrink:0}
+.sbtn.on .sbcnt{background:#58a6ff1a;border-color:#58a6ff33;color:var(--acc)}
+.sbsep{height:1px;background:var(--b1);margin:.28rem 0}
+
+/* SECTION */
+.sec{margin-bottom:1.8rem}
+.sechdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;padding-bottom:.65rem;border-bottom:1px solid var(--b1)}
+.secico{font-size:1.3rem}
+.sectitle{font-size:.92rem;font-weight:700;color:var(--txt)}
+.secsub{font-size:.72rem;color:var(--mut);margin-top:1px}
+.seccnt{margin-left:auto;font-size:.65rem;padding:.15rem .48rem;border-radius:2rem;
+  background:var(--s2);border:1px solid var(--b2);color:var(--mut);white-space:nowrap}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:.85rem}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;transition:border-color .18s,box-shadow .18s}
+.card:hover{border-color:var(--b2);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.ch{padding:.85rem 1rem .65rem;border-bottom:1px solid var(--b1);
+  background:linear-gradient(135deg,var(--s2),var(--s1))}
+.ctrow{display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.45rem}
+.cico{font-size:1.15rem;flex-shrink:0;margin-top:1px}
+.cname{font-weight:700;font-size:.9rem;color:var(--txt);flex:1;line-height:1.3}
+.cbadges{display:flex;gap:.28rem;flex-wrap:wrap;flex-shrink:0}
+.bdg{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid}
+.b-dig{color:#79c0ff;border-color:#79c0ff2a;background:#79c0ff0a}
+.b-nslookup{color:#3fb950;border-color:#3fb9502a;background:#3fb9500a}
+.b-host{color:#f778ba;border-color:#f778ba2a;background:#f778ba0a}
+.b-whois{color:#d2a8ff;border-color:#d2a8ff2a;background:#d2a8ff0a}
+.b-massdns{color:#f85149;border-color:#f851492a;background:#f851490a}
+.b-sublist3r{color:#e3b341;border-color:#e3b3412a;background:#e3b3410a}
+.b-amass{color:#38bdf8;border-color:#38bdf82a;background:#38bdf80a}
+.b-subfinder{color:#fb923c;border-color:#fb923c2a;background:#fb923c0a}
+.b-dnsx{color:#a3e635;border-color:#a3e6352a;background:#a3e6350a}
+.b-fierce{color:#c084fc;border-color:#c084fc2a;background:#c084fc0a}
+.b-dnsrecon{color:#a5f3fc;border-color:#a5f3fc2a;background:#a5f3fc0a}
+.b-dnsenum{color:#f87171;border-color:#f871712a;background:#f871710a}
+.b-theharv{color:#fbbf24;border-color:#fbbf242a;background:#fbbf240a}
+.b-gobuster{color:#34d399;border-color:#34d3992a;background:#34d3990a}
+.b-knockpy{color:#f472b6;border-color:#f472b62a;background:#f472b60a}
+.b-crtsh{color:#818cf8;border-color:#818cf82a;background:#818cf80a}
+.b-passive{color:#e879f9;border-color:#e879f92a;background:#e879f90a}
+.rb{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid;font-weight:700}
+.r-info{color:#58a6ff;border-color:#58a6ff33;background:#58a6ff0d}
+.r-low{color:#3fb950;border-color:#3fb95033;background:#3fb9500d}
+.r-medium{color:#e3b341;border-color:#e3b34133;background:#e3b3410d}
+.r-high{color:#ffa657;border-color:#ffa65733;background:#ffa6570d}
+.r-critical{color:#f85149;border-color:#f8514933;background:#f851490d}
+.what{background:#58a6ff07;border:1px solid #58a6ff1a;border-radius:var(--rs);
+  padding:.42rem .6rem;font-size:.73rem;color:var(--t2);line-height:1.5}
+.wlbl{font-size:.6rem;letter-spacing:.8px;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:.15rem}
+.cb{padding:.8rem 1rem;display:flex;flex-direction:column;gap:.6rem}
+.dblk{background:#0d1117;border:1px solid var(--b1);border-radius:var(--rs);overflow:hidden}
+.dbar{display:flex;align-items:center;justify-content:space-between;padding:.26rem .65rem;
+  border-bottom:1px solid var(--b1);background:var(--s1)}
+.dbar-l{display:flex;align-items:center;gap:.45rem}
+.dots{display:flex;gap:3px}
+.dots span{width:8px;height:8px;border-radius:50%}
+.d1{background:#f85149}.d2{background:#e3b341}.d3{background:#3fb950}
+.dbar-r{display:flex;align-items:center;gap:.35rem}
+.cbtn{background:none;border:1px solid var(--b2);color:var(--mut);font-size:.65rem;padding:.13rem .5rem;
+  border-radius:3px;cursor:pointer;transition:all .14s;font-family:var(--mono)}
+.cbtn:hover{border-color:var(--acc);color:var(--acc)}
+.cbtn.ok{border-color:var(--grn)!important;color:var(--grn)!important}
+.dpre{padding:.62rem .88rem;font-family:var(--mono);font-size:.78rem;color:#a5f3a5;
+  line-height:1.72;white-space:pre-wrap;word-break:break-all;margin:0}
+.dpre .kw{color:#79c0ff;font-weight:700}
+.dpre .fl{color:#ffa657;font-weight:600}
+.dpre .tgt{color:#f85149;font-weight:700}
+.dpre .val{color:#a5d6ff}
+.ptog{display:flex;align-items:center;justify-content:space-between;background:var(--s2);
+  border:1px solid var(--b1);border-radius:var(--rs);padding:.32rem .65rem;
+  font-size:.7rem;color:var(--mut);cursor:pointer;transition:all .14s;width:100%;
+  text-align:left;-webkit-appearance:none;appearance:none}
+.ptog:hover{border-color:var(--b2);color:var(--t2)}
+.ptog .arr{transition:transform .18s;font-size:.58rem;margin-left:auto}
+.ptog.open .arr{transform:rotate(180deg)}
+.pwrap{display:none;border:1px solid var(--b1);border-top:none;
+  border-radius:0 0 var(--rs) var(--rs);overflow:hidden}
+.pwrap.open{display:block}
+.ptbl{width:100%;border-collapse:collapse;font-size:.7rem}
+.ptbl th{text-align:left;padding:.3rem .58rem;background:var(--bg);color:var(--m2);
+  font-size:.61rem;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--b1)}
+.ptbl td{padding:.3rem .58rem;border-bottom:1px solid var(--b1);vertical-align:top}
+.ptbl tr:last-child td{border-bottom:none}
+.ptbl tr:hover td{background:var(--s2)}
+.pf{font-family:var(--mono);color:var(--grn);font-size:.68rem}
+.pd{color:var(--mut);font-size:.68rem}
+.tip{background:#e3b34110;border:1px solid #e3b34128;border-radius:var(--rs);padding:.44rem .65rem;
+  font-size:.71rem;color:#e3b341;display:flex;gap:.42rem;line-height:1.5}
+.wrn{background:#f8514910;border:1px solid #f8514928;border-radius:var(--rs);padding:.44rem .65rem;
+  font-size:.71rem;color:#f85149;display:flex;gap:.42rem;line-height:1.5}
+
+/* COMPACT TABLE */
+.ctable{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.chdr{display:grid;grid-template-columns:195px 1fr 82px 80px;gap:.4rem;padding:.36rem .75rem;
+  background:var(--s2);border-bottom:1px solid var(--b1);font-size:.62rem;color:var(--m2);
+  letter-spacing:.5px;text-transform:uppercase}
+.crow{display:grid;grid-template-columns:195px 1fr 82px 80px;gap:.4rem;padding:.42rem .75rem;
+  border-bottom:1px solid var(--b1);align-items:center;transition:background .14s}
+.crow:last-child{border-bottom:none}
+.crow:hover{background:var(--s2)}
+.cr-name{font-size:.75rem;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-cmd{font-family:var(--mono);font-size:.68rem;color:#a5f3a5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-act{display:flex;gap:.28rem;align-items:center}
+.crc{background:none;border:1px solid var(--b2);color:var(--mut);font-size:.62rem;padding:.1rem .38rem;
+  border-radius:3px;cursor:pointer;transition:all .14s}
+.crc:hover{border-color:var(--acc);color:var(--acc)}
+.crc.ok{border-color:var(--grn)!important;color:var(--grn)!important}
+@media(max-width:640px){.chdr,.crow{grid-template-columns:130px 1fr 70px}}
+.nores{text-align:center;padding:3rem;color:var(--mut)}
+.nores h3{font-size:.95rem;color:var(--t2);margin-bottom:.38rem}
+
+/* FOOTER */
+footer{position:relative;z-index:1;border-top:1px solid var(--b1);padding:1.3rem 1.5rem;text-align:center;font-size:.74rem;color:var(--mut)}
+.legal{display:inline-block;background:#f8514910;border:1px solid #f8514928;border-radius:var(--rs);
+  padding:.48rem 1.1rem;max-width:680px;color:#f85149;margin-bottom:.75rem;font-size:.72rem;line-height:1.5}
+footer a{color:var(--acc);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.fbrand{font-weight:800;font-size:.8rem;background:linear-gradient(135deg,#58a6ff,#3fb950);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hlogo">
+    <div class="hico">&#127759;</div>
+    <div>
+      <div class="hname">awjunaid</div>
+      <div class="hsub">DNS &amp; Subdomain Recon Suite</div>
+    </div>
+  </div>
+  <div class="hbadges">
+    <span class="hb g">&#10003; 250+ Commands</span>
+    <span class="hb b">&#127759; DNS Recon</span>
+    <span class="hb y">&#128270; Subdomain</span>
+    <span class="hb r">&#9888; Authorized Only</span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="chip">&#127759; DNS Recon Command Generator</div>
+  <h2>Enter Target &#8594; Get <span class="grad">DNS Commands</span></h2>
+  <p>Type any target domain and instantly get copy-paste ready commands for dig, nslookup, host, whois, massdns, subfinder, amass, sublist3r, dnsx, dnsrecon, and more.</p>
+  <div class="panel">
+    <div class="irow">
+      <div class="ipfx">&#127919; target:</div>
+      <input id="inp" type="text" placeholder="example.com" autocomplete="off" spellcheck="false"/>
+      <button class="gbtn" id="genbtn">Generate &#127759;</button>
+    </div>
+    <div class="errbox" id="errbox">&#9888; Please enter a valid domain e.g. <strong>example.com</strong></div>
+    <div class="statsbar" id="statsbar">
+      <div class="sc"><div class="sdot" style="background:var(--acc)"></div>Categories: <strong id="sc1">0</strong></div>
+      <div class="sc"><div class="sdot" style="background:var(--grn)"></div>Commands: <strong id="sc2">0</strong></div>
+      <div class="sc"><div class="sdot" style="background:var(--ylw)"></div>Target: <strong id="sc3">&#8212;</strong></div>
+    </div>
+  </div>
+</section>
+
+<div class="toolbar" id="toolbar">
+  <button class="vbtn on" id="vcard">&#9635; Cards</button>
+  <button class="vbtn" id="vcomp">&#9776; Compact</button>
+  <div class="srch">
+    <span class="sico">&#128269;</span>
+    <input type="text" id="searchinp" placeholder="Search commands, flags..." autocomplete="off" spellcheck="false"/>
+  </div>
+</div>
+
+<div class="pills" id="pills"></div>
+
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main id="content"></main>
+</div>
+
+<footer>
+  <div class="legal">
+    &#9888; <strong>Legal Disclaimer:</strong> These DNS recon commands are for <strong>authorized security research and penetration testing only</strong>.
+    Only use them on domains you own or have explicit written permission to test.
+    Unauthorized enumeration may violate computer fraud laws in your jurisdiction.
+  </div>
+  <br/>
+  <span>Built for ethical hackers &amp; penetration testers &bull; </span>
+  <a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a>
+  <br/><br/>
+  <span class="fbrand">awjunaid</span>
+  <span> &mdash; Copyright &copy; 2025 </span>
+  <a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a>
+  <span>. All rights reserved.</span>
+</footer>
+
+<script>
+var CATS = [
+  {
+    id:"dig", icon:"&#128270;", badge:"b-dig",
+    title:"dig — DNS Lookup Utility",
+    desc:"dig (Domain Information Groper) is the most powerful CLI DNS tool. Query any record type, use custom resolvers, and perform zone transfers.",
+    tip:"Use +short for clean output. Use @8.8.8.8 to query against Google DNS to compare authoritative vs cached responses.",
+    warn:"",
+    flags:[
+      {f:"@server",d:"Use specific DNS resolver e.g. @8.8.8.8"},
+      {f:"+short",d:"Return only the answer — no header noise"},
+      {f:"+noall +answer",d:"Show only the answer section cleanly"},
+      {f:"+trace",d:"Trace delegation path from root to authoritative"},
+      {f:"-t TYPE",d:"Query a specific record type"},
+      {f:"+dnssec",d:"Request DNSSEC records in the response"},
+      {f:"-x",d:"Reverse DNS (PTR) lookup from IP"},
+      {f:"axfr",d:"Request a full DNS zone transfer"},
+      {f:"+tcp",d:"Force TCP instead of UDP"},
+      {f:"+time=N",d:"Set query timeout in seconds"},
+      {f:"+tries=N",d:"Number of retries for the query"}
+    ],
+    cmds:[
+      {l:"A record lookup",r:"low",c:"dig {T} A",e:"Queries the A record for the target domain returning all IPv4 addresses it resolves to. The most basic DNS lookup — shows where the domain points."},
+      {l:"A record short output",r:"low",c:"dig {T} A +short",e:"Returns only the IPv4 address with zero header noise. Ideal for scripting, piping to other tools, or quick checks."},
+      {l:"AAAA IPv6 record",r:"low",c:"dig {T} AAAA +short",e:"Queries the IPv6 address record. If the target is dual-stack it returns its IPv6 address. Useful for finding IPv6 attack surface often missed in assessments."},
+      {l:"MX mail servers",r:"low",c:"dig {T} MX +short",e:"Retrieves mail exchange records showing which mail servers handle email for the domain. Reveals the mail infrastructure — useful for phishing assessment scope."},
+      {l:"NS nameserver records",r:"low",c:"dig {T} NS +short",e:"Returns the authoritative nameservers for the domain. Identifying authoritative nameservers is critical before attempting zone transfers or DNS brute forcing."},
+      {l:"TXT record dump",r:"low",c:"dig {T} TXT +short",e:"Fetches all TXT records including SPF policies, DKIM selectors, DMARC configuration, domain ownership verification tokens, and info left by developers."},
+      {l:"SOA record query",r:"low",c:"dig {T} SOA +short",e:"Retrieves the Start of Authority record showing the primary nameserver, admin email, serial number, and zone refresh intervals."},
+      {l:"CNAME record lookup",r:"low",c:"dig {T} CNAME +short",e:"Queries canonical name records. CNAME chains reveal CDN providers, hosting infrastructure, and third-party services. Dangling CNAMEs are a subdomain takeover vector."},
+      {l:"SRV service records",r:"medium",c:"dig _http._tcp.{T} SRV +short",e:"Queries SRV records used by SIP, XMPP, and Microsoft services. Reveals internal services, ports, and priorities. Common in enterprise Active Directory environments."},
+      {l:"PTR reverse lookup",r:"low",c:"dig -x {T} +short",e:"Performs a reverse DNS lookup converting an IP address to a hostname. Reveals the PTR record which may expose internal hostnames or cloud instance names."},
+      {l:"DMARC policy lookup",r:"low",c:"dig _dmarc.{T} TXT +short",e:"Queries the DMARC policy. Missing or permissive DMARC (p=none) indicates email spoofing is possible against the target domain."},
+      {l:"SPF record lookup",r:"low",c:"dig {T} TXT +short",e:"Returns TXT records where the SPF record lives. SPF defines which servers are authorized to send email for the domain. Weak SPF allows spoofing."},
+      {l:"CAA certificate authority",r:"low",c:"dig {T} CAA +short",e:"Retrieves CAA records that restrict which CAs can issue SSL certs. Missing CAA allows any CA to issue certs — enables MITM attacks."},
+      {l:"ANY record query",r:"medium",c:"dig {T} ANY +noall +answer",e:"Requests all available record types in one query. Many resolvers restrict ANY queries but authoritative nameservers often still respond fully."},
+      {l:"Zone transfer attempt",r:"critical",c:"dig axfr {T} @ns1.{T}",e:"Attempts a full DNS zone transfer from the authoritative nameserver. If misconfigured the server returns every DNS record in the zone — complete infrastructure disclosure."},
+      {l:"Trace full delegation",r:"low",c:"dig {T} +trace",e:"Traces the complete DNS delegation chain from root servers down to the authoritative nameserver. Shows every step — useful for identifying DNS hijacking or misconfiguration."},
+      {l:"Query with Google DNS",r:"low",c:"dig @8.8.8.8 {T} A +short",e:"Queries Google's public DNS resolver. Useful to compare against authoritative responses to detect DNS poisoning, split-horizon DNS, or CDN-based geographic routing."},
+      {l:"Query with Cloudflare",r:"low",c:"dig @1.1.1.1 {T} A +short",e:"Uses Cloudflare's 1.1.1.1 resolver. Cross-referencing multiple public resolvers identifies inconsistencies indicating split-horizon DNS or DNS-based load balancing."},
+      {l:"DNSSEC records query",r:"low",c:"dig {T} A +dnssec",e:"Requests DNSSEC validation records alongside the A record. Reveals RRSIG, DNSKEY, and DS records. Misconfigured DNSSEC causes resolution failures."},
+      {l:"NSEC zone enumeration",r:"medium",c:"dig {T} NSEC +short",e:"Queries NSEC records used by DNSSEC to prove non-existence. In older DNSSEC implementations NSEC records allow walking the entire zone to enumerate all records."},
+      {l:"Wildcard DNS test",r:"medium",c:"dig doesnotexist123.{T} A +short",e:"Tests if the domain has wildcard DNS configured. If a non-existent subdomain resolves it means a wildcard record exists — all subdomains resolve regardless of config."},
+      {l:"TCP forced query",r:"low",c:"dig {T} ANY +tcp",e:"Forces the DNS query over TCP instead of UDP. TCP is required for responses larger than 512 bytes or when UDP queries are being truncated or filtered."},
+      {l:"Batch file query",r:"medium",c:"dig -f subdomains.txt +short",e:"Reads domain names from a file and queries each one. Efficient for bulk DNS lookups across many targets without scripting a manual loop."},
+      {l:"Authoritative only query",r:"medium",c:"dig {T} A +norecurse @ns1.{T}",e:"Queries the authoritative nameserver directly without recursion. Returns the authoritative answer rather than a cached response. Reveals what the zone truly contains."}
+    ]
+  },
+  {
+    id:"nslookup", icon:"&#128204;", badge:"b-nslookup",
+    title:"nslookup — Name Server Lookup",
+    desc:"nslookup is a cross-platform DNS query tool available on Windows and Linux/macOS. Ideal for quick interactive and scripted DNS queries.",
+    tip:"nslookup interactive mode lets you set a persistent server and query type — type 'server 8.8.8.8' then query multiple domains.",
+    warn:"",
+    flags:[
+      {f:"-type=TYPE",d:"Set query type: A, AAAA, MX, NS, TXT, SOA, CNAME, PTR"},
+      {f:"-server=IP",d:"Use a specific DNS resolver"},
+      {f:"-debug",d:"Show detailed debug output including full packet data"},
+      {f:"-timeout=N",d:"Set query timeout in seconds"},
+      {f:"-retry=N",d:"Number of retries on timeout"},
+      {f:"-port=N",d:"Use non-standard DNS port"}
+    ],
+    cmds:[
+      {l:"Basic A record lookup",r:"low",c:"nslookup {T}",e:"Performs a basic DNS lookup returning the A record IPv4 address. Works on Windows, Linux, and macOS. Shows both the resolver used and the answer."},
+      {l:"MX mail server lookup",r:"low",c:"nslookup -type=MX {T}",e:"Queries MX records showing all mail servers for the domain with priority values. Reveals the email infrastructure for phishing campaign assessment."},
+      {l:"NS nameserver lookup",r:"low",c:"nslookup -type=NS {T}",e:"Returns all authoritative nameservers for the domain. First step before attempting zone transfers — identifies which servers to target."},
+      {l:"TXT record query",r:"low",c:"nslookup -type=TXT {T}",e:"Retrieves all TXT records including SPF, DMARC, DKIM, and domain verification tokens. Reveals email security posture and third-party service integrations."},
+      {l:"SOA record query",r:"low",c:"nslookup -type=SOA {T}",e:"Retrieves the SOA record showing primary nameserver, zone admin email, serial number, and timing values. Admin email may be valid for social engineering."},
+      {l:"CNAME record query",r:"low",c:"nslookup -type=CNAME {T}",e:"Queries CNAME records. Reveals CDN providers, hosting platforms, and third-party services. Dangling CNAMEs pointing to unclaimed services enable subdomain takeover."},
+      {l:"AAAA IPv6 record",r:"low",c:"nslookup -type=AAAA {T}",e:"Queries IPv6 address records. Reveals dual-stack infrastructure. IPv6 services are often less protected than IPv4 equivalents — expanded attack surface."},
+      {l:"ANY type query",r:"medium",c:"nslookup -type=ANY {T}",e:"Requests all record types simultaneously. Provides a comprehensive overview of the DNS configuration in a single query."},
+      {l:"PTR reverse lookup",r:"low",c:"nslookup -type=PTR {T}",e:"Reverse DNS lookup returning the hostname for an IP address. Reveals internal hostnames and naming conventions when target is an IP address."},
+      {l:"Use Google resolver",r:"low",c:"nslookup {T} 8.8.8.8",e:"Queries using Google's 8.8.8.8 resolver. Bypasses local resolver configuration — useful for comparing cached vs authoritative responses to detect DNS anomalies."},
+      {l:"Use Cloudflare resolver",r:"low",c:"nslookup {T} 1.1.1.1",e:"Queries Cloudflare's 1.1.1.1 DNS resolver. Cross-referencing multiple resolvers helps detect split-horizon DNS, CDN routing, or DNS-based geo-targeting."},
+      {l:"Debug mode verbose",r:"medium",c:"nslookup -debug {T}",e:"Enables full debug output showing all sent and received DNS packets including flags, TTL values, and section details. Useful for diagnosing DNS misconfiguration."},
+      {l:"DMARC policy check",r:"low",c:"nslookup -type=TXT _dmarc.{T}",e:"Queries the DMARC policy. p=none means no enforcement — email spoofing is possible. p=quarantine or p=reject means stronger email authentication is enforced."},
+      {l:"CAA record query",r:"low",c:"nslookup -type=CAA {T}",e:"Retrieves CAA records specifying which certificate authorities can issue SSL certs. Missing CAA records allow any CA to issue certificates enabling MITM attacks."},
+      {l:"SRV service records",r:"medium",c:"nslookup -type=SRV _https._tcp.{T}",e:"Queries SRV records for HTTPS service discovery. Reveals service ports, priorities, and weights for load-balanced services — common in Microsoft and VoIP environments."},
+      {l:"Interactive mode",r:"low",c:"nslookup",e:"Enters nslookup interactive mode. Type 'server 8.8.8.8' to set a resolver, 'set type=MX' to change query type, then type any domain to query. Great for rapid enumeration sessions."},
+      {l:"Non-recursive query",r:"medium",c:"nslookup -norecurse {T} 8.8.8.8",e:"Sends a non-recursive query to the resolver — returns what it knows without fetching from other servers. Reveals cache contents without triggering full resolution."}
+    ]
+  },
+  {
+    id:"host", icon:"&#128187;", badge:"b-host",
+    title:"host — Simple DNS Lookup",
+    desc:"host is a simple and fast DNS lookup utility on Unix/Linux systems. Great for scripting and quick record queries with minimal output.",
+    tip:"host outputs clean minimal results — perfect for piping to grep, awk, and sed in shell scripts.",
+    warn:"",
+    flags:[
+      {f:"-t TYPE",d:"Query a specific record type"},
+      {f:"-a",d:"Query all record types (equivalent to ANY)"},
+      {f:"-l",d:"List all hosts in a zone (zone transfer attempt)"},
+      {f:"-v",d:"Verbose output with full DNS packet details"},
+      {f:"-r",d:"Disable recursive processing"},
+      {f:"-T",d:"Force TCP connection for the query"},
+      {f:"-4",d:"Use IPv4 transport only"},
+      {f:"-6",d:"Use IPv6 transport only"}
+    ],
+    cmds:[
+      {l:"Basic A record lookup",r:"low",c:"host {T}",e:"Simple DNS resolution returning IPv4 address, IPv6 address, and mail exchange records in one clean output line. Fastest way to check what a domain resolves to."},
+      {l:"MX mail servers",r:"low",c:"host -t MX {T}",e:"Retrieves mail exchange records sorted by priority. Reveals complete email infrastructure — useful for assessing email security and identifying mail servers."},
+      {l:"NS nameservers",r:"low",c:"host -t NS {T}",e:"Lists all authoritative nameservers. Essential first step before zone transfer attempts and DNS brute forcing — identifies the servers that hold zone data."},
+      {l:"TXT records",r:"low",c:"host -t TXT {T}",e:"Returns all TXT records including SPF, DMARC, DKIM keys, and any miscellaneous information left in DNS by developers or automated systems."},
+      {l:"SOA record",r:"low",c:"host -t SOA {T}",e:"Returns the Start of Authority record showing zone admin details, serial number, and refresh timings. Administrator email often reveals internal contact information."},
+      {l:"CNAME resolution chain",r:"low",c:"host -t CNAME {T}",e:"Follows and displays the CNAME chain. Shows every alias in the resolution path — reveals CDN providers and potential dangling CNAME takeover opportunities."},
+      {l:"AAAA IPv6 records",r:"low",c:"host -t AAAA {T}",e:"Queries IPv6 AAAA records. Returns the IPv6 address if the domain is dual-stack. IPv6 infrastructure is frequently overlooked in security assessments."},
+      {l:"All records verbose",r:"medium",c:"host -a {T}",e:"Queries for all record types (ANY) and displays complete verbose DNS response including all sections, TTL values, class, and record data."},
+      {l:"Zone transfer attempt",r:"critical",c:"host -l {T} ns1.{T}",e:"Attempts a DNS zone transfer (AXFR) against the specified nameserver. If successful returns every DNS record in the zone — complete subdomain and infrastructure disclosure."},
+      {l:"Zone transfer all NS",r:"critical",c:"for ns in $(host -t NS {T} | awk '{print $NF}'); do host -l {T} $ns; done",e:"Loops through all discovered nameservers and attempts zone transfer against each one. Some NS servers may allow transfers even when the primary does not."},
+      {l:"Force TCP query",r:"low",c:"host -T {T}",e:"Forces the DNS query to use TCP instead of UDP. Necessary when responses are larger than 512 bytes or when UDP queries are filtered by intermediate firewalls."},
+      {l:"Use Google resolver",r:"low",c:"host {T} 8.8.8.8",e:"Queries Google's DNS resolver directly. Useful for comparing resolution between resolvers to detect split-horizon DNS or CDN-based geographic routing."},
+      {l:"Verbose full packet",r:"medium",c:"host -v -t ANY {T}",e:"Shows the complete verbose DNS packet exchange for an ANY query including all sections with full TTL and class information."},
+      {l:"Reverse subnet sweep",r:"medium",c:"for ip in $(seq 1 254); do host 192.168.1.$ip; done | grep -v 'not found'",e:"Iterates through an IP range performing reverse DNS lookups to discover hostnames. Effective for mapping internal network ranges and discovering named hosts."},
+      {l:"SRV record query",r:"medium",c:"host -t SRV _ldap._tcp.{T}",e:"Queries LDAP SRV records used in Active Directory environments. Reveals internal AD servers, ports, and load balancing — key for AD attack planning."},
+      {l:"IPv4 only transport",r:"low",c:"host -4 {T}",e:"Forces DNS queries to use IPv4 transport only. Useful in dual-stack environments where you want to ensure the query travels over IPv4 for comparison testing."}
+    ]
+  },
+  {
+    id:"whois", icon:"&#128196;", badge:"b-whois",
+    title:"whois — Domain Registration Lookup",
+    desc:"whois retrieves domain registration data, IP ownership, ASN information, and RDAP records. Critical first step in any reconnaissance engagement.",
+    tip:"Always run whois first — registrant email is often the same person who controls all related infrastructure.",
+    warn:"Some whois data is redacted under GDPR. Use historical WHOIS databases for historical registrant data.",
+    flags:[
+      {f:"-h HOST",d:"Use a specific whois server"},
+      {f:"-p PORT",d:"Query on non-standard port"},
+      {f:"-I",d:"Use IANA whois server"},
+      {f:"--verbose",d:"Verbose output"},
+      {f:"-B",d:"Disable object filtering — show full output"}
+    ],
+    cmds:[
+      {l:"Domain whois lookup",r:"low",c:"whois {T}",e:"Retrieves full domain registration data including registrant name, email, organization, registration date, expiry date, registrar, and nameservers."},
+      {l:"IP address whois",r:"low",c:"whois $(dig {T} A +short | head -1)",e:"Automatically resolves the domain to an IP then performs whois on that IP. Reveals the hosting provider, ASN, IP range allocation, and abuse contact details."},
+      {l:"ASN number lookup",r:"low",c:"whois -h whois.cymru.com ' -v {T}'",e:"Queries Team Cymru's whois service to retrieve the ASN, BGP prefix, country, and registry for the target IP. Reveals the autonomous system owning the infrastructure."},
+      {l:"RIPE whois lookup",r:"low",c:"whois -h whois.ripe.net {T}",e:"Queries RIPE NCC (European IP registry) directly. Returns network range, organization, admin contact, and routing policies."},
+      {l:"ARIN whois lookup",r:"low",c:"whois -h whois.arin.net {T}",e:"Queries ARIN (American IP registry) directly. Returns organization, network range, point of contact, and abuse reporting information for North American IP allocations."},
+      {l:"Domain expiry check",r:"low",c:"whois {T} | grep -i expir",e:"Extracts expiry date from whois output. Expired or soon-to-expire domains can be registered by attackers to take control of associated email and services."},
+      {l:"Registrar information",r:"low",c:"whois {T} | grep -i registrar",e:"Extracts registrar name and IANA ID. Knowing the registrar helps identify social engineering targets for domain transfer attacks."},
+      {l:"Nameserver from whois",r:"low",c:"whois {T} | grep -i 'name server'",e:"Extracts nameserver information from whois. Comparing whois NS records with DNS NS records can reveal discrepancies indicating unauthorized NS changes or hijacking."},
+      {l:"Registrant email extract",r:"medium",c:"whois {T} | grep -i email",e:"Extracts all email addresses from whois records. Registrant email is often used across multiple domains — pivoting reveals additional assets."},
+      {l:"Creation date check",r:"low",c:"whois {T} | grep -i 'creation\\|created\\|registered'",e:"Shows when the domain was first registered. Newly registered domains (past 30 days) are often used for phishing campaigns or temporary infrastructure."},
+      {l:"RDAP modern lookup",r:"low",c:"curl https://rdap.org/domain/{T}",e:"Queries RDAP — the modern replacement for whois. Returns structured JSON with registrant, registrar, events, and nameserver information."},
+      {l:"IP RDAP lookup",r:"low",c:"curl https://rdap.org/ip/{T}",e:"RDAP lookup for an IP address returning structured JSON with network name, organization, country, and contact information."},
+      {l:"Full whois no filter",r:"low",c:"whois -B {T}",e:"Disables RIPE object filtering to show complete unfiltered output. Some registries hide personal data by default — this flag reveals more complete registration information."},
+      {l:"Passive DNS history",r:"medium",c:"curl 'https://api.securitytrails.com/v1/history/{T}/dns/a' -H 'apikey: YOUR_KEY'",e:"Queries SecurityTrails API for historical DNS records. Reveals past IP addresses, hosting providers, and infrastructure changes."}
+    ]
+  },
+  {
+    id:"massdns", icon:"&#9889;", badge:"b-massdns",
+    title:"massdns — High Performance DNS Resolver",
+    desc:"massdns performs massive-scale DNS lookups using thousands of public resolvers simultaneously. Can resolve millions of subdomains per minute.",
+    tip:"Always use a verified resolvers list. Bad resolvers skew results. Use the resolvers from the massdns GitHub repository.",
+    warn:"massdns generates massive DNS traffic. Always use on authorized targets and throttle with -s to avoid amplification.",
+    flags:[
+      {f:"-r resolvers.txt",d:"Path to resolvers list file"},
+      {f:"-t TYPE",d:"Query record type (A, AAAA, CNAME, MX, NS)"},
+      {f:"-o FORMAT",d:"Output format: S (simple), L (list), J (JSON), F (full)"},
+      {f:"-s N",d:"Number of concurrent DNS lookups (default 500)"},
+      {f:"--verify-ip",d:"Verify response IPs are valid (not wildcards)"},
+      {f:"-w file",d:"Write output to a file"},
+      {f:"--retry N",d:"Number of retries for failed lookups"}
+    ],
+    cmds:[
+      {l:"Basic subdomain resolve",r:"high",c:"massdns -r resolvers.txt -t A -o S subdomains.txt",e:"Resolves a wordlist of subdomains using hundreds of parallel resolvers. -o S outputs in simple format (hostname, type, answer). Core command for large-scale subdomain validation."},
+      {l:"Full output format",r:"high",c:"massdns -r resolvers.txt -t A -o F subdomains.txt",e:"Full output format showing all DNS sections (question, answer, authority, additional). Provides complete DNS response data for each resolved subdomain."},
+      {l:"JSON output format",r:"high",c:"massdns -r resolvers.txt -t A -o J subdomains.txt -w results.json",e:"Outputs results as JSON objects — one per line (JSONL format). Ideal for post-processing with jq, loading into databases, or feeding into other recon tools."},
+      {l:"CNAME chain resolve",r:"high",c:"massdns -r resolvers.txt -t CNAME -o S subdomains.txt",e:"Resolves CNAME records for all subdomains. Reveals CDN usage, third-party integrations, and dangling CNAME records vulnerable to subdomain takeover."},
+      {l:"High concurrency scan",r:"high",c:"massdns -r resolvers.txt -t A -o S -s 10000 subdomains.txt",e:"Sets 10000 concurrent lookups for maximum speed. Use only with a large resolver list. Suitable for resolving millions of subdomains in large scope bug bounty programs."},
+      {l:"With wildcard filtering",r:"high",c:"massdns -r resolvers.txt -t A --verify-ip -o S subdomains.txt",e:"Enables IP verification to filter out wildcard DNS responses. Without this all subdomains on wildcard domains appear to resolve — this flag removes false positives."},
+      {l:"Save results to file",r:"high",c:"massdns -r resolvers.txt -t A -o S subdomains.txt -w massdns_output.txt",e:"Writes resolved results to a file while also displaying to stdout. Essential for large scans where terminal output scrolls too fast to review."},
+      {l:"MX record resolution",r:"medium",c:"massdns -r resolvers.txt -t MX -o S domains.txt",e:"Resolves MX records for a large list of domains. Useful for mapping mail server infrastructure across a wide scope."},
+      {l:"Generate subdomains pipe",r:"high",c:"cat wordlist.txt | awk '{print $0\".{T}\"}' | massdns -r resolvers.txt -t A -o S -",e:"Generates subdomain candidates on the fly by prepending wordlist entries to the target domain and piping directly into massdns. No intermediate file needed."},
+      {l:"Filter live subdomains",r:"high",c:"massdns -r resolvers.txt -t A -o S subdomains.txt | grep -v NXDOMAIN",e:"Post-filters massdns output to remove NXDOMAIN responses showing only subdomains that actually resolve. Clean list of live subdomains ready for further testing."},
+      {l:"Extract unique IPs",r:"medium",c:"massdns -r resolvers.txt -t A -o S subdomains.txt | awk '{print $3}' | sort -u",e:"Extracts unique IP addresses from massdns results. Reveals all hosting infrastructure IPs — useful for mapping cloud providers and shared hosting relationships."},
+      {l:"Retry failed lookups",r:"medium",c:"massdns -r resolvers.txt -t A -o S --retry 3 subdomains.txt",e:"Retries failed DNS lookups up to 3 times. Reduces false NXDOMAIN results caused by unreliable resolvers or network timeouts during large scale scans."}
+    ]
+  },
+  {
+    id:"sublist3r", icon:"&#128202;", badge:"b-sublist3r",
+    title:"Sublist3r — Subdomain Enumeration Tool",
+    desc:"Sublist3r enumerates subdomains using search engines (Google, Bing, Yahoo, Baidu), DNS brute force, and security databases (Netcraft, Virustotal, DNSdumpster).",
+    tip:"Use -b for DNS brute force combined with OSINT sources for maximum coverage. Always combine with other tools.",
+    warn:"Search engine queries may be rate-limited. Use -t to limit threads if you hit API limits.",
+    flags:[
+      {f:"-d domain",d:"Target domain to enumerate"},
+      {f:"-b",d:"Enable brute force with default wordlist"},
+      {f:"-w wordlist",d:"Custom wordlist for brute force"},
+      {f:"-t N",d:"Number of threads (default 10)"},
+      {f:"-p PORTS",d:"Scan discovered subdomains for open ports"},
+      {f:"-e ENGINES",d:"Specify search engines: google,bing,yahoo,baidu,netcraft,virustotal"},
+      {f:"-v",d:"Enable verbose mode to see results as discovered"},
+      {f:"-o file",d:"Save results to output file"}
+    ],
+    cmds:[
+      {l:"Basic enumeration",r:"medium",c:"sublist3r -d {T}",e:"Queries all default search engines and security databases to find subdomains. Uses Google, Bing, Yahoo, Baidu, Netcraft, Virustotal, and DNSdumpster. No brute force."},
+      {l:"With brute force",r:"high",c:"sublist3r -d {T} -b",e:"Combines OSINT search engine enumeration with DNS brute force using the built-in wordlist. Significantly increases subdomain coverage at the cost of time and noise."},
+      {l:"Custom wordlist brute",r:"high",c:"sublist3r -d {T} -b -w /usr/share/wordlists/subdomains.txt",e:"Uses a custom wordlist for DNS brute force enumeration. Larger wordlists like SecLists dns-all.txt find more subdomains but take longer to complete."},
+      {l:"Save output to file",r:"medium",c:"sublist3r -d {T} -o subdomains.txt",e:"Saves all discovered subdomains to a text file. One subdomain per line — output is ready for piping into massdns, subfinder, httpx, or other recon tools."},
+      {l:"Verbose real-time output",r:"medium",c:"sublist3r -d {T} -v",e:"Enables verbose mode showing each subdomain as it is discovered in real time. Useful for monitoring progress and getting early results during long enumeration runs."},
+      {l:"Multi-threaded scan",r:"high",c:"sublist3r -d {T} -t 50",e:"Increases thread count to 50 for faster enumeration. Higher threads speed up DNS brute force but may trigger rate limiting from search engines and DNS resolvers."},
+      {l:"Google and Bing only",r:"medium",c:"sublist3r -d {T} -e google,bing",e:"Restricts OSINT enumeration to Google and Bing only. Faster than using all engines and avoids rate limits from less reliable sources."},
+      {l:"VirusTotal and Netcraft",r:"medium",c:"sublist3r -d {T} -e virustotal,netcraft",e:"Focuses on VirusTotal and Netcraft databases which catalog subdomains from SSL certificates and passive DNS data."},
+      {l:"Port scan discovered",r:"high",c:"sublist3r -d {T} -p 80,443,8080,8443",e:"After discovering subdomains automatically scans each one for open web ports. Quickly identifies which subdomains are actively serving web applications."},
+      {l:"Full aggressive scan",r:"high",c:"sublist3r -d {T} -b -t 100 -v -o {T}_subs.txt",e:"Maximum coverage: all OSINT sources plus brute force, 100 threads, verbose output, and results saved to file."}
+    ]
+  },
+  {
+    id:"amass", icon:"&#127760;", badge:"b-amass",
+    title:"Amass — Attack Surface Mapping",
+    desc:"Amass by OWASP is the most comprehensive subdomain enumeration and attack surface mapping tool. Uses 55+ data sources including APIs, scrapers, and brute force.",
+    tip:"Use 'amass enum' for active enumeration and 'amass intel' for passive org-level recon. Store results in the database for later querying.",
+    warn:"Active mode (-active) performs DNS zone transfers and scraping that leaves traces. Use passive mode for stealth.",
+    flags:[
+      {f:"enum",d:"Subdomain enumeration mode"},
+      {f:"intel",d:"Org and infrastructure intelligence gathering"},
+      {f:"-d domain",d:"Target domain(s) to enumerate"},
+      {f:"-passive",d:"Passive only — no direct contact with target"},
+      {f:"-active",d:"Active enumeration including zone transfers"},
+      {f:"-brute",d:"Enable DNS brute force enumeration"},
+      {f:"-w wordlist",d:"Custom wordlist for brute force"},
+      {f:"-o file",d:"Output file for discovered names"},
+      {f:"-json file",d:"JSON output file"},
+      {f:"-config file",d:"Config file with API keys"},
+      {f:"-src",d:"Show data source for each discovered name"},
+      {f:"-ip",d:"Show IP addresses for each subdomain"},
+      {f:"-timeout N",d:"Enumeration timeout in minutes"}
+    ],
+    cmds:[
+      {l:"Passive enumeration",r:"medium",c:"amass enum -passive -d {T}",e:"Pure passive enumeration using 55+ OSINT data sources including certificate transparency, DNS databases, and web scraping. No packets sent directly to target — fully stealthy."},
+      {l:"Active enumeration",r:"high",c:"amass enum -active -d {T}",e:"Active enumeration that performs DNS zone transfers, certificate lookups, port scanning, and web scraping. Significantly more coverage than passive but generates detectable traffic."},
+      {l:"Brute force included",r:"high",c:"amass enum -brute -d {T}",e:"Enables DNS brute force alongside OSINT enumeration. Uses the built-in wordlist plus all passive data sources. Most thorough single-command subdomain discovery."},
+      {l:"Custom wordlist brute",r:"high",c:"amass enum -brute -w /usr/share/wordlists/dns-all.txt -d {T}",e:"Brute force enumeration using a custom wordlist. Large wordlists like dns-all.txt find significantly more subdomains than the default list."},
+      {l:"Show data sources",r:"medium",c:"amass enum -passive -d {T} -src",e:"Displays the data source for each discovered subdomain (CertSpotter, VirusTotal, DNSdumpster). Helps identify which sources are most productive for the target."},
+      {l:"With IP addresses",r:"medium",c:"amass enum -passive -d {T} -ip",e:"Resolves and displays the IP address for each discovered subdomain. Immediately maps which subdomains are live and reveals hosting providers and CDN usage."},
+      {l:"JSON output",r:"medium",c:"amass enum -passive -d {T} -json amass_output.json",e:"Saves complete results as JSON including subdomain, source, and IP data. Ideal for post-processing with jq or importing into visualization tools."},
+      {l:"Save to output file",r:"medium",c:"amass enum -passive -d {T} -o amass_subs.txt",e:"Saves all discovered subdomain names to a text file ready for validation with massdns, httpx, or EyeWitness."},
+      {l:"With API config file",r:"high",c:"amass enum -active -d {T} -config ~/.config/amass/config.yaml",e:"Uses API configuration file with keys for Shodan, VirusTotal, SecurityTrails, Censys, and others. Dramatically increases discovery coverage."},
+      {l:"Intelligence gathering",r:"medium",c:"amass intel -d {T} -whois",e:"Uses whois data pivoting to discover additional domains owned by the same organization. Finds the full domain portfolio by chaining registration data."},
+      {l:"ASN enumeration",r:"medium",c:"amass intel -asn 15169",e:"Enumerates all domains and IP ranges associated with an ASN number. Replace with the target organization's ASN to discover their complete internet-facing infrastructure."},
+      {l:"Org name intel",r:"medium",c:"amass intel -org 'Target Company'",e:"Searches for all domains registered to a specific organization name. Discovers domains not obviously related to the main domain — reveals shadow IT and forgotten assets."},
+      {l:"Timeout controlled scan",r:"medium",c:"amass enum -passive -d {T} -timeout 30",e:"Sets a 30-minute timeout for the enumeration. Useful for time-boxed engagements or automated pipelines where scan duration must be controlled."},
+      {l:"Visualize results",r:"low",c:"amass viz -d3 -d {T}",e:"Generates a D3.js interactive visualization of the attack surface. Creates an HTML file showing subdomain relationships, IP clustering, and infrastructure connections."}
+    ]
+  },
+  {
+    id:"subfinder", icon:"&#128269;", badge:"b-subfinder",
+    title:"Subfinder — Passive Subdomain Discovery",
+    desc:"Subfinder is a fast passive subdomain discovery tool by ProjectDiscovery. Uses certificate transparency, DNS databases, and 40+ passive sources with clean JSON output.",
+    tip:"Configure ~/.config/subfinder/provider-config.yaml with API keys for Shodan, Censys, SecurityTrails to maximize results.",
+    warn:"",
+    flags:[
+      {f:"-d domain",d:"Target domain"},
+      {f:"-dL file",d:"File containing list of domains"},
+      {f:"-o file",d:"Output file"},
+      {f:"-oJ",d:"JSON output format"},
+      {f:"-all",d:"Use all available sources"},
+      {f:"-sources LIST",d:"Specify which sources to use"},
+      {f:"-recursive",d:"Enable recursive subdomain discovery"},
+      {f:"-t N",d:"Threads (default 10)"},
+      {f:"-silent",d:"Show only results — no banner"},
+      {f:"-v",d:"Verbose output"},
+      {f:"-nW",d:"Remove wildcard subdomains"}
+    ],
+    cmds:[
+      {l:"Basic enumeration",r:"medium",c:"subfinder -d {T}",e:"Runs passive subdomain discovery using all configured API sources and free databases. Returns unique subdomains found across certificate transparency logs, DNS databases, and web archives."},
+      {l:"Silent clean output",r:"medium",c:"subfinder -d {T} -silent",e:"Suppresses the banner and progress messages showing only discovered subdomain names. Clean output for piping directly to massdns, httpx, or nuclei."},
+      {l:"Save to file",r:"medium",c:"subfinder -d {T} -o subs.txt",e:"Saves all discovered subdomains to a text file. One subdomain per line ready for bulk DNS resolution, port scanning, or web application fingerprinting."},
+      {l:"JSON structured output",r:"medium",c:"subfinder -d {T} -oJ -o subs.json",e:"Outputs results as JSON with source attribution for each subdomain. Allows tracking which data sources found which subdomains for analysis and tool comparison."},
+      {l:"All sources maximum",r:"high",c:"subfinder -d {T} -all",e:"Forces use of all available data sources including those requiring API keys. With a fully configured API key file this is the highest coverage passive scan available."},
+      {l:"Recursive discovery",r:"high",c:"subfinder -d {T} -recursive",e:"Enables recursive enumeration — discovered subdomains are themselves used as targets for further enumeration. Can find deeply nested subdomains like a.b.{T}."},
+      {l:"Multiple domains",r:"high",c:"subfinder -dL domains.txt -silent",e:"Reads a list of target domains from a file and enumerates subdomains for all of them. Efficient for large scope assessments with many root domains."},
+      {l:"Specific sources only",r:"medium",c:"subfinder -d {T} -sources certspotter,crtsh,hackertarget",e:"Restricts enumeration to specified data sources. Useful for fast queries using only the most reliable sources."},
+      {l:"Remove wildcard results",r:"high",c:"subfinder -d {T} -nW",e:"Filters wildcard DNS responses from results. Domains with wildcard DNS appear to resolve all subdomains — this flag removes false positives."},
+      {l:"Pipe to httpx",r:"high",c:"subfinder -d {T} -silent | httpx -silent",e:"Pipes discovered subdomains directly into httpx to probe for live HTTP/HTTPS services. Immediately identifies which subdomains are running web applications."},
+      {l:"Full recon pipeline",r:"critical",c:"subfinder -d {T} -silent | httpx -silent | nuclei -t ~/nuclei-templates/",e:"Full passive recon to live check to vulnerability scan pipeline. Discovers subdomains, finds web services, then scans all of them with nuclei vulnerability templates."},
+      {l:"Verbose source tracking",r:"medium",c:"subfinder -d {T} -v 2>&1 | tee subfinder_verbose.txt",e:"Verbose mode showing which source found each subdomain plus timing information. Saved to file for later analysis of source effectiveness."}
+    ]
+  },
+  {
+    id:"dnsx", icon:"&#128204;", badge:"b-dnsx",
+    title:"dnsx — Fast DNS Toolkit",
+    desc:"dnsx by ProjectDiscovery is a multi-purpose DNS toolkit for resolving, probing, and extracting DNS data at scale. Designed for pipeline integration.",
+    tip:"Combine dnsx with subfinder and httpx for a complete passive-to-active recon pipeline in a single command chain.",
+    warn:"",
+    flags:[
+      {f:"-l file",d:"Input list of domains to resolve"},
+      {f:"-d domain",d:"Single target domain"},
+      {f:"-w wordlist",d:"Wordlist for brute force mode"},
+      {f:"-t N",d:"Number of threads"},
+      {f:"-r resolvers",d:"Custom resolvers file"},
+      {f:"-resp",d:"Show DNS response"},
+      {f:"-resp-only",d:"Show only response values"},
+      {f:"-a,-aaaa,-cname,-mx,-ns,-txt,-ptr,-soa",d:"Query specific record types"},
+      {f:"-rcode",d:"Filter by response code"},
+      {f:"-cdn",d:"Show CDN information"},
+      {f:"-asn",d:"Show ASN information"},
+      {f:"-json",d:"JSON output"},
+      {f:"-o file",d:"Output file"}
+    ],
+    cmds:[
+      {l:"Resolve subdomain list",r:"medium",c:"dnsx -l subs.txt -a -resp",e:"Resolves a list of subdomains querying A records and displaying the DNS response. Filters out NXDOMAIN responses showing only live subdomains."},
+      {l:"Silent live hosts only",r:"medium",c:"dnsx -l subs.txt -silent",e:"Outputs only resolvable subdomains with no banner or status messages. Clean output for piping into httpx, nmap, or other downstream tools."},
+      {l:"Show all record types",r:"medium",c:"dnsx -l subs.txt -a -aaaa -cname -mx -ns -txt -resp",e:"Queries multiple record types simultaneously for each subdomain. Comprehensive DNS profile of every discovered subdomain in a single scan pass."},
+      {l:"Brute force mode",r:"high",c:"dnsx -d {T} -w wordlist.txt",e:"DNS brute force enumeration using a wordlist. Generates subdomain candidates by prepending each wordlist word to the target domain and checking resolution."},
+      {l:"Custom resolvers",r:"high",c:"dnsx -l subs.txt -r resolvers.txt -a -resp",e:"Uses a custom resolver list for DNS queries. Provides more reliable results than default system resolver and allows cross-referencing against multiple DNS providers."},
+      {l:"JSON structured output",r:"medium",c:"dnsx -l subs.txt -a -json -o dns_results.json",e:"Outputs complete DNS query results as JSON with host, type, value, and status fields. Ideal for importing into security platforms or processing with jq."},
+      {l:"Filter NXDOMAIN",r:"medium",c:"dnsx -l subs.txt -a -rcode noerror",e:"Filters results showing only subdomains that return NOERROR response code. Cleanly removes NXDOMAIN, SERVFAIL, and REFUSED responses."},
+      {l:"CNAME takeover check",r:"high",c:"dnsx -l subs.txt -cname -resp",e:"Resolves CNAME records for all subdomains. CNAME values pointing to unregistered third-party domains are potential subdomain takeover vulnerabilities."},
+      {l:"CDN provider detect",r:"low",c:"dnsx -l subs.txt -a -cdn",e:"Identifies which CDN provider (Cloudflare, Fastly, Akamai) is serving each subdomain. Reveals CDN usage patterns and helps identify WAF bypass opportunities."},
+      {l:"ASN info per subdomain",r:"low",c:"dnsx -l subs.txt -a -asn",e:"Displays ASN information for each resolved IP. Maps which subdomains are hosted on AWS, GCP, Azure, or traditional hosting providers."},
+      {l:"TXT record harvest",r:"medium",c:"dnsx -l subs.txt -txt -resp-only",e:"Extracts only the TXT record values for all subdomains. Aggregates SPF, DKIM, DMARC, and verification tokens across the entire subdomain space in one pass."},
+      {l:"PTR reverse lookups",r:"medium",c:"cat ips.txt | dnsx -ptr -resp-only",e:"Performs reverse DNS lookups for a list of IP addresses. Reveals hostnames for discovered IPs — may expose internal naming conventions and additional targets."},
+      {l:"Pipe from subfinder",r:"high",c:"subfinder -d {T} -silent | dnsx -a -cname -resp",e:"Classic pipeline: subfinder discovers subdomains passively then dnsx resolves and queries them for A and CNAME records. Full passive-to-DNS profiling workflow."}
+    ]
+  },
+  {
+    id:"dnsrecon", icon:"&#128202;", badge:"b-dnsrecon",
+    title:"dnsrecon — DNS Enumeration Script",
+    desc:"dnsrecon is a comprehensive Python DNS enumeration tool supporting zone transfers, brute force, reverse lookups, cache snooping, and multiple record types.",
+    tip:"Use -t rvl for reverse range lookups to find all hostnames in a target IP subnet — reveals entire infrastructure naming.",
+    warn:"Zone transfer (-t axfr) and brute force (-t brt) modes generate significant DNS traffic — use with authorized targets only.",
+    flags:[
+      {f:"-d domain",d:"Target domain"},
+      {f:"-r range",d:"IP range for reverse lookup (CIDR)"},
+      {f:"-t TYPE",d:"Scan type: std, axfr, brt, rvl, snoop, tld, zonewalk"},
+      {f:"-D wordlist",d:"Wordlist file for brute force"},
+      {f:"-n NS",d:"Target nameserver for queries"},
+      {f:"-j file",d:"Output to JSON file"},
+      {f:"--xml file",d:"Output to XML file"},
+      {f:"-v",d:"Enable verbose output"},
+      {f:"--threads N",d:"Number of threads for brute force"},
+      {f:"-z",d:"DNSSEC zone walk"}
+    ],
+    cmds:[
+      {l:"Standard enumeration",r:"medium",c:"dnsrecon -d {T}",e:"Standard scan queries all common record types (A, AAAA, NS, SOA, MX, TXT, CNAME, SRV) and checks for zone transfers. Best starting point for comprehensive DNS profiling."},
+      {l:"Zone transfer attempt",r:"critical",c:"dnsrecon -d {T} -t axfr",e:"Attempts AXFR zone transfer against all discovered nameservers. If successful returns the complete zone revealing every subdomain, IP, and service configuration."},
+      {l:"DNS brute force",r:"high",c:"dnsrecon -d {T} -t brt -D /usr/share/wordlists/subdomains.txt",e:"Brute force subdomain enumeration using a wordlist. Tests each word as a subdomain prefix. Larger wordlists find more subdomains — combine with OSINT sources."},
+      {l:"Reverse range lookup",r:"medium",c:"dnsrecon -r 192.168.1.0/24 -t rvl",e:"Performs reverse DNS lookup for every IP in a CIDR range. Reveals all hostnames mapped to IPs in the subnet — complete internal naming convention disclosure."},
+      {l:"TLD expansion scan",r:"medium",c:"dnsrecon -d {T} -t tld",e:"Checks if the target domain is registered under other TLDs (.net, .org, .co.uk, .io). Discovers related domains that may be part of the organization's infrastructure."},
+      {l:"Cache snooping",r:"high",c:"dnsrecon -d {T} -t snoop -n 8.8.8.8 -D wordlist.txt",e:"DNS cache snooping tests which domains a resolver has recently cached. Can reveal what internal users have been browsing and what infrastructure they interact with."},
+      {l:"DNSSEC zone walk",r:"medium",c:"dnsrecon -d {T} -t zonewalk",e:"Attempts DNSSEC zone walking using NSEC records to enumerate all records without a zone transfer. Works on DNSSEC-enabled zones using older NSEC (not NSEC3)."},
+      {l:"Specific nameserver",r:"medium",c:"dnsrecon -d {T} -n ns1.{T}",e:"Directs all queries to a specific nameserver. Useful for testing zone transfer against a specific NS server or comparing responses between primary and secondary nameservers."},
+      {l:"JSON output format",r:"medium",c:"dnsrecon -d {T} -j dnsrecon_results.json",e:"Saves all DNS enumeration results to a JSON file. Structured output suitable for import into security dashboards or further automated analysis."},
+      {l:"Verbose brute force",r:"high",c:"dnsrecon -d {T} -t brt -D /usr/share/seclists/Discovery/DNS/dns-all.txt --threads 20 -v",e:"High-coverage DNS brute force with 20 threads and verbose output. Uses the comprehensive dns-all.txt wordlist for maximum subdomain discovery."},
+      {l:"SRV service discovery",r:"medium",c:"dnsrecon -d {T} -t srv",e:"Enumerates SRV service records for common protocols (HTTP, HTTPS, FTP, SIP, XMPP, LDAP). Reveals services and ports advertised via DNS in enterprise environments."}
+    ]
+  },
+  {
+    id:"gobuster", icon:"&#128203;", badge:"b-gobuster",
+    title:"gobuster dns — DNS Subdomain Brute Force",
+    desc:"gobuster dns mode performs fast multi-threaded DNS subdomain brute forcing using concurrent goroutines. Part of the popular gobuster suite.",
+    tip:"Use SecLists dns-all.txt for maximum coverage. Combine with -r for custom resolvers to avoid rate limiting.",
+    warn:"High thread counts may cause DNS rate limiting. Use --delay to throttle if getting false negatives.",
+    flags:[
+      {f:"dns",d:"DNS subdomain brute force mode"},
+      {f:"-d domain",d:"Target domain"},
+      {f:"-w wordlist",d:"Wordlist path"},
+      {f:"-t N",d:"Number of threads (default 10)"},
+      {f:"-r resolver",d:"Use custom DNS resolver"},
+      {f:"--show-cname",d:"Show CNAME records in output"},
+      {f:"--show-ips",d:"Show IP addresses for discovered subdomains"},
+      {f:"-o file",d:"Output file"},
+      {f:"--delay",d:"Delay between requests"},
+      {f:"-v",d:"Verbose output"},
+      {f:"--wildcard",d:"Detect and handle wildcard DNS"}
+    ],
+    cmds:[
+      {l:"Basic subdomain brute",r:"high",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt",e:"DNS brute force mode testing each word in the wordlist as a subdomain prefix. Concurrent goroutines make this significantly faster than traditional sequential tools."},
+      {l:"Show IPs in results",r:"high",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt --show-ips",e:"Displays resolved IP addresses alongside each discovered subdomain. Immediately maps the infrastructure without needing a separate DNS resolution step."},
+      {l:"Show CNAME records",r:"high",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt --show-cname",e:"Displays CNAME records for discovered subdomains. Reveals CDN providers and third-party services. CNAME pointing to unclaimed services indicates subdomain takeover potential."},
+      {l:"High thread count",r:"high",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt -t 50",e:"Increases to 50 concurrent threads for faster scanning. May trigger rate limiting — reduce if getting inconsistent results."},
+      {l:"Custom resolver",r:"high",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt -r 8.8.8.8",e:"Uses Google DNS as resolver. Ensures results reflect public DNS resolution. Avoids results being influenced by local DNS cache or ISP-level filtering."},
+      {l:"Save to output file",r:"medium",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt -o gobuster_subs.txt",e:"Writes discovered subdomains to an output file. Clean text output ready for feeding into further reconnaissance and vulnerability scanning tools."},
+      {l:"SecLists comprehensive",r:"high",c:"gobuster dns -d {T} -w /usr/share/seclists/Discovery/DNS/dns-all.txt -t 25",e:"Uses the comprehensive dns-all.txt wordlist from SecLists. Over 1.8 million entries — highest coverage DNS brute force wordlist available publicly."},
+      {l:"With delay throttle",r:"medium",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt --delay 100ms -t 10",e:"Adds 100ms delay between requests with 10 threads. Slower but produces reliable results when target DNS infrastructure enforces rate limits."},
+      {l:"Wildcard detection",r:"medium",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt --wildcard",e:"Attempts to detect and handle wildcard DNS. Wildcard domains return a response for all queries — gobuster identifies the wildcard IP and filters it from results."},
+      {l:"Verbose progress",r:"medium",c:"gobuster dns -d {T} -w /usr/share/wordlists/subdomains.txt -v",e:"Verbose mode showing all DNS query attempts including NXDOMAIN failures. Useful for debugging wordlist effectiveness and monitoring scan progress."}
+    ]
+  },
+  {
+    id:"theharv", icon:"&#127758;", badge:"b-theharv",
+    title:"theHarvester — OSINT Email and Subdomain",
+    desc:"theHarvester harvests emails, subdomains, IPs, and URLs from public sources including search engines, PGP key servers, LinkedIn, GitHub, and Shodan.",
+    tip:"Use multiple data sources with -b all for maximum coverage. theHarvester finds emails that DNS tools miss.",
+    warn:"API keys are required for some sources. Without keys Shodan, Hunter, and SecurityTrails queries will fail.",
+    flags:[
+      {f:"-d domain",d:"Target domain"},
+      {f:"-b source",d:"Data source: google, bing, shodan, github, hunter, linkedin, securitytrails, all"},
+      {f:"-l N",d:"Limit results per source (default 500)"},
+      {f:"-n",d:"Enable DNS lookup on discovered hosts"},
+      {f:"-v",d:"Enable DNS reverse lookup"},
+      {f:"-f file",d:"Save to HTML and XML report file"},
+      {f:"-c",d:"DNS brute force on domain"},
+      {f:"-e DNS",d:"Use specific DNS server"}
+    ],
+    cmds:[
+      {l:"Google OSINT harvest",r:"medium",c:"theHarvester -d {T} -b google",e:"Scrapes Google search results for email addresses, subdomains, and URLs. No API key required. Excellent starting point for passive recon."},
+      {l:"All sources harvest",r:"high",c:"theHarvester -d {T} -b all",e:"Queries all available data sources simultaneously. Maximum OSINT coverage including search engines, PGP servers, and security databases. Requires API keys for premium sources."},
+      {l:"Bing harvester",r:"medium",c:"theHarvester -d {T} -b bing",e:"Queries Bing search engine for emails, subdomains, and URLs. Bing sometimes indexes content that Google does not — running both engines increases discovery coverage."},
+      {l:"Shodan host discovery",r:"high",c:"theHarvester -d {T} -b shodan",e:"Queries Shodan's database for hosts and services associated with the domain. Reveals IP addresses, open ports, service banners, and SSL certificate information."},
+      {l:"GitHub code leak search",r:"high",c:"theHarvester -d {T} -b github-code",e:"Searches GitHub for code files referencing the target domain. Discovers API keys, credentials, and internal hostnames accidentally committed to public repositories."},
+      {l:"Hunter.io email harvest",r:"high",c:"theHarvester -d {T} -b hunter",e:"Queries Hunter.io for email addresses. Returns verified email addresses with names and roles — valuable for spear phishing scope assessment."},
+      {l:"Subdomains with DNS",r:"high",c:"theHarvester -d {T} -b google -n",e:"Harvests subdomains from Google then performs DNS resolution on each. Confirms which discovered subdomains are live and returns their IP addresses."},
+      {l:"Save HTML XML report",r:"medium",c:"theHarvester -d {T} -b all -f {T}_harvest",e:"Saves complete harvesting results to both HTML and XML report files. The HTML report is formatted for human reading — useful for deliverables and client reports."},
+      {l:"SecurityTrails source",r:"high",c:"theHarvester -d {T} -b securitytrails",e:"Queries SecurityTrails passive DNS database — one of the richest sources for historical DNS data. Requires API key."},
+      {l:"DNS brute force mode",r:"high",c:"theHarvester -d {T} -b google -c",e:"Enables DNS brute force after OSINT harvesting. Combines search engine results with brute force enumeration for comprehensive subdomain discovery."},
+      {l:"Reverse DNS lookup",r:"medium",c:"theHarvester -d {T} -b bing -v",e:"Performs reverse DNS lookups on discovered IP addresses to find additional hostnames. Reveals co-hosted domains sharing the same IP space as the target."}
+    ]
+  },
+  {
+    id:"crtsh", icon:"&#128196;", badge:"b-crtsh",
+    title:"crt.sh — Certificate Transparency Logs",
+    desc:"Certificate Transparency logs record every SSL/TLS certificate issued. crt.sh and similar CT log APIs expose all subdomains that have ever had a certificate issued.",
+    tip:"CT logs never forget — even deleted subdomains appear. This is often the fastest way to find high-value subdomains.",
+    warn:"",
+    flags:[
+      {f:"%.domain",d:"Wildcard search in crt.sh — use %.domain.com"},
+      {f:"output=json",d:"Request JSON output from crt.sh API"},
+      {f:"jq",d:"Process JSON with jq for clean subdomain list"}
+    ],
+    cmds:[
+      {l:"crt.sh API query",r:"low",c:"curl -s 'https://crt.sh/?q=%.{T}&output=json' | jq -r '.[].name_value' | sort -u",e:"Queries crt.sh certificate transparency API and extracts all unique subdomain names from issued certificates. Often the fastest way to find hundreds of subdomains instantly."},
+      {l:"Certspotter API",r:"low",c:"curl -s 'https://api.certspotter.com/v1/issuances?domain={T}&include_subdomains=true&expand=dns_names' | jq -r '.[].dns_names[]' | sort -u",e:"Queries CertSpotter's CT API for all subdomains. CertSpotter monitors CT logs in real time and often has data before crt.sh."},
+      {l:"Filter live subdomains",r:"medium",c:"curl -s 'https://crt.sh/?q=%.{T}&output=json' | jq -r '.[].name_value' | sort -u | while read d; do ping -c1 -W1 $d &>/dev/null && echo $d; done",e:"Queries CT logs for subdomains then pings each to find live hosts. Filters the full CT subdomain list down to only currently resolving subdomains."},
+      {l:"HackerTarget hostsearch",r:"low",c:"curl -s 'https://api.hackertarget.com/hostsearch/?q={T}'",e:"Queries HackerTarget's free API which wraps DNSdumpster data. Returns all subdomains and IPs in simple text format. Free tier has rate limits."},
+      {l:"AlienVault OTX query",r:"medium",c:"curl -s 'https://otx.alienvault.com/api/v1/indicators/domain/{T}/passive_dns' | jq -r '.passive_dns[].hostname' | sort -u",e:"Queries AlienVault OTX passive DNS data. Free API returns historical DNS records including subdomains seen in threat intelligence feeds and malware sandboxes."},
+      {l:"VirusTotal subdomains",r:"medium",c:"curl -s 'https://www.virustotal.com/api/v3/domains/{T}/subdomains' -H 'x-apikey: YOUR_KEY' | jq -r '.data[].id' | sort -u",e:"Queries VirusTotal's subdomain API. VirusTotal's passive DNS database is built from antivirus submissions and security tool scans — excellent coverage."},
+      {l:"URLScan.io subdomains",r:"low",c:"curl -s 'https://urlscan.io/api/v1/search/?q=domain:{T}&size=100' | jq -r '.results[].page.domain' | sort -u",e:"Queries URLScan.io which scans URLs submitted by users and security tools. Contains subdomains seen in browser-based scans — reveals front-end infrastructure."},
+      {l:"Wayback Machine subs",r:"low",c:"curl -s 'http://web.archive.org/cdx/search/cdx?url=*.{T}&output=text&fl=original&collapse=urlkey' | sed 's|https\\?://||;s|/.*||' | sort -u",e:"Queries the Wayback Machine CDX API to extract all unique subdomains archived over the history of internet archiving. Reveals historical subdomains that may still be active."},
+      {l:"Full CT pipeline",r:"high",c:"curl -s 'https://crt.sh/?q=%.{T}&output=json' | jq -r '.[].name_value' | sed 's/\\*\\.//g' | sort -u | dnsx -silent",e:"Complete CT pipeline: queries crt.sh, cleans wildcard entries, deduplicates, then validates each subdomain with dnsx. Produces a clean list of live subdomains."},
+      {l:"Subfinder CT sources",r:"high",c:"subfinder -d {T} -sources crtsh,certspotter,censys -silent",e:"Uses subfinder to query only certificate transparency sources. Combining multiple CT log APIs through subfinder is more reliable than querying each API directly."},
+      {l:"ThreatCrowd API",r:"medium",c:"curl -s 'https://www.threatcrowd.org/searchApi/v2/domain/report/?domain={T}' | jq -r '.subdomains[]' | sort -u",e:"Queries ThreatCrowd threat intelligence API for all known subdomains. Data sourced from malware analysis, phishing feeds, and security researcher submissions."},
+      {l:"Findomain passive",r:"high",c:"findomain -t {T} --unique-output {T}_findomain.txt",e:"Findomain queries 10 passive sources simultaneously: Certspotter, Crt.sh, VirusTotal, Sublist3r, PTRarchive, SecurityTrails, Facebook CT, Spyse, Threatcrowd, and DnsDumpster."}
+    ]
+  },
+  {
+    id:"passive", icon:"&#127881;", badge:"b-passive",
+    title:"Passive DNS and OSINT APIs",
+    desc:"Additional passive reconnaissance tools and APIs for DNS history, IP intel, ASN mapping, and infrastructure discovery.",
+    tip:"Passive tools leave no trace on the target. Always exhaust passive sources before active scanning.",
+    warn:"",
+    flags:[
+      {f:"Various API endpoints",d:"Each tool has its own API and flags"},
+      {f:"jq",d:"Process JSON API responses"},
+      {f:"sort -u",d:"Deduplicate output"},
+      {f:"grep",d:"Filter relevant results"}
+    ],
+    cmds:[
+      {l:"SecurityTrails subdomains",r:"medium",c:"curl -s 'https://api.securitytrails.com/v1/domain/{T}/subdomains' -H 'apikey: YOUR_KEY' | jq -r '.subdomains[] | . + \".{T}\"'",e:"Queries SecurityTrails API for all subdomains. SecurityTrails maintains one of the most comprehensive passive DNS databases with historical records going back years."},
+      {l:"Shodan domain search",r:"high",c:"shodan search 'ssl.cert.subject.cn:{T}' --fields ip_str,port,org | sort -u",e:"Searches Shodan for hosts with SSL certificates containing the target domain. Reveals all externally visible services, open ports, and hosting organizations."},
+      {l:"Shodan hostname search",r:"high",c:"shodan search hostname:{T} --fields ip_str,hostnames,port",e:"Searches Shodan scan data for all IPs with the target domain in their hostname field. Reveals IP infrastructure and associated services from Shodan's continuous scan data."},
+      {l:"BGP ASN route lookup",r:"low",c:"curl -s 'https://api.hackertarget.com/aslookup/?q={T}'",e:"Queries HackerTarget BGP route API to find the ASN and network range for the target. Reveals the hosting provider and the full IP block owned by that provider."},
+      {l:"Robtex DNS lookup",r:"low",c:"curl -s 'https://freeapi.robtex.com/pdns/forward/{T}' | jq -r '.rrdata' | sort -u",e:"Queries Robtex passive DNS API for all historical DNS records. Shows current and past A, MX, NS, and CNAME records from passive DNS monitoring."},
+      {l:"Rapid7 FDNS search",r:"high",c:"curl -s 'https://opendata.rapid7.com/sonar.fdns_v2/latest' | zcat | grep '{T}' | jq -r '.name'",e:"Searches Rapid7's Forward DNS dataset (Project Sonar). Contains billions of DNS records from regular internet-wide scans. Free download — best queried locally."},
+      {l:"Censys domain search",r:"high",c:"censys search '{T}' --index ipv4 --fields ip,protocols,location.country",e:"Full text search across Censys IPv4 scan data. Finds all IPs with the target domain in any scanned data field including banners, certificates, and HTML content."},
+      {l:"PassiveTotal subdomains",r:"high",c:"curl -s 'https://api.passivetotal.org/v2/enrichment/subdomains?query={T}' -u 'user:key' | jq -r '.subdomains[]'",e:"Queries RiskIQ PassiveTotal for all known subdomains. PassiveTotal combines passive DNS with certificate data and threat intelligence."},
+      {l:"Spyse subdomains",r:"high",c:"curl -s 'https://api.spyse.com/v4/data/domain/subdomain?limit=100&domain={T}' -H 'Authorization: Bearer YOUR_KEY' | jq -r '.data.items[].name'",e:"Queries Spyse's comprehensive attack surface database. Spyse combines CT logs, passive DNS, and active scanning data for maximum coverage."},
+      {l:"IPv4info lookup",r:"low",c:"curl -s 'http://ipv4info.com/tools/search/{T}' | grep -Eo '[a-zA-Z0-9.-]+\\.{T}'",e:"Scrapes IPv4info for subdomains and IP range information. Provides additional passive DNS data from a different collection network than mainstream tools."},
+      {l:"Haktrails subdomains",r:"medium",c:"echo {T} | haktrails subdomains",e:"Uses haktrails to query SecurityTrails API for subdomains. SecurityTrails combines CT log data with passive DNS history for comprehensive subdomain coverage."},
+      {l:"Censys certificates",r:"high",c:"censys search 'parsed.names: {T}' --index certificates --fields parsed.names",e:"Searches Censys certificate data for all certificates containing the target domain. Censys scans the entire internet and logs all observed certificates."},
+      {l:"DNSDB Farsight query",r:"high",c:"dnsdbq -r '*.{T}/A' -j | jq -r '.rrname' | sort -u",e:"Queries Farsight DNSDB — the world's largest passive DNS database. Provides historical and current DNS data collected from sensor networks across the internet."},
+      {l:"Facebook CT API",r:"low",c:"curl -s 'https://graph.facebook.com/certificates?fields=domains&query={T}' | jq -r '.data[].domains[]' | sort -u",e:"Queries Facebook's Certificate Transparency monitoring API. Facebook runs one of the most comprehensive CT monitoring services with near-real-time certificate data."}
+    ]
+  }
+];
+
+var ST = {target:"", filter:"all", query:"", view:"cards"};
+
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function validTarget(t){
+  t=t.trim();
+  return /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(t)||
+         /^[a-zA-Z0-9][a-zA-Z0-9\-]*$/.test(t);
+}
+function fill(c){return c.replace(/\{T\}/g,ST.target);}
+function totalCmds(){var n=0;for(var i=0;i<CATS.length;i++)n+=CATS[i].cmds.length;return n;}
+
+function colorCmd(raw){
+  var filled=fill(raw);
+  var s=esc(filled);
+  s=s.replace(/^([a-zA-Z0-9_\-\.\/]+)/,function(m,p1){return "<span class='kw'>"+esc(p1)+"</span>";});
+  s=s.replace(/(\s)(--?[a-zA-Z][a-zA-Z0-9\-_]*)/g,"$1<span class='fl'>$2</span>");
+  if(ST.target){
+    var et=esc(ST.target);
+    s=s.replace(new RegExp(et,"g"),"<span class='tgt'>"+et+"</span>");
+  }
+  return s;
+}
+
+function visibleCats(){
+  return CATS.filter(function(cat){
+    if(ST.filter!=="all"&&cat.id!==ST.filter) return false;
+    if(!ST.query) return true;
+    var q=ST.query.toLowerCase();
+    if(cat.title.toLowerCase().indexOf(q)>=0) return true;
+    if(cat.desc.toLowerCase().indexOf(q)>=0) return true;
+    for(var i=0;i<cat.cmds.length;i++){
+      var cm=cat.cmds[i];
+      if(cm.l.toLowerCase().indexOf(q)>=0||cm.c.toLowerCase().indexOf(q)>=0||cm.e.toLowerCase().indexOf(q)>=0) return true;
+    }
+    return false;
+  });
+}
+function filteredCmds(cat){
+  if(!ST.query) return cat.cmds;
+  var q=ST.query.toLowerCase();
+  return cat.cmds.filter(function(cm){
+    return cm.l.toLowerCase().indexOf(q)>=0||cm.c.toLowerCase().indexOf(q)>=0||cm.e.toLowerCase().indexOf(q)>=0;
+  });
+}
+
+function doCopy(text,btn){
+  var prev=btn.textContent;
+  function ok(){btn.textContent="Copied!";btn.classList.add("ok");setTimeout(function(){btn.textContent=prev;btn.classList.remove("ok");},2000);}
+  function fb(){var ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;top:0;left:0;opacity:0;pointer-events:none;";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand("copy");ok();}catch(e){}document.body.removeChild(ta);}
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();}
+}
+function copyCmd(bid,btn){
+  var el=document.getElementById(bid);if(!el)return;
+  var pre=el.querySelector(".dpre");if(!pre)return;
+  doCopy(pre.innerText.trim(),btn);
+}
+function copyInline(btn){doCopy(btn.getAttribute("data-v"),btn);}
+
+function generate(){
+  var raw=document.getElementById("inp").value.trim();
+  var err=document.getElementById("errbox");
+  if(!validTarget(raw)){err.style.display="block";return;}
+  err.style.display="none";
+  ST.target=raw;ST.filter="all";ST.query="";
+  var si=document.getElementById("searchinp");
+  if(si) si.value="";
+  document.getElementById("sc1").textContent=CATS.length;
+  document.getElementById("sc2").textContent=totalCmds();
+  document.getElementById("sc3").textContent=raw;
+  document.getElementById("statsbar").style.display="flex";
+  document.getElementById("toolbar").style.display="flex";
+  document.getElementById("pills").style.display="flex";
+  document.getElementById("layout").style.display="grid";
+  buildSidebar();buildPills();render();
+  setTimeout(function(){document.getElementById("layout").scrollIntoView({behavior:"smooth",block:"start"});},120);
+}
+
+function buildSidebar(){
+  var h="<div class='sbt'>Navigation</div>";
+  h+="<button class='sbtn on' data-cat='all' onclick='setFilter(\"all\",this)'><span class='sbico'>&#128203;</span><span class='sblbl'>All Categories</span><span class='sbcnt'>"+CATS.length+"</span></button>";
+  h+="<div class='sbsep'></div><div class='sbt'>Tools</div>";
+  for(var i=0;i<CATS.length;i++){
+    var c=CATS[i];
+    h+="<button class='sbtn' data-cat='"+c.id+"' onclick='setFilter(\""+c.id+"\",this)'>";
+    h+="<span class='sbico'>"+c.icon+"</span><span class='sblbl'>"+esc(c.title.split(" — ")[0])+"</span><span class='sbcnt'>"+c.cmds.length+"</span></button>";
+  }
+  document.getElementById("sidebar").innerHTML=h;
+}
+
+function buildPills(){
+  var h="<span class='pill on' data-cat='all' onclick='setFilter(\"all\",this)'>All</span>";
+  for(var i=0;i<CATS.length;i++){
+    var c=CATS[i];
+    h+="<span class='pill' data-cat='"+c.id+"' onclick='setFilter(\""+c.id+"\",this)'>"+c.icon+" "+esc(c.title.split(" — ")[0])+"</span>";
+  }
+  document.getElementById("pills").innerHTML=h;
+}
+
+function render(){
+  var content=document.getElementById("content");
+  var cats=visibleCats();
+  if(!cats.length){content.innerHTML="<div class='nores'><h3>No commands found</h3><p>Try a different search term or category.</p></div>";return;}
+  if(ST.view==="compact"){renderCompact(content,cats);}else{renderCards(content,cats);}
+}
+
+function renderCards(content,cats){
+  var html="";
+  for(var i=0;i<cats.length;i++){
+    var cat=cats[i];var cmds=filteredCmds(cat);
+    if(!cmds.length) continue;
+    html+="<div class='sec' id='sec-"+cat.id+"'>";
+    html+="<div class='sechdr'><span class='secico'>"+cat.icon+"</span>";
+    html+="<div><div class='sectitle'>"+esc(cat.title)+"</div><div class='secsub'>"+esc(cat.desc)+"</div></div>";
+    html+="<span class='seccnt'>"+cmds.length+" cmd"+(cmds.length!==1?"s":"")+"</span></div>";
+    html+="<div class='grid'>";
+    for(var j=0;j<cmds.length;j++) html+=buildCard(cat,cmds[j],i+"_"+j);
+    html+="</div></div>";
+  }
+  content.innerHTML=html;
+}
+
+function buildCard(cat,cm,uid){
+  var bid="blk_"+uid;var ptid="pt_"+uid;var togid="ptog_"+uid;
+  var risk=cm.r||"info";
+  var h="<div class='card'>";
+  h+="<div class='ch'><div class='ctrow'><span class='cico'>"+cat.icon+"</span><span class='cname'>"+esc(cm.l)+"</span>";
+  h+="<div class='cbadges'><span class='bdg "+cat.badge+"'>"+cat.id+"</span><span class='rb r-"+risk+"'>"+risk+"</span></div></div>";
+  h+="<div class='what'><div class='wlbl'>What This Command Does</div>"+esc(cm.e)+"</div></div>";
+  h+="<div class='cb'>";
+  h+="<div class='dblk' id='"+bid+"'>";
+  h+="<div class='dbar'><div class='dbar-l'><div class='dots'><span class='d1'></span><span class='d2'></span><span class='d3'></span></div>";
+  h+="<span style='font-family:var(--mono);font-size:.66rem;color:var(--mut)'>terminal</span></div>";
+  h+="<div class='dbar-r'><span class='rb r-"+risk+"'>"+risk+"</span>";
+  h+="<button class='cbtn' onclick='copyCmd(\""+bid+"\",this)'>Copy</button></div></div>";
+  h+="<pre class='dpre'>"+colorCmd(cm.c)+"</pre>";
+  h+="</div>";
+  if(cat.flags&&cat.flags.length){
+    h+="<button class='ptog' id='"+togid+"' onclick='togParams(\""+ptid+"\",\""+togid+"\")'>";
+    h+="<span>Flags Reference ("+cat.flags.length+")</span><span class='arr'>&#9660;</span></button>";
+    h+="<div class='pwrap' id='"+ptid+"'><table class='ptbl'><thead><tr><th>Flag</th><th>Description</th></tr></thead><tbody>";
+    for(var k=0;k<cat.flags.length;k++){
+      h+="<tr><td class='pf'>"+esc(cat.flags[k].f)+"</td><td class='pd'>"+esc(cat.flags[k].d)+"</td></tr>";
+    }
+    h+="</tbody></table></div>";
+  }
+  if(cat.tip){h+="<div class='tip'><span>&#128161;</span><span>"+esc(cat.tip)+"</span></div>";}
+  if(cat.warn){h+="<div class='wrn'><span>&#9888;</span><span>"+esc(cat.warn)+"</span></div>";}
+  h+="</div></div>";
+  return h;
+}
+
+function renderCompact(content,cats){
+  var html="<div class='ctable'><div class='chdr'><div>Command Name</div><div>Command</div><div>Risk</div><div>Copy</div></div>";
+  for(var i=0;i<cats.length;i++){
+    var cat=cats[i];var cmds=filteredCmds(cat);
+    for(var j=0;j<cmds.length;j++){
+      var cm=cmds[j];var filled=fill(cm.c);var risk=cm.r||"info";
+      html+="<div class='crow'>";
+      html+="<span class='cr-name' title='"+esc(cm.e)+"'>"+cat.icon+" "+esc(cm.l)+"</span>";
+      html+="<span class='cr-cmd' title='"+esc(filled)+"'>"+esc(filled)+"</span>";
+      html+="<span><span class='rb r-"+risk+"'>"+risk+"</span></span>";
+      html+="<span class='cr-act'><button class='crc' data-v='"+esc(filled)+"' onclick='copyInline(this)'>Copy</button></span>";
+      html+="</div>";
+    }
+  }
+  html+="</div>";
+  content.innerHTML=html;
+}
+
+function togParams(wid,tid){
+  var w=document.getElementById(wid);var t=document.getElementById(tid);
+  if(!w||!t) return;
+  if(w.classList.contains("open")){w.classList.remove("open");t.classList.remove("open");}
+  else{w.classList.add("open");t.classList.add("open");}
+}
+
+function setFilter(id,el){
+  ST.filter=id;
+  document.querySelectorAll(".pill,.sbtn").forEach(function(x){x.classList.remove("on");});
+  document.querySelectorAll("[data-cat='"+id+"']").forEach(function(x){x.classList.add("on");});
+  render();
+}
+
+function setView(v){
+  ST.view=v;
+  document.getElementById("vcard").classList.toggle("on",v==="cards");
+  document.getElementById("vcomp").classList.toggle("on",v==="compact");
+  render();
+}
+
+// ── EVENTS — attached AFTER DOM ready, using addEventListener ──
+document.addEventListener("DOMContentLoaded",function(){
+  var inp=document.getElementById("inp");
+  var genbtn=document.getElementById("genbtn");
+  var searchinp=document.getElementById("searchinp");
+  var vcard=document.getElementById("vcard");
+  var vcomp=document.getElementById("vcomp");
+
+  if(inp){
+    inp.addEventListener("keydown",function(e){if(e.key==="Enter")generate();});
+    inp.addEventListener("click",function(){this.focus();});
+  }
+  if(genbtn) genbtn.addEventListener("click",function(){generate();});
+
+  // SEARCH FIX: three event types to guarantee it works across all browsers
+  if(searchinp){
+    searchinp.addEventListener("input",function(){ST.query=this.value.trim();render();});
+    searchinp.addEventListener("keyup",function(){ST.query=this.value.trim();render();});
+    searchinp.addEventListener("click",function(e){e.stopPropagation();this.focus();});
+  }
+
+  if(vcard) vcard.addEventListener("click",function(){setView("cards");});
+  if(vcomp) vcomp.addEventListener("click",function(){setView("compact");});
+});
+</script>
+</body>
+</html>
