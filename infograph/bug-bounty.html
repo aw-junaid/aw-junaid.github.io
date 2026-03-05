@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>awjunaid — Zero‑to‑Bug Web Pentest Methodology</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e13;--s1:#161b22;--s2:#1c2128;
+  --b1:#21262d;--b2:#30363d;
+  --acc:#58a6ff;--grn:#3fb950;--red:#f85149;
+  --ylw:#e3b341;--pur:#d2a8ff;--org:#ffa657;
+  --txt:#e6edf3;--t2:#c9d1d9;--mut:#8b949e;--m2:#6e7681;
+  --mono:'Fira Code','JetBrains Mono',monospace;
+  --r:10px;--rs:6px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background-image:linear-gradient(rgba(88,166,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(88,166,255,.025) 1px,transparent 1px);
+  background-size:44px 44px}
+header{position:sticky;top:0;z-index:9999;background:rgba(10,14,19,.97);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--b1);padding:.75rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.hlogo{display:flex;align-items:center;gap:.65rem}
+.hico{width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#58a6ff1a,#3fb9501a);border:1px solid #58a6ff33;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.hname{font-size:1.1rem;font-weight:800;background:linear-gradient(135deg,#58a6ff,#3fb950);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hsub{font-size:.65rem;color:var(--mut);margin-top:1px}
+.hbadges{display:flex;gap:.35rem;flex-wrap:wrap}
+.hb{font-size:.65rem;padding:.16rem .5rem;border-radius:2rem;border:1px solid var(--b2);color:var(--mut);background:var(--s1)}
+.hb.g{color:var(--grn);border-color:#3fb95030;background:#3fb95010}
+.hb.b{color:var(--acc);border-color:#58a6ff30;background:#58a6ff10}
+.hb.y{color:var(--ylw);border-color:#e3b34130;background:#e3b34110}
+.hb.r{color:var(--red);border-color:#f8514930;background:#f851490d}
+.hb.p{color:var(--pur);border-color:#d2a8ff30;background:#d2a8ff0d}
+.hb.o{color:var(--org);border-color:#ffa65730;background:#ffa6570d}
+.hero{position:relative;z-index:10;max-width:860px;margin:2.5rem auto 2rem;padding:0 1.2rem;text-align:center}
+.chip{display:inline-flex;align-items:center;gap:.4rem;font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--acc);background:#58a6ff0e;border:1px solid #58a6ff2a;padding:.26rem .85rem;border-radius:2rem;margin-bottom:.9rem}
+.hero h2{font-size:2rem;font-weight:800;color:var(--txt);line-height:1.2}
+.grad{background:linear-gradient(135deg,#58a6ff,#3fb950,#d2a8ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:var(--mut);margin-top:.55rem;font-size:.88rem;max-width:640px;margin-inline:auto;line-height:1.6}
+.panel{margin-top:1.6rem;background:var(--s1);border:1px solid var(--b2);border-radius:14px;
+  padding:1.2rem 1.3rem;box-shadow:0 8px 40px rgba(0,0,0,.45);position:relative;z-index:10}
+.irow{display:flex;gap:.45rem;flex-wrap:wrap}
+.ipfx{display:flex;align-items:center;padding:.68rem .85rem;background:var(--s2);
+  border:1px solid var(--b2);border-radius:var(--rs);color:var(--mut);font-family:var(--mono);font-size:.8rem;white-space:nowrap}
+#targetInput{flex:1;min-width:160px;padding:.7rem .95rem;border:1px solid var(--b2);border-radius:var(--rs);
+  background:#0d1117;color:var(--txt);font-size:.93rem;outline:none;font-family:var(--mono);
+  transition:border-color .18s,box-shadow .18s}
+#targetInput:focus{border-color:var(--acc);box-shadow:0 0 0 3px #58a6ff1a}
+#targetInput::placeholder{color:var(--m2)}
+#generateBtn{padding:.7rem 1.5rem;border:none;border-radius:var(--rs);
+  background:linear-gradient(135deg,#58a6ff,#1f6feb);color:#fff;font-size:.88rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:opacity .18s,transform .1s}
+#generateBtn:hover{opacity:.85}#generateBtn:active{transform:scale(.97)}
+.errbox{display:none;margin-top:.55rem;background:#f8514910;border:1px solid #f8514930;
+  border-radius:var(--rs);padding:.42rem .65rem;font-size:.78rem;color:var(--red)}
+.statsbar{display:none;gap:1rem;margin-top:.75rem;flex-wrap:wrap}
+.sc{display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--mut)}
+.sc strong{color:var(--txt)}
+.sdot{width:6px;height:6px;border-radius:50%}
+#toolbar{display:none;position:relative;z-index:500;max-width:1360px;margin:.7rem auto .3rem;
+  padding:0 1.2rem;gap:.4rem;flex-wrap:wrap;align-items:center;isolation:isolate}
+.vbtn{padding:.3rem .75rem;font-size:.73rem;border:1px solid var(--b1);border-radius:var(--rs);
+  background:var(--s1);color:var(--mut);cursor:pointer;display:flex;align-items:center;gap:.3rem;transition:all .14s}
+.vbtn.on{background:var(--s2);border-color:var(--b2);color:var(--txt)}
+.vbtn:hover{border-color:var(--b2);color:var(--t2)}
+.srch{position:relative;margin-left:auto}
+#searchInput{display:block;width:260px;padding:.4rem .9rem .4rem 2.1rem;
+  background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);
+  color:var(--txt);font-size:.8rem;font-family:inherit;outline:none;
+  -webkit-appearance:none;appearance:none;transition:border-color .18s,box-shadow .18s}
+#searchInput:hover,#searchInput:focus{border-color:var(--acc)}
+#searchInput:focus{box-shadow:0 0 0 3px #58a6ff1a}
+#searchInput::placeholder{color:var(--m2)}
+.sico{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--mut);font-size:.8rem;pointer-events:none}
+#pills{display:none;position:relative;z-index:10;max-width:1360px;margin:0 auto .55rem;padding:0 1.2rem;gap:.35rem;flex-wrap:wrap}
+.pill{padding:.26rem .72rem;border-radius:2rem;border:1px solid var(--b1);background:var(--s1);
+  color:var(--mut);font-size:.72rem;cursor:pointer;transition:all .14s;user-select:none}
+.pill:hover{border-color:var(--b2);color:var(--t2)}
+.pill.on{background:var(--acc);color:#0d1117;border-color:var(--acc);font-weight:700}
+#mainLayout{display:none;position:relative;z-index:1;max-width:1360px;margin:0 auto 4rem;
+  padding:0 1.2rem;gap:1.1rem;grid-template-columns:215px 1fr}
+@media(max-width:820px){#mainLayout{grid-template-columns:1fr}}
+#sidebar{position:sticky;top:72px;height:fit-content;display:flex;flex-direction:column;gap:.2rem}
+@media(max-width:820px){#sidebar{display:none}}
+.sbt{font-size:.61rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--m2);padding:.3rem .48rem;margin-top:.3rem}
+.sbtn{display:flex;align-items:center;gap:.45rem;padding:.38rem .55rem;border-radius:var(--rs);
+  border:none;background:none;color:var(--mut);font-size:.77rem;cursor:pointer;width:100%;text-align:left;
+  transition:all .14s;border-left:2px solid transparent}
+.sbtn:hover{background:var(--s1);color:var(--t2)}
+.sbtn.on{background:var(--s2);color:var(--acc);border-left-color:var(--acc)}
+.sbico{font-size:.92rem;width:17px;text-align:center;flex-shrink:0}
+.sblbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbcnt{font-size:.61rem;padding:.06rem .35rem;border-radius:2rem;background:var(--s1);
+  border:1px solid var(--b1);color:var(--m2);flex-shrink:0}
+.sbtn.on .sbcnt{background:#58a6ff1a;border-color:#58a6ff33;color:var(--acc)}
+.sbsep{height:1px;background:var(--b1);margin:.28rem 0}
+#content{position:relative;z-index:1}
+.sec{margin-bottom:1.8rem}
+.sechdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;padding-bottom:.65rem;border-bottom:1px solid var(--b1)}
+.secico{font-size:1.3rem;flex-shrink:0}
+.sectitle{font-size:.92rem;font-weight:700;color:var(--txt)}
+.secsub{font-size:.72rem;color:var(--mut);margin-top:1px;line-height:1.5}
+.seccnt{margin-left:auto;font-size:.65rem;padding:.15rem .48rem;border-radius:2rem;
+  background:var(--s2);border:1px solid var(--b2);color:var(--mut);white-space:nowrap;flex-shrink:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:.85rem}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;transition:border-color .18s,box-shadow .18s}
+.card:hover{border-color:var(--b2);box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.ch{padding:.85rem 1rem .65rem;border-bottom:1px solid var(--b1);background:linear-gradient(135deg,var(--s2),var(--s1))}
+.ctrow{display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.45rem}
+.cico{font-size:1.15rem;flex-shrink:0;margin-top:1px}
+.cname{font-weight:700;font-size:.9rem;color:var(--txt);flex:1;line-height:1.3}
+.cbadges{display:flex;gap:.28rem;flex-wrap:wrap;flex-shrink:0}
+.bdg{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid}
+/* methodology category badges */
+.b-recon{color:#58a6ff;border-color:#58a6ff2a;background:#58a6ff0a}
+.b-enum{color:#3fb950;border-color:#3fb9502a;background:#3fb9500a}
+.b-fuzzing{color:#f778ba;border-color:#f778ba2a;background:#f778ba0a}
+.b-web{color:#fbbf24;border-color:#fbbf242a;background:#fbbf240a}
+.b-misconfig{color:#e879f9;border-color:#e879f92a;background:#e879f90a}
+.b-auth{color:#fb923c;border-color:#fb923c2a;background:#fb923c0a}
+.b-injection{color:#38bdf8;border-color:#38bdf82a;background:#38bdf80a}
+.b-privesc{color:#c084fc;border-color:#c084fc2a;background:#c084fc0a}
+.b-report{color:#f87171;border-color:#f871712a;background:#f871710a}
+/* risk badges same */
+.rb{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid;font-weight:700}
+.r-info{color:#58a6ff;border-color:#58a6ff33;background:#58a6ff0d}
+.r-low{color:#3fb950;border-color:#3fb95033;background:#3fb9500d}
+.r-medium{color:#e3b341;border-color:#e3b34133;background:#e3b3410d}
+.r-high{color:#ffa657;border-color:#ffa65733;background:#ffa6570d}
+.r-critical{color:#f85149;border-color:#f8514933;background:#f851490d}
+.what{background:#58a6ff07;border:1px solid #58a6ff1a;border-radius:var(--rs);
+  padding:.45rem .65rem;font-size:.73rem;color:var(--t2);line-height:1.58}
+.wlbl{font-size:.6rem;letter-spacing:.8px;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:.18rem}
+.cb{padding:.8rem 1rem;display:flex;flex-direction:column;gap:.6rem}
+.dblk{background:#0d1117;border:1px solid var(--b1);border-radius:var(--rs);overflow:hidden}
+.dbar{display:flex;align-items:center;justify-content:space-between;padding:.28rem .65rem;
+  border-bottom:1px solid var(--b1);background:var(--s1)}
+.dbar-l{display:flex;align-items:center;gap:.45rem}
+.dots{display:flex;gap:3px}
+.dots span{width:8px;height:8px;border-radius:50%}
+.d1{background:#f85149}.d2{background:#e3b341}.d3{background:#3fb950}
+.dbar-r{display:flex;align-items:center;gap:.35rem}
+.cbtn{background:none;border:1px solid var(--b2);color:var(--mut);font-size:.65rem;
+  padding:.13rem .5rem;border-radius:3px;cursor:pointer;transition:all .14s;font-family:var(--mono)}
+.cbtn:hover{border-color:var(--acc);color:var(--acc)}
+.cbtn.ok{border-color:var(--grn)!important;color:var(--grn)!important}
+.dpre{padding:.65rem .9rem;font-family:var(--mono);font-size:.78rem;color:#a5f3a5;
+  line-height:1.75;white-space:pre-wrap;word-break:break-all;margin:0}
+.dpre .kw{color:#79c0ff;font-weight:700}
+.dpre .fl{color:#ffa657;font-weight:600}
+.dpre .tgt{color:#f85149;font-weight:700}
+.ptog{display:flex;align-items:center;justify-content:space-between;background:var(--s2);
+  border:1px solid var(--b1);border-radius:var(--rs);padding:.34rem .65rem;
+  font-size:.7rem;color:var(--mut);cursor:pointer;transition:all .14s;width:100%;
+  text-align:left;-webkit-appearance:none;appearance:none}
+.ptog:hover{border-color:var(--b2);color:var(--t2)}
+.ptog .arr{transition:transform .18s;font-size:.58rem;margin-left:auto;padding-left:.5rem}
+.ptog.open .arr{transform:rotate(180deg)}
+.pwrap{display:none;border:1px solid var(--b1);border-top:none;border-radius:0 0 var(--rs) var(--rs);overflow:hidden}
+.pwrap.open{display:block}
+.ptbl{width:100%;border-collapse:collapse;font-size:.7rem}
+.ptbl th{text-align:left;padding:.32rem .58rem;background:var(--bg);color:var(--m2);
+  font-size:.61rem;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--b1)}
+.ptbl td{padding:.32rem .58rem;border-bottom:1px solid var(--b1);vertical-align:top}
+.ptbl tr:last-child td{border-bottom:none}
+.ptbl tr:hover td{background:var(--s2)}
+.pf{font-family:var(--mono);color:var(--grn);font-size:.68rem}
+.pd{color:var(--mut);font-size:.68rem}
+.tip{background:#e3b34110;border:1px solid #e3b34128;border-radius:var(--rs);
+  padding:.44rem .65rem;font-size:.71rem;color:#e3b341;display:flex;gap:.42rem;line-height:1.5;align-items:flex-start}
+.wrn{background:#f8514910;border:1px solid #f8514928;border-radius:var(--rs);
+  padding:.44rem .65rem;font-size:.71rem;color:#f85149;display:flex;gap:.42rem;line-height:1.5;align-items:flex-start}
+.ctable{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.chdr{display:grid;grid-template-columns:200px 1fr 82px 80px;gap:.4rem;padding:.36rem .75rem;
+  background:var(--s2);border-bottom:1px solid var(--b1);font-size:.62rem;color:var(--m2);
+  letter-spacing:.5px;text-transform:uppercase}
+.crow{display:grid;grid-template-columns:200px 1fr 82px 80px;gap:.4rem;padding:.44rem .75rem;
+  border-bottom:1px solid var(--b1);align-items:center;transition:background .14s}
+.crow:last-child{border-bottom:none}
+.crow:hover{background:var(--s2)}
+.cr-name{font-size:.75rem;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-cmd{font-family:var(--mono);font-size:.68rem;color:#a5f3a5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-act{display:flex;gap:.28rem;align-items:center}
+.crc{background:none;border:1px solid var(--b2);color:var(--mut);font-size:.62rem;
+  padding:.1rem .38rem;border-radius:3px;cursor:pointer;transition:all .14s}
+.crc:hover{border-color:var(--acc);color:var(--acc)}
+.crc.ok{border-color:var(--grn)!important;color:var(--grn)!important}
+.nores{text-align:center;padding:3.5rem;color:var(--mut)}
+footer{position:relative;z-index:1;border-top:1px solid var(--b1);padding:1.4rem 1.5rem;text-align:center;font-size:.74rem;color:var(--mut)}
+.legal{display:inline-block;background:#f8514910;border:1px solid #f8514928;border-radius:var(--rs);
+  padding:.5rem 1.1rem;max-width:700px;color:#f85149;margin-bottom:.8rem;font-size:.72rem;line-height:1.55}
+footer a{color:var(--acc);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.fbrand{font-weight:800;font-size:.8rem;background:linear-gradient(135deg,#58a6ff,#3fb950);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hlogo">
+    <div class="hico">&#127919;</div>
+    <div>
+      <div class="hname">awjunaid</div>
+      <div class="hsub">Web Pentest Methodology — Zero to Bug</div>
+    </div>
+  </div>
+  <div class="hbadges">
+    <span class="hb g">&#128230; 9 Phases</span>
+    <span class="hb b">&#128193; Recon to Report</span>
+    <span class="hb y">&#128268; HackerOne ready</span>
+    <span class="hb r">&#9888; Authorized Only</span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="chip">&#128296; Target → Complete Attack Lifecycle</div>
+  <h2>Enter a domain → get full <span class="grad">methodology & commands</span></h2>
+  <p>From folder structure to final report. Every phase, every pattern, every command to find bugs in web apps. Just like a real HackerOne engagement.</p>
+  <div class="panel">
+    <div class="irow">
+      <div class="ipfx">&#127919; target:</div>
+      <input id="targetInput" type="text" placeholder="example.com or https://example.com" autocomplete="off" spellcheck="false"/>
+      <button id="generateBtn">Start Methodology &#128296;</button>
+    </div>
+    <div class="errbox" id="errbox">&#9888; Please enter a valid domain e.g. <strong>example.com</strong></div>
+    <div class="statsbar" id="statsbar">
+      <div class="sc"><div class="sdot" style="background:var(--acc)"></div>Phases: <strong id="sc1">0</strong></div>
+      <div class="sc"><div class="sdot" style="background:var(--grn)"></div>Commands: <strong id="sc2">0</strong></div>
+      <div class="sc"><div class="sdot" style="background:var(--ylw)"></div>Target: <strong id="sc3">—</strong></div>
+    </div>
+  </div>
+</section>
+
+<div id="toolbar">
+  <button class="vbtn on" id="vcard">&#9635; Cards</button>
+  <button class="vbtn" id="vcomp">&#9776; Compact</button>
+  <div class="srch">
+    <span class="sico">&#128269;</span>
+    <input type="text" id="searchInput" placeholder="Search phases, commands, tips..." autocomplete="off" spellcheck="false"/>
+  </div>
+</div>
+
+<div id="pills"></div>
+
+<div id="mainLayout">
+  <aside id="sidebar"></aside>
+  <main id="content"></main>
+</div>
+
+<footer>
+  <div class="legal">&#9888; <strong>Legal:</strong> Only for authorized testing. Unauthorized scanning violates laws. Use on HackerOne targets with explicit permission.</div>
+  <span>Ethical hacking methodology &bull; </span><a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a><br/><br/>
+  <span class="fbrand">awjunaid</span> <span> &mdash; Copyright &copy; 2025 </span><a href="https://awjunaid.com" target="_blank">awjunaid.com</a><span>. All rights reserved.</span>
+</footer>
+
+<script>
+/* ====================================================
+   METHODOLOGY DATA – ZERO TO BUG (9 PHASES)
+   ==================================================== */
+var PHASES = [
+{ id:"phase1", icon:"&#128270;", badge:"b-recon",
+  title:"Phase 1 — Recon & Organization",
+  desc:"From HackerOne target to structured folders. Setup workspace, save scope, initial passive recon.",
+  tip:"Always create a project folder with subdirs: recon, scans, exploits, report.",
+  warn:"Keep notes in markdown; use timestamps. This folder becomes your final submission.",
+  flags:[
+    {f:"mkdir -p project/{recon,scans,exploits,report}",d:"Create standard pentest folder structure"},
+    {f:"echo {T} > project/scope.txt",d:"Save in-scope domains"},
+    {f:"echo 'Out of scope: ...' > project/out_of_scope.txt",d:"Define OOS early"}
+  ],
+  cmds:[
+    {l:"Create project structure",r:"info",c:"mkdir -p ~/htb/{T}/{recon,scans,exploits,report,loot} && cd ~/htb/{T}",e:"Builds the folder tree. Every scan output, note, and exploit goes here — keeps you organized from day one."},
+    {l:"Save scope",r:"info",c:"echo '{T}' > recon/scope.txt && echo '*.{T}' >> recon/scope.txt",e:"Save in-scope domains. Used later to filter gau, wayback, and subdomain results."},
+    {l:"Initial whois",r:"info",c:"whois {T} | tee recon/whois.txt",e:"Registrar, nameservers, admin contacts. Sometimes leads to info disclosure or social engineering."},
+    {l:"Dig NS / MX",r:"low",c:"dig ns {T} +short | tee recon/nameservers.txt && dig mx {T} +short | tee recon/mx.txt",e:"Nameservers can reveal cloudflare vs self-hosted; MX might lead to O365 or GSuite."},
+    {l:"Subdomain passive with crt.sh",r:"medium",c:"curl -s 'https://crt.sh/?q=%25.{T}&output=json' | jq -r '.[].name_value' | sort -u | tee recon/crtsh_subs.txt",e:"Grabs all subdomains from certificate transparency logs — massive passive source."},
+    {l:"Amass passive",r:"medium",c:"amass enum -passive -d {T} -o recon/amass_passive.txt",e:"Passive subdomain enumeration using 10+ sources (search engines, archive, DNS dumpsters). No traffic to target."},
+    {l:"Subfinder + httpx",r:"high",c:"subfinder -d {T} -silent | httpx -silent -status-code -title -tech-detect -o recon/live_subs.txt",e:"Finds subdomains then checks live hosts with status, title, and technology stack — your live target list."},
+    {l:"Gau + unfurl",r:"high",c:"gau {T} | unfurl -u paths | sort -u > recon/all_paths.txt",e:"Get every known URL from Wayback/CommonCrawl. Builds initial endpoint list from history."},
+    {l:"Project tree backup",r:"info",c:"tree -L 2 ~/htb/{T} > recon/folder_tree.txt",e:"Snapshot of your workspace — useful for final report appendix."},
+    {l:"Takeover check",r:"critical",c:"subzy run --targets recon/live_subs.txt | tee recon/sub_takeover.txt",e:"Check for subdomain takeover candidates (Azure, S3, Github, Heroku)."}
+  ]
+},
+{ id:"phase2", icon:"&#128376;", badge:"b-enum",
+  title:"Phase 2 — Active Enumeration & Reconnaissance",
+  desc:"Port scanning, service detection, technology fingerprinting, and directory brute‑forcing on live hosts.",
+  tip:"Use naabu or masscan for speed, then nmap -sV on interesting ports.",
+  warn:"Aggressive scans may trigger WAF; use -T2 or rate limits.",
+  flags:[{f:"-p-",d:"Full port scan"},{f:"-sV",d:"Service detection"},{f:"-sC",d:"Default scripts"}],
+  cmds:[
+    {l:"Naabu port scan",r:"high",c:"naabu -list recon/live_subs.txt -top-ports 1000 -o scans/naabu_ports.txt",e:"Fast port scanner by project discovery. Outputs ip:port for all live subdomains."},
+    {l:"Nmap service detection",r:"high",c:"nmap -sV -sC -iL recon/live_subs.txt -p 80,443,8080,8443,8000,3000 -oN scans/nmap_web.txt",e:"Targeted web ports service detection. Banner grabs reveal frameworks, versions."},
+    {l:"WhatWeb technology",r:"medium",c:"while read url; do whatweb $url -a 3 | tee -a scans/whatweb.txt; done < recon/live_subs.txt",e:"Aggressive technology fingerprinting. CMS, analytics, JS frameworks, server headers."},
+    {l:"Wappalyzer CLI",r:"medium",c:"wappalyzer -i recon/live_subs.txt -o scans/wappalyzer.json",e:"Detect 1200+ technologies with confidence scores."},
+    {l:"Directory brute (ffuf)",r:"high",c:"ffuf -u https://{T}/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt -mc 200,301,403 -t 40 -o scans/ffuf_dir.json -of json",e:"Directory brute on main domain. Save json for later comparison."},
+    {l:"Feroxbuster recursive",r:"high",c:"feroxbuster -u https://{T} -w /usr/share/seclists/Discovery/Web-Content/raft-large-files.txt -x php,html,js,txt,json -r --depth 3 -o scans/ferox_recursive.txt",e:"Recursive scan finds nested paths often missed by flat wordlists."}
+  ]
+},
+{ id:"phase3", icon:"&#128268;", badge:"b-fuzzing",
+  title:"Phase 3 — Fuzzing & Parameter Discovery",
+  desc:"Discover hidden parameters, fuzz endpoints, identify file inclusions, and find API parameters.",
+  tip:"Use arjun for parameter mining, then fuzz each param for bugs.",
+  flags:[{f:"-X POST",d:"Method"},{f:"-d 'FUZZ=test'",d:"POST body"}],
+  cmds:[
+    {l:"Arjun GET params",r:"high",c:"arjun -u https://{T}/api/endpoint --stable -m GET -t 10 -oJ scans/arjun_get.json",e:"Finds hidden GET parameters that alter response."},
+    {l:"Arjun POST params",r:"high",c:"arjun -u https://{T}/login --stable -m POST -t 10 -oJ scans/arjun_post.json",e:"Discover POST parameters (debug, admin flags)."},
+    {l:"ffuf param fuzzing",r:"high",c:"ffuf -u 'https://{T}/page?FUZZ=test' -w /usr/share/seclists/Discovery/Web-Content/burp-parameter-names.txt -mc 200 -fw 100 -t 30",e:"Simple parameter brute."},
+    {l:"ParamSpider from archives",r:"medium",c:"paramspider -d {T} --subs -l high -o scans/paramspider.txt",e:"Extract all known parameters from wayback."}
+  ]
+},
+{ id:"phase4", icon:"&#128100;", badge:"b-auth",
+  title:"Phase 4 — Authentication & Session Testing",
+  desc:"Test login, registration, password reset, session handling, OAuth, and user enumeration.",
+  tip:"Look for token leakage in referrer, logs, or JS files.",
+  warn:"Never brute-force password without written consent.",
+  flags:[{f:"-H 'Cookie: session=...'",d:"Auth header"}],
+  cmds:[
+    {l:"User enum via timing",r:"critical",c:"while read user; do time curl -s -X POST https://{T}/login -d \"username=$user&pass=123\" -o /dev/null; done < users.txt 2>&1 | grep real",e:"Timing difference may indicate valid user."},
+    {l:"JWT secret check",r:"high",c:"python3 jwt_tool.py <JWT> -T",e:"Test weak signing key (none algorithm, HS256 misconfig)."},
+    {l:"OAuth misconfig",r:"high",c:"cat recon/live_subs.txt | while read u; do curl -s \"$u/.well-known/oauth-authorization-server\" | jq . ; done",e:"Fetch OAuth metadata — check for redirect_uri bypass."}
+  ]
+},
+{ id:"phase5", icon:"&#128293;", badge:"b-injection",
+  title:"Phase 5 — Injection Flaws (SQLi, XSS, SSTI, LFI)",
+  desc:"Inject payloads into parameters, headers, and paths. Automate then manually verify.",
+  tip:"Use nuclei for broad coverage, then dig deep with sqlmap.",
+  warn:"sqlmap --dumps can be destructive; get authorization.",
+  flags:[{f:"--technique=BEUST",d:"sqlmap techniques"}],
+  cmds:[
+    {l:"nuclei injection templates",r:"critical",c:"nuclei -list recon/live_subs.txt -t ~/nuclei-templates/vulnerabilities/ -severity critical,high -o scans/nuclei_injection.txt",e:"Run all high/critical injection templates."},
+    {l:"sqlmap on param",r:"critical",c:"sqlmap -u 'https://{T}/item?id=1' --batch --level 3 --risk 2 --dbs | tee scans/sqlmap_dbs.txt",e:"Automated SQLi exploitation."},
+    {l:"XSS reflected test",r:"high",c:"grep '=' scans/all_paths.txt | while read url; do curl -s \"${url}'\\<script\\>alert(1)\" | grep -i '<script>alert(1)' && echo \"Possible XSS: $url\"; done",e:"Quick reflected XSS check."},
+    {l:"LFI wordlist fuzz",r:"high",c:"ffuf -u 'https://{T}/file?path=FUZZ' -w /usr/share/seclists/Fuzzing/LFI/LFI-Jhaddix.txt -mc 200 -fs 0",e:"Test for LFI using payloads."}
+  ]
+},
+{ id:"phase6", icon:"&#128161;", badge:"b-privesc",
+  title:"Phase 6 — Business Logic & Privilege Escalation",
+  desc:"IDOR, parameter tampering, forced browsing, workflow bypasses.",
+  tip:"Change numeric IDs, reorder steps, try to access admin endpoints with user cookie.",
+  flags:[{f:"-H 'X-Original-URL: /admin'",d:"Path override"}],
+  cmds:[
+    {l:"IDOR on user IDs",r:"critical",c:"seq 1 1000 | while read id; do curl -s -b 'session=user_cookie' \"https://{T}/api/user/$id\" | grep -q '\"name\"' && echo \"User $id accessible\"; done",e:"Enumerate user profiles by ID."},
+    {l:"HTTP method override",r:"high",c:"curl -X PUT -H 'X-HTTP-Method-Override: GET' https://{T}/admin/delete -b 'session=admin_cookie'",e:"Test for method override bypass."},
+    {l:"Forced browsing",r:"high",c:"ffuf -u https://{T}/FUZZ -w scans/discovered_paths.txt -b 'session=user_cookie' -mc 200",e:"Try accessing admin paths with low priv cookie."}
+  ]
+},
+{ id:"phase7", icon:"&#128187;", badge:"b-misconfig",
+  title:"Phase 7 — Misconfigurations & Exposures",
+  desc:"Open buckets, Git exposure, debug pages, stack traces, CORS misconfigs.",
+  tip:"Check .git, .env, swagger.json, s3 buckets.",
+  flags:[{f:"-s",d:"silent"}],
+  cmds:[
+    {l:"Git exposure",r:"high",c:"curl -s https://{T}/.git/config | grep -q 'repositoryformatversion' && echo 'Git exposed!'",e:"Check for .git folder."},
+    {l:"AWS S3 buckets",r:"high",c:"s3scanner scan -f recon/live_subs.txt | tee scans/open_buckets.txt",e:"Find open S3 buckets related to domain."},
+    {l:"CORS misconfig",r:"medium",c:"curl -s -H 'Origin: https://evil.com' https://{T}/api/ | grep -i 'access-control-allow-origin: https://evil.com'",e:"Check if CORS trusts arbitrary origins."}
+  ]
+},
+{ id:"phase8", icon:"&#128269;", badge:"b-report",
+  title:"Phase 8 — Validation & Reporting",
+  desc:"Triaging, deduplication, write findings with PoC, impact, remediation.",
+  tip:"Use a template: Title | Severity | Affected Endpoint | Description | PoC | Impact | Remediation.",
+  flags:[{f:"--markdown",d:"output format"}],
+  cmds:[
+    {l:"Generate report skeleton",r:"info",c:"cp ~/templates/report_template.md report/findings.md",e:"Start from markdown template."},
+    {l:"Deduplicate findings",r:"info",c:"sort scans/nuclei_injection.txt | uniq > report/unique_findings.txt",e:"Remove duplicate lines."},
+    {l:"POC screenshot",r:"info",c:"gnome-screenshot -a -f report/pocs/idor_poc.png",e:"Visual proof always strengthens report."}
+  ]
+},
+{ id:"phase9", icon:"&#128230;", badge:"b-report",
+  title:"Phase 9 — Final Submission & Cleanup",
+  desc:"Package report, loot, commands used. Remove tools, clear logs.",
+  tip:"Always include the commands you ran — triage team loves reproducibility.",
+  flags:[{f:"tar -czf",d:"compress"}],
+  cmds:[
+    {l:"Package project",r:"info",c:"tar -czf ~/submissions/{T}_$(date +%Y%m%d).tar.gz -C ~/htb/{T} .",e:"Archive everything for submission."},
+    {l:"Remove sensitive data",r:"info",c:"shred -zu scans/*.json scans/*.txt",e:"Securely delete scan outputs after engagement."}
+  ]
+}
+]; /* end PHASES */
+
+var TARGET = "";
+var FILTER = "all";
+var QUERY  = "";
+var VIEW   = "cards";
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function validDomain(t){ var d=t.trim().replace(/^https?:\/\//i,"").replace(/\/.*/,""); return /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(d) || /^[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}$/.test(d) || /^(\d{1,3}\.){3}\d{1,3}$/.test(d); }
+function cleanDomain(t){ return t.trim().replace(/^https?:\/\//i,"").replace(/\/.*/,"").replace(/\/$/,""); }
+function fillCmd(c){ return c.replace(/\{T\}/g,TARGET); }
+function totalCmds(){ var n=0; for(var i=0;i<PHASES.length;i++) n+=PHASES[i].cmds.length; return n; }
+function colorize(raw){
+  var s=esc(fillCmd(raw));
+  s=s.replace(/^([a-zA-Z0-9_\-\.\/]+)/,'<span class="kw">$1</span>');
+  s=s.replace(/(\s)(--?[a-zA-Z][a-zA-Z0-9\-_\.]*)/g,'$1<span class="fl">$2</span>');
+  if(TARGET){ var et=esc(TARGET); s=s.replace(new RegExp(et.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),'<span class="tgt">'+et+'</span>'); }
+  return s;
+}
+function getVisiblePhases(){
+  return PHASES.filter(function(p){
+    if(FILTER!=="all"&&p.id!==FILTER) return false;
+    if(!QUERY) return true;
+    var q=QUERY.toLowerCase();
+    if(p.title.toLowerCase().indexOf(q)>=0) return true;
+    if(p.desc.toLowerCase().indexOf(q)>=0) return true;
+    for(var i=0;i<p.cmds.length;i++){ var cm=p.cmds[i]; if(cm.l.toLowerCase().indexOf(q)>=0||cm.c.toLowerCase().indexOf(q)>=0||cm.e.toLowerCase().indexOf(q)>=0) return true; }
+    return false;
+  });
+}
+function getFilteredCmds(phase){ if(!QUERY) return phase.cmds; var q=QUERY.toLowerCase(); return phase.cmds.filter(function(cm){ return cm.l.toLowerCase().indexOf(q)>=0||cm.c.toLowerCase().indexOf(q)>=0||cm.e.toLowerCase().indexOf(q)>=0; }); }
+function doCopy(text,btn){ var orig=btn.textContent; function ok(){btn.textContent="Copied!";btn.classList.add("ok");setTimeout(function(){btn.textContent=orig;btn.classList.remove("ok");},2000);} function fb(){var ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;top:-9999px;left:-9999px;opacity:0;";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand("copy");ok();}catch(e){}document.body.removeChild(ta);} if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();} }
+function copyFromBlock(bid,btn){ var el=document.getElementById(bid); if(!el)return; var pre=el.querySelector(".dpre"); if(!pre)return; doCopy(pre.innerText.trim(),btn); }
+function copyInline(btn){ doCopy(btn.getAttribute("data-v"),btn); }
+
+function doGenerate(){
+  var raw=document.getElementById("targetInput").value;
+  var errBox=document.getElementById("errbox");
+  if(!raw||!raw.trim()||!validDomain(raw)){errBox.style.display="block";return;}
+  errBox.style.display="none";
+  TARGET=cleanDomain(raw); FILTER="all"; QUERY="";
+  var si=document.getElementById("searchInput"); if(si) si.value="";
+  document.getElementById("sc1").textContent=PHASES.length;
+  document.getElementById("sc2").textContent=totalCmds();
+  document.getElementById("sc3").textContent=TARGET;
+  document.getElementById("statsbar").style.display="flex";
+  document.getElementById("toolbar").style.display="flex";
+  document.getElementById("pills").style.display="flex";
+  document.getElementById("mainLayout").style.display="grid";
+  buildSidebar(); buildPills(); render();
+  setTimeout(function(){document.getElementById("mainLayout").scrollIntoView({behavior:"smooth",block:"start"});},100);
+}
+function buildSidebar(){
+  var h='<div class="sbt">Methodology</div><button class="sbtn on" data-cat="all"><span class="sbico">&#128203;</span><span class="sblbl">All Phases</span><span class="sbcnt">'+PHASES.length+'</span></button><div class="sbsep"></div>';
+  PHASES.forEach(function(p){ h+='<button class="sbtn" data-cat="'+p.id+'"><span class="sbico">'+p.icon+'</span><span class="sblbl">'+esc(p.title.split(' — ')[0])+'</span><span class="sbcnt">'+p.cmds.length+'</span></button>'; });
+  var sb=document.getElementById("sidebar"); sb.innerHTML=h;
+  sb.querySelectorAll(".sbtn[data-cat]").forEach(function(btn){ btn.addEventListener("click",function(){ setFilter(this.getAttribute("data-cat")); }); });
+}
+function buildPills(){
+  var h='<span class="pill on" data-cat="all">All</span>';
+  PHASES.forEach(function(p){ h+='<span class="pill" data-cat="'+p.id+'">'+p.icon+' '+esc(p.title.split(' — ')[0])+'</span>'; });
+  var container=document.getElementById("pills"); container.innerHTML=h;
+  container.querySelectorAll(".pill").forEach(function(pill){ pill.addEventListener("click",function(){ setFilter(this.getAttribute("data-cat")); }); });
+}
+function setFilter(id){
+  FILTER=id;
+  document.querySelectorAll(".pill").forEach(function(p){ p.classList.toggle("on",p.getAttribute("data-cat")===id); });
+  document.querySelectorAll(".sbtn[data-cat]").forEach(function(b){ b.classList.toggle("on",b.getAttribute("data-cat")===id); });
+  render();
+}
+function setView(v){ VIEW=v; document.getElementById("vcard").classList.toggle("on",v==="cards"); document.getElementById("vcomp").classList.toggle("on",v==="compact"); render(); }
+function togParams(wid,tid){ var w=document.getElementById(wid),t=document.getElementById(tid); if(!w||!t) return; var o=w.classList.contains("open"); w.classList.toggle("open",!o); t.classList.toggle("open",!o); }
+
+function render(){
+  var content=document.getElementById("content");
+  var phases=getVisiblePhases();
+  if(!phases.length){ content.innerHTML='<div class="nores"><h3>No phases match</h3><p>Try different search.</p></div>'; return; }
+  VIEW==="compact"?renderCompact(content,phases):renderCards(content,phases);
+}
+function renderCards(content,phases){
+  var html="";
+  phases.forEach(function(p){
+    var cmds=getFilteredCmds(p); if(!cmds.length) return;
+    html+='<div class="sec" id="sec-'+p.id+'"><div class="sechdr"><span class="secico">'+p.icon+'</span><div><div class="sectitle">'+esc(p.title)+'</div><div class="secsub">'+esc(p.desc)+'</div></div><span class="seccnt">'+cmds.length+' cmd'+(cmds.length!==1?'s':'')+'</span></div><div class="grid">';
+    cmds.forEach(function(cm,j){ html+=buildCard(p,cm,p.id+"_"+j); });
+    html+='</div></div>';
+  });
+  content.innerHTML=html;
+}
+function buildCard(phase,cm,uid){
+  var bid="blk_"+uid, ptid="pt_"+uid, togid="ptog_"+uid, risk=cm.r||"info";
+  var h='<div class="card"><div class="ch"><div class="ctrow"><span class="cico">'+phase.icon+'</span><span class="cname">'+esc(cm.l)+'</span><div class="cbadges"><span class="bdg '+phase.badge+'">'+esc(phase.id)+'</span><span class="rb r-'+risk+'">'+risk+'</span></div></div><div class="what"><div class="wlbl">What This Command Does</div>'+esc(cm.e)+'</div></div><div class="cb"><div class="dblk" id="'+bid+'"><div class="dbar"><div class="dbar-l"><div class="dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div><span style="font-family:var(--mono);font-size:.66rem;color:var(--mut)">terminal</span></div><div class="dbar-r"><span class="rb r-'+risk+'">'+risk+'</span><button class="cbtn" onclick="copyFromBlock(\''+bid+'\',this)">Copy</button></div></div><pre class="dpre">'+colorize(cm.c)+'</pre></div>';
+  if(phase.flags&&phase.flags.length){
+    h+='<button class="ptog" id="'+togid+'" onclick="togParams(\''+ptid+'\',\''+togid+'\')"><span>Methodology notes ('+phase.flags.length+')</span><span class="arr">&#9660;</span></button><div class="pwrap" id="'+ptid+'"><table class="ptbl"><thead><tr><th>Key</th><th>Description</th></tr></thead><tbody>';
+    phase.flags.forEach(function(f){ h+='<tr><td class="pf">'+esc(f.f)+'</td><td class="pd">'+esc(f.d)+'</td></tr>'; });
+    h+='</tbody></table></div>';
+  }
+  if(phase.tip) h+='<div class="tip"><span>&#128161;</span><span>'+esc(phase.tip)+'</span></div>';
+  if(phase.warn) h+='<div class="wrn"><span>&#9888;</span><span>'+esc(phase.warn)+'</span></div>';
+  h+='</div></div>';
+  return h;
+}
+function renderCompact(content,phases){
+  var html='<div class="ctable"><div class="chdr"><div>Command</div><div>Command line</div><div>Risk</div><div>Copy</div></div>';
+  phases.forEach(function(p){
+    getFilteredCmds(p).forEach(function(cm){
+      var risk=cm.r||"info", filled=fillCmd(cm.c);
+      html+='<div class="crow"><span class="cr-name" title="'+esc(cm.e)+'">'+p.icon+' '+esc(cm.l)+'</span><span class="cr-cmd" title="'+esc(filled)+'">'+esc(filled)+'</span><span><span class="rb r-'+risk+'">'+risk+'</span></span><span class="cr-act"><button class="crc" data-v="'+esc(filled)+'" onclick="copyInline(this)">Copy</button></span></div>';
+    });
+  });
+  html+='</div>';
+  content.innerHTML=html;
+}
+
+// Fixed event listeners - wrapped in DOMContentLoaded to ensure elements exist
+document.addEventListener("DOMContentLoaded", function() {
+  // Generate button
+  var generateBtn = document.getElementById("generateBtn");
+  if (generateBtn) {
+    generateBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      doGenerate();
+    });
+  }
+
+  // Enter key on target input
+  var targetInput = document.getElementById("targetInput");
+  if (targetInput) {
+    targetInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        doGenerate();
+      }
+    });
+  }
+
+  // Search input - FIXED: properly attached with multiple events
+  var searchInput = document.getElementById("searchInput");
+  if (searchInput) {
+    function handleSearch() {
+      QUERY = searchInput.value.trim();
+      render();
+    }
+    searchInput.addEventListener("input", handleSearch);
+    searchInput.addEventListener("keyup", handleSearch);
+    searchInput.addEventListener("change", handleSearch);
+  }
+
+  // View toggles
+  var vcard = document.getElementById("vcard");
+  var vcomp = document.getElementById("vcomp");
+  if (vcard) vcard.addEventListener("click", function() { setView("cards"); });
+  if (vcomp) vcomp.addEventListener("click", function() { setView("compact"); });
+});
+</script>
+</body>
+</html>
