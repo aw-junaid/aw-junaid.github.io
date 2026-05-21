@@ -34,6 +34,7 @@
 <li><a href="https://aw-junaid.github.io/infograph/tools/wapiti.html" target="_blank" rel="noopener noreferrer">Wapiti</a></li>
 <li><a href="https://aw-junaid.github.io/infograph/tools/sqlmap.html" target="_blank" rel="noopener noreferrer">SQLMap</a></li>
 <li><a href="https://aw-junaid.github.io/infograph/tools/searchsploit.html" target="_blank" rel="noopener noreferrer">Searchsploit</a></li>
+<li><a href="https://aw-junaid.github.io/infograph/tools/sqlmappro.html" target="_blank" rel="noopener noreferrer">SQLMAP PRO</a></li>
 </ul>
 
 <footer>
