@@ -1,0 +1,2688 @@
+<!DOCTYPE html>
+<html lang="en" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Markdown Renderer</title>
+
+<!-- Marked.js for Markdown parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<!-- highlight.js for syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" id="hljs-light">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="hljs-dark" disabled>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<!-- Mermaid.js for diagrams -->
+<!-- Bumped from 10.6.1 -> 11.13.0: block-beta and architecture-beta don't
+     exist at all before 11.x (architecture-beta needs 11.1.0+), and several
+     diagram-type parser bugs (requirementDiagram, xychart-beta) were fixed
+     in the 11.x line. Older cached diagrams keep working; the syntax for
+     the types this file already used hasn't changed. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<!-- MathJax for math equations -->
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    // CommonHTML (CHTML) output renders each equation as real inline text —
+    // styled <span>/<mjx-*> elements laid out with a downloaded MathJax web
+    // font — rather than as a per-equation <svg> vector image. That means
+    // the math is selectable, copyable, and searchable like any other text
+    // on the page (and in the exported PDF), at the cost of needing that
+    // web font to load before the layout is final.
+    chtml: { scale: 1 },
+    startup: { typeset: false }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+
+<style>
+/* ─── GitHub Design Tokens ─────────────────────────────────────────────────── */
+:root {
+  --color-canvas-default: #ffffff;
+  --color-canvas-subtle: #f6f8fa;
+  --color-border-default: #d0d7de;
+  --color-border-muted: #d8dee4;
+  --color-neutral-muted: rgba(175,184,193,0.2);
+  --color-accent-fg: #0969da;
+  --color-accent-emphasis: #0969da;
+  --color-accent-subtle: #ddf4ff;
+  --color-fg-default: #1f2328;
+  --color-fg-muted: #656d76;
+  --color-fg-subtle: #6e7781;
+  --color-fg-on-emphasis: #ffffff;
+  --color-danger-fg: #d1242f;
+  --color-danger-subtle: #fff0ee;
+  --color-success-fg: #1a7f37;
+  --color-success-subtle: #dafbe1;
+  --color-attention-fg: #9a6700;
+  --color-attention-subtle: #fff8c5;
+  --color-done-fg: #8250df;
+  --color-done-subtle: #fbefff;
+  --color-sponsors-fg: #bf3989;
+  --color-header-bg: #24292f;
+  --color-btn-bg: #f6f8fa;
+  --color-btn-border: rgba(31,35,40,0.15);
+  --color-btn-hover-bg: #f3f4f6;
+  --color-btn-active-bg: #ebecf0;
+  --color-shadow-small: 0 1px 0 rgba(31,35,40,0.04);
+  --color-shadow-medium: 0 3px 6px rgba(140,149,159,0.15);
+  --color-primer-fg-disabled: #8c959f;
+  --color-scale-gray-1: #f6f8fa;
+  --color-scale-gray-2: #eaeef2;
+
+  --base-size-4: 4px;
+  --base-size-8: 8px;
+  --base-size-16: 16px;
+  --base-size-24: 24px;
+  --base-size-32: 32px;
+  --base-size-40: 40px;
+  --base-size-48: 48px;
+
+  --fontStack-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --fontStack-sansSerif: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --base-text-weight-normal: 400;
+  --base-text-weight-medium: 500;
+  --base-text-weight-semibold: 600;
+  --base-text-weight-bold: 700;
+}
+
+[data-color-mode="dark"], .dark-theme {
+  --color-canvas-default: #0d1117;
+  --color-canvas-subtle: #161b22;
+  --color-border-default: #30363d;
+  --color-border-muted: #21262d;
+  --color-neutral-muted: rgba(110,118,129,0.4);
+  --color-accent-fg: #58a6ff;
+  --color-accent-emphasis: #1f6feb;
+  --color-accent-subtle: rgba(56,139,253,0.1);
+  --color-fg-default: #e6edf3;
+  --color-fg-muted: #8d96a0;
+  --color-fg-subtle: #6e7681;
+  --color-fg-on-emphasis: #ffffff;
+  --color-danger-fg: #f85149;
+  --color-danger-subtle: rgba(248,81,73,0.1);
+  --color-success-fg: #3fb950;
+  --color-success-subtle: rgba(63,185,80,0.1);
+  --color-attention-fg: #d29922;
+  --color-attention-subtle: rgba(187,128,9,0.1);
+  --color-done-fg: #a371f7;
+  --color-done-subtle: rgba(163,113,247,0.1);
+  --color-sponsors-fg: #db61a2;
+  --color-header-bg: #161b22;
+  --color-btn-bg: #21262d;
+  --color-btn-border: rgba(240,246,252,0.1);
+  --color-btn-hover-bg: #30363d;
+  --color-btn-active-bg: #282e33;
+  --color-shadow-small: 0 0 transparent;
+  --color-shadow-medium: 0 3px 6px #010409;
+  --color-scale-gray-1: #161b22;
+  --color-scale-gray-2: #21262d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas-default: #0d1117;
+    --color-canvas-subtle: #161b22;
+    --color-border-default: #30363d;
+    --color-border-muted: #21262d;
+    --color-neutral-muted: rgba(110,118,129,0.4);
+    --color-accent-fg: #58a6ff;
+    --color-accent-emphasis: #1f6feb;
+    --color-accent-subtle: rgba(56,139,253,0.1);
+    --color-fg-default: #e6edf3;
+    --color-fg-muted: #8d96a0;
+    --color-fg-subtle: #6e7681;
+    --color-fg-on-emphasis: #ffffff;
+    --color-danger-fg: #f85149;
+    --color-danger-subtle: rgba(248,81,73,0.1);
+    --color-success-fg: #3fb950;
+    --color-success-subtle: rgba(63,185,80,0.1);
+    --color-attention-fg: #d29922;
+    --color-attention-subtle: rgba(187,128,9,0.1);
+    --color-done-fg: #a371f7;
+    --color-done-subtle: rgba(163,113,247,0.1);
+    --color-sponsors-fg: #db61a2;
+    --color-header-bg: #161b22;
+    --color-btn-bg: #21262d;
+    --color-btn-border: rgba(240,246,252,0.1);
+    --color-btn-hover-bg: #30363d;
+    --color-btn-active-bg: #282e33;
+    --color-shadow-small: 0 0 transparent;
+    --color-shadow-medium: 0 3px 6px #010409;
+    --color-scale-gray-1: #161b22;
+    --color-scale-gray-2: #21262d;
+  }
+  #hljs-light { display: none !important; }
+  #hljs-dark { display: block !important; }
+}
+
+/* ─── Page Layout ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--fontStack-sansSerif);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-fg-default);
+  background-color: var(--color-canvas-default);
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── GitHub Topbar ───────────────────────────────────────────────────────── */
+.gh-topbar {
+  background: var(--color-header-bg);
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.gh-topbar svg { fill: white; flex-shrink: 0; }
+.gh-topbar-title {
+  color: #e6edf3;
+  font-size: 14px;
+  font-weight: var(--base-text-weight-semibold);
+  white-space: nowrap;
+}
+.gh-topbar-sep { color: rgba(255,255,255,0.4); }
+.gh-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* Theme toggle button */
+.theme-toggle {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: #e6edf3;
+  cursor: pointer;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: var(--fontStack-sansSerif);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.2); }
+
+/* ─── Repository Header Bar ───────────────────────────────────────────────── */
+.gh-repo-bar {
+  background: var(--color-canvas-default);
+  border-bottom: 1px solid var(--color-border-default);
+  padding: 8px 32px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+}
+.gh-tab {
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--color-fg-default);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-decoration: none;
+  font-weight: var(--base-text-weight-normal);
+  transition: color 0.15s;
+}
+.gh-tab:hover { color: var(--color-fg-default); border-bottom-color: var(--color-border-default); }
+.gh-tab.active { color: var(--color-fg-default); border-bottom-color: #fd8166; font-weight: var(--base-text-weight-semibold); }
+.gh-tab svg { fill: var(--color-fg-muted); }
+.gh-tab-count {
+  background: var(--color-neutral-muted);
+  border-radius: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: var(--base-text-weight-semibold);
+  color: var(--color-fg-default);
+}
+
+/* ─── Main Content Area ───────────────────────────────────────────────────── */
+.gh-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 32px 64px;
+  display: flex;
+  gap: 24px;
+}
+.gh-main { flex: 1; min-width: 0; }
+.gh-sidebar {
+  width: 296px;
+  flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .gh-sidebar { display: none; }
+  .gh-container { padding: 12px; flex-direction: column; }
+  .gh-topbar { padding: 10px 14px; gap: 8px; }
+  .gh-repo-bar { padding: 0 12px; }
+  .gh-file-header { flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
+  .gh-file-header-meta { flex-wrap: wrap; gap: 6px; margin-left: 0; width: 100%; }
+  .gh-file-body { padding: 20px 16px; }
+  .topbar-org { display: none; }
+  .gh-topbar-sep { display: none; }
+  .toggle-label { display: none; }
+  .theme-toggle { padding: 5px 8px; }
+}
+
+@media (max-width: 480px) {
+  .gh-container { padding: 8px; }
+  .gh-topbar { padding: 8px 10px; gap: 6px; }
+  .gh-file-body { padding: 14px 10px; }
+  .gh-file-header { padding: 6px 10px; }
+  .gh-file-header-action { padding: 3px 8px; font-size: 11px; }
+  .gh-file-header-action.pdf-btn span { display: none; }
+  .markdown-body { font-size: 14px; }
+  .markdown-body h1 { font-size: 1.6em; }
+  .markdown-body h2 { font-size: 1.3em; }
+  .markdown-body pre { font-size: 12px; padding: 12px 10px; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .gh-sidebar { width: 220px; }
+  .gh-container { padding: 20px; gap: 16px; }
+  .gh-topbar { padding: 12px 20px; }
+}
+
+/* ─── File Header Box ─────────────────────────────────────────────────────── */
+.gh-file-header {
+  background: var(--color-canvas-subtle);
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px 6px 0 0;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.gh-file-header-name {
+  font-weight: var(--base-text-weight-semibold);
+  color: var(--color-fg-default);
+}
+.gh-file-header-meta {
+  color: var(--color-fg-muted);
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+}
+.gh-file-header-action {
+  background: var(--color-btn-bg);
+  border: 1px solid var(--color-btn-border);
+  border-radius: 6px;
+  color: var(--color-fg-default);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 12px;
+  font-family: var(--fontStack-sansSerif);
+  font-weight: var(--base-text-weight-medium);
+  box-shadow: var(--color-shadow-small);
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gh-file-header-action:hover { background: var(--color-btn-hover-bg); }
+
+/* ─── PDF Button ──────────────────────────────────────────────────────────── */
+.gh-file-header-action.pdf-btn {
+  background: #1a7f37;
+  color: #fff !important;
+  border-color: rgba(27,31,36,0.2);
+  font-weight: var(--base-text-weight-semibold);
+}
+.gh-file-header-action.pdf-btn svg { fill: #fff; }
+.gh-file-header-action.pdf-btn:hover { background: #116329; }
+
+/* ─── Markdown Body Container ─────────────────────────────────────────────── */
+.gh-file-body {
+  border: 1px solid var(--color-border-default);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 40px;
+}
+@media (max-width: 768px) {
+  .gh-file-body { padding: 20px 16px; }
+}
+
+/* ─── Markdown Content Styles (matching GitHub's markdown-body) ───────────── */
+.markdown-body {
+  font-family: var(--fontStack-sansSerif);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-fg-default);
+  word-wrap: break-word;
+}
+
+.markdown-body > *:first-child { margin-top: 0 !important; }
+.markdown-body > *:last-child { margin-bottom: 0 !important; }
+
+/* Headings */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: var(--base-text-weight-semibold);
+  line-height: 1.25;
+  color: var(--color-fg-default);
+}
+.markdown-body h1 { font-size: 2em; padding-bottom: .3em; border-bottom: 1px solid var(--color-border-muted); }
+.markdown-body h2 { font-size: 1.5em; padding-bottom: .3em; border-bottom: 1px solid var(--color-border-muted); }
+.markdown-body h3 { font-size: 1.25em; }
+.markdown-body h4 { font-size: 1em; }
+.markdown-body h5 { font-size: .875em; }
+.markdown-body h6 { font-size: .85em; color: var(--color-fg-muted); }
+
+/* Heading anchor links */
+.markdown-body h1 .anchor, .markdown-body h2 .anchor,
+.markdown-body h3 .anchor, .markdown-body h4 .anchor,
+.markdown-body h5 .anchor, .markdown-body h6 .anchor {
+  float: left; padding-right: 4px; margin-left: -20px;
+  line-height: 1; visibility: hidden; text-decoration: none;
+}
+.markdown-body h1:hover .anchor, .markdown-body h2:hover .anchor,
+.markdown-body h3:hover .anchor, .markdown-body h4:hover .anchor,
+.markdown-body h5:hover .anchor, .markdown-body h6:hover .anchor { visibility: visible; }
+.markdown-body h1 .anchor svg, .markdown-body h2 .anchor svg,
+.markdown-body h3 .anchor svg, .markdown-body h4 .anchor svg,
+.markdown-body h5 .anchor svg, .markdown-body h6 .anchor svg {
+  fill: var(--color-accent-fg); vertical-align: middle;
+}
+
+/* Paragraphs */
+.markdown-body p { margin-top: 0; margin-bottom: 16px; }
+
+/* Links */
+.markdown-body a { color: var(--color-accent-fg); text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+
+/* Strong / Em */
+.markdown-body strong { font-weight: var(--base-text-weight-semibold); }
+.markdown-body em { font-style: italic; }
+.markdown-body del { text-decoration: line-through; color: var(--color-fg-muted); }
+
+/* Horizontal Rule */
+.markdown-body hr {
+  height: .25em; padding: 0; margin: 24px 0;
+  background-color: var(--color-border-default);
+  border: 0;
+}
+
+/* Blockquotes */
+.markdown-body blockquote {
+  margin: 0 0 16px;
+  padding: 0 1em;
+  color: var(--color-fg-muted);
+  border-left: .25em solid var(--color-border-default);
+}
+.markdown-body blockquote > :first-child { margin-top: 0; }
+.markdown-body blockquote > :last-child { margin-bottom: 0; }
+
+/* Inline Code */
+.markdown-body code {
+  font-family: var(--fontStack-monospace);
+  font-size: 85%;
+  padding: .2em .4em;
+  margin: 0;
+  background-color: var(--color-neutral-muted);
+  border-radius: 6px;
+}
+.markdown-body pre code { font-size: 100%; background: transparent; padding: 0; border-radius: 0; }
+
+/* Code Blocks */
+.markdown-body pre {
+  position: relative;
+  margin-bottom: 16px;
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: var(--color-canvas-subtle);
+  border-radius: 6px;
+  border: 1px solid var(--color-border-default);
+}
+.markdown-body pre .copy-btn {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: var(--color-btn-bg);
+  border: 1px solid var(--color-btn-border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: var(--fontStack-sansSerif);
+  color: var(--color-fg-muted);
+  display: flex; align-items: center; gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  z-index: 10;
+}
+.markdown-body pre:hover .copy-btn { opacity: 1; }
+.markdown-body pre .copy-btn:hover { background: var(--color-btn-hover-bg); color: var(--color-fg-default); }
+.markdown-body pre .copy-btn.copied { color: var(--color-success-fg); border-color: var(--color-success-fg); }
+
+/* Language badge */
+.markdown-body pre .lang-badge {
+  position: absolute;
+  top: 8px; left: 16px;
+  font-size: 11px;
+  color: var(--color-fg-subtle);
+  font-family: var(--fontStack-monospace);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.markdown-body pre:hover .lang-badge { opacity: 1; }
+
+/* Lists */
+.markdown-body ul, .markdown-body ol {
+  margin-top: 0; margin-bottom: 16px;
+  padding-left: 2em;
+}
+.markdown-body ul ul, .markdown-body ul ol,
+.markdown-body ol ol, .markdown-body ol ul { margin-top: 0; margin-bottom: 0; }
+.markdown-body li { word-wrap: break-word; }
+.markdown-body li + li { margin-top: .25em; }
+.markdown-body li > p { margin-top: 16px; }
+
+/* Task Lists */
+.markdown-body .task-list-item { list-style-type: none; }
+.markdown-body .task-list-item + .task-list-item { margin-top: 4px; }
+.markdown-body .task-list-item label { font-weight: var(--base-text-weight-normal); }
+.markdown-body ul.contains-task-list { padding-left: 1.5em; }
+.markdown-body .task-list-item input {
+  margin: 0 .2em .25em -1.6em;
+  vertical-align: middle;
+  accent-color: var(--color-accent-emphasis);
+}
+
+/* Tables */
+.markdown-body table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+  margin-bottom: 16px;
+}
+.markdown-body table th {
+  font-weight: var(--base-text-weight-semibold);
+  background-color: var(--color-canvas-subtle);
+}
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid var(--color-border-default);
+}
+.markdown-body table tr { background-color: var(--color-canvas-default); border-top: 1px solid var(--color-border-muted); }
+.markdown-body table tr:nth-child(2n) { background-color: var(--color-canvas-subtle); }
+.markdown-body table img { background-color: transparent; }
+
+/* Images */
+.markdown-body img {
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: 6px;
+  border: 1px solid var(--color-border-default);
+}
+
+/* Video embeds */
+.markdown-body video {
+  max-width: 100%;
+  border-radius: 6px;
+}
+.markdown-body .video-container {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border-default);
+}
+.markdown-body .video-container iframe {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border: none; border-radius: 6px;
+}
+
+/* Details / Summary */
+.markdown-body details {
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  padding: 8px 16px;
+}
+.markdown-body summary {
+  cursor: pointer;
+  font-weight: var(--base-text-weight-semibold);
+  color: var(--color-accent-fg);
+}
+.markdown-body details[open] > summary { margin-bottom: 8px; }
+
+/* ─── GitHub Alerts (Note / Warning / Important / Tip / Caution) ─────────── */
+.markdown-body .gh-alert {
+  padding: 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border-left: 4px solid;
+}
+.markdown-body .gh-alert-title {
+  font-weight: var(--base-text-weight-semibold);
+  font-size: 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.markdown-body .gh-alert > *:last-child { margin-bottom: 0; }
+
+.markdown-body .gh-alert.note {
+  background: var(--color-accent-subtle);
+  border-color: var(--color-accent-emphasis);
+  color: var(--color-fg-default);
+}
+.markdown-body .gh-alert.note .gh-alert-title { color: var(--color-accent-fg); }
+
+.markdown-body .gh-alert.tip {
+  background: var(--color-success-subtle);
+  border-color: var(--color-success-fg);
+}
+.markdown-body .gh-alert.tip .gh-alert-title { color: var(--color-success-fg); }
+
+.markdown-body .gh-alert.important {
+  background: var(--color-done-subtle);
+  border-color: var(--color-done-fg);
+}
+.markdown-body .gh-alert.important .gh-alert-title { color: var(--color-done-fg); }
+
+.markdown-body .gh-alert.warning {
+  background: var(--color-attention-subtle);
+  border-color: var(--color-attention-fg);
+}
+.markdown-body .gh-alert.warning .gh-alert-title { color: var(--color-attention-fg); }
+
+.markdown-body .gh-alert.caution {
+  background: var(--color-danger-subtle);
+  border-color: var(--color-danger-fg);
+}
+.markdown-body .gh-alert.caution .gh-alert-title { color: var(--color-danger-fg); }
+
+/* ─── Mermaid Diagrams ───────────────────────────────────────────────────── */
+.markdown-body .mermaid-wrapper {
+  background: var(--color-canvas-subtle);
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+  overflow-x: auto;
+}
+.markdown-body .mermaid-wrapper svg { max-width: 100%; height: auto; display: block; margin: 0 auto; overflow: visible; }
+
+/* ─── Math Equations ─────────────────────────────────────────────────────── */
+.markdown-body .math-block {
+  overflow-x: auto;
+  padding: 16px;
+  background: var(--color-canvas-subtle);
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.markdown-body mjx-container { line-height: 0; }
+.markdown-body mjx-container[display="true"] { line-height: normal; }
+.markdown-body mjx-assistive-mml { display: none !important; }
+
+/* ─── Kbd ─────────────────────────────────────────────────────────────────── */
+.markdown-body kbd {
+  display: inline-block;
+  padding: 3px 5px;
+  font: 11px var(--fontStack-monospace);
+  line-height: 10px;
+  color: var(--color-fg-default);
+  vertical-align: middle;
+  background-color: var(--color-canvas-subtle);
+  border: 1px solid var(--color-border-default);
+  border-bottom-color: var(--color-border-default);
+  border-radius: 6px;
+  box-shadow: inset 0 -1px 0 var(--color-border-default);
+}
+
+/* ─── Footnotes ───────────────────────────────────────────────────────────── */
+.markdown-body .footnotes {
+  font-size: 12px;
+  color: var(--color-fg-muted);
+  border-top: 1px solid var(--color-border-default);
+  padding-top: 16px;
+  margin-top: 32px;
+}
+
+/* ─── Sidebar ─────────────────────────────────────────────────────────────── */
+.gh-sidebar-box {
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+.gh-sidebar-box h3 {
+  font-size: 12px;
+  font-weight: var(--base-text-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--color-fg-muted);
+  margin: 0 0 12px;
+  border-bottom: 1px solid var(--color-border-muted);
+  padding-bottom: 8px;
+}
+.gh-toc { list-style: none; padding: 0; margin: 0; }
+.gh-toc li { padding: 2px 0; }
+.gh-toc a {
+  color: var(--color-accent-fg);
+  text-decoration: none;
+  font-size: 13px;
+  display: block;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.gh-toc a:hover { background: var(--color-canvas-subtle); }
+.gh-toc li.depth-2 a { padding-left: 12px; font-size: 12px; }
+.gh-toc li.depth-3 a { padding-left: 24px; font-size: 11px; color: var(--color-fg-muted); }
+
+/* ─── hljs overrides for dark theme ─────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  .hljs { background: transparent !important; }
+}
+.dark-theme #hljs-light { display: none !important; }
+.dark-theme #hljs-dark { display: block !important; }
+.dark-theme .hljs { background: transparent !important; }
+</style>
+</head>
+<body>
+
+<!-- ─── GitHub Topbar ─────────────────────────────────────────────────────── -->
+<header class="gh-topbar">
+  <!-- CheatNotes Logo -->
+  <svg height="28" viewBox="0 0 32 32" width="28" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+    <rect width="32" height="32" rx="7" fill="#58a6ff"/>
+    <path d="M7 9h18M7 14h12M7 19h15M7 24h9" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="24" cy="22" r="4.5" fill="#0d1117"/>
+    <path d="M22.3 22l1.1 1.1 2.3-2.3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <span class="gh-topbar-title topbar-org">awjunaid</span>
+  <span class="gh-topbar-sep">/</span>
+  <span class="gh-topbar-title" id="topbar-doc-title">markdown-cheatsheet</span>
+  <div class="gh-topbar-right">
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707z"/></svg>
+      <span class="toggle-label">Toggle Theme</span>
+    </button>
+  </div>
+</header>
+
+
+
+<!-- ─── Main Layout ────────────────────────────────────────────────────────── -->
+<div class="gh-container">
+  <main class="gh-main">
+
+    <!-- File Header -->
+    <div class="gh-file-header">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--color-fg-muted)"><path d="M3.75 1.5a.25.25 0 0 0-.25.25v11.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25V6H9.75A1.75 1.75 0 0 1 8 4.25V1.5Zm5.75.56v2.19c0 .138.112.25.25.25h2.19Zm-6-2.06A1.75 1.75 0 0 0 2 1.75v11.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0 0 14 13.25V5.372a1.75 1.75 0 0 0-.513-1.237L10.13 1.013A1.75 1.75 0 0 0 8.887.5Z"/></svg>
+      <span class="gh-file-header-name">README.md</span>
+      <div class="gh-file-header-meta">
+        <span>rendered</span>
+        <button class="gh-file-header-action" onclick="openRawEditor()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81l-6.286 6.287a.25.25 0 0 0-.064.108l-.558 1.953 1.953-.558a.25.25 0 0 0 .108-.064L11.19 6.25Z"/></svg>
+          Edit raw
+        </button>
+        <button class="gh-file-header-action" onclick="copyMarkdown()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>
+          Copy raw
+        </button>
+        <button class="gh-file-header-action pdf-btn" id="pdfDownloadBtn" onclick="openPrintPreview()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/></svg>
+          Download PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Rendered Markdown -->
+    <article class="gh-file-body">
+      <div class="markdown-body" id="markdown-body"></div>
+    </article>
+
+  </main>
+
+  <!-- Sidebar -->
+  <aside class="gh-sidebar">
+    <div class="gh-sidebar-box">
+      <h3>Table of Contents</h3>
+      <ul class="gh-toc" id="toc"></ul>
+    </div>
+  </aside>
+</div>
+
+<!-- ─── PDF Print Preview Modal ────────────────────────────────────────────── -->
+<div id="pdfPreviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--color-canvas-default);border:1px solid var(--color-border-default);border-radius:10px;width:100%;max-width:860px;margin:0 auto;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+    <!-- Modal header -->
+    <div style="padding:14px 20px;border-bottom:1px solid var(--color-border-default);display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--color-fg-muted)"><path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/></svg>
+      <strong style="font-size:14px;color:var(--color-fg-default);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="pdf-modal-title">PDF Preview</strong>
+      <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+        <button onclick="triggerPrint()" style="background:var(--color-accent-emphasis);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;padding:6px 14px;font-family:var(--fontStack-sansSerif);font-weight:600;display:flex;align-items:center;gap:6px;">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+          Print / Save PDF
+        </button>
+        <button onclick="closePrintPreview()" style="background:var(--color-btn-bg);color:var(--color-fg-default);border:1px solid var(--color-btn-border);border-radius:6px;cursor:pointer;font-size:13px;padding:6px 14px;font-family:var(--fontStack-sansSerif);">Close</button>
+      </div>
+    </div>
+    <!-- PDF settings bar -->
+    <div id="pdf-settings-bar" style="padding:10px 20px;border-bottom:1px solid var(--color-border-default);display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;font-size:12px;background:var(--color-canvas-subtle);">
+      <span style="color:var(--color-fg-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:10px;padding-top:5px;flex-basis:100%;">⚙ PDF Settings</span>
+
+      <!-- Page size -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Page Size</span>
+        <select id="pdf-page-size" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:90px;">
+          <option value="A4" selected>A4</option>
+          <option value="letter">US Letter</option>
+          <option value="legal">US Legal</option>
+          <option value="A3">A3</option>
+          <option value="A5">A5</option>
+          <option value="B5">B5</option>
+        </select>
+      </label>
+
+      <!-- Orientation -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Orientation</span>
+        <select id="pdf-orientation" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:100px;">
+          <option value="portrait" selected>Portrait</option>
+          <option value="landscape">Landscape</option>
+        </select>
+      </label>
+
+      <!-- Font family -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Body Font</span>
+        <select id="pdf-font-family" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:150px;">
+          <option value="georgia">Georgia (serif)</option>
+          <option value="palatino">Palatino (serif)</option>
+          <option value="times">Times New Roman</option>
+          <option value="crimson">Crimson Pro (Google)</option>
+          <option value="source-serif">Source Serif 4 (Google)</option>
+          <option value="lora" selected>Lora (Google)</option>
+          <option value="merriweather">Merriweather (Google)</option>
+          <option value="eb-garamond">EB Garamond (Google)</option>
+          <option value="playfair">Playfair Display (Google)</option>
+          <option value="nunito">Nunito Sans (Google)</option>
+          <option value="inter">Inter (Google)</option>
+          <option value="roboto">Roboto (Google)</option>
+          <option value="open-sans">Open Sans (Google)</option>
+          <option value="system">System UI (sans)</option>
+        </select>
+      </label>
+
+      <!-- Font size -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Font Size</span>
+        <select id="pdf-font-size" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:80px;">
+          <option value="10">10pt</option>
+          <option value="11" selected>11pt</option>
+          <option value="12">12pt</option>
+          <option value="13">13pt</option>
+          <option value="14">14pt</option>
+          <option value="16">16pt</option>
+        </select>
+      </label>
+
+      <!-- Line height -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Line Height</span>
+        <select id="pdf-line-height" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:80px;">
+          <option value="1.4">Tight 1.4</option>
+          <option value="1.6" selected>Normal 1.6</option>
+          <option value="1.8">Relaxed 1.8</option>
+          <option value="2.0">Double 2.0</option>
+        </select>
+      </label>
+
+      <!-- Margins -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Margins</span>
+        <select id="pdf-margins" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:150px;">
+          <option value="xs">Minimal — 10mm all sides</option>
+          <option value="small">Compact — 14mm all sides</option>
+          <option value="narrow">Narrow — 12mm</option>
+          <option value="normal" selected>Normal — 22mm</option>
+          <option value="wide">Wide — 28mm</option>
+          <option value="book">Book — 25mm / 30mm</option>
+          <option value="oreilly">O'Reilly — 22mm / 28mm</option>
+        </select>
+      </label>
+
+      <!-- Theme/style -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Book Style</span>
+        <select id="pdf-style" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:150px;">
+          <option value="oreilly" selected>O'Reilly</option>
+          <option value="nostarch">No Starch Press</option>
+          <option value="packt">Packt Pub</option>
+          <option value="mcgraw">McGraw-Hill</option>
+          <option value="springer">Springer</option>
+          <option value="minimal">Minimal Clean</option>
+        </select>
+      </label>
+
+      <!-- Paragraph spacing -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Para Spacing</span>
+        <select id="pdf-para-spacing" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:130px;">
+          <option value="tight">Tight (0.5em)</option>
+          <option value="normal" selected>Normal (0.85em)</option>
+          <option value="relaxed">Relaxed (1.2em)</option>
+          <option value="double">Double (1.8em)</option>
+        </select>
+      </label>
+
+      <!-- Code font size -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Code Size</span>
+        <select id="pdf-code-size" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:110px;">
+          <option value="75">Small (75%)</option>
+          <option value="82" selected>Normal (82%)</option>
+          <option value="90">Large (90%)</option>
+          <option value="100">Full (100%)</option>
+        </select>
+      </label>
+
+      <!-- Cover style -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Cover Style</span>
+        <select id="pdf-cover-style" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:130px;">
+          <option value="classic" selected>Classic (left)</option>
+          <option value="centered">Centered</option>
+          <option value="bold">Bold block</option>
+          <option value="minimal">Minimal</option>
+        </select>
+      </label>
+
+      <!-- Text align -->
+      <label style="display:flex;flex-direction:column;gap:3px;color:var(--color-fg-default);">
+        <span style="color:var(--color-fg-muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">Text Align</span>
+        <select id="pdf-text-align" onchange="rebuildPreview()" style="background:var(--color-btn-bg);border:1px solid var(--color-btn-border);border-radius:4px;color:var(--color-fg-default);font-size:12px;padding:4px 8px;min-width:110px;">
+          <option value="justify" selected>Justified</option>
+          <option value="left">Left</option>
+        </select>
+      </label>
+
+      <!-- Toggles row -->
+      <div style="display:flex;gap:12px;flex-wrap:wrap;flex-basis:100%;padding-top:4px;border-top:1px solid var(--color-border-default);margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:5px;color:var(--color-fg-default);cursor:pointer;font-size:11px;">
+          <input type="checkbox" id="pdf-cover" checked onchange="rebuildPreview()" style="accent-color:var(--color-accent-emphasis);">
+          Cover page
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;color:var(--color-fg-default);cursor:pointer;font-size:11px;">
+          <input type="checkbox" id="pdf-toc" checked onchange="rebuildPreview()" style="accent-color:var(--color-accent-emphasis);">
+          Table of Contents
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;color:var(--color-fg-default);cursor:pointer;font-size:11px;">
+          <input type="checkbox" id="pdf-colors" checked onchange="rebuildPreview()" style="accent-color:var(--color-accent-emphasis);">
+          Syntax colors
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;color:var(--color-fg-default);cursor:pointer;font-size:11px;">
+          <input type="checkbox" id="pdf-dropcap" onchange="rebuildPreview()" style="accent-color:var(--color-accent-emphasis);">
+          Drop caps
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;color:var(--color-fg-default);cursor:pointer;font-size:11px;">
+          <input type="checkbox" id="pdf-chapternum" checked onchange="rebuildPreview()" style="accent-color:var(--color-accent-emphasis);">
+          Chapter numbers
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;color:var(--color-fg-default);cursor:pointer;font-size:11px;">
+          <input type="checkbox" id="pdf-sidebar-notes" onchange="rebuildPreview()" style="accent-color:var(--color-accent-emphasis);">
+          Wide margins (notes)
+        </label>
+      </div>
+    </div>
+    <!-- Preview iframe -->
+    <div style="padding:16px;background:#e8eaed;min-height:600px;overflow:auto;">
+      <iframe id="pdfPreviewFrame"
+        style="width:100%;min-height:560px;border:none;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,0.25);background:#fff;display:block;"
+        title="PDF Preview">
+      </iframe>
+    </div>
+    <div style="padding:10px 20px;border-top:1px solid var(--color-border-default);font-size:11px;color:var(--color-fg-muted);">
+      💡 In the print dialog: set <strong>Destination → Save as PDF</strong>, <strong>Paper size</strong> to match your selection above, <strong>Margins → None</strong> (already set in CSS), enable <strong>Background graphics</strong> for syntax colors.
+    </div>
+  </div>
+</div>
+
+<!-- ─── Raw Editor Modal ───────────────────────────────────────────────────── -->
+<div id="rawEditorModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--color-canvas-default);border:1px solid var(--color-border-default);border-radius:8px;width:90%;max-width:800px;max-height:85vh;display:flex;flex-direction:column;box-shadow:var(--color-shadow-medium);">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--color-border-default);display:flex;align-items:center;gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--color-fg-muted)"><path d="M3.75 1.5a.25.25 0 0 0-.25.25v11.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25V6H9.75A1.75 1.75 0 0 1 8 4.25V1.5Zm5.75.56v2.19c0 .138.112.25.25.25h2.19Zm-6-2.06A1.75 1.75 0 0 0 2 1.75v11.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0 0 14 13.25V5.372a1.75 1.75 0 0 0-.513-1.237L10.13 1.013A1.75 1.75 0 0 0 8.887.5Z"/></svg>
+      <strong style="font-size:14px;color:var(--color-fg-default)">Edit Markdown</strong>
+      <button onclick="closeRawEditor()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--color-fg-muted);font-size:18px;padding:0;line-height:1;">×</button>
+    </div>
+    <textarea id="rawEditor" style="flex:1;min-height:400px;padding:16px;font-family:var(--fontStack-monospace);font-size:13px;background:var(--color-canvas-subtle);color:var(--color-fg-default);border:none;outline:none;resize:vertical;line-height:1.6;"></textarea>
+    <div style="padding:12px 20px;border-top:1px solid var(--color-border-default);display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeRawEditor()" class="gh-file-header-action" style="font-size:14px;padding:6px 16px;">Cancel</button>
+      <button onclick="applyRawEditor()" style="background:var(--color-accent-emphasis);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;padding:6px 16px;font-family:var(--fontStack-sansSerif);font-weight:var(--base-text-weight-medium);">Update Preview</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Raw Markdown Content ──────────────────────────────────────────────── -->
+<script id="markdown-source" type="text/markdown">
+# GitHub Markdown Cheatsheet
+
+A **complete** reference for _GitHub Flavored Markdown_ — everything rendered just like on GitHub.
+
+---
+
+## Headings
+
+# Heading 1
+## Heading 2
+### Heading 3
+#### Heading 4
+##### Heading 5
+###### Heading 6
+
+---
+
+## Text Formatting
+
+**Bold text** — `**Bold text**`
+
+_Italic text_ — `_Italic text_`
+
+**_Bold and italic_** — `**_Bold and italic_**`
+
+~~Strikethrough~~ — `~~Strikethrough~~`
+
+`Inline code` — `` `Inline code` ``
+
+<kbd>Ctrl</kbd> + <kbd>C</kbd> — keyboard shortcut keys
+
+---
+
+## Blockquotes
+
+> This is a blockquote. It can span multiple lines and contain other **Markdown** elements.
+>
+> — *Someone Famous*
+
+> **Nested blockquote:**
+> > You can nest quotes inside quotes.
+> > > And go deeper still.
+
+---
+
+## GitHub Alerts
+
+> [!NOTE]
+> Highlights information that users should take into account, even when skimming.
+
+> [!TIP]
+> Optional information to help a user be more successful.
+
+> [!IMPORTANT]
+> Crucial information necessary for users to succeed.
+
+> [!WARNING]
+> Critical content demanding immediate user attention due to potential risks.
+
+> [!CAUTION]
+> Negative potential consequences of an action.
+
+---
+
+## Lists
+
+### Unordered List
+
+- Item one
+- Item two
+  - Nested item 2a
+  - Nested item 2b
+    - Deeply nested item
+- Item three
+
+### Ordered List
+
+1. First item
+2. Second item
+   1. Sub-item 2.1
+   2. Sub-item 2.2
+3. Third item
+
+### Task List
+
+- [x] Install Node.js
+- [x] Clone the repository
+- [ ] Run `npm install`
+- [ ] Configure environment variables
+- [ ] Deploy to production
+
+---
+
+## Code Blocks
+
+### JavaScript
+
+```javascript
+// Fibonacci with memoization
+const fib = (() => {
+  const memo = new Map([[0, 0], [1, 1]]);
+  return function fibonacci(n) {
+    if (memo.has(n)) return memo.get(n);
+    const result = fibonacci(n - 1) + fibonacci(n - 2);
+    memo.set(n, result);
+    return result;
+  };
+})();
+
+console.log(fib(10)); // 55
+console.log(fib(20)); // 6765
+```
+
+### Python
+
+```python
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class TreeNode:
+    val: int
+    left: Optional['TreeNode'] = None
+    right: Optional['TreeNode'] = None
+
+def inorder(node: Optional[TreeNode]) -> list[int]:
+    """In-order traversal of a binary tree."""
+    if node is None:
+        return []
+    return inorder(node.left) + [node.val] + inorder(node.right)
+
+root = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(5))
+print(inorder(root))  # [1, 2, 3, 4, 5]
+```
+
+### Bash
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Deploy script
+REPO="my-app"
+TAG=$(git describe --tags --abbrev=0)
+
+echo "🚀 Deploying ${REPO} @ ${TAG}"
+docker build -t "${REPO}:${TAG}" .
+docker push "${REPO}:${TAG}"
+echo "✅ Done!"
+```
+
+### JSON
+
+```json
+{
+  "name": "my-package",
+  "version": "2.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
+```
+
+### SQL
+
+```sql
+SELECT
+  u.id,
+  u.name,
+  COUNT(o.id) AS order_count,
+  SUM(o.total) AS lifetime_value
+FROM users u
+LEFT JOIN orders o ON o.user_id = u.id
+WHERE u.created_at >= '2024-01-01'
+GROUP BY u.id, u.name
+HAVING COUNT(o.id) > 0
+ORDER BY lifetime_value DESC
+LIMIT 10;
+```
+
+---
+
+## Tables
+
+| Feature | Supported | Notes |
+|---------|:---------:|-------|
+| Headers | ✅ | H1 through H6 |
+| Bold / Italic | ✅ | Standard Markdown |
+| Tables | ✅ | GFM extension |
+| Task lists | ✅ | GFM extension |
+| Code blocks | ✅ | With syntax highlighting |
+| Mermaid diagrams | ✅ | Rendered as SVG |
+| Math (MathJax) | ✅ | Inline and display |
+| Strikethrough | ✅ | `~~text~~` |
+| Footnotes | ✅ | Via `[^label]` |
+
+**Column alignment:**
+
+| Left | Center | Right |
+|:-----|:------:|------:|
+| apple | 🍎 | $1.00 |
+| banana | 🍌 | $0.50 |
+| cherry | 🍒 | $3.75 |
+
+---
+
+## Mermaid Diagrams
+
+```mermaid
+flowchart TD
+    A([🚀 Start]) --> B{Is it deployed?}
+    B -- Yes --> C[✅ Monitor logs]
+    B -- No --> D[Build Docker image]
+    D --> E[Push to registry]
+    E --> F[Run migrations]
+    F --> G[Deploy to K8s]
+    G --> C
+    C --> H([🎉 Done])
+```
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant S as Server
+    participant D as Database
+
+    B->>S: GET /api/users
+    S->>D: SELECT * FROM users
+    D-->>S: [rows]
+    S-->>B: 200 OK {users}
+    
+    B->>S: POST /api/users
+    S->>D: INSERT INTO users
+    D-->>S: {id: 42}
+    S-->>B: 201 Created
+```
+
+```mermaid
+gitGraph
+    commit id: "init"
+    branch feature/auth
+    commit id: "add login"
+    commit id: "add JWT"
+    checkout main
+    merge feature/auth id: "merge auth"
+    branch hotfix/sql
+    commit id: "fix injection"
+    checkout main
+    merge hotfix/sql id: "merge fix"
+    commit id: "v1.0.0" tag: "v1.0.0"
+```
+
+---
+
+## Math Equations (MathJax)
+
+**Inline math:** The quadratic formula is $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
+
+**Display math — Euler's Identity:**
+
+$$e^{i\pi} + 1 = 0$$
+
+**Maxwell's Equations:**
+
+$$\nabla \cdot \mathbf{E} = \frac{\rho}{\varepsilon_0}$$
+
+$$\nabla \times \mathbf{B} = \mu_0\mathbf{J} + \mu_0\varepsilon_0\frac{\partial \mathbf{E}}{\partial t}$$
+
+**Gaussian Integral:**
+
+$$\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}$$
+
+**Matrix:**
+
+$$A = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix}$$
+
+---
+
+## Links & Images
+
+[GitHub](https://github.com) — a simple link
+
+[GitHub with title](https://github.com "The world's largest code host") — link with tooltip
+
+![GitHub Octocat](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png)
+
+---
+
+## Details / Collapsible Sections
+
+<details>
+<summary>Click to expand — Installation instructions</summary>
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm or npm
+
+### Steps
+
+```bash
+git clone https://github.com/user/repo
+cd repo
+npm install
+npm run dev
+```
+
+> Your app is now running at `http://localhost:5173`
+
+</details>
+
+<details>
+<summary>Advanced configuration options</summary>
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `port` | `5173` | Dev server port |
+| `host` | `localhost` | Dev server host |
+| `open` | `false` | Open browser on start |
+
+</details>
+
+---
+
+## Horizontal Rules
+
+Three ways to create a horizontal rule:
+
+---
+
+***
+
+___
+
+---
+
+## Footnotes
+
+Here is a sentence with a footnote[^1].
+
+Markdown is a lightweight markup language[^md].
+
+[^1]: This is the first footnote.
+[^md]: Created by John Gruber in 2004.
+
+---
+
+## Inline HTML
+
+You can mix <em>raw HTML</em> with Markdown. For example, a centered image:
+
+<p align="center">
+  <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="64" alt="GitHub">
+  <br>
+  <strong>GitHub</strong>
+</p>
+
+---
+
+## Escape Characters
+
+Use a backslash `\` to escape Markdown characters:
+
+\*not italic\* \*\*not bold\*\* \`not code\`
+
+---
+
+> **💡 Tip:** You can edit this content using the **Edit raw** button at the top of the file, or paste any Markdown into the textarea and click **Update Preview** to render it.
+</script>
+
+<script>
+// ─── Theme Toggle ────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.classList.toggle('dark-theme');
+  const lightSheet = document.getElementById('hljs-light');
+  const darkSheet = document.getElementById('hljs-dark');
+  if (isDark) {
+    html.setAttribute('data-color-mode', 'dark');
+    lightSheet.disabled = true;
+    darkSheet.disabled = false;
+  } else {
+    html.setAttribute('data-color-mode', 'light');
+    lightSheet.disabled = false;
+    darkSheet.disabled = true;
+  }
+  setTimeout(() => renderMermaid(), 100);
+}
+
+// ─── Modal ───────────────────────────────────────────────────────────────────
+function openRawEditor() {
+  const modal = document.getElementById('rawEditorModal');
+  document.getElementById('rawEditor').value = currentMarkdown;
+  modal.style.display = 'flex';
+}
+function closeRawEditor() {
+  document.getElementById('rawEditorModal').style.display = 'none';
+}
+function applyRawEditor() {
+  currentMarkdown = document.getElementById('rawEditor').value;
+  renderMarkdown(currentMarkdown);
+  closeRawEditor();
+}
+function copyMarkdown() {
+  navigator.clipboard.writeText(currentMarkdown).then(() => {
+    const btn = event.currentTarget;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copied!';
+    setTimeout(() => btn.innerHTML = orig, 2000);
+  });
+}
+
+document.getElementById('rawEditorModal').addEventListener('click', function(e) {
+  if (e.target === this) closeRawEditor();
+});
+
+// ─── Mermaid ─────────────────────────────────────────────────────────────────
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  securityLevel: 'loose',
+  // IMPORTANT: use a literal font stack, not var(--fontStack-sansSerif).
+  // Mermaid measures text width to size node boxes using this exact string.
+  // A CSS custom property only resolves correctly on this page. If the SVG
+  // markup is ever reused elsewhere (e.g. the PDF/print preview iframe,
+  // which is a separate document with its own <style> and doesn't define
+  // --fontStack-sansSerif), var(...) fails silently, the print font is used
+  // instead, glyphs render wider/narrower than what was measured, and text
+  // overflows the pre-sized boxes — which is exactly the clipped/overlapping
+  // text seen in the "broken" screenshot.
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
+  flowchart: {
+    htmlLabels: true,     // real DOM label sizing (accurate getBBox measurement)
+    useMaxWidth: true,
+    wrappingWidth: 180,   // used when node labels use markdown-string syntax (see note below)
+    padding: 14,          // extra breathing room inside each node so glyphs never touch the edge
+    nodeSpacing: 40,
+    rankSpacing: 50,
+  },
+  // Sequence diagrams have their own native auto-wrap for MESSAGE text
+  // (the "outer" text on the arrows) — unlike flowchart, it's off by
+  // default. Turning it on wraps long message lines onto multiple lines
+  // without touching actor/participant box labels, which is exactly the
+  // "wrap outer text, not box text" behavior wanted here.
+  sequence: {
+    wrap: true,
+    wrapPadding: 12,
+    useMaxWidth: true,
+  },
+});
+
+// Mermaid (with htmlLabels:true) only auto-wraps a label at `wrappingWidth`
+// when it's written in the markdown-string form: id["`some text`"]. Plain
+// quoted or unquoted labels — id["some text"], id(some text), etc. — never
+// wrap on their own, so one long label renders as a single unbroken line.
+// That forces mermaid to widen the node (and the whole diagram's viewBox)
+// to fit it. Since the SVG is later scaled down with `max-width:100%` to
+// fit the page, a single oversized line drags every other label down with
+// it — the whole diagram shrinks until that one line fits, making all the
+// other text tiny. This mostly bites in the PDF because the PDF clones this
+// same rendered SVG at a narrower fixed page width, so the shrink is more
+// visible there than on the wider on-screen canvas.
+// Fix: break long labels into multiple lines ourselves with <br/> before
+// handing the code to mermaid.render(), so no single label — and therefore
+// no node, and therefore no diagram — ends up disproportionately wide.
+//
+// IMPORTANT SCOPING: this rewriting only makes sense for diagram types whose
+// nodes are drawn with htmlLabels (foreignObject <div>s), where a literal
+// <br/> we insert actually gets interpreted as a line break. Diagram types
+// like gitGraph draw plain SVG <text> elements instead — a <br/> there isn't
+// interpreted, it just becomes literal visible text ("...workflow<br/>") on
+// top of the existing label, which is what caused the overlapping text.
+// Other types (sequenceDiagram, requirementDiagram, erDiagram, classDiagram,
+// journey, timeline, quadrantChart, C4, sankey-beta, xychart-beta, pie,
+// mindmap) either have their own dedicated wrapping mechanism or don't take
+// arbitrary long prose in a spot this kind of rewrite could safely target,
+// so this function is only applied where it's actually safe and useful.
+const MERMAID_LABEL_WRAP_CHARS = 33;
+
+function wrapMermaidLabelText(text, maxChars) {
+  if (text.length <= maxChars) return text;
+  const words = text.split(/\s+/);
+  const lines = [];
+  let cur = '';
+  for (const word of words) {
+    const candidate = cur ? cur + ' ' + word : word;
+    if (candidate.length > maxChars && cur) {
+      lines.push(cur);
+      cur = word;
+    } else {
+      cur = candidate;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines.join('<br/>');
+}
+
+// Reads the diagram's own declared type (first non-blank, non-directive
+// line, e.g. "flowchart TD", "sequenceDiagram", "stateDiagram-v2", ...)
+// so we know which wrapping strategy — if any — is safe to apply.
+function detectMermaidType(code) {
+  const lines = code.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('%%'));
+  for (const line of lines) {
+    const m = line.match(/^([A-Za-z][A-Za-z0-9_-]*)/);
+    if (m) return m[1].toLowerCase();
+  }
+  return '';
+}
+
+// Flowchart / block-beta: node labels live inside brackets, e.g. id["text"],
+// id(text), id{text}, and edge labels live between pipes, e.g. |"text"|.
+// These all render via htmlLabels, so <br/> is safe here.
+function wrapFlowchartLabels(code, maxChars = MERMAID_LABEL_WRAP_CHARS) {
+  // Pass 1: quoted labels, e.g. id["Some long label text"], A -->|"long edge label"| B
+  let out = code.replace(/"([^"\n]+)"/g, (match, label) => {
+    if (label.includes('<br') || label.includes('`')) return match;
+    return '"' + wrapMermaidLabelText(label, maxChars) + '"';
+  });
+  // Pass 2: plain unquoted labels inside single brackets, e.g. id[Some long label],
+  // id(Some long label), id{Some long label}. Skipped if it looks like it holds
+  // an arrow/operator rather than a label, or already has a quote/backtick/<br>.
+  out = out.replace(/([[({])([^[\](){}"<>`\n|]{1,300})([\])}])/g, (match, open, label, close) => {
+    if (/-{2,}|={2,}|<br/.test(label)) return match;
+    const wrapped = wrapMermaidLabelText(label.trim(), maxChars);
+    if (wrapped === label.trim()) return match;
+    return open + wrapped + close;
+  });
+  return out;
+}
+
+// stateDiagram-v2: state *names* stay short (don't touch those), but
+// transition labels after a colon — "StateA --> StateB: some long
+// description of the transition" — are free-form prose and, like
+// flowchart, render via htmlLabels, so they can safely take <br/>.
+function wrapStateDiagramLabels(code, maxChars = MERMAID_LABEL_WRAP_CHARS) {
+  return code.replace(/^(\s*[^\n:]*-->[^\n:]*:\s*)(.+)$/gm, (match, prefix, label) => {
+    if (label.includes('<br')) return match;
+    const wrapped = wrapMermaidLabelText(label.trim(), maxChars);
+    return prefix + wrapped;
+  });
+}
+
+const MERMAID_BRACKET_WRAP_TYPES = new Set(['flowchart', 'graph', 'block-beta']);
+const MERMAID_STATE_WRAP_TYPES = new Set(['statediagram', 'statediagram-v2']);
+
+function preprocessMermaidCode(code) {
+  const type = detectMermaidType(code);
+  if (MERMAID_BRACKET_WRAP_TYPES.has(type)) return wrapFlowchartLabels(code);
+  if (MERMAID_STATE_WRAP_TYPES.has(type)) return wrapStateDiagramLabels(code);
+  // sequenceDiagram: handled by mermaid's own sequence.wrap:true config above.
+  // gitGraph, requirementDiagram, erDiagram, classDiagram, journey, timeline,
+  // quadrantChart, xychart-beta, sankey-beta, C4*, pie, mindmap: left as-is,
+  // since these draw plain SVG text (no htmlLabels) or don't have a "long
+  // prose label" spot this kind of rewrite is meant for.
+  return code;
+}
+
+async function renderMermaid() {
+  // Mermaid measures real DOM text to size each node's box. If a webfont is
+  // still loading when that measurement happens, it measures the fallback
+  // font's (usually narrower) glyphs, then the real font swaps in after —
+  // wider glyphs, same box width, text creeps past the edge and gets clipped.
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (e) { /* ignore */ }
+  }
+  const elements = document.querySelectorAll('.mermaid-wrapper[data-diagram]');
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    const code = preprocessMermaidCode(el.getAttribute('data-diagram'));
+    const id = 'mermaid-' + i + '-' + Date.now();
+    try {
+      const { svg } = await mermaid.render(id, code);
+      el.innerHTML = svg;
+    } catch (err) {
+      el.innerHTML = `<pre style="color:var(--color-danger-fg);font-size:12px;text-align:left">${err.message}</pre>`;
+    }
+  }
+}
+
+// ─── Copy Button for Code Blocks ─────────────────────────────────────────────
+function addCopyButtons() {
+  document.querySelectorAll('.markdown-body pre').forEach(pre => {
+    if (pre.querySelector('.copy-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg> Copy`;
+    btn.onclick = () => {
+      const code = pre.querySelector('code')?.innerText || '';
+      navigator.clipboard.writeText(code).then(() => {
+        btn.innerHTML = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg> Copy`;
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    };
+    pre.appendChild(btn);
+  });
+}
+
+// ─── GitHub Alerts parser ────────────────────────────────────────────────────
+function processAlerts(html) {
+  const alertTypes = {
+    NOTE:      { icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>', label: 'Note' },
+    TIP:       { icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"/></svg>', label: 'Tip' },
+    IMPORTANT: { icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>', label: 'Important' },
+    WARNING:   { icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>', label: 'Warning' },
+    CAUTION:   { icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>', label: 'Caution' },
+  };
+  return html.replace(
+    /<blockquote>\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]([\s\S]*?)<\/blockquote>/gi,
+    (match, type, content) => {
+      const t = type.toUpperCase();
+      const def = alertTypes[t] || alertTypes.NOTE;
+      const cleanContent = content.replace(/^[\s\n]*/, '').replace(/\s*$/, '');
+      return `<div class="gh-alert ${t.toLowerCase()}">
+        <div class="gh-alert-title">${def.icon} ${def.label}</div>
+        ${cleanContent}
+      </div>`;
+    }
+  );
+}
+
+// ─── Dynamic topbar title ─────────────────────────────────────────────────────
+function updateTopbarTitle(md) {
+  const match = md.match(/^#\s+(.+)$/m);
+  if (match) {
+    const title = match[1].replace(/[*_`~[\]]/g, '').trim();
+    document.getElementById('topbar-doc-title').textContent =
+      title.toLowerCase().replace(/\s+/g, '-');
+    document.title = title + ' · Cheat Notes';
+  }
+}
+
+// ─── Markdown Renderer ───────────────────────────────────────────────────────
+let currentMarkdown = '';
+
+function renderMarkdown(md) {
+  currentMarkdown = md;
+  updateTopbarTitle(md);
+
+  const mermaidBlocks = [];
+  let processedMd = md.replace(/```mermaid\n([\s\S]*?)```/g, (_, diagram) => {
+    const idx = mermaidBlocks.length;
+    mermaidBlocks.push(diagram.trim());
+    return `MERMAID_PLACEHOLDER_${idx}`;
+  });
+
+  // ── Protect math from marked's inline lexer ──────────────────────────────
+  // marked treats backslash + punctuation as a markdown escape sequence and
+  // strips the backslash. LaTeX leans on exactly that pattern: "\\" (matrix
+  // row break), "\," (thin space), "\{", "\}", etc. Left alone, marked runs
+  // BEFORE MathJax ever sees the text and silently corrupts it — e.g. a
+  // matrix's "\\" row separator collapses to a single "\" and vanishes,
+  // "\,dx" loses its backslash and becomes ",dx". The fix mirrors the
+  // mermaid approach above: pull math out into inert placeholders, let
+  // marked process everything else, then splice the *original, untouched*
+  // LaTeX back in afterward so MathJax gets exactly what was typed.
+  const mathBlocks = [];
+  // Display math $$...$$ first (can span multiple lines) so its inner $
+  // pairs aren't mistaken for inline math by the next pass.
+  processedMd = processedMd.replace(/\$\$([\s\S]+?)\$\$/g, (_, expr) => {
+    const idx = mathBlocks.length;
+    mathBlocks.push({ display: true, expr });
+    return `MATH_PLACEHOLDER_${idx}`;
+  });
+  // Inline math $...$, restricted to a single line to avoid swallowing
+  // unrelated "$" currency mentions across paragraph breaks.
+  processedMd = processedMd.replace(/\$([^\$\n]+?)\$/g, (_, expr) => {
+    const idx = mathBlocks.length;
+    mathBlocks.push({ display: false, expr });
+    return `MATH_PLACEHOLDER_${idx}`;
+  });
+
+  marked.setOptions({ breaks: true, gfm: true, pedantic: false, smartypants: false });
+
+  let html = marked.parse(processedMd);
+
+  html = html.replace(/MERMAID_PLACEHOLDER_(\d+)/g, (_, idx) => {
+    const diagram = mermaidBlocks[parseInt(idx)];
+    return `<div class="mermaid-wrapper" data-diagram="${escapeAttr(diagram)}">
+      <div style="color:var(--color-fg-muted);font-size:12px">Rendering diagram…</div>
+    </div>`;
+  });
+
+  html = html.replace(/MATH_PLACEHOLDER_(\d+)/g, (_, idx) => {
+    const block = mathBlocks[parseInt(idx)];
+    const raw = block.display ? `$$${block.expr}$$` : `$${block.expr}$`;
+    return escapeAttr(raw);
+  });
+
+  html = processAlerts(html);
+
+  html = html.replace(/<(h[1-6]) id="([^"]+)">/gi, (match, tag, id) => {
+    return `<${tag} id="${id}"><a class="anchor" href="#${id}" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"/></svg></a>`;
+  });
+
+  html = html.replace(/<pre><code class="language-(\w+)">/g, (match, lang) => {
+    return `<pre><span class="lang-badge">${lang}</span><code class="language-${lang}">`;
+  });
+
+  const body = document.getElementById('markdown-body');
+  body.innerHTML = html;
+
+  body.querySelectorAll('pre code').forEach(el => { hljs.highlightElement(el); });
+  addCopyButtons();
+  renderMermaid();
+
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    MathJax.typesetPromise([body]).catch(console.error);
+  } else {
+    const waitForMJ = setInterval(() => {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        clearInterval(waitForMJ);
+        MathJax.typesetPromise([body]).catch(console.error);
+      }
+    }, 200);
+  }
+
+  buildTOC();
+}
+
+function escapeAttr(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildTOC() {
+  const headings = document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3');
+  const toc = document.getElementById('toc');
+  toc.innerHTML = '';
+  headings.forEach(h => {
+    const depth = parseInt(h.tagName[1]);
+    const li = document.createElement('li');
+    li.className = `depth-${depth}`;
+    const a = document.createElement('a');
+    a.href = `#${h.id}`;
+    a.textContent = h.textContent.replace(/^#/, '').trim();
+    a.onclick = e => { e.preventDefault(); h.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    li.appendChild(a);
+    toc.appendChild(li);
+  });
+}
+
+// ─── PDF Print Preview ────────────────────────────────────────────────────────
+/*
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                    PDF SETTINGS — QUICK REFERENCE                        ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  UI Controls (in modal settings bar):                                    ║
+ * ║   #pdf-page-size    → A4 / US Letter / US Legal / A3 / A5 / B5          ║
+ * ║   #pdf-orientation  → portrait / landscape                               ║
+ * ║   #pdf-font-family  → 14 options incl. 10 Google Fonts                  ║
+ * ║   #pdf-font-size    → 10 / 11 / 12 / 13 / 14 / 16 pt                   ║
+ * ║   #pdf-line-height  → 1.4 / 1.6 / 1.8 / 2.0                            ║
+ * ║   #pdf-margins      → narrow / normal / wide / book / oreilly           ║
+ * ║   #pdf-style        → oreilly / nostarch / packt / mcgraw / minimal      ║
+ * ║   #pdf-cover        → checkbox — include cover page                      ║
+ * ║   #pdf-toc          → checkbox — include table of contents               ║
+ * ║   #pdf-colors       → checkbox — syntax highlight colours                ║
+ * ║   #pdf-dropcap      → checkbox — drop cap on first paragraph             ║
+ * ║   #pdf-chapternum   → checkbox — auto chapter numbers on H2              ║
+ * ║   #pdf-sidebar-notes→ checkbox — extra wide left margin for notes        ║
+ * ║                                                                           ║
+ * ║  Static defaults (edit PDF_SETTINGS object below):                       ║
+ * ║   coverDescChars    → max chars taken from markdown for cover subtitle    ║
+ * ║   footerLeft        → left footer text (e.g. site/author)                ║
+ * ║   tocTitle          → heading text printed above TOC                     ║
+ * ║   coverAccentColor  → RGB colour of the accent line on cover             ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
+
+const PDF_SETTINGS = {
+  /* ─ Cover ─────────────────────────── */
+  coverDescChars:   580,
+  coverAccentColor: '#c0392b',       // change for a different accent
+
+  /* ─ Footer ────────────────────────── */
+  footerLeft: 'awjunaid.com',
+  tocTitle:   'Table of Contents',
+
+  /* ─ Page geometry lookup tables ─────────────────────────────────────────── */
+  pageSizes: {
+    A4:     { w: '210mm',  h: '297mm' },
+    letter: { w: '8.5in',  h: '11in'  },
+    legal:  { w: '8.5in',  h: '14in'  },
+    A3:     { w: '297mm',  h: '420mm' },
+    A5:     { w: '148mm',  h: '210mm' },
+    B5:     { w: '176mm',  h: '250mm' },
+  },
+
+  /* ─ Margin presets (top/bottom  inner/outer  — mirrored for book) ──────── */
+  margins: {
+    xs:      { top: '10mm', bottom: '10mm', inner: '10mm', outer: '10mm' },
+    small:   { top: '14mm', bottom: '14mm', inner: '16mm', outer: '14mm' },
+    narrow:  { top: '12mm', bottom: '12mm', inner: '14mm', outer: '12mm' },
+    normal:  { top: '22mm', bottom: '22mm', inner: '25mm', outer: '20mm' },
+    wide:    { top: '28mm', bottom: '28mm', inner: '32mm', outer: '26mm' },
+    book:    { top: '25mm', bottom: '28mm', inner: '30mm', outer: '20mm' },
+    oreilly: { top: '22mm', bottom: '24mm', inner: '28mm', outer: '22mm' },
+  },
+
+  /* ─ Google Font definitions ─────────────────────────────────────────────── */
+  googleFonts: {
+    'crimson':      { import: 'Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600',     css: '"Crimson Pro", Georgia, serif' },
+    'source-serif': { import: 'Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400',        css: '"Source Serif 4", Georgia, serif' },
+    'lora':         { import: 'Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500',      css: '"Lora", Georgia, serif' },
+    'merriweather': { import: 'Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400',    css: '"Merriweather", Georgia, serif' },
+    'eb-garamond':  { import: 'EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400',    css: '"EB Garamond", Georgia, serif' },
+    'playfair':     { import: 'Playfair+Display:ital,wght@0,400;0,600;0,700;1,400',      css: '"Playfair Display", Georgia, serif' },
+    'nunito':       { import: 'Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400',           css: '"Nunito Sans", Helvetica, sans-serif' },
+    'inter':        { import: 'Inter:wght@400;500;600;700',                               css: '"Inter", Helvetica, sans-serif' },
+    'roboto':       { import: 'Roboto:ital,wght@0,400;0,500;0,700;1,400',                css: '"Roboto", Helvetica, sans-serif' },
+    'open-sans':    { import: 'Open+Sans:ital,wght@0,400;0,600;0,700;1,400',             css: '"Open Sans", Helvetica, sans-serif' },
+  },
+
+  /* ─ System font stacks ──────────────────────────────────────────────────── */
+  systemFonts: {
+    georgia:   '"Georgia", "Times New Roman", Times, serif',
+    palatino:  '"Palatino Linotype", "Book Antiqua", Palatino, serif',
+    times:     '"Times New Roman", Times, serif',
+    system:    '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+  },
+
+  /* ─ Monospace stack ─────────────────────────────────────────────────────── */
+  monoFamily: '"JetBrains Mono", "Fira Code", "Fira Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+
+  /* ─ Book style themes ───────────────────────────────────────────────────── */
+  styles: {
+    oreilly: {
+      accentColor:   '#c0392b',
+      headingColor:  '#1a1a2e',
+      ruleColor:     '#c0392b',
+      codeBackground:'#fafafa',
+      codeBorder:    '#e0e0e0',
+      tableHeader:   '#2c3e50',
+      chapterPrefix: 'Chapter',
+      noteStyle:     'bordered',
+    },
+    nostarch: {
+      accentColor:   '#2980b9',
+      headingColor:  '#1a1a2e',
+      ruleColor:     '#2980b9',
+      codeBackground:'#f8f8f2',
+      codeBorder:    '#d0d0d0',
+      tableHeader:   '#34495e',
+      chapterPrefix: 'CHAPTER',
+      noteStyle:     'shaded',
+    },
+    packt: {
+      accentColor:   '#e67e22',
+      headingColor:  '#2c3e50',
+      ruleColor:     '#e67e22',
+      codeBackground:'#f5f5f5',
+      codeBorder:    '#ddd',
+      tableHeader:   '#2c3e50',
+      chapterPrefix: 'Chapter',
+      noteStyle:     'icon',
+    },
+    mcgraw: {
+      accentColor:   '#1a5276',
+      headingColor:  '#1a5276',
+      ruleColor:     '#1a5276',
+      codeBackground:'#f0f4f8',
+      codeBorder:    '#c8d6e0',
+      tableHeader:   '#1a5276',
+      chapterPrefix: 'Chapter',
+      noteStyle:     'bordered',
+    },
+    springer: {
+      accentColor:   '#006747',
+      headingColor:  '#003d29',
+      ruleColor:     '#006747',
+      codeBackground:'#f4f8f5',
+      codeBorder:    '#c8ddd0',
+      tableHeader:   '#006747',
+      chapterPrefix: 'Chapter',
+      noteStyle:     'bordered',
+    },
+    minimal: {
+      accentColor:   '#333333',
+      headingColor:  '#111111',
+      ruleColor:     '#cccccc',
+      codeBackground:'#f5f5f5',
+      codeBorder:    '#e0e0e0',
+      tableHeader:   '#333333',
+      chapterPrefix: '',
+      noteStyle:     'simple',
+    },
+  },
+};
+
+function getFontCSS(fontKey) {
+  if (PDF_SETTINGS.googleFonts[fontKey]) return PDF_SETTINGS.googleFonts[fontKey].css;
+  if (PDF_SETTINGS.systemFonts[fontKey]) return PDF_SETTINGS.systemFonts[fontKey];
+  return PDF_SETTINGS.systemFonts.system;
+}
+
+function getGoogleFontLink(fontKey) {
+  if (!PDF_SETTINGS.googleFonts[fontKey]) return '';
+  const imp = PDF_SETTINGS.googleFonts[fontKey].import;
+  return `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=${imp}&display=swap" rel="stylesheet">`;
+}
+
+function openPrintPreview() {
+  const modal = document.getElementById('pdfPreviewModal');
+  modal.style.display = 'flex';
+  const titleMatch = currentMarkdown.match(/^#\s+(.+)$/m);
+  const docTitle = titleMatch ? titleMatch[1].replace(/[*_`~[\]]/g, '').trim() : 'Document';
+  document.getElementById('pdf-modal-title').textContent = 'Preview: ' + docTitle;
+  rebuildPreview();
+}
+
+function closePrintPreview() {
+  document.getElementById('pdfPreviewModal').style.display = 'none';
+}
+
+document.getElementById('pdfPreviewModal').addEventListener('click', function(e) {
+  if (e.target === this) closePrintPreview();
+});
+
+function getSettings() {
+  const marginKey = document.getElementById('pdf-margins').value;
+  const styleKey  = document.getElementById('pdf-style').value;
+  const paraSpMap = { tight: '0.5em', normal: '0.85em', relaxed: '1.2em', double: '1.8em' };
+  const paraSpKey = document.getElementById('pdf-para-spacing').value;
+  return {
+    size:         document.getElementById('pdf-page-size').value,
+    orientation:  document.getElementById('pdf-orientation').value,
+    fontFamily:   document.getElementById('pdf-font-family').value,
+    fontSize:     parseInt(document.getElementById('pdf-font-size').value),
+    lineHeight:   document.getElementById('pdf-line-height').value,
+    marginKey,
+    margins:      PDF_SETTINGS.margins[marginKey] || PDF_SETTINGS.margins.normal,
+    styleKey,
+    style:        PDF_SETTINGS.styles[styleKey] || PDF_SETTINGS.styles.oreilly,
+    cover:        document.getElementById('pdf-cover').checked,
+    toc:          document.getElementById('pdf-toc').checked,
+    colors:       document.getElementById('pdf-colors').checked,
+    dropcap:      document.getElementById('pdf-dropcap').checked,
+    chapternum:   document.getElementById('pdf-chapternum').checked,
+    sidenotes:    document.getElementById('pdf-sidebar-notes').checked,
+    paraSpacing:  paraSpMap[paraSpKey] || '0.85em',
+    codeSize:     document.getElementById('pdf-code-size').value + '%',
+    coverStyle:   document.getElementById('pdf-cover-style').value,
+    textAlign:    document.getElementById('pdf-text-align').value,
+  };
+}
+
+function buildPrintHTML(settings) {
+  const md   = currentMarkdown;
+  const st   = settings.style;
+  const mg   = settings.margins;
+  const fs   = settings.fontSize;
+  const lh   = settings.lineHeight;
+  const font = getFontCSS(settings.fontFamily);
+  const mono = PDF_SETTINGS.monoFamily;
+
+  // ── Geometry ──────────────────────────────────────────────────────────────
+  const ps  = PDF_SETTINGS.pageSizes[settings.size] || PDF_SETTINGS.pageSizes.A4;
+  const pgW = settings.orientation === 'landscape' ? ps.h : ps.w;
+  const pgH = settings.orientation === 'landscape' ? ps.w : ps.h;
+
+  // Side-notes mode adds extra inner margin
+  const innerMg = settings.sidenotes
+    ? `calc(${mg.inner} + 40mm)` : mg.inner;
+
+  // ── Extract content ────────────────────────────────────────────────────────
+  const titleMatch = md.match(/^#\s+(.+)$/m);
+  const docTitle   = titleMatch ? titleMatch[1].replace(/[*_`~[\]]/g, '').trim() : 'Document';
+
+  let docDesc = '';
+  const afterTitle = md.replace(/^#\s+.+\n?/, '').trimStart().replace(/^---+\n?/, '');
+  const descMatch  = afterTitle.match(/^([^\n#>].+?)(?:\n\n|\n#{1,6}\s)/s);
+  if (descMatch) {
+    docDesc = descMatch[1].replace(/[*_`~>#\[\]]/g,'').replace(/\s+/g,' ').trim()
+              .slice(0, PDF_SETTINGS.coverDescChars);
+  }
+
+  // ── Heading semantics ────────────────────────────────────────────────────────
+  // # (h1)     → book title only. Lives on the cover, stripped from body flow.
+  // ## (h2)    → chapter title. Starts a standalone chapter-opening page. In TOC.
+  // ### (h3)   → subheading (e.g. "1.1 Accept Input from a File"). In TOC.
+  // #### (h4)  → sub-subheading. NOT in TOC.
+  // ##### (h5) → minor heading. NOT in TOC.
+
+  // ── Clone rendered HTML, strip UI chrome ──────────────────────────────────
+  const clone = document.getElementById('markdown-body').cloneNode(true);
+  clone.querySelectorAll('.copy-btn, .lang-badge, .anchor').forEach(el => el.remove());
+
+  // H1 is book-title-only — remove every H1 from the body flow (it already
+  // appears once, big, on the cover page).
+  clone.querySelectorAll('h1').forEach(h => h.remove());
+
+  const chapterPrefixRe = /^chapter\s+\d+\s*[:\-–—]?\s*/i;
+
+  // Inject a standalone chapter-opening page above every H2, and clean up
+  // titles that already contain a "Chapter N: " prefix in the source text.
+  let chapterCount = 0;
+  clone.querySelectorAll('h2').forEach(h => {
+    chapterCount++;
+    const cleanTitle = h.textContent.replace(chapterPrefixRe, '').trim();
+    h.textContent = cleanTitle;
+    h.classList.add('chapter-title');
+    const label = (settings.chapternum && st.chapterPrefix)
+      ? `${st.chapterPrefix} ${chapterCount}`.toUpperCase()
+      : '';
+    if (label) {
+      h.insertAdjacentHTML('beforebegin',
+        `<div class="chapter-page-start"><div class="chapter-label">${escapeHTML(label)}</div></div>`);
+    } else {
+      h.insertAdjacentHTML('beforebegin', `<div class="chapter-page-start"></div>`);
+    }
+  });
+
+  // Drop cap on the opening paragraph of each chapter (not just the doc)
+  if (settings.dropcap) {
+    clone.querySelectorAll('h2').forEach(h => {
+      let sib = h.nextElementSibling;
+      while (sib && sib.tagName !== 'P') sib = sib.nextElementSibling;
+      if (sib) sib.classList.add('dropcap');
+    });
+    if (clone.querySelectorAll('h2').length === 0) {
+      const firstP = clone.querySelector('p');
+      if (firstP) firstP.classList.add('dropcap');
+    }
+  }
+
+  // ── TOC — only H2 (chapters) and H3 (subheadings), built from the actual
+  //         rendered+cleaned headings so ids/text always match the body ──────
+  const tocItems = [];
+  let chapN = 0;
+  clone.querySelectorAll('h2, h3').forEach(h => {
+    const level = h.tagName === 'H2' ? 2 : 3;
+    if (level === 2) chapN++;
+    tocItems.push({
+      level,
+      id: h.id || '',
+      text: h.textContent.trim(),
+      chapNum: chapN,
+    });
+  });
+
+  const renderedHTML = clone.innerHTML;
+
+  // ── Syntax highlight sheet ────────────────────────────────────────────────
+  const hljsHref   = document.getElementById('hljs-light').href;
+  const hljsBlock  = settings.colors
+    ? `<link rel="stylesheet" href="${hljsHref}">`
+    : `<style>pre code,pre code span{color:#1f2328!important;background:transparent!important}.hljs{background:transparent!important}</style>`;
+
+  // ── Google font link ───────────────────────────────────────────────────────
+  const gFontLink  = getGoogleFontLink(settings.fontFamily);
+
+  // ── Mono font (always load JetBrains Mono) ───────────────────────────────
+  const monoLink = `<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">`;
+
+  // ── Cover page ─────────────────────────────────────────────────────────────
+  const coverHTML = settings.cover ? `
+<div class="pdf-cover">
+  <div class="cover-title">${escapeHTML(docTitle)}</div>
+  <div class="cover-rule"></div>
+  ${docDesc ? `<div class="cover-desc">${escapeHTML(docDesc)}</div>` : ''}
+</div>
+<div class="pdf-page-break"></div>` : '';
+
+  // ── TOC HTML ───────────────────────────────────────────────────────────────
+  // Only chapters (H2) and subheadings (H3) are listed. Rows are plain <div>s,
+  // not <a href> links — a real href becomes a clickable link in the exported
+  // PDF, and some browsers/PDF viewers resolve it against the source file
+  // instead of jumping to the page. Clicking still scrolls to the section in
+  // the on-screen preview via a small inline script.
+  let tocHTML = '';
+  if (settings.toc && tocItems.length > 0) {
+    const rows = tocItems.map(item => {
+      const isChapter = item.level === 2;
+      const cls  = isChapter ? 'toc-row toc-chapter' : 'toc-row toc-sub';
+      const numPrefix = (isChapter && settings.chapternum)
+        ? `<span class="toc-num">${item.chapNum}.</span> ` : '';
+      const target = item.id ? `#${item.id}` : '';
+      return `<div class="${cls}" data-target="${escapeAttr(target)}">
+        <span class="toc-label">${numPrefix}${escapeHTML(item.text)}</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page"></span>
+      </div>`;
+    }).join('');
+    tocHTML = `
+<div class="pdf-toc">
+  <h1 class="toc-heading">${escapeHTML(PDF_SETTINGS.tocTitle)}</h1>
+  <div class="toc-list" onclick="var r=event.target.closest('[data-target]'); if(r && r.dataset.target){ var t=document.querySelector(r.dataset.target); if(t) t.scrollIntoView({behavior:'smooth'}); }">${rows}</div>
+</div>
+<div class="pdf-page-break"></div>`;
+  }
+
+  // ── Assemble full document ─────────────────────────────────────────────────
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHTML(docTitle)}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+${gFontLink}
+${monoLink}
+${hljsBlock}
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHEAT NOTES — PUBLISHER-QUALITY PDF STYLESHEET
+   ─────────────────────────────────────────────
+   All settings controlled via the PDF Settings panel.
+   To hardcode defaults, edit PDF_SETTINGS in the parent page's <script>.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── @page rule — paper size, margins, running content ── */
+@page {
+  size: ${pgW} ${pgH};
+  margin-top:    ${mg.top};
+  margin-bottom: ${mg.bottom};
+  margin-left:   ${mg.outer};
+  margin-right:  ${mg.inner};
+
+  /* Running header — printed in the margin above the content */
+  @top-left   { content: "${escapeHTML(docTitle)}"; font-size: 8pt; color: #5a5a5a; font-family: ${font}; }
+  @top-right  { content: counter(page); font-size: 8pt; color: #5a5a5a; font-family: ${font}; }
+  @bottom-left  { content: "${escapeHTML(PDF_SETTINGS.footerLeft)}"; font-size: 8pt; color: #5a5a5a; font-family: ${font}; }
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #5a5a5a; font-family: ${font}; }
+}
+
+/* First page has no running header/footer */
+@page :first {
+  @top-left   { content: ""; }
+  @top-right  { content: ""; }
+  @bottom-left  { content: ""; }
+  @bottom-right { content: ""; }
+}
+
+/* ── Base typography ── */
+html {
+  font-size: ${fs}pt;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+body {
+  font-family: ${font};
+  font-size: 1rem;
+  line-height: ${lh};
+  color: #1a1a1a;
+  background: #fff;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Page break utilities ── */
+.pdf-page-break { page-break-after: always; break-after: page; height: 0; }
+
+/* ══════════════════════════════════════════════════════
+   FIXED HEADER & FOOTER (for browsers that don't support
+   @page margin boxes — Chrome, Edge, etc.)
+   These render in every page margin via position:fixed.
+   ══════════════════════════════════════════════════════ */
+.pdf-running-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: ${mg.top};
+  display: flex;
+  align-items: flex-end;
+  padding: 0 ${mg.inner} 4pt ${mg.outer};
+  border-bottom: 0.5pt solid ${st.ruleColor};
+}
+.pdf-running-header-left {
+  font-size: 7.5pt;
+  color: ${st.accentColor};
+  font-family: ${font};
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+.pdf-running-header-right {
+  margin-left: auto;
+  font-size: 7.5pt;
+  color: #5a5a5a;
+  font-family: ${font};
+}
+
+.pdf-running-footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: ${mg.bottom};
+  display: flex;
+  align-items: flex-start;
+  padding: 4pt ${mg.inner} 0 ${mg.outer};
+  border-top: 0.5pt solid #d0d0d0;
+}
+.pdf-running-footer-left {
+  font-size: 7.5pt;
+  color: #5a5a5a;
+  font-family: ${font};
+}
+.pdf-running-footer-right {
+  margin-left: auto;
+  font-size: 7.5pt;
+  color: #5a5a5a;
+  font-family: ${font};
+}
+/* Use CSS counter for page numbers — updates automatically per page */
+.pdf-page-counter { counter-reset: page 1; }
+.pdf-running-footer-right::before {
+  content: "Page " counter(page);
+  counter-increment: page;
+}
+
+/* ── Content wrapper — pushed inside header/footer margins ── */
+.pdf-content-wrap {
+  margin-top:    calc(${mg.top} + 2pt);
+  margin-bottom: calc(${mg.bottom} + 2pt);
+  margin-left:   ${innerMg};
+  margin-right:  ${mg.outer};
+}
+
+/* ══════════════════════════════════════════════════════
+   COVER PAGE
+   ══════════════════════════════════════════════════════ */
+.pdf-cover {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60pt 0 40pt;
+  page-break-after: always;
+  break-after: page;
+}
+.cover-pretitle {
+  font-size: 9pt;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: ${st.accentColor};
+  font-weight: 600;
+  margin-bottom: 20pt;
+}
+.cover-title {
+  font-size: 32pt;
+  font-weight: 700;
+  line-height: 1.1;
+  color: ${st.headingColor};
+  margin-bottom: 12pt;
+  letter-spacing: -0.02em;
+}
+.cover-rule {
+  width: 48pt;
+  height: 3pt;
+  background: ${st.accentColor};
+  border-radius: 2pt;
+  margin-bottom: 20pt;
+}
+.cover-desc {
+  font-size: 11.5pt;
+  color: #444;
+  line-height: 1.7;
+  max-width: 420pt;
+  margin-bottom: auto;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   TABLE OF CONTENTS — modeled on a classic O'Reilly-style
+   printed TOC: bold numbered chapter rows, indented plain
+   subheading rows, dotted leaders, right-aligned page numbers.
+   ══════════════════════════════════════════════════════ */
+.pdf-toc { padding-bottom: 24pt; }
+.toc-heading {
+  font-size: 22pt;
+  font-weight: 700;
+  color: ${st.headingColor};
+  margin-bottom: 22pt;
+  letter-spacing: -0.01em;
+  text-align: right;
+}
+.toc-list { display: flex; flex-direction: column; }
+.toc-row {
+  display: flex;
+  align-items: baseline;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  page-break-inside: avoid; break-inside: avoid;
+}
+.toc-chapter {
+  font-size: ${fs}pt;
+  font-weight: 700;
+  color: ${st.headingColor};
+  margin-top: 14pt;
+}
+.toc-sub {
+  font-size: ${fs * 0.92}pt;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-top: 3pt;
+  padding-left: 20pt;
+}
+.toc-num {
+  color: ${st.headingColor};
+  font-weight: 700;
+  margin-right: 5pt;
+}
+.toc-chapter .toc-num { color: ${st.headingColor}; }
+.toc-label { white-space: nowrap; }
+.toc-dots {
+  flex: 1 1 auto;
+  border-bottom: 1pt dotted #999;
+  margin: 0 5pt 3pt;
+  min-width: 12pt;
+}
+.toc-page { font-variant-numeric: tabular-nums; }
+/* Best-effort real page number. Support for target-counter() in print/PDF
+   output varies by browser — where unsupported this simply renders blank,
+   which is safe (no broken link, no wrong number). */
+.toc-page::after { content: target-counter(attr(data-target), page); }
+
+/* ══════════════════════════════════════════════════════
+   STANDALONE CHAPTER-OPENING PAGE
+   Every H2 starts a fresh page: thin rule, "CHAPTER N" label
+   right-aligned above it, then the big chapter title.
+   ══════════════════════════════════════════════════════ */
+.chapter-page-start {
+  page-break-before: always;
+  break-before: page;
+  padding-top: 50pt;
+  border-top: 1.2pt solid #1a1a1a;
+}
+.chapter-label {
+  text-align: right;
+  font-size: 10pt;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  font-weight: 700;
+  padding-top: 5pt;
+}
+/* No label variant (chapternum off) still reserves the same opening space */
+.chapter-page-start:empty { padding-top: 60pt; }
+
+/* ══════════════════════════════════════════════════════
+   MARKDOWN BODY
+   ══════════════════════════════════════════════════════ */
+.markdown-content {
+  font-family: ${font};
+  font-size: 1rem;
+  line-height: ${lh};
+  color: #1a1a1a;
+  word-wrap: break-word;
+  orphans: 3;
+  widows: 3;
+}
+.markdown-content > *:first-child { margin-top: 0 !important; }
+
+/* ── Headings ── */
+.markdown-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  color: ${st.headingColor};
+  line-height: 1.2;
+  margin: 2em 0 0.6em;
+  padding-bottom: 0.25em;
+  border-bottom: 1.5pt solid ${st.ruleColor};
+  letter-spacing: -0.02em;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+.markdown-content h2.chapter-title {
+  font-size: 2.6em;
+  font-weight: 700;
+  color: ${st.headingColor};
+  line-height: 1.15;
+  margin: 46pt 0 0.9em;
+  letter-spacing: -0.02em;
+  page-break-after: avoid; break-after: avoid;
+  page-break-before: avoid; /* the .chapter-page-start wrapper already broke the page */
+}
+.markdown-content h3 {
+  font-size: 1.18em;
+  font-weight: 600;
+  color: ${st.headingColor};
+  margin: 1.5em 0 0.45em;
+  page-break-after: avoid; break-after: avoid;
+}
+.markdown-content h4 {
+  font-size: 1.05em;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 1.2em 0 0.4em;
+  page-break-after: avoid; break-after: avoid;
+}
+.markdown-content h5, .markdown-content h6 {
+  font-size: 1em;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 1em 0 0.3em;
+  page-break-after: avoid; break-after: avoid;
+}
+
+/* ── Paragraphs ── */
+.markdown-content p {
+  margin: 0 0 0.85em;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+/* ── Drop cap ── */
+.markdown-content p.dropcap::first-letter {
+  float: left;
+  font-size: 3.8em;
+  line-height: 0.8;
+  padding-right: 6pt;
+  padding-top: 4pt;
+  font-weight: 700;
+  color: ${st.accentColor};
+  font-family: ${font};
+}
+
+/* ── Links ── */
+.markdown-content a { color: ${st.accentColor}; text-decoration: none; }
+
+/* ── Inline emphasis ── */
+.markdown-content strong { font-weight: 700; }
+.markdown-content em     { font-style: italic; }
+.markdown-content del    { text-decoration: line-through; color: #888; }
+
+/* ── Horizontal rule ── */
+.markdown-content hr {
+  border: none;
+  border-top: 0.5pt solid ${st.ruleColor};
+  margin: 1.8em 0;
+}
+
+/* ── Blockquotes ── */
+.markdown-content blockquote {
+  margin: 1em 0 1em 0;
+  padding: 0.6em 1em 0.6em 1.2em;
+  border-left: 3pt solid ${st.accentColor};
+  background: #fafafa;
+  color: #262626;
+  font-style: italic;
+  border-radius: 0 4pt 4pt 0;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* ── Inline code ── */
+.markdown-content code {
+  font-family: ${mono};
+  font-size: 80%;
+  padding: 0.15em 0.4em;
+  background: ${st.codeBackground};
+  border: 0.5pt solid ${st.codeBorder};
+  border-radius: 3pt;
+  color: #c0392b;
+}
+.markdown-content pre code {
+  font-size: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* ── Code blocks ── */
+.markdown-content pre {
+  position: relative;
+  margin: 0.8em 0 1.2em;
+  padding: 14pt 16pt;
+  font-family: ${mono};
+  font-size: 80%;
+  line-height: 1.5;
+  background: ${st.codeBackground};
+  border: 0.5pt solid ${st.codeBorder};
+  border-left: 3pt solid ${st.accentColor};
+  border-radius: 4pt;
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: break-word;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* ── Tables ── */
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0 1.4em;
+  font-size: 0.88em;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.markdown-content table thead th {
+  background: ${st.tableHeader};
+  color: #fff;
+  font-weight: 600;
+  padding: 7pt 10pt;
+  border: 0.5pt solid ${st.tableHeader};
+  text-align: left;
+}
+.markdown-content table tbody td {
+  padding: 6pt 10pt;
+  border: 0.5pt solid #d0d0d0;
+  vertical-align: top;
+}
+.markdown-content table tbody tr:nth-child(even) td { background: #f8f8f8; }
+.markdown-content table tbody tr:hover td { background: #f0f4f8; }
+
+/* ── Images ── */
+.markdown-content img {
+  max-width: 100%;
+  border-radius: 4pt;
+  display: block;
+  margin: 0.6em auto;
+}
+
+/* ── Lists ── */
+.markdown-content ul, .markdown-content ol {
+  margin: 0 0 0.85em 0;
+  padding-left: 1.8em;
+}
+.markdown-content li {
+  margin-bottom: 0.25em;
+  line-height: ${lh};
+}
+.markdown-content ul ul, .markdown-content ol ol,
+.markdown-content ul ol, .markdown-content ol ul {
+  margin: 0.2em 0;
+}
+.markdown-content .task-list-item { list-style-type: none; }
+.markdown-content ul.contains-task-list { padding-left: 1.4em; }
+
+/* ── Alerts / callouts ── */
+.markdown-content .gh-alert {
+  margin: 1em 0 1.2em;
+  padding: 10pt 14pt 10pt 16pt;
+  border-left: 4pt solid;
+  border-radius: 0 4pt 4pt 0;
+  page-break-inside: avoid; break-inside: avoid;
+}
+.markdown-content .gh-alert-title {
+  font-weight: 700;
+  font-size: 0.88em;
+  margin-bottom: 5pt;
+  display: flex;
+  align-items: center;
+  gap: 5pt;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.markdown-content .gh-alert.note      { background:#ddf4ff; border-color:#0969da; }
+.markdown-content .gh-alert.note .gh-alert-title { color:#0969da; }
+.markdown-content .gh-alert.tip       { background:#dafbe1; border-color:#1a7f37; }
+.markdown-content .gh-alert.tip .gh-alert-title  { color:#1a7f37; }
+.markdown-content .gh-alert.important { background:#fbefff; border-color:#8250df; }
+.markdown-content .gh-alert.important .gh-alert-title { color:#8250df; }
+.markdown-content .gh-alert.warning   { background:#fff8c5; border-color:#9a6700; }
+.markdown-content .gh-alert.warning .gh-alert-title { color:#9a6700; }
+.markdown-content .gh-alert.caution   { background:#fff0ee; border-color:#d1242f; }
+.markdown-content .gh-alert.caution .gh-alert-title { color:#d1242f; }
+
+/* ── Mermaid diagrams ── */
+.markdown-content .mermaid-wrapper {
+  background: #fafafa;
+  border: 0.5pt solid #d0d0d0;
+  border-radius: 4pt;
+  padding: 16pt;
+  margin: 0.8em 0 1.2em;
+  text-align: center;
+  page-break-inside: avoid; break-inside: avoid;
+}
+.markdown-content .mermaid-wrapper svg { max-width: 100%; height: auto; display: block; margin: 0 auto; overflow: visible; }
+/* The mermaid SVG carries its own embedded <style> that targets
+   .nodeLabel/.label with the font-family set in mermaid.initialize()
+   (see the parent editor's <script>). Keep this print stylesheet from
+   forcing a different font onto svg text, since the box widths were
+   already measured against that font — swapping fonts here is what
+   causes labels to overflow their nodes. */
+.markdown-content .mermaid-wrapper svg text,
+.markdown-content .mermaid-wrapper svg tspan,
+.markdown-content .mermaid-wrapper svg foreignObject * {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif !important;
+}
+
+/* ── Details / summary ── */
+.markdown-content details {
+  margin: 0.6em 0 1em;
+  border: 0.5pt solid #d0d0d0;
+  border-radius: 4pt;
+  padding: 6pt 14pt;
+}
+
+/* ── Kbd ── */
+.markdown-content kbd {
+  display: inline-block;
+  padding: 2pt 5pt;
+  font-size: 0.82em;
+  font-family: ${mono};
+  background: #f6f8fa;
+  border: 0.5pt solid #c0c0c0;
+  border-bottom-width: 2pt;
+  border-radius: 3pt;
+  color: #1a1a1a;
+}
+
+/* ── MathJax (CHTML text output) ──
+   With CommonHTML output, math renders as real inline text (styled spans
+   using a web font) instead of an <svg>, so it selects/copies/searches
+   like ordinary text and needs none of the SVG-specific fixups (no
+   assistive-mml duplicate to hide, no per-glyph <defs> to worry about). */
+mjx-container { line-height: 0; }
+mjx-container[display="true"] {
+  display: block !important;
+  text-align: center;
+  margin: 12pt 0;
+  line-height: normal !important;
+}
+
+/* ── Hidden UI elements ── */
+.anchor, .copy-btn, .lang-badge { display: none !important; }
+
+/* ══════════════════════════════════════════════════════
+   PRINT OVERRIDES (@media print)
+   Ensures colour fidelity when the browser prints.
+   ══════════════════════════════════════════════════════ */
+@media print {
+  html, body { background: #fff !important; }
+  .pdf-running-header,
+  .pdf-running-footer { position: fixed; }
+  /* Ensure backgrounds (code blocks, tables) print */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+</style>
+</head>
+<body class="pdf-page-counter">
+
+
+
+<!-- ── All content lives inside this wrapper which respects header/footer margins ── -->
+<div class="pdf-content-wrap">
+
+${coverHTML}
+${tocHTML}
+
+<div class="markdown-content">
+${renderedHTML}
+</div>
+
+</div><!-- /pdf-content-wrap -->
+
+</body>
+</html>`;
+}
+
+function escapeHTML(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function rebuildPreview() {
+  const settings = getSettings();
+  const html     = buildPrintHTML(settings);
+  const frame    = document.getElementById('pdfPreviewFrame');
+  // srcdoc keeps the preview frame same-origin with the parent page, which
+  // this sandboxed artifact host requires for frame.contentWindow.print()
+  // to work at all (blob:/object URLs get blocked here with a CSP error).
+  frame.srcdoc   = html;
+}
+
+function triggerPrint() {
+  const frame = document.getElementById('pdfPreviewFrame');
+  frame.contentWindow.focus();
+  // Wait for Google Fonts + MathJax to fully load before opening print dialog
+  setTimeout(() => frame.contentWindow.print(), 900);
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+const sourceEl = document.getElementById('markdown-source');
+const rawMd = sourceEl.textContent.trim();
+renderMarkdown(rawMd);
+</script>
+</body>
+</html>
