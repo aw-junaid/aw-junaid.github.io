@@ -722,7 +722,7 @@ body {
     <circle cx="24" cy="22" r="4.5" fill="#0d1117"/>
     <path d="M22.3 22l1.1 1.1 2.3-2.3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
-  <span class="gh-topbar-title topbar-org">awjunaid</span>
+  <span class="gh-topbar-title topbar-org">cheatnotes</span>
   <span class="gh-topbar-sep">/</span>
   <span class="gh-topbar-title" id="topbar-doc-title">markdown-cheatsheet</span>
   <div class="gh-topbar-right">
@@ -1645,6 +1645,37 @@ function renderMarkdown(md) {
     return `MERMAID_PLACEHOLDER_${idx}`;
   });
 
+  // ── Shield ALL remaining code (fenced blocks + inline spans) from the
+  // math-protection regexes below. Those regexes scan the raw markdown
+  // text for bare "$" characters to locate LaTeX — but ordinary code is
+  // full of "$" that has nothing to do with math: JS/TS template literals
+  // like `${username}`, Go/Postgres bound placeholders $1/$2, shell
+  // variables like $REPO or $(...), etc. Left unshielded, the math regex
+  // below would treat something like "`$1`, `$2`" (from a driver
+  // placeholder table) as an inline-math span, swap it for a
+  // MATH_PLACEHOLDER token, and corrupt the fenced code block's content
+  // before `marked` ever gets to parse it — breaking the code fence
+  // structure and/or the visible code text for the rest of that block.
+  // This mirrors the mermaid extraction above: pull code out first, put
+  // it back untouched after marked has run.
+  //
+  // This is exactly what was breaking sections 9.2 (Node.js — heavy
+  // `${...}` template-literal usage), 9.6 (Go — repeated $1/$2 driver
+  // placeholders), and 9.7 (the cross-language reference table, which
+  // lists `$1`, `$2`, ... in a table cell) while every other section
+  // rendered fine.
+  const codeBlocks = [];
+  processedMd = processedMd.replace(/```[\s\S]*?```/g, (match) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(match);
+    return `CODEBLOCK_PLACEHOLDER_${idx}`;
+  });
+  processedMd = processedMd.replace(/`[^`\n]+`/g, (match) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(match);
+    return `CODEBLOCK_PLACEHOLDER_${idx}`;
+  });
+
   // ── Protect math from marked's inline lexer ──────────────────────────────
   // marked treats backslash + punctuation as a markdown escape sequence and
   // strips the backslash. LaTeX leans on exactly that pattern: "\\" (matrix
@@ -1655,6 +1686,10 @@ function renderMarkdown(md) {
   // mermaid approach above: pull math out into inert placeholders, let
   // marked process everything else, then splice the *original, untouched*
   // LaTeX back in afterward so MathJax gets exactly what was typed.
+  //
+  // By this point all code (fenced + inline) has already been swapped for
+  // CODEBLOCK_PLACEHOLDER_N tokens above, so these regexes only ever see
+  // "$" characters that occur in actual prose — never inside code.
   const mathBlocks = [];
   // Display math $$...$$ first (can span multiple lines) so its inner $
   // pairs aren't mistaken for inline math by the next pass.
@@ -1670,6 +1705,11 @@ function renderMarkdown(md) {
     mathBlocks.push({ display: false, expr });
     return `MATH_PLACEHOLDER_${idx}`;
   });
+
+  // ── Restore code blocks (now that they're math-regex-safe) before
+  // marked parses the document, so fences, backticks, and all internal
+  // "$" content are exactly what the user wrote.
+  processedMd = processedMd.replace(/CODEBLOCK_PLACEHOLDER_(\d+)/g, (_, idx) => codeBlocks[parseInt(idx)]);
 
   marked.setOptions({ breaks: true, gfm: true, pedantic: false, smartypants: false });
 
