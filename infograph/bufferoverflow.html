@@ -3,332 +3,725 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tainted Trails: Unmasking Vulnerabilities with Source and Sink Analysis</title>
+    <title>awjunaid — Tainted Trails: Source and Sink Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!--
-    Narrative & Structure Plan:
-    1.  **Title & Hook:** Introduce Taint Analysis as a critical cybersecurity technique.
-    2.  **Core Concepts Flowchart:** Visually explain the Source -> Taint -> Sink -> Vulnerability process using structured HTML/CSS.
-    3.  **Concept Definitions:** Use cards to define Source, Sink, and Sanitizer with examples.
-    4.  **Anatomy of an Attack:** Focus on the buffer overflow example, using a Donut chart to show the payload overwhelming the buffer.
-    5.  **Vulnerability Landscape:** Use a Bar chart to compare different types of sinks to show the broader applicability of taint analysis.
-    6.  **Defense Mechanisms:** Compare code-level fixes and compiler protections using side-by-side cards and a Radar chart for layered security.
-    7.  **Conclusion:** Summarize the key takeaways.
-
-    Visualization Selection:
-    * **Taint Flow Diagram:** Goal: Organize. Method: HTML/CSS with Tailwind. Justification: A simple, clear process flow is needed, and this can be achieved without complex libraries, adhering to the NO SVG constraint.
-    * **Overflow Comparison:** Goal: Compare. Method: Chart.js Donut Chart. Justification: Effectively shows the drastic proportion of the malicious payload relative to the buffer's capacity.
-    * **Sink Types:** Goal: Compare. Method: Chart.js Bar Chart. Justification: Best for comparing distinct categories (vulnerability types). Requires label wrapping.
-    * **Layered Security:** Goal: Organize/Compare. Method: Chart.js Radar Chart. Justification: Excellent for showing how multiple, different defense strategies contribute to a whole security posture. Requires label wrapping.
-    * **Confirmation:** NEITHER Mermaid JS NOR SVG were used. All visuals are either Chart.js on Canvas or structured HTML/CSS with Tailwind.
-
-    Color Palette: "Brilliant Blues"
-    * Dark Blue: #00449E
-    * Medium Blue: #0169C8
-    * Bright Blue: #289BFF
-    * Light Blue: #65B9FF
-    * Background/Lightest: #F0F8FF (AliceBlue, a very light blue-white)
-    -->
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #F0F8FF;
+        :root {
+            --bg:#0a0e13;--s1:#161b22;--s2:#1c2128;
+            --b1:#21262d;--b2:#30363d;
+            --acc:#58a6ff;--grn:#3fb950;--red:#f85149;
+            --ylw:#e3b341;--pur:#d2a8ff;--org:#ffa657;
+            --txt:#e6edf3;--t2:#c9d1d9;--mut:#8b949e;--m2:#6e7681;
+            --mono:'Fira Code','JetBrains Mono',monospace;
+            --font-header:'League Spartan',sans-serif;
+            --font-nav:'Poppins',sans-serif;
+            /* header/footer monochrome */
+            --hf-bg:#000000;--hf-text:#ffffff;--hf-text2:#999999;--hf-border:#ffffff;
         }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 350px;
-            max-height: 50vh;
+        header.hf-invert,footer.hf-invert{
+            --hf-bg:#ffffff;--hf-text:#000000;--hf-text2:#555555;--hf-border:#000000;
         }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 400px;
-            }
+        html{scroll-behavior:smooth}
+        body{
+            font-family:'Inter',sans-serif;
+            background-color:var(--bg);
+            color:var(--t2);
+            min-height:100vh;
+            display:flex;
+            flex-direction:column;
         }
-        .text-shadow {
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        ::-webkit-scrollbar{width:5px;height:5px}
+        ::-webkit-scrollbar-track{background:var(--bg)}
+        ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+        a{text-decoration:none}
+        body::before{
+            content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;
+            background-image:linear-gradient(rgba(88,166,255,.018) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(88,166,255,.018) 1px,transparent 1px);
+            background-size:44px 44px;
         }
+        .hf-wrap{max-width:1200px;margin:0 auto;width:100%;padding:0 20px}
+
+        /* ===== HEADER ===== */
+        header{
+            border-bottom:1px solid var(--hf-border);padding:12px 0;width:100%;
+            position:sticky;top:0;z-index:1000;background-color:var(--hf-bg);
+            transition:background-color .25s,color .25s;
+        }
+        header .hf-wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px}
+        .logo a{
+            font-family:var(--font-header);font-size:clamp(18px,5vw,24px);font-weight:800;
+            text-transform:lowercase;letter-spacing:-1px;color:var(--hf-text);
+        }
+        .logo a:hover{opacity:.7}
+        .header-right{display:flex;align-items:center;gap:clamp(8px,1.5vw,15px);flex-wrap:wrap}
+        nav.main-nav{display:flex;gap:clamp(10px,2vw,15px);font-family:var(--font-nav);font-weight:600;font-size:clamp(12px,2vw,14px);flex-wrap:wrap}
+        nav.main-nav a{color:var(--hf-text);padding-bottom:2px}
+        nav.main-nav a:hover{opacity:.7}
+        .dropdown{position:relative;display:inline-block}
+        .dropdown-content{
+            display:none;position:absolute;background-color:var(--hf-bg);min-width:190px;
+            border:1px solid var(--hf-border);z-index:100;top:100%;left:0;
+        }
+        .dropdown-content a{padding:10px 14px;display:block;border-bottom:1px solid var(--hf-border);font-size:13px;color:var(--hf-text)}
+        .dropdown-content a:last-child{border-bottom:none}
+        .dropdown-content a:hover{background-color:var(--hf-text);color:var(--hf-bg);padding-left:16px}
+        .dropdown:hover .dropdown-content{display:block}
+        .social-icons{display:flex;gap:4px;font-size:16px;align-items:center}
+        .social-icons a{
+            display:inline-flex;align-items:center;justify-content:center;
+            width:24px;height:24px;line-height:1;color:var(--hf-text);
+        }
+        .social-icons a:hover{transform:translateY(-2px);opacity:.7}
+        .theme-switcher{
+            background:var(--hf-bg);border:1px solid var(--hf-border);color:var(--hf-text);
+            padding:6px 10px;cursor:pointer;font-family:var(--font-header);font-weight:700;
+            text-transform:uppercase;font-size:clamp(8px,1.5vw,10px);transition:all .2s;
+            border-radius:2px;white-space:nowrap;
+        }
+        .theme-switcher:hover{background-color:var(--hf-text);color:var(--hf-bg)}
+
+        main{flex:1;width:100%}
+
+        /* ===== PAGE HERO ===== */
+        .page-hero{
+            background:linear-gradient(160deg,var(--s1) 0%,var(--bg) 100%);
+            border-bottom:1px solid var(--b1);
+            text-align:center;
+            padding:clamp(2.5rem,8vw,5rem) 1.2rem;
+        }
+        .page-hero .chip{
+            display:inline-flex;align-items:center;gap:.35rem;
+            font-size:.65rem;letter-spacing:1.3px;text-transform:uppercase;
+            color:var(--acc);background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.22);
+            padding:.24rem .8rem;border-radius:2rem;margin-bottom:.9rem;
+        }
+        .page-hero h1{
+            font-family:var(--font-header);
+            font-size:clamp(2rem,6vw,3.8rem);
+            font-weight:900;color:var(--txt);letter-spacing:-1px;line-height:1.1;
+        }
+        .grad{
+            background:linear-gradient(135deg,#58a6ff,#3fb950,#d2a8ff);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+        }
+        .page-hero p{
+            margin-top:.9rem;font-size:clamp(.85rem,2vw,1.1rem);
+            color:var(--mut);max-width:54ch;margin-inline:auto;line-height:1.65;
+        }
+
+        /* ===== CONTENT LAYOUT ===== */
+        .content-wrap{max-width:1100px;margin:0 auto;padding:0 1.2rem}
+        .sec-card{
+            background:var(--s1);border:1px solid var(--b1);border-radius:10px;
+            padding:clamp(1.25rem,3vw,2rem);
+        }
+        .sec-title{
+            font-size:clamp(1.15rem,2.5vw,1.55rem);font-weight:700;color:var(--txt);
+            text-align:center;margin-bottom:.6rem;
+        }
+        .sec-lead{
+            font-size:.85rem;color:var(--mut);line-height:1.65;
+            max-width:62ch;margin-inline:auto;text-align:center;margin-bottom:1.8rem;
+        }
+
+        /* ===== FLOW ===== */
+        .flow-card{
+            background:var(--s2);border:1px solid var(--b2);border-radius:8px;
+            padding:1.25rem;text-align:center;
+        }
+        .flow-card .flow-icon{
+            width:44px;height:44px;border-radius:8px;
+            display:inline-flex;align-items:center;justify-content:center;
+            font-size:1.1rem;margin-bottom:.75rem;font-weight:700;
+        }
+        .flow-card h3{font-size:.9rem;font-weight:700;color:var(--txt);margin-bottom:.4rem}
+        .flow-card p{font-size:.78rem;color:var(--mut);line-height:1.55}
+        .flow-arrow{color:var(--acc);font-size:1.6rem;opacity:.7;flex-shrink:0}
+
+        /* Source card accent */
+        .fc-source .flow-icon{background:rgba(88,166,255,.12);color:var(--acc);border:1px solid rgba(88,166,255,.25)}
+        .fc-source{border-color:rgba(88,166,255,.22)}
+        /* Sanitizer card accent */
+        .fc-san .flow-icon{background:rgba(63,185,80,.12);color:var(--grn);border:1px solid rgba(63,185,80,.25)}
+        .fc-san{border-color:rgba(63,185,80,.22)}
+        /* Sink card accent */
+        .fc-sink .flow-icon{background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.25)}
+        .fc-sink{border-color:rgba(248,81,73,.22)}
+
+        /* ===== ANATOMY INFO BLOCKS ===== */
+        .info-block{border-radius:6px;padding:.85rem 1rem;font-size:.8rem;line-height:1.6}
+        .info-block .lbl{font-size:.6rem;letter-spacing:.8px;text-transform:uppercase;font-weight:700;margin-bottom:.22rem;display:block}
+        .info-source{background:rgba(88,166,255,.07);border-left:3px solid var(--acc)}
+        .info-source .lbl,.info-source strong{color:var(--acc)}
+        .info-source{color:var(--t2)}
+        .info-sink{background:rgba(248,81,73,.07);border-left:3px solid var(--red)}
+        .info-sink .lbl,.info-sink strong{color:var(--red)}
+        .info-sink{color:var(--t2)}
+        .info-result{background:rgba(63,185,80,.07);border-left:3px solid var(--grn)}
+        .info-result .lbl,.info-result strong{color:var(--grn)}
+        .info-result{color:var(--t2)}
+
+        /* ===== POST BUFFER OVERFLOW: STATS STRIP ===== */
+        .stat-pill{
+            background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+            padding:.9rem 1.1rem;text-align:center;
+        }
+        .stat-pill .num{font-size:1.6rem;font-weight:800;color:var(--txt);line-height:1}
+        .stat-pill .lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin-top:.3rem}
+        .stat-pill .accent-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:.3rem;vertical-align:middle}
+
+        /* ===== POST BUFFER OVERFLOW: SINK TYPE BADGES ===== */
+        .sink-row{
+            display:flex;align-items:center;gap:.75rem;
+            background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+            padding:.85rem 1rem;
+        }
+        .sink-row .badge{
+            font-size:.6rem;padding:.18rem .55rem;border-radius:2rem;
+            font-weight:700;letter-spacing:.4px;white-space:nowrap;flex-shrink:0;
+        }
+        .sink-row .sink-label{font-size:.82rem;font-weight:600;color:var(--txt);flex:1}
+        .sink-row .impact-bar-wrap{width:120px;flex-shrink:0}
+        .impact-bar{height:6px;border-radius:3px;background:var(--b2);overflow:hidden}
+        .impact-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+        .sink-row .impact-val{font-size:.68rem;color:var(--mut);margin-top:.2rem;text-align:right}
+
+        /* ===== POST BUFFER OVERFLOW: DEFENSES ===== */
+        .mit-card{
+            background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+            padding:1.1rem 1.25rem;
+        }
+        .mit-card h4{
+            font-size:.78rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+            margin-bottom:.5rem;
+        }
+        .mit-card p{font-size:.8rem;color:var(--mut);line-height:1.62}
+        .mit-card pre{
+            background:#0d1117;border:1px solid var(--b1);border-radius:6px;
+            padding:.65rem .9rem;margin-top:.75rem;font-size:.72rem;color:#a5f3a5;
+            font-family:var(--mono);overflow-x:auto;line-height:1.65;
+        }
+        .defense-radar-wrap{
+            background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+            padding:1.25rem;
+        }
+
+        /* chart containers */
+        .chart-container{
+            position:relative;width:100%;
+            max-width:560px;margin-inline:auto;
+            height:340px;max-height:50vh;
+        }
+        @media(min-width:768px){.chart-container{height:380px}}
+
+        /* ===== FOOTER ===== */
+        footer{
+            border-top:1px solid var(--hf-border);width:100%;
+            padding:clamp(30px,5vw,50px) 0;background-color:var(--hf-bg);color:var(--hf-text);
+            transition:background-color .25s,color .25s;
+        }
+        footer .hf-wrap{display:block}
+        .footer-legal{
+            border:1px solid #f85149;border-radius:8px;padding:1rem 1.4rem;margin-bottom:2rem;
+            color:#f85149;font-size:.78rem;line-height:1.6;
+        }
+        .footer-legal strong{color:#f85149}
+        .footer-middle{
+            display:flex;justify-content:space-between;align-items:center;
+            flex-wrap:wrap;gap:20px;padding:20px 0;border-top:1px solid var(--hf-border);
+        }
+        .footer-links{display:flex;gap:20px;font-family:var(--font-nav);font-weight:600;font-size:12px;flex-wrap:wrap}
+        .footer-links a{color:var(--hf-text2)}
+        .footer-links a:hover{color:var(--hf-text)}
+        footer .social-icons a{color:var(--hf-text)}
+        .footer-bottom{text-align:center;padding:15px 0;border-top:1px solid var(--hf-border);font-size:11px;color:var(--hf-text2);margin-top:10px}
+        footer a{color:var(--hf-text)}
+        footer a:hover{text-decoration:underline}
+        .footer-brand{font-family:var(--font-header);font-weight:800;font-size:1rem;color:var(--hf-text)}
+        @media(max-width:768px){.footer-middle{flex-direction:column;text-align:center}}
     </style>
 </head>
-<body class="text-gray-800">
+<body>
 
-    <header class="bg-[#00449E] text-white text-center py-12 md:py-20 px-4">
-        <h1 class="text-4xl md:text-6xl font-black text-shadow">Tainted Trails</h1>
-        <p class="mt-4 text-lg md:text-2xl font-light text-shadow max-w-4xl mx-auto">Unmasking software vulnerabilities by tracking the perilous journey of untrusted data from source to sink.</p>
-    </header>
+<!-- ===== HEADER ===== -->
+<header id="siteHeader">
+    <div class="hf-wrap">
+        <div class="logo"><a href="https://awjunaid.com">awjunaid</a></div>
+        <div class="header-right">
+            <nav class="main-nav">
+                <a href="https://aw-junaid.github.io/">Home</a>
+                <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                <div class="dropdown">
+                    <a href="#">Topics <i class="fa-solid fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="#intro">Introduction</a>
+                        <a href="#flow">Data Flow</a>
+                        <a href="#anatomy">Buffer Overflow</a>
+                        <a href="#landscape">Vulnerability Landscape</a>
+                        <a href="#defenses">Defenses</a>
+                    </div>
+                </div>
+            </nav>
+            <div class="social-icons">
+                <a href="https://github.com/aw-junaid/" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+                <a href="https://x.com/awjunaid_" target="_blank" rel="noopener" aria-label="X"><i class="fa-brands fa-twitter"></i></a>
+                <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+                <a href="https://www.youtube.com/@awjunaid/featured" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+            </div>
+            <button class="theme-switcher" id="themeSwitcher">Invert</button>
+        </div>
+    </div>
+</header>
 
-    <main class="container mx-auto p-4 md:p-8">
-        
-        <section id="introduction" class="mb-16 text-center">
-             <h2 class="text-3xl font-bold text-[#00449E] mb-4">The Essence of Taint Analysis</h2>
-             <p class="max-w-3xl mx-auto text-lg">
-                In cybersecurity, many vulnerabilities arise when an application trusts data it shouldn't. Taint analysis is a powerful technique for automatically tracking this "tainted" data—input an attacker can control—to see if it reaches a sensitive part of the program, a "sink," without being properly cleaned.
-             </p>
+<main>
+
+    <!-- ===== PAGE HERO ===== -->
+    <div class="page-hero">
+        <div class="chip">Security Research &mdash; Static Analysis</div>
+        <h1>Tainted <span class="grad">Trails</span></h1>
+        <p>Unmasking software vulnerabilities by tracking the perilous journey of untrusted data from source to sink.</p>
+    </div>
+
+    <!-- ===== CONTENT ===== -->
+    <div class="content-wrap">
+
+        <!-- INTRODUCTION -->
+        <section id="intro" class="mt-10 mb-8 text-center">
+            <h2 class="sec-title">The Essence of Taint Analysis</h2>
+            <p class="sec-lead">
+                In cybersecurity, many vulnerabilities arise when an application trusts data it should not. Taint analysis is a powerful technique for automatically tracking this untrusted data to see if it reaches a sensitive operation without being properly cleaned.
+            </p>
         </section>
-        
-        <section id="flow" class="mb-16">
-            <div class="flex flex-col md:flex-row items-center justify-center space-y-8 md:space-y-0 md:space-x-8 text-center">
-                <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/4">
-                    <div class="text-4xl mb-2">📥</div>
-                    <h3 class="text-xl font-bold text-[#0169C8]">Source</h3>
-                    <p class="mt-2">Where untrusted data enters the application (e.g., user forms, network data).</p>
+
+        <!-- FLOW DIAGRAM -->
+        <section id="flow" class="sec-card mb-8">
+            <h2 class="sec-title">How Taint Analysis Works</h2>
+            <p class="sec-lead">Untrusted data flows from a Source, optionally through a Sanitizer, and into a Sink. A missing or bypassed sanitizer is where vulnerabilities hide.</p>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4 mt-6">
+                <div class="flow-card fc-source w-full md:w-56">
+                    <div class="flow-icon"><i class="fa-solid fa-arrow-right-to-bracket"></i></div>
+                    <h3>Source</h3>
+                    <p>Where untrusted data enters — user forms, network sockets, environment variables.</p>
                 </div>
-
-                <div class="text-5xl font-bold text-[#0169C8] transform md:-translate-y-4">→</div>
-
-                <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/4 relative">
-                    <div class="absolute -top-4 -right-4 bg-[#65B9FF] text-white p-2 rounded-full shadow-md text-2xl">🛡️</div>
-                    <h3 class="text-xl font-bold text-[#0169C8]">Sanitizer (Optional)</h3>
-                    <p class="mt-2">A crucial checkpoint that should validate or clean the data, removing the "taint".</p>
+                <div class="flow-arrow hidden md:block"><i class="fa-solid fa-arrow-right"></i></div>
+                <div class="flow-arrow block md:hidden"><i class="fa-solid fa-arrow-down"></i></div>
+                <div class="flow-card fc-san w-full md:w-56 relative">
+                    <div class="absolute -top-3 -right-3 bg-[#3fb950] text-black rounded-full w-6 h-6 flex items-center justify-center text-xs font-black">?</div>
+                    <div class="flow-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h3>Sanitizer <span class="text-[#3fb950] text-xs">(Optional)</span></h3>
+                    <p>Validates or cleans the data. A bypass or absence here is the root of most vulnerabilities.</p>
                 </div>
-
-                <div class="text-5xl font-bold text-[#0169C8] transform md:-translate-y-4">→</div>
-
-                <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/4">
-                     <div class="text-4xl mb-2">☣️</div>
-                    <h3 class="text-xl font-bold text-[#0169C8]">Sink</h3>
-                    <p class="mt-2">A sensitive operation that, if it receives tainted data, leads to a vulnerability.</p>
+                <div class="flow-arrow hidden md:block"><i class="fa-solid fa-arrow-right"></i></div>
+                <div class="flow-arrow block md:hidden"><i class="fa-solid fa-arrow-down"></i></div>
+                <div class="flow-card fc-sink w-full md:w-56">
+                    <div class="flow-icon"><i class="fa-solid fa-radiation"></i></div>
+                    <h3>Sink</h3>
+                    <p>A sensitive operation — memcpy, exec, SQL query. If it receives tainted data, exploitation follows.</p>
                 </div>
             </div>
         </section>
 
-        <section id="anatomy" class="mb-16 bg-white rounded-lg shadow-md p-6 md:p-8">
-            <h2 class="text-3xl font-bold text-[#00449E] mb-2 text-center">Anatomy of an Attack: Buffer Overflow</h2>
-            <p class="text-lg text-center mb-8 max-w-3xl mx-auto">A classic vulnerability found through taint analysis is the buffer overflow. This occurs when an application tries to store more data in a memory buffer than it can hold, causing the excess data to overwrite adjacent memory, which can lead to a crash or arbitrary code execution.</p>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div class="text-center md:text-left">
-                    <h3 class="text-2xl font-bold text-[#0169C8] mb-4">The Vulnerability Explained</h3>
-                    <div class="space-y-4">
-                        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-[#289BFF]">
-                            <p><strong class="text-[#00449E]">The Source:</strong> The program receives data from a network socket using `recv()` without limiting the total amount of data received.</p>
-                        </div>
-                        <div class="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
-                             <p><strong class="text-red-600]">The Sink:</strong> The `memcpy()` function is used inside a loop to copy the incoming data into a fixed-size 128-byte buffer. No checks are performed to prevent writing more than 128 bytes.</p>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                            <p><strong class="text-green-600]">The Result:</strong> A malicious payload larger than 128 bytes overwrites the buffer, corrupts the program's memory, and causes a crash (segmentation fault).</p>
-                        </div>
+        <!-- ANATOMY: BUFFER OVERFLOW -->
+        <section id="anatomy" class="sec-card mb-8">
+            <h2 class="sec-title">Anatomy of an Attack: Buffer Overflow</h2>
+            <p class="sec-lead">A classic vulnerability found through taint analysis. Excess data overwrites adjacent memory, leading to crashes or arbitrary code execution.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center mt-2">
+                <div class="space-y-3">
+                    <div class="info-block info-source">
+                        <span class="lbl">Source</span>
+                        The program receives data from a network socket using <code>recv()</code> with no limit on total bytes received. All data from the network is untrusted.
+                    </div>
+                    <div class="info-block info-sink">
+                        <span class="lbl">Sink — the danger</span>
+                        <code>memcpy()</code> copies the incoming data into a fixed 128-byte buffer inside a loop. No bounds check prevents writing beyond that limit.
+                    </div>
+                    <div class="info-block info-result">
+                        <span class="lbl">Result</span>
+                        A malicious payload larger than 128 bytes overwrites the buffer, corrupts stack memory, and crashes the process — or hands control to the attacker.
                     </div>
                 </div>
-                
                 <div class="chart-container">
                     <canvas id="bufferOverflowChart"></canvas>
                 </div>
             </div>
         </section>
-        
-        <section id="landscape" class="mb-16 bg-white rounded-lg shadow-md p-6 md:p-8">
-            <h2 class="text-3xl font-bold text-[#00449E] mb-2 text-center">The Vulnerability Landscape</h2>
-            <p class="text-lg text-center mb-8 max-w-3xl mx-auto">Buffer overflows are just one type of vulnerability. Taint analysis helps find many others by identifying different kinds of dangerous sinks.</p>
-             <div class="chart-container h-[450px] md:h-[500px]">
+
+        <!-- ======================================================= -->
+        <!-- POST BUFFER OVERFLOW — REDESIGNED VULNERABILITY LANDSCAPE -->
+        <!-- ======================================================= -->
+        <section id="landscape" class="sec-card mb-8">
+            <h2 class="sec-title">Vulnerability Landscape</h2>
+            <p class="sec-lead">Buffer overflows are one entry on a long list. Taint analysis maps every type of dangerous sink in your codebase, ranked by potential impact.</p>
+
+            <!-- Stats strip -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div class="stat-pill">
+                    <div class="num" style="color:var(--red)">95</div>
+                    <div class="lbl"><span class="accent-dot" style="background:var(--red)"></span>Command Exec</div>
+                </div>
+                <div class="stat-pill">
+                    <div class="num" style="color:var(--org)">90</div>
+                    <div class="lbl"><span class="accent-dot" style="background:var(--org)"></span>Memory Ops</div>
+                </div>
+                <div class="stat-pill">
+                    <div class="num" style="color:var(--ylw)">85</div>
+                    <div class="lbl"><span class="accent-dot" style="background:var(--ylw)"></span>SQL Queries</div>
+                </div>
+                <div class="stat-pill">
+                    <div class="num" style="color:var(--acc)">75</div>
+                    <div class="lbl"><span class="accent-dot" style="background:var(--acc)"></span>XSS Sinks</div>
+                </div>
+            </div>
+
+            <!-- Horizontal bar list -->
+            <div class="space-y-3 mb-8">
+                <div class="sink-row">
+                    <div class="badge" style="color:#f85149;border:1px solid rgba(248,81,73,.3);background:rgba(248,81,73,.08)">CRITICAL</div>
+                    <span class="sink-label">System Command Execution <span class="text-[var(--mut)] font-normal text-xs ml-1">exec, system, popen</span></span>
+                    <div class="impact-bar-wrap">
+                        <div class="impact-bar"><div class="impact-bar-fill" style="width:95%;background:#f85149"></div></div>
+                        <div class="impact-val">95 / 100</div>
+                    </div>
+                </div>
+                <div class="sink-row">
+                    <div class="badge" style="color:#ffa657;border:1px solid rgba(255,166,87,.3);background:rgba(255,166,87,.08)">CRITICAL</div>
+                    <span class="sink-label">Memory Operations <span class="text-[var(--mut)] font-normal text-xs ml-1">memcpy, strcpy, sprintf</span></span>
+                    <div class="impact-bar-wrap">
+                        <div class="impact-bar"><div class="impact-bar-fill" style="width:90%;background:#ffa657"></div></div>
+                        <div class="impact-val">90 / 100</div>
+                    </div>
+                </div>
+                <div class="sink-row">
+                    <div class="badge" style="color:#e3b341;border:1px solid rgba(227,179,65,.3);background:rgba(227,179,65,.08)">HIGH</div>
+                    <span class="sink-label">SQL Database Queries <span class="text-[var(--mut)] font-normal text-xs ml-1">execute, query, raw SQL</span></span>
+                    <div class="impact-bar-wrap">
+                        <div class="impact-bar"><div class="impact-bar-fill" style="width:85%;background:#e3b341"></div></div>
+                        <div class="impact-val">85 / 100</div>
+                    </div>
+                </div>
+                <div class="sink-row">
+                    <div class="badge" style="color:#58a6ff;border:1px solid rgba(88,166,255,.3);background:rgba(88,166,255,.08)">HIGH</div>
+                    <span class="sink-label">File Path Operations <span class="text-[var(--mut)] font-normal text-xs ml-1">open, include, unlink</span></span>
+                    <div class="impact-bar-wrap">
+                        <div class="impact-bar"><div class="impact-bar-fill" style="width:80%;background:#58a6ff"></div></div>
+                        <div class="impact-val">80 / 100</div>
+                    </div>
+                </div>
+                <div class="sink-row">
+                    <div class="badge" style="color:#d2a8ff;border:1px solid rgba(210,168,255,.3);background:rgba(210,168,255,.08)">MEDIUM</div>
+                    <span class="sink-label">Cross-Site Scripting Sinks <span class="text-[var(--mut)] font-normal text-xs ml-1">innerHTML, document.write</span></span>
+                    <div class="impact-bar-wrap">
+                        <div class="impact-bar"><div class="impact-bar-fill" style="width:75%;background:#d2a8ff"></div></div>
+                        <div class="impact-val">75 / 100</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart still present for visual comparison -->
+            <div class="chart-container h-72 md:h-80">
                 <canvas id="sinkTypesChart"></canvas>
             </div>
         </section>
 
-        <section id="defenses" class="mb-16">
-            <h2 class="text-3xl font-bold text-[#00449E] mb-8 text-center">Building Defenses: Mitigation Strategies</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-2xl font-bold text-[#0169C8] mb-4">Layered Security Model</h3>
-                    <p class="mb-4">No single defense is perfect. A strong security posture relies on multiple layers of protection working together.</p>
-                    <div class="chart-container h-[300px]">
-                        <canvas id="defenseRadarChart"></canvas>
+        <!-- ======================================================= -->
+        <!-- POST BUFFER OVERFLOW — REDESIGNED DEFENSES              -->
+        <!-- ======================================================= -->
+        <section id="defenses" class="mb-10">
+            <h2 class="sec-title">Building Defenses</h2>
+            <p class="sec-lead">No single layer is enough. Effective protection stacks code-level fixes with compiler and OS-level mechanisms to eliminate each attack surface in turn.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+
+                <!-- Left: Mitigation cards -->
+                <div class="space-y-4">
+                    <div class="mit-card" style="border-left:3px solid var(--acc)">
+                        <h4 style="color:var(--acc)"><i class="fa-solid fa-code mr-1"></i> Code Sanitization</h4>
+                        <p>The most direct fix. Validate input size before it reaches the sink — stop the overflow before it can happen.</p>
+                        <pre>if (offset + bytesRead &gt; MAX_SIZE) {
+    /* reject — never copy */
+    return -1;
+}</pre>
+                    </div>
+                    <div class="mit-card" style="border-left:3px solid var(--grn)">
+                        <h4 style="color:var(--grn)"><i class="fa-solid fa-layer-group mr-1"></i> Stack Canaries</h4>
+                        <p>Compilers place secret sentinel values next to the return address. An overflow overwrites the canary first, triggering a safe shutdown before an attacker gains control.</p>
+                        <pre>gcc -fstack-protector-strong -o app app.c</pre>
+                    </div>
+                    <div class="mit-card" style="border-left:3px solid var(--ylw)">
+                        <h4 style="color:var(--ylw)"><i class="fa-solid fa-shuffle mr-1"></i> ASLR &amp; DEP / NX</h4>
+                        <p>Address Space Layout Randomization randomizes memory locations each run, making return addresses unpredictable. Data Execution Prevention marks the stack as non-executable, killing shellcode injection.</p>
+                    </div>
+                    <div class="mit-card" style="border-left:3px solid var(--pur)">
+                        <h4 style="color:var(--pur)"><i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Automated Taint Tracking</h4>
+                        <p>Tools like CodeQL, Semgrep, and Valgrind trace data flow at build or test time, flagging source-to-sink paths before the code ships to production.</p>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow-md p-6">
-                     <h3 class="text-2xl font-bold text-[#0169C8] mb-4">Practical Mitigations</h3>
-                     <div class="space-y-4">
-                        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-[#289BFF]">
-                            <h4 class="font-bold text-[#00449E]">Code Sanitization</h4>
-                            <p>The most direct fix. Add checks in the code to validate the size of input before it reaches the sink. This stops the overflow before it can happen.</p>
-                            <pre class="bg-gray-800 text-white p-2 rounded-md mt-2 text-sm overflow-x-auto"><code>if (offset + bytesRead > MAX_SIZE) { <br>  // Handle error, don't copy! <br>}</code></pre>
+
+                <!-- Right: Radar chart + summary -->
+                <div class="space-y-4">
+                    <div class="defense-radar-wrap">
+                        <div class="text-sm font-semibold text-center mb-3" style="color:var(--txt)">Layered Security Effectiveness</div>
+                        <div class="chart-container h-64 md:h-72" style="max-width:100%">
+                            <canvas id="defenseRadarChart"></canvas>
                         </div>
-                        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-[#289BFF]">
-                             <h4 class="font-bold text-[#00449E]">Compiler Protections</h4>
-                            <p>Modern compilers can automatically add "stack canaries"—secret values placed in memory. If an overflow overwrites a canary, the program terminates safely before an attacker can take control.</p>
-                        </div>
-                     </div>
+                    </div>
+                    <!-- Key principle callout -->
+                    <div class="mit-card text-center" style="border:1px solid rgba(88,166,255,.25);background:rgba(88,166,255,.05)">
+                        <div class="text-2xl font-black mb-1" style="color:var(--txt)">Defense in Depth</div>
+                        <p class="text-center">Each layer independently limits what an attacker can do if another layer fails. The goal is not perfection in one — it is resilience across all.</p>
+                    </div>
                 </div>
             </div>
         </section>
 
-         <footer class="text-center mt-16 py-8 border-t border-[#B4DAFF]">
-             <p class="text-lg font-bold text-[#00449E]">Taint analysis is a fundamental skill in modern software security.</p>
-             <p class="text-gray-600">By understanding how data flows through your applications, you can proactively find and fix flaws before they are exploited.</p>
-        </footer>
+    </div><!-- /content-wrap -->
+</main>
 
-    </main>
+<!-- ===== FOOTER ===== -->
+<footer id="siteFooter">
+    <div class="hf-wrap">
+        <div class="footer-legal">
+            <strong>Research Disclaimer:</strong> Taint analysis techniques described here are for <strong>authorized security research, code auditing, and defensive tooling only</strong>.
+            Apply vulnerability knowledge only to systems you own or have explicit written permission to test.
+        </div>
+        <div class="footer-middle">
+            <div class="footer-links">
+                <a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a>
+                <a href="https://aw-junaid.github.io/page/terms.html">T&amp;C'S</a>
+                <a href="https://aw-junaid.github.io/page/contact.html">Contact</a>
+                <a href="https://aw-junaid.github.io/page/about.html">About</a>
+                <a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a>
+            </div>
+            <div class="social-icons">
+                <a href="https://github.com/aw-junaid/" target="_blank" rel="noopener"><i class="fa-brands fa-github"></i></a>
+                <a href="https://x.com/awjunaid_" target="_blank" rel="noopener"><i class="fa-brands fa-twitter"></i></a>
+                <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank" rel="noopener"><i class="fa-brands fa-linkedin"></i></a>
+                <a href="https://www.facebook.com/awjuna1d" target="_blank" rel="noopener"><i class="fa-brands fa-facebook"></i></a>
+                <a href="https://instagram.com/awjunaid_" target="_blank" rel="noopener"><i class="fa-brands fa-instagram"></i></a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span class="footer-brand">awjunaid</span> &mdash; Copyright &copy; 2026
+            <a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a>. All rights reserved.
+        </div>
+    </div>
+</footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+<script>
+document.addEventListener('DOMContentLoaded', () => {
 
-            const brilliantBlues = {
-                dark: '#00449E',
-                medium: '#0169C8',
-                bright: '#289BFF',
-                light: '#65B9FF',
-                lightest: '#B4DAFF',
-                background: '#F0F8FF'
-            };
+    /* ── theme toggle ── */
+    const themeBtn = document.getElementById('themeSwitcher');
+    const hdr = document.getElementById('siteHeader');
+    const ftr = document.getElementById('siteFooter');
+    if (themeBtn && hdr && ftr) {
+        themeBtn.addEventListener('click', () => {
+            hdr.classList.toggle('hf-invert');
+            ftr.classList.toggle('hf-invert');
+        });
+    }
 
-            const commonTooltipCallback = {
-                title: function(tooltipItems) {
-                    const item = tooltipItems[0];
-                    let label = item.chart.data.labels[item.dataIndex];
-                    if (Array.isArray(label)) {
-                      return label.join(' ');
-                    }
-                    return label;
-                }
-            };
-            
-            function wrapLabel(label, maxWidth) {
-                const words = label.split(' ');
-                const lines = [];
-                let currentLine = '';
-                words.forEach(word => {
-                    if ((currentLine + ' ' + word).trim().length > maxWidth && currentLine.length > 0) {
-                        lines.push(currentLine);
-                        currentLine = word;
-                    } else {
-                        currentLine = (currentLine + ' ' + word).trim();
-                    }
-                });
-                if (currentLine) {
-                    lines.push(currentLine);
-                }
-                return lines;
-            }
+    /* ── Chart.js global dark defaults ── */
+    Chart.defaults.color = '#8b949e';
+    Chart.defaults.borderColor = '#21262d';
 
-            const ctxBuffer = document.getElementById('bufferOverflowChart');
-            if(ctxBuffer) {
-                new Chart(ctxBuffer, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Buffer Capacity (128 bytes)', 'Malicious Payload (1024 bytes)'],
-                        datasets: [{
-                            label: 'Bytes',
-                            data: [128, 1024],
-                            backgroundColor: [brilliantBlues.light, '#ef4444'],
-                            borderColor: [brilliantBlues.medium, '#dc2626'],
-                            borderWidth: 2,
-                            hoverOffset: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            },
-                            title: {
-                                display: true,
-                                text: 'Payload vs. Buffer Size',
-                                font: { size: 16 }
-                            },
-                            tooltip: { callbacks: commonTooltipCallback }
-                        }
-                    }
-                });
-            }
-
-            const sinkLabels = ['Memory Operations (e.g., Buffer Overflow)', 'System Command Execution', 'SQL Database Queries', 'File Path Operations', 'Cross-Site Scripting (XSS) Sinks'].map(label => wrapLabel(label, 16));
-            const ctxSinks = document.getElementById('sinkTypesChart');
-             if(ctxSinks) {
-                new Chart(ctxSinks, {
-                    type: 'bar',
-                    data: {
-                        labels: sinkLabels,
-                        datasets: [{
-                            label: 'Potential Impact Score',
-                            data: [90, 95, 85, 80, 75],
-                            backgroundColor: [
-                                brilliantBlues.dark,
-                                brilliantBlues.medium,
-                                brilliantBlues.bright,
-                                brilliantBlues.light,
-                                brilliantBlues.lightest
-                            ],
-                            borderColor: brilliantBlues.dark,
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            title: {
-                                display: true,
-                                text: 'Common Vulnerability Sinks by Impact',
-                                font: { size: 16 }
-                            },
-                            tooltip: { callbacks: commonTooltipCallback }
-                        },
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                            },
-                            y: {
-                                grid: { display: false }
-                            }
-                        }
-                    }
-                });
-            }
-            
-            const defenseLabels = ['Input Sanitization', 'Stack Canaries', 'Address Space Layout Randomization (ASLR)', 'Data Execution Prevention (DEP)', 'Secure Coding Practices'].map(label => wrapLabel(label, 16));
-            const ctxDefense = document.getElementById('defenseRadarChart');
-            if(ctxDefense) {
-                new Chart(ctxDefense, {
-                    type: 'radar',
-                    data: {
-                        labels: defenseLabels,
-                        datasets: [{
-                            label: 'Effectiveness',
-                            data: [9, 8, 7, 8, 10],
-                            fill: true,
-                            backgroundColor: 'rgba(40, 155, 255, 0.2)',
-                            borderColor: brilliantBlues.bright,
-                            pointBackgroundColor: brilliantBlues.bright,
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: brilliantBlues.bright
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                         plugins: {
-                            legend: { display: false },
-                            tooltip: { callbacks: commonTooltipCallback }
-                        },
-                        scales: {
-                            r: {
-                                beginAtZero: true,
-                                max: 10,
-                                pointLabels: { font: { size: 12 } },
-                                grid: { color: 'rgba(0, 68, 158, 0.2)' },
-                                angleLines: { color: 'rgba(0, 68, 158, 0.2)' }
-                            }
-                        }
-                    }
-                });
+    /* ── Label wrap utility ── */
+    function wrapLabel(label, maxWidth) {
+        const words = label.split(' ');
+        const lines = [];
+        let cur = '';
+        words.forEach(w => {
+            if ((cur + ' ' + w).trim().length > maxWidth && cur.length > 0) {
+                lines.push(cur);
+                cur = w;
+            } else {
+                cur = (cur + ' ' + w).trim();
             }
         });
-    </script>
+        if (cur) lines.push(cur);
+        return lines;
+    }
+
+    const tooltipTitleCallback = {
+        title(items) {
+            const lbl = items[0].chart.data.labels[items[0].dataIndex];
+            return Array.isArray(lbl) ? lbl.join(' ') : lbl;
+        }
+    };
+
+    /* ── DONUT: Buffer overflow ── */
+    const ctxBuffer = document.getElementById('bufferOverflowChart');
+    if (ctxBuffer) {
+        new Chart(ctxBuffer, {
+            type: 'doughnut',
+            data: {
+                labels: ['Buffer Capacity (128 bytes)', 'Malicious Payload (1024 bytes)'],
+                datasets: [{
+                    data: [128, 1024],
+                    backgroundColor: ['rgba(88,166,255,.7)', 'rgba(248,81,73,.75)'],
+                    borderColor: ['#58a6ff', '#f85149'],
+                    borderWidth: 2,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#c9d1d9', padding: 14, font: { size: 12 } }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Payload vs. Buffer Capacity',
+                        color: '#e6edf3',
+                        font: { size: 14, weight: 'bold' },
+                        padding: { bottom: 10 }
+                    },
+                    tooltip: { callbacks: tooltipTitleCallback }
+                }
+            }
+        });
+    }
+
+    /* ── BAR: Sink types (dark-themed horizontal) ── */
+    const sinkLabels = [
+        'Memory Operations',
+        'Command Execution',
+        'SQL Database Queries',
+        'File Path Operations',
+        'XSS Sinks'
+    ].map(l => wrapLabel(l, 18));
+
+    const ctxSinks = document.getElementById('sinkTypesChart');
+    if (ctxSinks) {
+        new Chart(ctxSinks, {
+            type: 'bar',
+            data: {
+                labels: sinkLabels,
+                datasets: [{
+                    label: 'Impact Score',
+                    data: [90, 95, 85, 80, 75],
+                    backgroundColor: [
+                        'rgba(255,166,87,.8)',
+                        'rgba(248,81,73,.8)',
+                        'rgba(227,179,65,.8)',
+                        'rgba(88,166,255,.8)',
+                        'rgba(210,168,255,.8)'
+                    ],
+                    borderColor: ['#ffa657','#f85149','#e3b341','#58a6ff','#d2a8ff'],
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Common Sink Types — Impact Score',
+                        color: '#e6edf3',
+                        font: { size: 13, weight: 'bold' },
+                        padding: { bottom: 12 }
+                    },
+                    tooltip: { callbacks: tooltipTitleCallback }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#8b949e', font: { size: 11 } },
+                        grid: { color: 'rgba(48,54,61,.7)' }
+                    },
+                    y: {
+                        ticks: { color: '#c9d1d9', font: { size: 11 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    /* ── RADAR: Defense effectiveness ── */
+    const defenseLabels = [
+        'Input Sanitization',
+        'Stack Canaries',
+        'ASLR',
+        'DEP / NX',
+        'Taint Tracking'
+    ].map(l => wrapLabel(l, 14));
+
+    const ctxDefense = document.getElementById('defenseRadarChart');
+    if (ctxDefense) {
+        new Chart(ctxDefense, {
+            type: 'radar',
+            data: {
+                labels: defenseLabels,
+                datasets: [{
+                    label: 'Effectiveness',
+                    data: [9, 8, 7, 8, 10],
+                    fill: true,
+                    backgroundColor: 'rgba(88,166,255,.15)',
+                    borderColor: '#58a6ff',
+                    pointBackgroundColor: '#58a6ff',
+                    pointBorderColor: '#0a0e13',
+                    pointHoverBackgroundColor: '#e6edf3',
+                    pointHoverBorderColor: '#58a6ff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: tooltipTitleCallback }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 10,
+                        ticks: {
+                            color: '#6e7681',
+                            backdropColor: 'transparent',
+                            font: { size: 10 }
+                        },
+                        pointLabels: {
+                            color: '#c9d1d9',
+                            font: { size: 11 }
+                        },
+                        grid: { color: 'rgba(48,54,61,.8)' },
+                        angleLines: { color: 'rgba(48,54,61,.8)' }
+                    }
+                }
+            }
+        });
+    }
+
+    /* ── Animate impact bars on scroll ── */
+    const bars = document.querySelectorAll('.impact-bar-fill');
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.style.width = e.target.dataset.w || e.target.style.width;
+                observer.unobserve(e.target);
+            }
+        });
+    }, { threshold: 0.3 });
+    bars.forEach(b => {
+        b.dataset.w = b.style.width;
+        b.style.width = '0%';
+        observer.observe(b);
+    });
+});
+</script>
 </body>
 </html>
