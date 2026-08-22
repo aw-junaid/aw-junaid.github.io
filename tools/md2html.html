@@ -963,9 +963,30 @@ flowchart LR
                 .replace(/-+/g, '-');
         }
 
+        // Pull <pre>...</pre> blocks out before reformatting, since their whitespace
+        // (code indentation, syntax-highlighting spans, mermaid source) is significant
+        // and must never be touched by the pretty-printer or minifier.
+        function protectPreBlocks(html) {
+            const blocks = [];
+            const protectedHtml = html.replace(/<pre[\s\S]*?<\/pre>/g, (match) => {
+                blocks.push(match);
+                return `\u0000PREBLOCK${blocks.length - 1}\u0000`;
+            });
+            return { protectedHtml, blocks };
+        }
+
+        function restorePreBlocks(html, blocks) {
+            let result = html;
+            blocks.forEach((block, i) => {
+                result = result.replace(`\u0000PREBLOCK${i}\u0000`, () => block);
+            });
+            return result;
+        }
+
         function prettyPrintHtml(html) {
+            const { protectedHtml, blocks } = protectPreBlocks(html);
             const voidTags = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
-            const tokens = html.match(/<[^>]+>|[^<]+/g) || [];
+            const tokens = protectedHtml.match(/<[^>]+>|[^<]+/g) || [];
             let indent = 0;
             const lines = [];
             tokens.forEach(token => {
@@ -983,15 +1004,17 @@ flowchart LR
                     lines.push('  '.repeat(indent) + trimmed);
                 }
             });
-            return lines.join('\n');
+            return restorePreBlocks(lines.join('\n'), blocks);
         }
 
         function minifyHtml(html) {
-            return html
+            const { protectedHtml, blocks } = protectPreBlocks(html);
+            const minified = protectedHtml
                 .replace(/>\s+</g, '><')
                 .replace(/\n+/g, '')
                 .replace(/\s{2,}/g, ' ')
                 .trim();
+            return restorePreBlocks(minified, blocks);
         }
 
         function wrapFullDocument(bodyHtml, opts) {
