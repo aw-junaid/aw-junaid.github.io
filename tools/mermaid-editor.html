@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mermaid — Live Editor</title>
+
+
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free Mermaid diagram live editor — write Mermaid syntax and get an instant preview for flowcharts, sequence diagrams, ER diagrams, Gantt charts, mindmaps, architecture diagrams, and more. Export to PNG, JPEG, SVG, or PDF. Nothing leaves your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/mermaid-editor.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/mermaid-editor.html" />
+<meta property="og:title" content="Mermaid Live Editor — awjunaid" />
+<meta property="og:description" content="Write Mermaid diagram syntax and preview it instantly — flowcharts, sequence diagrams, Gantt charts, mindmaps, architecture diagrams, and 25+ diagram types. Export as PNG, JPEG, SVG, or PDF. 100% client-side." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Mermaid Live Editor — awjunaid" />
+<meta name="twitter:description" content="Write Mermaid syntax and preview it live — 25+ diagram types, export as PNG/SVG/PDF. Free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+
+<!-- The ZenUML plugin's dist file does `import ... from '@zenuml/core'` — a bare package
+     specifier that only resolves in a bundler. This import map tells the browser where to
+     actually fetch it from (jsDelivr's +esm endpoint resolves the package's own nested deps
+     too), which is what a plain <script>/dynamic import() setup is otherwise missing. -->
+<script type="importmap">
+{
+  "imports": {
+    "@zenuml/core": "https://cdn.jsdelivr.net/npm/@zenuml/core@3/+esm"
+  }
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  // jsDelivr already mirrors the current Mermaid release (needed for treeView/cynefin/venn/
+  // ishikawa/wardley/zenuml/eventmodeling); cdnjs' index lags behind, so it's kept only as a
+  // safety net at an older, still-broadly-capable version, with 10.9.1 as the last resort.
+  // A 404 anywhere in this chain should never blank the whole page.
+  window.MERMAID_LOAD = new Promise((resolve)=>{
+    const sources = [
+      { cdn:'jsdelivr', v:'11.16.1' },
+      { cdn:'cdnjs',    v:'11.13.0' },
+      { cdn:'jsdelivr', v:'11.13.0' },
+      { cdn:'cdnjs',    v:'10.9.1'  }
+    ];
+    let i = 0;
+    function urlFor(src){
+      return src.cdn === 'jsdelivr'
+        ? `https://cdn.jsdelivr.net/npm/mermaid@${src.v}/dist/mermaid.min.js`
+        : `https://cdnjs.cloudflare.com/ajax/libs/mermaid/${src.v}/mermaid.min.js`;
+    }
+    function tryNext(){
+      if(i >= sources.length){ resolve(null); return; }
+      const src = sources[i++];
+      const s = document.createElement('script');
+      s.src = urlFor(src);
+      s.onload = ()=>{ window.MERMAID_VERSION = src.v; window.MERMAID_SOURCE = src.cdn; resolve(src.v); };
+      s.onerror = tryNext;
+      document.head.appendChild(s);
+    }
+    tryNext();
+  });
+</script>
+<style>
+  :root{
+    --bg:#0b0b0c;
+    --panel:#131315;
+    --panel-2:#0f0f11;
+    --border:#28282c;
+    --border-soft:#1e1e21;
+    --text:#ececec;
+    --muted:#a9a9ae;
+    --muted-2:#5f5f64;
+    --accent:#ffffff;
+    --error:#ff6b5e;
+    --control-bg:#1c1c1f;
+    --control-bg-hover:#242428;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  [data-theme="light"]{
+    --bg:#f5f5f4;
+    --panel:#ffffff;
+    --panel-2:#fafafa;
+    --border:#e0e0de;
+    --border-soft:#ececea;
+    --text:#161616;
+    --muted:#6b6b6d;
+    --muted-2:#a0a0a2;
+    --accent:#000000;
+    --error:#c7412f;
+    --control-bg:#f1f1ef;
+    --control-bg-hover:#e6e6e3;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--sans);
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+    transition:background .2s ease, color .2s ease;
+  }
+
+  /* ---------- top bar ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 20px; height:56px; flex-shrink:0;
+    border-bottom:1px solid var(--border);
+    background:var(--panel);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .mark{
+    width:22px; height:22px; border:1.5px solid var(--text); border-radius:3px;
+    position:relative; flex-shrink:0;
+  }
+  .brand .mark::before, .brand .mark::after{
+    content:""; position:absolute; background:var(--text);
+  }
+  .brand .mark::before{ width:9px; height:1.5px; top:6.5px; left:5.5px; }
+  .brand .mark::after{ width:9px; height:1.5px; bottom:6.5px; left:5.5px; }
+  .brand .wordmark{
+    font-size:15px; font-weight:700; letter-spacing:-.01em; margin:0; color:var(--text);
+    text-transform:lowercase;
+  }
+  .brand .wordmark .dim{ color:var(--muted); font-weight:500; }
+  .brand .sub{
+    font-size:10px; color:var(--muted); font-family:var(--mono);
+    text-transform:uppercase; letter-spacing:.12em; padding-left:10px;
+    border-left:1px solid var(--border);
+  }
+
+  .header-nav{ display:flex; align-items:center; gap:2px; }
+  .navlink{
+    font-family:var(--sans); cursor:pointer; border:none; background:transparent;
+    color:var(--muted); font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.08em;
+    padding:8px 12px; display:flex; align-items:center; gap:6px; border-radius:0;
+    border-bottom:1.5px solid transparent; transition:color .12s ease, border-color .12s ease;
+  }
+  .navlink:hover{ color:var(--text); border-bottom-color:var(--text); }
+  .navlink.filled{
+    color:var(--bg); background:var(--text); border-radius:5px; border-bottom:none; margin-left:6px;
+  }
+  .navlink.filled:hover{ opacity:.85; color:var(--bg); border-bottom:none; }
+
+  /* ---------- control toolbar strip ---------- */
+  .toolbar{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    padding:8px 20px; flex-shrink:0; border-bottom:1px solid var(--border);
+    background:var(--panel-2);
+  }
+
+  .top-actions{ display:flex; align-items:center; gap:8px; }
+
+  button{
+    font-family:var(--sans); cursor:pointer; border-radius:6px;
+    border:1px solid var(--border); background:var(--control-bg); color:var(--text);
+    font-size:12.5px; padding:7px 12px; display:flex; align-items:center; gap:6px;
+    transition:background .12s ease, border-color .12s ease, opacity .12s ease;
+  }
+  button:hover{ border-color:var(--muted); background:var(--control-bg-hover); }
+  button:active{ transform:translateY(1px); }
+  button.primary{
+    background:var(--text); color:var(--bg); border-color:var(--text); font-weight:600;
+  }
+  button.primary:hover{ opacity:.85; background:var(--text); }
+  button.icon{ padding:7px 8px; }
+  button:disabled{ opacity:.35; cursor:not-allowed; }
+
+  .divider-v{ width:1px; height:22px; background:var(--border); margin:0 2px; }
+
+  /* ---------- main split ---------- */
+  main{ flex:1; display:flex; min-height:0; position:relative; }
+
+  .pane{ display:flex; flex-direction:column; min-width:0; }
+  .pane-head{
+    display:flex; align-items:center; justify-content:space-between;
+    height:36px; padding:0 14px; flex-shrink:0;
+    border-bottom:1px solid var(--border-soft);
+    font-family:var(--mono); font-size:11px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.08em;
+    background:var(--panel-2);
+  }
+  .pane-head .dot{
+    width:6px; height:6px; border-radius:50%; background:var(--muted-2); margin-right:8px;
+  }
+  .pane-head-left{ display:flex; align-items:center; }
+
+  #editor-pane{ background:var(--panel-2); }
+  #code{
+    flex:1; resize:none; border:none; outline:none;
+    background:transparent; color:var(--text);
+    font-family:var(--mono); font-size:13px; line-height:1.65;
+    padding:16px 18px; tab-size:2;
+  }
+  #code::placeholder{ color:var(--muted-2); }
+
+  /* draggable divider */
+  #drag{
+    width:9px; flex-shrink:0; cursor:col-resize; position:relative;
+    background:var(--panel-2);
+    border-left:1px solid var(--border-soft); border-right:1px solid var(--border-soft);
+  }
+  #drag::after{
+    content:""; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(45deg);
+    width:7px; height:7px; border:1px solid var(--muted); background:var(--panel);
+  }
+  #drag:hover::after{ border-color:var(--text); }
+
+  #preview-pane{ background:var(--bg); }
+  #canvas-wrap{
+    flex:1; position:relative; overflow:hidden;
+    background-image: radial-gradient(var(--border-soft) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  #stage{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    cursor:grab;
+  }
+  #stage.grabbing{ cursor:grabbing; }
+  #diagram-holder{
+    transform-origin:center center; transition:transform .06s linear;
+    background:#ffffff; border-radius:10px; padding:22px;
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  #diagram-holder.theme-dark{ background:#15161a; }
+  #diagram-holder.theme-empty{ background:transparent; box-shadow:none; padding:0; }
+  #diagram-holder svg{ max-width:none !important; height:auto !important; display:block; }
+
+  .empty-hint{
+    color:var(--muted-2); font-family:var(--mono); font-size:12px; text-align:center; line-height:1.8;
+  }
+
+  .err-box{
+    position:absolute; left:14px; right:14px; bottom:14px;
+    background:var(--panel); border:1px solid var(--error); border-radius:8px;
+    padding:12px 14px; font-family:var(--mono); font-size:12px; color:var(--error);
+    display:none; max-height:120px; overflow:auto; white-space:pre-wrap;
+  }
+  .err-box.show{ display:block; }
+
+  /* zoom controls */
+  .zoom-ctrl{
+    position:absolute; right:14px; top:14px; display:flex; gap:4px;
+    background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:4px;
+  }
+  .zoom-ctrl button{ border:none; padding:6px 9px; }
+  .zoom-ctrl button:hover{ background:var(--border-soft); }
+  .zoom-pct{ font-family:var(--mono); font-size:11px; color:var(--muted); padding:6px 4px; min-width:40px; text-align:center; }
+
+  /* ---------- bottom status ---------- */
+  footer{
+    height:30px; flex-shrink:0; border-top:1px solid var(--border);
+    background:var(--panel); display:flex; align-items:center; justify-content:space-between;
+    padding:0 14px; font-family:var(--mono); font-size:11px; color:var(--muted-2);
+  }
+  #status{ display:flex; align-items:center; gap:6px; }
+  #status .led{ width:6px; height:6px; border-radius:50%; background:#4caf6d; }
+  #status .led.error{ background:var(--error); }
+
+  /* toast */
+  #toast{
+    position:fixed; bottom:44px; left:50%; transform:translateX(-50%) translateY(10px);
+    background:var(--text); color:var(--bg); font-size:12.5px; font-weight:600;
+    padding:9px 16px; border-radius:7px; opacity:0; pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease; z-index:50;
+    font-family:var(--sans);
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* export menu */
+  .menu-wrap{ position:relative; }
+  .menu{
+    position:absolute; top:calc(100% + 6px); right:0; background:var(--panel);
+    border:1px solid var(--border); border-radius:8px; min-width:190px;
+    box-shadow:0 12px 28px rgba(0,0,0,.35); padding:5px; display:none; z-index:40;
+  }
+  .menu.open{ display:block; }
+  .menu-section{ font-family:var(--mono); font-size:10px; color:var(--muted-2); text-transform:uppercase; letter-spacing:.08em; padding:7px 8px 3px; }
+  .menu button{
+    width:100%; justify-content:flex-start; border:none; padding:8px 8px; border-radius:5px; font-size:13px;
+  }
+  .menu button:hover{ background:var(--border-soft); }
+  .menu hr{ border:none; border-top:1px solid var(--border-soft); margin:4px 2px; }
+
+  @media (max-width: 760px){
+    main{ flex-direction:column; }
+    #drag{ display:none; }
+    .pane{ height:50%; width:100% !important; }
+    header{ padding:0 10px; }
+    .brand .sub{ display:none; }
+    .toolbar{ padding:8px 10px; }
+  }
+</style>
+</head>
+<body data-theme="light">
+
+<header>
+  <div class="brand">
+    <div class="mark"></div>
+    <div class="wordmark">awjunaid<span class="dim">.com</span></div>
+    <span class="sub">mermaid editor</span>
+  </div>
+
+  <div class="header-nav">
+    <div class="menu-wrap">
+      <button class="navlink" id="copyBtn">Copy ▾</button>
+      <div class="menu" id="copyMenu">
+        <div class="menu-section">Copy to clipboard</div>
+        <button data-copy="png">PNG image</button>
+        <button data-copy="jpeg">JPEG image</button>
+        <button data-copy="svg">SVG markup</button>
+        <button data-copy="code">Mermaid code</button>
+      </div>
+    </div>
+
+    <div class="menu-wrap">
+      <button class="navlink" id="downloadBtn">Download ▾</button>
+      <div class="menu" id="downloadMenu">
+        <div class="menu-section">Download as</div>
+        <button data-dl="png">PNG — image/png</button>
+        <button data-dl="jpeg">JPEG — image/jpeg</button>
+        <button data-dl="svg">SVG — vector</button>
+        <button data-dl="pdf">PDF — document</button>
+      </div>
+    </div>
+
+    <button class="navlink filled" id="themeToggle" title="Toggle dark/light">Invert</button>
+  </div>
+</header>
+
+<div class="toolbar">
+    <select id="samples" style="font-family:var(--mono); font-size:12px; background:var(--control-bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:7px 8px; cursor:pointer;">
+      <option value="">Load sample…</option>
+      <option value="flow">Flowchart</option>
+      <option value="sequence">Sequence</option>
+      <option value="class">Class diagram</option>
+      <option value="state">State diagram</option>
+      <option value="er">ER diagram</option>
+      <option value="gantt">Gantt chart</option>
+      <option value="pie">Pie chart</option>
+      <option value="journey">User journey</option>
+      <option value="git">Git graph</option>
+      <option value="mindmap">Mindmap</option>
+      <option value="timeline">Timeline</option>
+      <option value="quadrant">Quadrant chart</option>
+      <option value="requirement">Requirement diagram</option>
+      <option value="sankey">Sankey diagram</option>
+      <option value="xychart">XY chart</option>
+      <option value="c4">C4 context</option>
+      <option value="kanban">Kanban board</option>
+      <option value="block">Block diagram</option>
+      <option value="packet">Packet diagram</option>
+      <option value="architecture">Architecture</option>
+      <option value="radar">Radar chart</option>
+      <option value="zenuml">ZenUML</option>
+      <option value="treemap">Treemap</option>
+      <option value="venn">Venn diagram</option>
+      <option value="ishikawa">Ishikawa (fishbone)</option>
+      <option value="wardley">Wardley map</option>
+      <option value="cynefin">Cynefin framework</option>
+      <option value="treeview">Tree view</option>
+      <option value="eventmodeling">Event modeling</option>
+    </select>
+
+    <select id="diagramTheme" title="Diagram color theme" style="font-family:var(--mono); font-size:12px; background:var(--control-bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:7px 8px; cursor:pointer;">
+      <option value="default">🎨 Colorful</option>
+      <option value="forest">🌲 Forest</option>
+      <option value="neutral">◻ Neutral</option>
+      <option value="dark">🌑 Dark</option>
+      <option value="base">✦ Vivid</option>
+    </select>
+
+    <label style="display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); border:1px solid var(--border); background:var(--control-bg); border-radius:6px; padding:5px 10px; cursor:pointer; user-select:none;">
+      Wrap
+      <input type="number" id="wrapWidthInput" value="33" min="8" max="120" step="1"
+        style="width:44px; background:var(--control-bg); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 4px; font-family:var(--mono); font-size:11.5px;">
+      chars
+    </label>
+
+    <label style="display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); border:1px solid var(--border); background:var(--control-bg); border-radius:6px; padding:5px 10px; cursor:pointer; user-select:none;">
+      Quality
+      <select id="exportScale" style="background:transparent; color:var(--text); border:none; font-family:var(--mono); font-size:11.5px; cursor:pointer;">
+        <option value="2">2×</option>
+        <option value="3">3×</option>
+        <option value="4" selected>4×</option>
+        <option value="6">6×</option>
+      </select>
+    </label>
+
+    <label style="display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); border:1px solid var(--border); background:var(--control-bg); border-radius:6px; padding:7px 10px; cursor:pointer; user-select:none;">
+      <input type="checkbox" id="multicolorToggle" checked style="accent-color:var(--text); cursor:pointer;">
+      Multicolor nodes
+    </label>
+
+    <label style="display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); border:1px solid var(--border); background:var(--control-bg); border-radius:6px; padding:7px 10px; cursor:pointer; user-select:none;">
+      <input type="checkbox" id="watermarkToggle" checked style="accent-color:var(--text); cursor:pointer;">
+      © Watermark
+    </label>
+
+    <label style="display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); border:1px solid var(--border); background:var(--control-bg); border-radius:6px; padding:7px 10px; cursor:pointer; user-select:none;" title="PNG/JPEG* exports skip the background fill — SVG is already transparent by default. *JPEG has no alpha channel, so it falls back to white regardless of this setting.">
+      <input type="checkbox" id="transparentToggle" style="accent-color:var(--text); cursor:pointer;">
+      Transparent PNG
+    </label>
+
+    <span class="divider-v" style="height:20px;"></span>
+
+    <label style="display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); border:1px solid var(--border); background:var(--control-bg); border-radius:6px; padding:5px 10px; cursor:pointer; user-select:none;">
+      Font
+      <input type="number" id="fontSizeInput" value="16" min="8" max="40" step="1"
+        style="width:40px; background:var(--control-bg); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 4px; font-family:var(--mono); font-size:11.5px;">
+      px
+    </label>
+
+    <label style="display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); border:1px solid var(--border); background:var(--control-bg); border-radius:6px; padding:5px 10px; cursor:pointer; user-select:none;">
+      Edges
+      <select id="curveStyle" style="background:transparent; color:var(--text); border:none; font-family:var(--mono); font-size:11.5px; cursor:pointer;">
+        <option value="linear">Straight</option>
+        <option value="basis" selected>Curved</option>
+        <option value="stepBefore">Stepped</option>
+        <option value="cardinal">Smooth</option>
+      </select>
+    </label>
+
+    <label style="display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); border:1px solid var(--border); background:var(--control-bg); border-radius:6px; padding:5px 10px; cursor:pointer; user-select:none;">
+      Corners
+      <input type="number" id="cornerRadiusInput" value="14" min="0" max="40" step="1"
+        style="width:40px; background:var(--control-bg); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 4px; font-family:var(--mono); font-size:11.5px;">
+      px
+    </label>
+</div>
+
+<main>
+  <div class="pane" id="editor-pane" style="width:42%;">
+    <div class="pane-head">
+      <div class="pane-head-left"><span class="dot"></span>SOURCE.mmd</div>
+      <span id="charCount">0 chars</span>
+    </div>
+    <textarea id="code" spellcheck="false" placeholder="graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Result 1]
+    B -->|No| D[Result 2]"></textarea>
+  </div>
+
+  <div id="drag"></div>
+
+  <div class="pane" id="preview-pane" style="flex:1;">
+    <div class="pane-head">
+      <div class="pane-head-left"><span class="dot"></span>PREVIEW</div>
+      <span id="renderTime"></span>
+    </div>
+    <div id="canvas-wrap">
+      <div id="stage">
+        <div id="diagram-holder"><div class="empty-hint">Start typing Mermaid syntax<br>on the left to see it rendered here</div></div>
+      </div>
+      <div class="zoom-ctrl">
+        <button id="zoomOut" title="Zoom out">−</button>
+        <div class="zoom-pct" id="zoomPct">100%</div>
+        <button id="zoomIn" title="Zoom in">+</button>
+        <button id="zoomFit" title="Reset view">⤢</button>
+      </div>
+      <div class="err-box" id="errBox"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div id="status">
+    <span class="led" id="statusLed"></span><span id="statusText">Ready</span>
+    <span id="mermaidVersionBadge" style="opacity:.6; margin-left:8px;"></span>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span>Scroll to zoom · Drag to pan · No data leaves your browser</span>
+    <span class="divider-v" style="height:12px;"></span>
+    <span style="letter-spacing:.04em;">&copy; 2026 AWJUNAID.COM</span>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+(async function(){
+await window.MERMAID_LOAD;
+if(!window.mermaid){
+  document.getElementById('diagram-holder').innerHTML =
+    '<div class="empty-hint">Could not load the Mermaid library from the CDN.<br>Check your network / firewall settings and reload.</div>';
+  document.getElementById('statusText').textContent = 'Mermaid failed to load';
+  document.getElementById('statusLed').classList.add('error');
+  return;
+}
+
+const badge = document.getElementById('mermaidVersionBadge');
+if(badge) badge.textContent = `· mermaid v${window.MERMAID_VERSION} (${window.MERMAID_SOURCE})`;
+
+// architecture-beta's underlying cytoscape renderer logs a harmless style-mapping warning for
+// every edge that has no label — it's cosmetic noise from mermaid's own internals, not something
+// wrong with the diagram, and it never prevents the diagram from rendering. Filter just that one.
+const _origWarn = console.warn.bind(console);
+console.warn = (...args)=>{
+  const msg = args.map(a => typeof a === 'string' ? a : '').join(' ');
+  if(msg.includes('Do not assign mappings to elements without corresponding data')) return;
+  _origWarn(...args);
+};
+
+// architecture-beta service icons (e.g. logos:aws-lambda, mdi:database) come from Iconify —
+// Mermaid ships none of these by default, so an unregistered icon just silently drops that
+// service's box instead of erroring. Register the icon sets architecture diagrams commonly use,
+// lazy-loaded from jsDelivr's iconify mirror so nothing is fetched unless actually referenced.
+if(typeof mermaid.registerIconPacks === 'function'){
+  const iconPack = (name)=>({
+    name,
+    loader: () => fetch(`https://cdn.jsdelivr.net/npm/@iconify-json/${name}@1/icons.json`).then(r => r.json())
+  });
+  mermaid.registerIconPacks([
+    iconPack('logos'),         // brand/vendor logos — aws-*, nextjs, docker, kubernetes, etc.
+    iconPack('mdi'),           // Material Design Icons — common generic shapes (database, server, cloud…)
+    iconPack('simple-icons'),  // simple brand marks
+    iconPack('devicon')        // dev-tool/language icons
+  ]);
+}
+
+// ZenUML is NOT part of core Mermaid — every other diagram type here is built into the
+// mermaid.min.js we already loaded, but zenuml ships as a separate plugin package
+// (@mermaid-js/mermaid-zenuml) that must be dynamically imported as an ES module and
+// registered before mermaid recognizes the "zenuml" keyword at all. Without this step
+// zenuml always fails with "unknown diagram type", regardless of the core Mermaid version.
+if(typeof mermaid.registerExternalDiagrams === 'function'){
+  const zenumlBuilds = [
+    'https://cdn.jsdelivr.net/npm/@mermaid-js/mermaid-zenuml@0.2.3/dist/mermaid-zenuml.core.mjs',
+    'https://cdn.jsdelivr.net/npm/@mermaid-js/mermaid-zenuml@0.2.2/dist/mermaid-zenuml.core.mjs',
+    'https://cdn.jsdelivr.net/npm/@mermaid-js/mermaid-zenuml@0.2.0/dist/mermaid-zenuml.core.mjs',
+    'https://cdn.jsdelivr.net/npm/@mermaid-js/mermaid-zenuml@0.1.0/dist/mermaid-zenuml.esm.min.mjs'
+  ];
+  window.ZENUML_LOAD = (async ()=>{
+    for(const url of zenumlBuilds){
+      try{
+        const mod = await import(/* webpackIgnore: true */ url);
+        await mermaid.registerExternalDiagrams([mod.default]);
+        return true;
+      }catch(e){ /* try the next build */ }
+    }
+    return false;
+  })();
+} else {
+  window.ZENUML_LOAD = Promise.resolve(false);
+}
+
+const NODE_PALETTE = [
+  '#c3d9fb', '#c8f0cf', '#f6dcb8', '#f0c9f5',
+  '#fdf0ae', '#c1efe6', '#f7ccd3', '#d6d0fb',
+  '#e3f0b0', '#c2ecf7', '#f7d6c4', '#dbe8d6'
+];
+
+function addCopyrightMark(svgEl){
+  try{
+    const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+    let x0 = vb ? vb.x : 0, y0 = vb ? vb.y : 0;
+    let w = (vb && vb.width) || parseFloat(svgEl.getAttribute('width')) || svgEl.clientWidth || 800;
+    let h = (vb && vb.height) || parseFloat(svgEl.getAttribute('height')) || svgEl.clientHeight || 600;
+    if(!w || !h) return;
+
+    const fontSize = Math.max(11, Math.min(15, w * 0.016));
+    const strip = Math.round(fontSize * 2.4);
+    const bg = THEME_BG[diagramTheme] || '#ffffff';
+
+    // grow the canvas downward by a dedicated strip so the mark never sits on top of diagram content
+    const newH = h + strip;
+    svgEl.setAttribute('viewBox', `${x0} ${y0} ${w} ${newH}`);
+    const wAttr = parseFloat(svgEl.getAttribute('width'));
+    const hAttr = parseFloat(svgEl.getAttribute('height'));
+    if(wAttr && hAttr){
+      svgEl.setAttribute('height', (hAttr * (newH / h)).toFixed(2));
+    } else {
+      svgEl.setAttribute('width', w);
+      svgEl.setAttribute('height', newH);
+    }
+
+    const stripRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    stripRect.setAttribute('x', x0);
+    stripRect.setAttribute('y', y0 + h);
+    stripRect.setAttribute('width', w);
+    stripRect.setAttribute('height', strip);
+    stripRect.setAttribute('fill', bg);
+    svgEl.appendChild(stripRect);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x', x0 + w - fontSize * 0.9);
+    text.setAttribute('y', y0 + h + strip / 2 + fontSize * 0.34);
+    text.setAttribute('text-anchor','end');
+    text.setAttribute('font-family','ui-monospace, monospace');
+    text.setAttribute('font-size', fontSize);
+    text.setAttribute('fill', diagramTheme === 'dark' ? '#c9c9cc' : '#8a8a8a');
+    text.setAttribute('fill-opacity', '0.8');
+    text.textContent = '\u00A9 awjunaid.com';
+    svgEl.appendChild(text);
+  }catch(e){ /* if a diagram type has no measurable bbox, just skip the mark rather than break the render */ }
+}
+
+function wrapPlainSvgText(svgEl){
+  // venn/ishikawa shapes are far smaller than a flowchart box, so the user's general wrap
+  // setting is usually still too wide for them and text spills past the shape's edge —
+  // clamp harder specifically for those, detected via mermaid's own aria-roledescription.
+  const role = (svgEl.getAttribute('aria-roledescription') || '').toLowerCase();
+  let maxChars = wrapChars;
+  if(role.includes('venn')) maxChars = Math.min(wrapChars, 12);
+  else if(role.includes('ishikawa')) maxChars = Math.min(wrapChars, 20);
+
+  svgEl.querySelectorAll('text').forEach(textEl=>{
+    if(textEl.querySelector('tspan')) return; // already multi-line (mermaid's own wrap, or a deliberate multi-row label) — leave it alone
+    const content = (textEl.textContent || '').trim();
+    if(!content || content.length <= maxChars) return;
+    const words = content.split(/\s+/);
+    if(words.length < 2) return; // a single long token (an id, a number) can't be word-wrapped usefully
+    const lines = [];
+    let cur = '';
+    words.forEach(w=>{
+      const test = cur ? cur + ' ' + w : w;
+      if(test.length > maxChars && cur){ lines.push(cur); cur = w; }
+      else cur = test;
+    });
+    if(cur) lines.push(cur);
+    if(lines.length <= 1) return;
+
+    const x = textEl.getAttribute('x') || 0;
+    const fontSize = parseFloat(textEl.getAttribute('font-size')) || parseFloat(getComputedStyle(textEl).fontSize) || 14;
+    textEl.textContent = '';
+    lines.forEach((line, idx)=>{
+      const tspan = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+      tspan.setAttribute('x', x);
+      tspan.setAttribute('dy', idx === 0 ? -((lines.length-1) * fontSize * 0.6) : fontSize * 1.2);
+      tspan.textContent = line;
+      textEl.appendChild(tspan);
+    });
+  });
+}
+
+function ensureShadowFilter(svgEl){
+  let defs = svgEl.querySelector('defs');
+  if(!defs){ defs = document.createElementNS('http://www.w3.org/2000/svg','defs'); svgEl.insertBefore(defs, svgEl.firstChild); }
+  if(!defs.querySelector('#mc-shadow')){
+    const filter = document.createElementNS('http://www.w3.org/2000/svg','filter');
+    filter.setAttribute('id','mc-shadow');
+    filter.setAttribute('x','-30%'); filter.setAttribute('y','-30%');
+    filter.setAttribute('width','160%'); filter.setAttribute('height','160%');
+    filter.innerHTML = '<feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.28"/>';
+    defs.appendChild(filter);
+  }
+}
+
+function applyMulticolor(svgEl){
+  ensureShadowFilter(svgEl);
+  const groups = svgEl.querySelectorAll(
+    '.node, .actor, .classGroup, .er.entityBox, .mindmap-node, .quadrantPoint, ' +
+    '.requirementBox, .task, .timeline-node, .journey-section, .taskRect, ' +
+    '[class*="person" i], [class*="system" i], [class*="container" i], [class*="component" i], ' +
+    '[class*="boundary" i], [class*="bar" i], ' +
+    '[class*="node" i], [class*="box" i], [class*="item" i], [class*="cell" i], ' +
+    '[class*="circle" i], [class*="byte" i], [class*="field" i], ' +
+    '[class*="leaf" i], [class*="branch" i], [class*="domain" i], ' +
+    '[class*="event" i], [class*="command" i]'
+  );
+  const seen = new Set();
+  let i = 0;
+  groups.forEach(el=>{
+    if(seen.has(el)) return;
+    const tag = el.tagName.toLowerCase();
+    const isShapeTag = tag === 'rect' || tag === 'polygon' || tag === 'circle' || tag === 'ellipse' || tag === 'path';
+    const shape = isShapeTag ? el : el.querySelector('rect, polygon, circle, ellipse, path');
+    if(!shape || seen.has(shape)) return;
+    seen.add(el); seen.add(shape);
+    const color = NODE_PALETTE[i % NODE_PALETTE.length];
+    i++;
+    shape.setAttribute('style', `fill:${color} !important; stroke:#1a1a1a !important; stroke-width:1.75px !important;`);
+    if(shape.tagName.toLowerCase() === 'rect'){
+      const h = parseFloat(shape.getAttribute('height')) || 0;
+      const r = Math.min(cornerRadius, h/3 || cornerRadius);
+      shape.setAttribute('rx', r);
+      shape.setAttribute('ry', r);
+    }
+    el.setAttribute('filter', 'url(#mc-shadow)');
+  });
+}
+
+const VIVID_VARS = {
+  primaryColor:'#7c9eff', primaryTextColor:'#12131a', primaryBorderColor:'#3d5ed6',
+  secondaryColor:'#ffb26b', tertiaryColor:'#7be0b0',
+  lineColor:'#8a8a92', textColor:'#12131a', mainBkg:'#7c9eff',
+  nodeBorder:'#3d5ed6', clusterBkg:'#f4f4f6', clusterBorder:'#c9c9d1',
+  edgeLabelBackground:'#ffffff',
+  cScale0:'#7c9eff', cScale1:'#ffb26b', cScale2:'#7be0b0', cScale3:'#ff8fa3',
+  cScale4:'#c9a0ff', cScale5:'#5fd0d8', cScale6:'#ffd166', cScale7:'#a3c9ff',
+  cScale8:'#ff9e7a', cScale9:'#9be89b', cScale10:'#e39bff', cScale11:'#6ec6c6',
+  pie1:'#7c9eff', pie2:'#ffb26b', pie3:'#7be0b0', pie4:'#ff8fa3', pie5:'#c9a0ff',
+  pie6:'#5fd0d8', pie7:'#ffd166', pie8:'#a3c9ff', pie9:'#ff9e7a', pie10:'#9be89b',
+  pie11:'#e39bff', pie12:'#6ec6c6',
+  git0:'#7c9eff', git1:'#ffb26b', git2:'#7be0b0', git3:'#ff8fa3', git4:'#c9a0ff', git5:'#5fd0d8', git6:'#ffd166', git7:'#a3c9ff'
+};
+
+// higher-contrast overrides applied on top of mermaid's built-in 'dark' theme — the stock
+// dark theme skews low-contrast (muted blue-greys on near-black), which read poorly in exports
+const DARK_VARS = {
+  background:'#15161a', primaryColor:'#3a4a63', primaryTextColor:'#f2f3f5', primaryBorderColor:'#7c9eff',
+  secondaryColor:'#4a3a1f', tertiaryColor:'#1f4a38',
+  lineColor:'#b7b9c2', textColor:'#f2f3f5', mainBkg:'#3a4a63',
+  nodeBorder:'#7c9eff', clusterBkg:'#1d1f26', clusterBorder:'#4a4d59',
+  edgeLabelBackground:'#22232a', titleColor:'#f2f3f5',
+  actorBkg:'#3a4a63', actorBorder:'#7c9eff', actorTextColor:'#f2f3f5', actorLineColor:'#8a8d99',
+  signalColor:'#d7d9e0', signalTextColor:'#f2f3f5',
+  labelBoxBkgColor:'#3a4a63', labelBoxBorderColor:'#7c9eff', labelTextColor:'#f2f3f5',
+  loopTextColor:'#f2f3f5', noteBkgColor:'#4a3a1f', noteTextColor:'#f2f3f5', noteBorderColor:'#8a6a2f',
+  activationBkgColor:'#4a5568', activationBorderColor:'#7c9eff',
+  pie1:'#7c9eff', pie2:'#ffb26b', pie3:'#7be0b0', pie4:'#ff8fa3', pie5:'#c9a0ff',
+  pie6:'#5fd0d8', pie7:'#ffd166', pie8:'#a3c9ff', pie9:'#ff9e7a', pie10:'#9be89b',
+  pieOpacity:'0.9', pieStrokeColor:'#15161a', pieOuterStrokeColor:'#15161a', pieSectionTextColor:'#f2f3f5',
+  git0:'#7c9eff', git1:'#ffb26b', git2:'#7be0b0', git3:'#ff8fa3', git4:'#c9a0ff', git5:'#5fd0d8', git6:'#ffd166', git7:'#a3c9ff',
+  gitBranchLabel0:'#15161a', gitBranchLabel1:'#15161a', gitBranchLabel2:'#15161a', gitBranchLabel3:'#15161a',
+  taskTextColor:'#f2f3f5', taskTextOutsideColor:'#f2f3f5', taskTextLightColor:'#15161a',
+  sectionBkgColor:'#22232a', sectionBkgColor2:'#1d1f26', altSectionBkgColor:'#191a1f',
+  gridColor:'#33353f', todayLineColor:'#ff8fa3'
+};
+
+// export-time background per diagram theme (dark themes need a dark canvas fill, light ones white)
+const THEME_BG = { default:'#ffffff', forest:'#ffffff', neutral:'#ffffff', base:'#ffffff', dark:'#15161a' };
+let diagramTheme = 'default';
+
+const CHAR_PX = 7.4; // approx average glyph width for mermaid's default label font, used to translate "characters per line" into the pixel width Mermaid's wrappingWidth expects
+let wrapChars = 33;
+let cornerRadius = 14;
+
+let baseFontSize = 16;
+let edgeCurve = 'basis';
+
+function initMermaid(theme){
+  const wrapPx = Math.round(wrapChars * CHAR_PX);
+  const cfg = {
+    startOnLoad:false, theme: theme === 'dark' ? 'base' : theme, securityLevel:'loose',
+    fontFamily:'ui-monospace, monospace', fontSize: baseFontSize,
+    flowchart: { htmlLabels:true, wrappingWidth: wrapPx, useMaxWidth:false, curve: edgeCurve },
+    sequence: { wrap:true, wrapPadding: 12 },
+    state: { wrappingWidth: wrapPx }
+  };
+  if(theme === 'base') cfg.themeVariables = VIVID_VARS;
+  if(theme === 'dark') cfg.themeVariables = DARK_VARS;
+  mermaid.initialize(cfg);
+}
+initMermaid(diagramTheme);
+
+const codeEl = document.getElementById('code');
+const holder = document.getElementById('diagram-holder');
+const errBox = document.getElementById('errBox');
+const statusLed = document.getElementById('statusLed');
+const statusText = document.getElementById('statusText');
+const renderTimeEl = document.getElementById('renderTime');
+const charCount = document.getElementById('charCount');
+const stage = document.getElementById('stage');
+const zoomPct = document.getElementById('zoomPct');
+
+let renderSeq = 0;
+let currentSvgString = null;
+let scale = 1, panX = 0, panY = 0;
+let isPanning = false, startX=0, startY=0;
+let exportScale = 4;
+document.getElementById('exportScale').addEventListener('change', (e)=>{
+  exportScale = parseInt(e.target.value, 10) || 4;
+});
+
+const SAMPLES = {
+  flow:`---
+title: SQL Injection Decision Flow
+---
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Do the thing]
+    B -->|No| D[Skip it]
+    C --> E[End]
+    D --> E`,
+  sequence:`sequenceDiagram
+    title Client-Server Data Request
+    participant User
+    participant API
+    participant DB
+    User->>API: Request data
+    API->>DB: Query
+    DB-->>API: Results
+    API-->>User: Response`,
+  class:`---
+title: Animal Hierarchy
+---
+classDiagram
+    class Animal {
+      +String name
+      +int age
+      +makeSound()
+    }
+    class Dog {
+      +fetch()
+    }
+    Animal <|-- Dog`,
+  state:`---
+title: Task Lifecycle
+---
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Running: start()
+    Running --> Paused: pause()
+    Paused --> Running: resume()
+    Running --> [*]: stop()`,
+  er:`---
+title: Orders Data Model
+---
+erDiagram
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ ITEM : contains
+    USER {
+      string name
+      string email
+    }`,
+  gantt:`gantt
+    title Project Plan
+    dateFormat YYYY-MM-DD
+    section Design
+    Wireframes :a1, 2026-01-01, 5d
+    section Build
+    Development :a2, after a1, 10d
+    section Ship
+    Testing :a3, after a2, 4d`,
+  pie:`pie title Traffic Sources
+    "Organic Search" : 42
+    "Direct" : 25
+    "Social" : 18
+    "Referral" : 10
+    "Other" : 5`,
+  journey:`journey
+    title Onboarding a New User
+    section Signup
+      Visit landing page: 5: User
+      Create account: 4: User
+    section First use
+      Complete tutorial: 3: User
+      Invite a teammate: 4: User
+    section Retention
+      Return next week: 5: User`,
+  git:`---
+title: Release Branching
+---
+gitGraph
+    commit id: "init"
+    branch develop
+    checkout develop
+    commit id: "feature-a"
+    commit id: "feature-b"
+    checkout main
+    merge develop
+    commit id: "release-1.0"
+    branch hotfix
+    checkout hotfix
+    commit id: "fix-bug"
+    checkout main
+    merge hotfix`,
+  mindmap:`---
+title: Project Plan
+---
+mindmap
+    root((Project))
+      Research
+        Competitors
+        User interviews
+      Design
+        Wireframes
+        Prototypes
+      Build
+        Frontend
+        Backend
+      Launch
+        Marketing
+        Support`,
+  timeline:`timeline
+    title Product Roadmap
+    2026 Q1 : Discovery
+            : User research
+    2026 Q2 : MVP build
+            : Internal testing
+    2026 Q3 : Public beta
+    2026 Q4 : General release`,
+  quadrant:`quadrantChart
+    title Feature Prioritization
+    x-axis Low Effort --> High Effort
+    y-axis Low Impact --> High Impact
+    quadrant-1 Do First
+    quadrant-2 Plan Carefully
+    quadrant-3 Fill Gaps
+    quadrant-4 Reconsider
+    Dark Mode: [0.25, 0.8]
+    Bulk Export: [0.7, 0.75]
+    Rename Files: [0.15, 0.2]
+    Full Redesign: [0.85, 0.3]`,
+  requirement:`---
+title: Login Requirements
+---
+requirementDiagram
+    requirement UserAuth {
+      id: 1
+      text: users must authenticate
+      risk: high
+      verifymethod: test
+    }
+    element LoginForm {
+      type: interface
+    }
+    LoginForm - satisfies -> UserAuth`,
+  sankey:`---
+title: User Funnel
+---
+sankey-beta
+    Visitors,Signups,120
+    Visitors,Bounced,380
+    Signups,Activated,90
+    Signups,Churned,30
+    Activated,Paying,40`,
+  xychart:`xychart-beta
+    title "Monthly Active Users"
+    x-axis [Jan, Feb, Mar, Apr, May, Jun]
+    y-axis "Users (thousands)" 0 --> 100
+    bar [20, 34, 45, 52, 68, 84]
+    line [20, 34, 45, 52, 68, 84]`,
+  c4:`C4Context
+    title System Context — Online Store
+    Person(customer, "Customer", "Browses and buys products")
+    System(store, "Online Store", "Lets customers browse and purchase")
+    System_Ext(payment, "Payment Gateway", "Processes card payments")
+    Rel(customer, store, "Uses")
+    Rel(store, payment, "Charges card via")`,
+  kanban:`---
+title: Sprint Board
+---
+kanban
+    todo[To Do]
+      t1[Design API schema]
+      t2[Write unit tests]
+    doing[In Progress]
+      t3[Implement auth flow]
+    done[Done]
+      t4[Set up CI pipeline]`,
+  block:`---
+title: Service Architecture
+---
+block-beta
+    columns 3
+    Frontend["Frontend"] Gateway["API Gateway"] Backend["Backend"]
+    Frontend --> Gateway
+    Gateway --> Backend
+    Backend --> DB[("Database")]`,
+  packet:`packet-beta
+    title TCP Header
+    0-15: "Source Port"
+    16-31: "Destination Port"
+    32-63: "Sequence Number"
+    64-95: "Acknowledgment Number"
+    96-99: "Data Offset"
+    100-105: "Reserved"
+    106-111: "Flags"
+    112-127: "Window"`,
+  architecture:`---
+title: Cloud API Layout
+---
+architecture-beta
+    group api(cloud)[API]
+    service gateway(internet)[Gateway] in api
+    service server(server)[App Server] in api
+    service db(database)[Database] in api
+    gateway:R --> L:server
+    server:R --> L:db`,
+  radar:`radar-beta
+    title Skill Assessment
+    axis A["Security"], B["Networking"], C["Cloud"], D["Scripting"], E["Reversing"]
+    curve me["You"]{80, 70, 65, 90, 60}
+    curve avg["Team avg"]{60, 55, 50, 55, 45}
+    max 100
+    min 0`,
+  zenuml:`---
+title: Login Flow
+---
+zenuml
+    @Actor User
+    @Boundary API
+    @Database DB
+    User->API: Login(credentials)
+    API->DB: Verify(credentials)
+    DB-->API: Result
+    API-->User: Token`,
+  treemap:`---
+title: Codebase Composition
+---
+treemap-beta
+    "Codebase"
+      "Frontend"
+        "Components": 40
+        "Pages": 25
+      "Backend"
+        "API": 30
+        "Services": 20
+      "Infra": 15`,
+  venn:`---
+title: Team Ownership
+---
+venn-beta
+    set A["Frontend"] :30
+    set B["Backend"] :25
+    union A,B["Shared"] :10`,
+  ishikawa:`---
+title: Root Cause Analysis
+---
+ishikawa-beta
+    Slow API Response
+      Infrastructure
+        Underpowered instances
+        No CDN
+      Code
+        N+1 queries
+        Unoptimized indexes
+        Missing caching
+      Process
+        No performance budgets
+        Reviews skip load testing`,
+  wardley:`wardley-beta
+    title Software Deployment Pipeline
+    anchor "User Needs" [0.95, 0.70]
+    component "Manual Deployment" [0.15, 0.25]
+    component "CI/CD Scripts" [0.45, 0.50]
+    component "Automated Pipeline" [0.75, 0.65]
+    component "Cloud Infrastructure" [0.30, 0.40]
+    "User Needs" -> "Automated Pipeline"
+    "Automated Pipeline" -> "CI/CD Scripts"
+    "CI/CD Scripts" -> "Manual Deployment"
+    "Manual Deployment" -> "Cloud Infrastructure"
+    evolve "Manual Deployment" 0.20
+    evolve "CI/CD Scripts" 0.55
+    evolve "Automated Pipeline" 0.85
+    evolve "Cloud Infrastructure" 0.70`,
+  cynefin:`---
+title: Delivery Decision Domains
+---
+cynefin-beta
+    complex "New feature discovery"
+    complicated "Database migration"
+    clear "Routine deployment"
+    chaotic "Production outage response"`,
+  treeview:`---
+title: Project Structure
+---
+treeView-beta
+    my-project/
+      src/
+        components/
+          Button.tsx
+          Card.tsx
+        pages/
+          Home.tsx
+        App.tsx
+      package.json
+      README.md`,
+  eventmodeling:`---
+title: Add to Cart Flow
+---
+eventmodeling
+    tf 01 ui CartUI
+    tf 02 cmd AddItem
+    tf 03 evt ItemAdded`
+};
+
+function setStatus(ok, msg){
+  statusLed.classList.toggle('error', !ok);
+  statusText.textContent = msg;
+}
+
+async function renderDiagram(){
+  const src = codeEl.value.trim();
+  charCount.textContent = codeEl.value.length + ' chars';
+  if(!src){
+    holder.innerHTML = '<div class="empty-hint">Start typing Mermaid syntax<br>on the left to see it rendered here</div>';
+    holder.className = 'theme-empty';
+    errBox.classList.remove('show');
+    currentSvgString = null;
+    setStatus(true, 'Ready');
+    return;
+  }
+  const seq = ++renderSeq;
+  const t0 = performance.now();
+  try{
+    if(/(^|\n)\s*zenuml\b/.test(src) && window.ZENUML_LOAD){
+      const ok = await window.ZENUML_LOAD;
+      if(!ok) throw new Error('The ZenUML plugin could not be loaded from the CDN — check your network/firewall and reload.');
+    }
+    const id = 'mmd-' + Date.now();
+    const { svg } = await mermaid.render(id, src);
+    if(seq !== renderSeq) return; // stale
+    holder.innerHTML = svg;
+    holder.className = diagramTheme === 'dark' ? 'theme-dark' : '';
+    const svgEl = holder.querySelector('svg');
+    if(svgEl) wrapPlainSvgText(svgEl);
+    if(svgEl && document.getElementById('multicolorToggle').checked){
+      applyMulticolor(svgEl);
+    }
+    if(svgEl && document.getElementById('watermarkToggle').checked) addCopyrightMark(svgEl);
+    currentSvgString = svgEl ? new XMLSerializer().serializeToString(svgEl) : svg;
+    errBox.classList.remove('show');
+    setStatus(true, 'Rendered');
+    renderTimeEl.textContent = (performance.now()-t0).toFixed(0) + 'ms';
+    resetView();
+  }catch(err){
+    if(seq !== renderSeq) return;
+    errBox.textContent = (err && err.message) ? err.message : String(err);
+    errBox.classList.add('show');
+    setStatus(false, 'Syntax error');
+  }
+}
+
+let debounceT;
+codeEl.addEventListener('input', ()=>{
+  clearTimeout(debounceT);
+  debounceT = setTimeout(renderDiagram, 350);
+});
+
+// ---------- pan / zoom ----------
+function applyTransform(){
+  holder.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  zoomPct.textContent = Math.round(scale*100) + '%';
+}
+function resetView(){ scale=1; panX=0; panY=0; applyTransform(); }
+
+document.getElementById('zoomIn').onclick = ()=>{ scale = Math.min(scale*1.2, 6); applyTransform(); };
+document.getElementById('zoomOut').onclick = ()=>{ scale = Math.max(scale/1.2, 0.15); applyTransform(); };
+document.getElementById('zoomFit').onclick = resetView;
+
+const wrap = document.getElementById('canvas-wrap');
+wrap.addEventListener('wheel', (e)=>{
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.92 : 1.08;
+  scale = Math.min(Math.max(scale*delta, 0.15), 6);
+  applyTransform();
+}, { passive:false });
+
+stage.addEventListener('mousedown', (e)=>{
+  isPanning = true; stage.classList.add('grabbing');
+  startX = e.clientX - panX; startY = e.clientY - panY;
+});
+window.addEventListener('mousemove', (e)=>{
+  if(!isPanning) return;
+  panX = e.clientX - startX; panY = e.clientY - startY;
+  applyTransform();
+});
+window.addEventListener('mouseup', ()=>{ isPanning=false; stage.classList.remove('grabbing'); });
+
+// ---------- theme ----------
+document.getElementById('themeToggle').onclick = ()=>{
+  const body = document.body;
+  const next = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  body.setAttribute('data-theme', next);
+};
+
+document.getElementById('diagramTheme').addEventListener('change', (e)=>{
+  diagramTheme = e.target.value;
+  initMermaid(diagramTheme);
+  renderDiagram();
+});
+
+document.getElementById('multicolorToggle').addEventListener('change', renderDiagram);
+document.getElementById('watermarkToggle').addEventListener('change', renderDiagram);
+document.getElementById('transparentToggle').addEventListener('change', ()=>{}); // read at export time, no re-render needed
+
+document.getElementById('wrapWidthInput').addEventListener('change', (e)=>{
+  const v = parseInt(e.target.value, 10);
+  wrapChars = isNaN(v) ? 33 : Math.min(Math.max(v, 8), 120);
+  e.target.value = wrapChars;
+  initMermaid(diagramTheme);
+  renderDiagram();
+});
+
+document.getElementById('fontSizeInput').addEventListener('change', (e)=>{
+  const v = parseInt(e.target.value, 10);
+  baseFontSize = isNaN(v) ? 16 : Math.min(Math.max(v, 8), 40);
+  e.target.value = baseFontSize;
+  initMermaid(diagramTheme);
+  renderDiagram();
+});
+
+document.getElementById('curveStyle').addEventListener('change', (e)=>{
+  edgeCurve = e.target.value;
+  initMermaid(diagramTheme);
+  renderDiagram();
+});
+
+document.getElementById('cornerRadiusInput').addEventListener('change', (e)=>{
+  const v = parseInt(e.target.value, 10);
+  cornerRadius = isNaN(v) ? 14 : Math.min(Math.max(v, 0), 40);
+  e.target.value = cornerRadius;
+  renderDiagram();
+});
+
+// ---------- samples ----------
+document.getElementById('samples').addEventListener('change', (e)=>{
+  const key = e.target.value;
+  if(!key) return;
+  codeEl.value = SAMPLES[key];
+  renderDiagram();
+  e.target.value = '';
+});
+
+// ---------- toast ----------
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+// ---------- menus ----------
+function wireMenu(btnId, menuId){
+  const btn = document.getElementById(btnId), menu = document.getElementById(menuId);
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    document.querySelectorAll('.menu.open').forEach(m=> m!==menu && m.classList.remove('open'));
+    menu.classList.toggle('open');
+  });
+}
+wireMenu('copyBtn','copyMenu');
+wireMenu('downloadBtn','downloadMenu');
+window.addEventListener('click', ()=> document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open')));
+
+// ---------- svg -> canvas helper ----------
+function svgToCanvas(scaleFactor=3, forceOpaque=false){
+  return new Promise((resolve, reject)=>{
+    if(!currentSvgString) return reject('No diagram rendered yet.');
+    const svgEl = holder.querySelector('svg');
+    if(!svgEl) return reject('No diagram rendered yet.');
+    const clone = svgEl.cloneNode(true);
+    if(!clone.getAttribute('xmlns')) clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+
+    const bbox = svgEl.getBBox ? svgEl.getBBox() : null;
+    let w = svgEl.viewBox && svgEl.viewBox.baseVal && svgEl.viewBox.baseVal.width ? svgEl.viewBox.baseVal.width : (bbox ? bbox.width : svgEl.clientWidth || 800);
+    let h = svgEl.viewBox && svgEl.viewBox.baseVal && svgEl.viewBox.baseVal.height ? svgEl.viewBox.baseVal.height : (bbox ? bbox.height : svgEl.clientHeight || 600);
+    clone.setAttribute('width', w);
+    clone.setAttribute('height', h);
+
+    // embed background so the export isn't transparent — matched to the diagram's own color
+    // theme, not the page chrome. Skipped when the person wants a transparent PNG (JPEG has no
+    // alpha channel, so forceOpaque overrides that for jpeg exports regardless of the toggle).
+    const wantTransparent = document.getElementById('transparentToggle').checked && !forceOpaque;
+    const bg = THEME_BG[diagramTheme] || '#ffffff';
+
+    // Ensure every element in the clone is namespaced correctly and any <img>/foreignObject
+    // content stays inline (mermaid already inlines its own <style>, no external refs).
+    let svgStr = new XMLSerializer().serializeToString(clone);
+    if(!svgStr.match(/^<svg[^>]+xmlns:xlink=/)) {
+      svgStr = svgStr.replace('<svg', '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+    }
+
+    // Using a base64 data: URI (rather than a blob: URL) avoids the canvas being
+    // flagged as tainted in Chrome/Firefox when the SVG contains <foreignObject> HTML labels.
+    const utf8Bytes = new TextEncoder().encode(svgStr);
+    let binary = '';
+    utf8Bytes.forEach(b => binary += String.fromCharCode(b));
+    const b64 = btoa(binary);
+    const dataUri = 'data:image/svg+xml;base64,' + b64;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = ()=>{
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.ceil(w*scaleFactor));
+        canvas.height = Math.max(1, Math.ceil(h*scaleFactor));
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        if(!wantTransparent){
+          ctx.fillStyle = bg;
+          ctx.fillRect(0,0,canvas.width, canvas.height);
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas);
+      }catch(err){
+        reject('Rasterize failed: ' + (err && err.message ? err.message : err));
+      }
+    };
+    img.onerror = ()=>{ reject('Could not load the diagram as an image for export.'); };
+    img.src = dataUri;
+  });
+}
+
+function downloadBlob(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
+// ---------- copy actions ----------
+document.querySelectorAll('#copyMenu [data-copy]').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    document.getElementById('copyMenu').classList.remove('open');
+    const kind = btn.dataset.copy;
+    try{
+      if(kind === 'code'){
+        await navigator.clipboard.writeText(codeEl.value);
+        toast('Mermaid code copied');
+      } else if(kind === 'svg'){
+        if(!currentSvgString) throw 'No diagram rendered yet.';
+        await navigator.clipboard.writeText(currentSvgString);
+        toast('SVG markup copied');
+      } else if(kind === 'png' || kind === 'jpeg'){
+        const canvas = await svgToCanvas(exportScale, kind === 'jpeg');
+        const mime = kind === 'jpeg' ? 'image/jpeg' : 'image/png';
+        canvas.toBlob(async (blob)=>{
+          if(!blob){ toast('Could not generate image data'); return; }
+          try{
+            await navigator.clipboard.write([ new ClipboardItem({ [mime]: blob }) ]);
+            toast((kind === 'jpeg' ? 'JPEG' : 'PNG') + ' copied to clipboard');
+          }catch(e){
+            toast('Clipboard needs HTTPS / a user gesture — try Download instead');
+          }
+        }, mime, kind === 'jpeg' ? 0.95 : undefined);
+      }
+    }catch(e){
+      toast(typeof e === 'string' ? e : (e && e.message ? e.message : 'Copy failed'));
+    }
+  });
+});
+
+// ---------- download actions ----------
+document.querySelectorAll('#downloadMenu [data-dl]').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    document.getElementById('downloadMenu').classList.remove('open');
+    const kind = btn.dataset.dl;
+    try{
+      if(kind === 'svg'){
+        if(!currentSvgString) throw 'No diagram rendered yet.';
+        downloadBlob(new Blob([currentSvgString], {type:'image/svg+xml'}), 'diagram.svg');
+        toast('SVG downloaded');
+      } else if(kind === 'png' || kind === 'jpeg'){
+        const canvas = await svgToCanvas(exportScale, kind === 'jpeg');
+        const mime = kind === 'jpeg' ? 'image/jpeg' : 'image/png';
+        canvas.toBlob((blob)=>{
+          if(!blob){ toast('Could not generate image data'); return; }
+          downloadBlob(blob, kind === 'jpeg' ? 'diagram.jpg' : 'diagram.png');
+          toast((kind === 'jpeg' ? 'JPEG' : 'PNG') + ' downloaded');
+        }, mime, kind === 'jpeg' ? 0.95 : undefined);
+      } else if(kind === 'pdf'){
+        if(!window.jspdf){ throw 'PDF library failed to load (check your network/CDN access).'; }
+        const canvas = await svgToCanvas(exportScale, true);
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width >= canvas.height ? 'l' : 'p';
+        const pdf = new jsPDF({ orientation, unit:'pt', format:[canvas.width/exportScale, canvas.height/exportScale] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width/exportScale, canvas.height/exportScale);
+        pdf.save('diagram.pdf');
+        toast('PDF downloaded');
+      }
+    }catch(e){
+      toast(typeof e === 'string' ? e : (e && e.message ? e.message : 'Export failed'));
+    }
+  });
+});
+
+// ---------- init ----------
+codeEl.value = SAMPLES.flow;
+renderDiagram();
+
+// ---------- resizable split ----------
+const dragHandle = document.getElementById('drag');
+const editorPane = document.getElementById('editor-pane');
+let dragging = false;
+dragHandle.addEventListener('mousedown', ()=>{ dragging = true; document.body.style.userSelect='none'; });
+window.addEventListener('mouseup', ()=>{ dragging=false; document.body.style.userSelect=''; });
+window.addEventListener('mousemove', (e)=>{
+  if(!dragging) return;
+  const mainRect = document.querySelector('main').getBoundingClientRect();
+  let pct = ((e.clientX - mainRect.left) / mainRect.width) * 100;
+  pct = Math.min(Math.max(pct, 20), 75);
+  editorPane.style.width = pct + '%';
+});
+
+})(); // end async IIFE
+</script>
+</body>
+</html>
