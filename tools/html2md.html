@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | HTML to Markdown Converter</title>
+
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free HTML to Markdown converter — paste raw HTML, upload a file, or paste rich formatted content and get clean, customizable Markdown output instantly. No signup, runs entirely in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/html2md.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/html2md.html" />
+<meta property="og:title" content="HTML to Markdown Converter — awjunaid" />
+<meta property="og:description" content="Free online tool to convert HTML to clean Markdown — supports GFM tables, custom heading styles, bullet markers, and more. 100% client-side, nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="HTML to Markdown Converter — awjunaid" />
+<meta name="twitter:description" content="Free online tool to convert HTML to clean Markdown — customizable, client-side, no signup required." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+
+  
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turndown/7.1.2/turndown.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turndown-plugin-gfm/1.0.2/turndown-plugin-gfm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 22px 26px;
+            margin: 32px 0;
+        }
+        .settings-card h3 {
+            font-family: var(--font-inter);
+            font-weight: 800;
+            font-size: 1rem;
+            margin-bottom: 16px;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; }
+
+        .select-setting { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+        .select-setting .setting-name { font-weight: 600; }
+        .select-setting select {
+            padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px;
+        }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 56px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Input tabs (Code / Rendered-paste) */
+        .input-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+        .input-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .input-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .input-pane { display: none; }
+        .input-pane.active { display: block; }
+
+        #htmlInput {
+            width: 100%;
+            min-height: 460px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #htmlInput:focus { outline: none; border-color: var(--border-color); }
+
+        #richPasteInput {
+            width: 100%;
+            min-height: 460px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-body);
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.7;
+            overflow-y: auto;
+        }
+        #richPasteInput:focus { outline: none; border-color: var(--border-color); }
+        #richPasteInput:empty:before {
+            content: attr(data-placeholder);
+            opacity: 0.45;
+        }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #markdownOutput {
+            width: 100%;
+            min-height: 460px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .stat-strip {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">HTML to Markdown Converter</h1>
+                <div class="tool-dek">Upload an .html file, paste raw markup, or paste rich-formatted content directly — get clean, tunable Markdown out, ready to download.</div>
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <h3>Conversion Settings</h3>
+                <div class="settings-grid">
+                    <div class="select-setting">
+                        <span class="setting-name">Heading style</span>
+                        <select id="optHeadingStyle">
+                            <option value="atx" selected># ATX (# Heading)</option>
+                            <option value="setext">Setext (underlined ===)</option>
+                        </select>
+                    </div>
+                    <div class="select-setting">
+                        <span class="setting-name">Bullet list marker</span>
+                        <select id="optBulletMarker">
+                            <option value="-" selected>- Hyphen</option>
+                            <option value="*">* Asterisk</option>
+                            <option value="+">+ Plus</option>
+                        </select>
+                    </div>
+                    <div class="select-setting">
+                        <span class="setting-name">Code block style</span>
+                        <select id="optCodeStyle">
+                            <option value="fenced" selected>Fenced (```)</option>
+                            <option value="indented">Indented (4 spaces)</option>
+                        </select>
+                    </div>
+                    <div class="select-setting">
+                        <span class="setting-name">Emphasis delimiter</span>
+                        <select id="optEmDelim">
+                            <option value="_" selected>_italic_</option>
+                            <option value="*">*italic*</option>
+                        </select>
+                    </div>
+                    <div class="select-setting">
+                        <span class="setting-name">Strong delimiter</span>
+                        <select id="optStrongDelim">
+                            <option value="**" selected>**bold**</option>
+                            <option value="__">__bold__</option>
+                        </select>
+                    </div>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optGfm" checked>
+                        <span><span class="setting-name">GFM tables & strikethrough</span><span class="setting-hint">Uses GitHub-flavored syntax</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optKeepLineBreaks">
+                        <span><span class="setting-name">Preserve line breaks</span><span class="setting-hint">&lt;br&gt; becomes trailing \\ or double space</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optStripImages">
+                        <span><span class="setting-name">Strip images</span><span class="setting-hint">Removes &lt;img&gt; instead of ![alt](src)</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optStripLinks">
+                        <span><span class="setting-name">Strip links, keep text</span><span class="setting-hint">Drops href, keeps link text only</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optRemoveScripts" checked>
+                        <span><span class="setting-name">Remove scripts/styles</span><span class="setting-hint">Strips &lt;script&gt;, &lt;style&gt;, comments</span></span>
+                    </label>
+                    <div class="select-setting">
+                        <span class="setting-name">Link style</span>
+                        <select id="optLinkStyle">
+                            <option value="inlined" selected>Inline [text](url)</option>
+                            <option value="referenced">Reference [text][1]</option>
+                        </select>
+                    </div>
+                    <div class="select-setting">
+                        <span class="setting-name">Reference style</span>
+                        <select id="optLinkRefStyle">
+                            <option value="full" selected>Full [1]: url</option>
+                            <option value="collapsed">Collapsed [text][]</option>
+                            <option value="shortcut">Shortcut [text]</option>
+                        </select>
+                    </div>
+                    <div class="select-setting">
+                        <span class="setting-name">Ordered list marker</span>
+                        <select id="optOrderedListStyle">
+                            <option value="." selected>1. Period</option>
+                            <option value=")">1) Parenthesis</option>
+                        </select>
+                    </div>
+                    <div class="select-setting">
+                        <span class="setting-name">Horizontal rule</span>
+                        <select id="optHrStyle">
+                            <option value="---" selected>---</option>
+                            <option value="***">***</option>
+                            <option value="___">___</option>
+                            <option value="- - -">- - -</option>
+                        </select>
+                    </div>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optNoEscape">
+                        <span><span class="setting-name">Don't escape Markdown chars</span><span class="setting-hint">Leaves *, _, # etc. unescaped in text</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optKeepRawTags">
+                        <span><span class="setting-name">Keep unsupported tags as HTML</span><span class="setting-hint">iframe, video, audio, form pass through raw</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optStripEmpty">
+                        <span><span class="setting-name">Strip empty elements</span><span class="setting-hint">Removes tags with no visible content</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optCollapseBlankLines" checked>
+                        <span><span class="setting-name">Collapse extra blank lines</span><span class="setting-hint">Max one blank line between blocks</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optTrimTrailing" checked>
+                        <span><span class="setting-name">Trim trailing whitespace</span><span class="setting-hint">Removes trailing spaces on each line</span></span>
+                    </label>
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="optFrontMatter">
+                        <span><span class="setting-name">Add YAML front matter</span><span class="setting-hint">Prepends title/date block from &lt;title&gt; or first heading</span></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>HTML Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".html,.htm,.txt" style="display:none;">
+                        </div>
+                    </div>
+
+                    <div class="input-tabs">
+                        <button class="input-tab active" data-tab="code" type="button">HTML Source</button>
+                        <button class="input-tab" data-tab="paste" type="button">Paste Rich Content</button>
+                    </div>
+
+                    <div class="input-pane active" id="inpane-code">
+                        <textarea id="htmlInput" placeholder="&lt;h1&gt;Hello world&lt;/h1&gt;
+&lt;p&gt;Paste or type &lt;strong&gt;HTML&lt;/strong&gt; here, or upload an .html file...&lt;/p&gt;"></textarea>
+                        <div class="file-drop" id="dropZone">Drag & drop an .html / .htm / .txt file here, or use Upload above</div>
+                    </div>
+                    <div class="input-pane" id="inpane-paste">
+                        <div id="richPasteInput" contenteditable="true" data-placeholder="Click here and paste (Ctrl/Cmd+V) formatted content copied from a webpage or document — it converts to Markdown automatically."></div>
+                    </div>
+
+                    <div class="stat-strip">
+                        <span><strong id="htmlCharCount">0</strong> characters</span>
+                        <span><strong id="htmlTagCount">0</strong> HTML tags</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Markdown Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .md</button>
+                        </div>
+                    </div>
+                    <textarea id="markdownOutput" readonly></textarea>
+                    <div class="stat-strip">
+                        <span><strong id="mdWordCount">0</strong> words</span>
+                        <span><strong id="mdCharCount">0</strong> characters</span>
+                        <span><strong id="mdLineCount">0</strong> lines</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What's the difference between the two input modes?</h4>
+                        <p>"HTML Source" converts raw markup you type, paste, or upload as-is. "Paste Rich Content" lets you paste formatted text copied from a webpage or Word doc — your browser's own HTML is read and converted automatically.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "GFM tables & strikethrough" change?</h4>
+                        <p>With it on, &lt;table&gt; elements convert to piped Markdown tables and &lt;del&gt;/&lt;s&gt; convert to ~~strikethrough~~, matching GitHub's Markdown flavor.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why strip scripts and styles?</h4>
+                        <p>Script, style, and comment nodes have no Markdown equivalent and would otherwise leak stray text into the output — removing them keeps the result clean by default.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files and pasted content are processed entirely in your browser — nothing is sent anywhere.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // HTML → MARKDOWN CONVERTER TOOL LOGIC
+        // ============================================
+        const htmlInput = document.getElementById('htmlInput');
+        const richPasteInput = document.getElementById('richPasteInput');
+        const markdownOutput = document.getElementById('markdownOutput');
+
+        const sampleHtml = `<h1>Sample Page</h1>
+<p>A quick demo of what this converter can do.</p>
+<h2>Features</h2>
+<ul>
+  <li><strong>Bold</strong> and <em>italic</em> text</li>
+  <li><a href="https://example.com">Links</a> to anywhere</li>
+  <li>Inline <code>code</code> and blocks</li>
+</ul>
+<pre><code>console.log("hello world");</code></pre>
+<table>
+  <tr><th>Setting</th><th>Effect</th></tr>
+  <tr><td>GFM</td><td>Enables tables like this one</td></tr>
+</table>
+<blockquote>Toggle the settings above to see the output change.</blockquote>`;
+        htmlInput.value = sampleHtml;
+
+        let activeInputMode = 'code';
+
+        function getActiveHtmlSource() {
+            return activeInputMode === 'code' ? htmlInput.value : richPasteInput.innerHTML;
+        }
+
+        function buildTurndownService() {
+            const headingStyle = document.getElementById('optHeadingStyle').value;
+            const bulletMarker = document.getElementById('optBulletMarker').value;
+            const codeBlockStyle = document.getElementById('optCodeStyle').value;
+            const emDelimiter = document.getElementById('optEmDelim').value;
+            const strongDelimiter = document.getElementById('optStrongDelim').value;
+            const useGfm = document.getElementById('optGfm').checked;
+            const keepLineBreaks = document.getElementById('optKeepLineBreaks').checked;
+            const stripImages = document.getElementById('optStripImages').checked;
+            const stripLinks = document.getElementById('optStripLinks').checked;
+            const removeScripts = document.getElementById('optRemoveScripts').checked;
+            const linkStyle = document.getElementById('optLinkStyle').value;
+            const linkReferenceStyle = document.getElementById('optLinkRefStyle').value;
+            const orderedListMarker = document.getElementById('optOrderedListStyle').value;
+            const hrStyle = document.getElementById('optHrStyle').value;
+            const noEscape = document.getElementById('optNoEscape').checked;
+            const keepRawTags = document.getElementById('optKeepRawTags').checked;
+            const stripEmpty = document.getElementById('optStripEmpty').checked;
+
+            const service = new TurndownService({
+                headingStyle: headingStyle,
+                bulletListMarker: bulletMarker,
+                codeBlockStyle: codeBlockStyle,
+                emDelimiter: emDelimiter,
+                strongDelimiter: strongDelimiter,
+                hr: hrStyle,
+                br: keepLineBreaks ? '\\' : '',
+                linkStyle: linkStyle,
+                linkReferenceStyle: linkReferenceStyle
+            });
+
+            if (useGfm && window.turndownPluginGfm) {
+                service.use(window.turndownPluginGfm.gfm);
+            }
+
+            if (removeScripts) {
+                service.remove(['script', 'style']);
+            }
+
+            if (stripImages) {
+                service.addRule('stripImages', {
+                    filter: 'img',
+                    replacement: () => ''
+                });
+            }
+
+            if (stripLinks) {
+                service.addRule('stripLinks', {
+                    filter: 'a',
+                    replacement: (content) => content
+                });
+            }
+
+            if (orderedListMarker === ')') {
+                service.addRule('orderedListParen', {
+                    filter: (node) => node.nodeName === 'LI' && node.parentNode.nodeName === 'OL',
+                    replacement: (content, node) => {
+                        content = content.replace(/^\n+/, '').replace(/\n+$/, '\n').replace(/\n/gm, '\n    ');
+                        const parent = node.parentNode;
+                        const index = Array.prototype.indexOf.call(parent.children, node);
+                        const start = parent.getAttribute('start');
+                        const n = start ? Number(start) + index : index + 1;
+                        return n + ') ' + content + (node.nextSibling && !/\n$/.test(content) ? '\n' : '');
+                    }
+                });
+            }
+
+            if (noEscape) {
+                service.escape = (str) => str;
+            }
+
+            if (keepRawTags) {
+                service.keep(['iframe', 'video', 'audio', 'form', 'input', 'button', 'select', 'embed', 'object']);
+            }
+
+            if (stripEmpty) {
+                service.remove((node) => {
+                    const tag = node.nodeName.toLowerCase();
+                    const voidTags = new Set(['img', 'br', 'hr', 'input', 'iframe', 'video', 'audio', 'embed', 'source']);
+                    if (voidTags.has(tag)) return false;
+                    return node.nodeType === 1 && !node.textContent.trim() && node.children.length === 0;
+                });
+            }
+
+            return service;
+        }
+
+        function buildFrontMatter(htmlSource) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlSource, 'text/html');
+            const titleTag = doc.querySelector('title');
+            const firstHeading = doc.querySelector('h1, h2');
+            const title = (titleTag && titleTag.textContent.trim()) || (firstHeading && firstHeading.textContent.trim()) || 'Untitled';
+            const escapedTitle = title.replace(/"/g, '\\"');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            return `---\ntitle: "${escapedTitle}"\ndate: ${dateStr}\n---\n\n`;
+        }
+
+        function convert() {
+            const opts = {};
+            const source = getActiveHtmlSource();
+            const removeScripts = document.getElementById('optRemoveScripts').checked;
+
+            let cleanSource = source;
+            if (removeScripts) {
+                cleanSource = cleanSource
+                    .replace(/<!--[\s\S]*?-->/g, '')
+                    .replace(/<script[\s\S]*?<\/script>/gi, '')
+                    .replace(/<style[\s\S]*?<\/style>/gi, '');
+            }
+
+            const service = buildTurndownService();
+            let markdown = '';
+            try {
+                markdown = service.turndown(cleanSource || '');
+            } catch (err) {
+                markdown = '// Could not parse this HTML: ' + err.message;
+            }
+
+            if (document.getElementById('optTrimTrailing').checked) {
+                markdown = markdown.split('\n').map(line => line.replace(/[ \t]+$/g, '')).join('\n');
+            }
+
+            if (document.getElementById('optCollapseBlankLines').checked) {
+                markdown = markdown.replace(/\n{3,}/g, '\n\n');
+            }
+
+            if (document.getElementById('optFrontMatter').checked && cleanSource.trim()) {
+                markdown = buildFrontMatter(cleanSource) + markdown;
+            }
+
+            markdownOutput.value = markdown;
+            updateStats(source, markdown);
+        }
+
+        function updateStats(htmlSource, markdown) {
+            document.getElementById('htmlCharCount').textContent = htmlSource.length.toLocaleString();
+            const tagMatches = htmlSource.match(/<[a-zA-Z][^>]*>/g);
+            document.getElementById('htmlTagCount').textContent = tagMatches ? tagMatches.length.toLocaleString() : '0';
+
+            const words = markdown.trim() ? (markdown.trim().match(/[A-Za-z0-9À-ÖØ-öø-ÿ'’-]+/g) || []) : [];
+            document.getElementById('mdWordCount').textContent = words.length.toLocaleString();
+            document.getElementById('mdCharCount').textContent = markdown.length.toLocaleString();
+            document.getElementById('mdLineCount').textContent = (markdown === '' ? 0 : markdown.split('\n').length).toLocaleString();
+        }
+
+        // Live conversion triggers
+        htmlInput.addEventListener('input', convert);
+        richPasteInput.addEventListener('input', convert);
+        richPasteInput.addEventListener('paste', () => setTimeout(convert, 50));
+        document.querySelectorAll('.settings-grid input[type="checkbox"], .settings-grid select').forEach(el => {
+            el.addEventListener('change', convert);
+        });
+        // Note: all new settings (link style, ordered list marker, HR style, escaping,
+        // raw-tag preservation, empty-element stripping, blank-line collapse,
+        // trailing-whitespace trim, front matter) live inside .settings-grid, so the
+        // delegated listener above already covers them.
+
+        // Input mode tabs
+        document.querySelectorAll('.input-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.input-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.input-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('inpane-' + tab.dataset.tab).classList.add('active');
+                activeInputMode = tab.dataset.tab;
+                convert();
+            });
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            htmlInput.value = '';
+            richPasteInput.innerHTML = '';
+            convert();
+            (activeInputMode === 'code' ? htmlInput : richPasteInput).focus();
+        });
+
+        // Upload
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            readFileIntoEditor(file);
+            fileInput.value = '';
+        });
+
+        function readFileIntoEditor(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.querySelectorAll('.input-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.input-pane').forEach(p => p.classList.remove('active'));
+                document.querySelector('.input-tab[data-tab="code"]').classList.add('active');
+                document.getElementById('inpane-code').classList.add('active');
+                activeInputMode = 'code';
+                htmlInput.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
+            if (file) readFileIntoEditor(file);
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(markdownOutput.value);
+            } catch (err) {
+                markdownOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([markdownOutput.value], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
