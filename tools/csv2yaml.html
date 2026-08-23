@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | CSV to YAML Converter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free CSV to YAML converter with delimiter auto-detection, dot/bracket notation nesting, column rename & filtering, type coercion, null-token handling, keyed/grouped output, block or flow YAML style, inferred schema, and batch conversion. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/csv2yaml.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/csv2yaml.html" />
+<meta property="og:title" content="CSV to YAML Converter — awjunaid" />
+<meta property="og:description" content="Turn spreadsheet exports into clean YAML — nested keys from dot notation, array columns, column rename/filter, type coercion, keyed or grouped output, block or flow style, inferred schema, and batch export. 100% client-side — nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/csv2yaml.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="CSV to YAML Converter — awjunaid" />
+<meta name="twitter:description" content="Convert CSV to YAML with nested keys, array columns, column filtering, type coercion, keyed/grouped output, and inferred schema. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/csv2yaml.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea {
+            width: 100%; min-height: 74px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; resize: vertical;
+        }
+        .field-group .field-hint { display: block; font-size: 11px; opacity: 0.55; margin-top: 6px; }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #csvInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #csvInput:focus { outline: none; border-color: var(--border-color); }
+        #csvInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #yamlOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .tree-pane, .schema-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .schema-pane { white-space: pre; }
+        .tree-pane .tree-empty, .schema-pane .schema-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .tree-node { margin-left: 16px; }
+        .tree-row { padding: 3px 0; white-space: nowrap; }
+        .tree-key { font-weight: 700; }
+        .tree-type { opacity: 0.5; font-size: 11px; margin-left: 6px; }
+        .tree-val { opacity: 0.85; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #csvInput, #yamlOutput, .tree-pane, .schema-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">CSV to YAML Converter</h1>
+                <div class="tool-dek">Upload or paste CSV, fine-tune delimiter detection, nested key expansion, column filtering/renaming, type coercion and output structure, then preview live as YAML, a tree view, or an inferred schema — all in your browser. Built for turning spreadsheet exports into config-ready YAML (Ansible inventories, CI matrices, Helm values, and more).</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="strict">Strict / Flat Records</option>
+                    <option value="config">Config Values (nested dot-notation)</option>
+                    <option value="inventory">Keyed Inventory (by column)</option>
+                    <option value="compact">Compact / Flow Style</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Parsing &amp; Delimiter</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="delimiterSelect">Delimiter</label>
+                            <select id="delimiterSelect">
+                                <option value="," selected>Comma ( , )</option>
+                                <option value=";">Semicolon ( ; )</option>
+                                <option value="\t">Tab</option>
+                                <option value="|">Pipe ( | )</option>
+                                <option value="custom">Custom…</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="customDelimiterInput">Custom delimiter</label>
+                            <input type="text" id="customDelimiterInput" placeholder="e.g. ~" maxlength="3">
+                        </div>
+                        <div class="field-group">
+                            <label for="quoteCharInput">Quote character</label>
+                            <input type="text" id="quoteCharInput" value="&quot;" maxlength="1">
+                        </div>
+                        <div class="field-group">
+                            <label for="skipRowsInput">Skip rows before header</label>
+                            <input type="number" id="skipRowsInput" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoDetectDelimiter">
+                            <span><span class="setting-name">Auto-detect delimiter</span><span class="setting-hint">Scans the first few lines and picks the most consistent separator, overriding the dropdown</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optHasHeader" checked>
+                            <span><span class="setting-name">First row is a header</span><span class="setting-hint">Uncheck to supply your own column names below instead</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSkipBlankLines" checked>
+                            <span><span class="setting-name">Skip blank lines</span><span class="setting-hint">Ignores fully empty rows in the source file</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrimFields" checked>
+                            <span><span class="setting-name">Trim field whitespace</span><span class="setting-hint">Removes leading/trailing spaces from every unquoted cell</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="customHeaderInput">Custom column names (used when "First row is a header" is off)</label>
+                            <input type="text" id="customHeaderInput" placeholder="id, name, address.city, tags[0], tags[1]">
+                            <span class="field-hint">Comma-separated, in column order. Falls back to col_1, col_2… when left blank.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Field Mapping &amp; Nesting</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDotNotation" checked>
+                            <span><span class="setting-name">Expand dot notation</span><span class="setting-hint">A column named address.city becomes a nested address: {city: ...} map</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBracketNotation" checked>
+                            <span><span class="setting-name">Expand bracket notation</span><span class="setting-hint">Columns like tags[0], tags[1] become a tags array in index order</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="renameMapInput">Rename columns (one per line, old:new)</label>
+                            <textarea id="renameMapInput" placeholder="usr_id:id&#10;full_name:name"></textarea>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="includeColsInput">Include only these columns</label>
+                            <input type="text" id="includeColsInput" placeholder="Comma-separated, optional">
+                        </div>
+                        <div class="field-group">
+                            <label for="excludeColsInput">Exclude these columns</label>
+                            <input type="text" id="excludeColsInput" placeholder="Comma-separated, optional">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Types &amp; Empty Values</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseNumbers" checked>
+                            <span><span class="setting-name">Parse numeric strings</span><span class="setting-hint">"3" and "2.5" become YAML numbers instead of strings</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseBooleans" checked>
+                            <span><span class="setting-name">Parse boolean-like strings</span><span class="setting-hint">true/false, yes/no, on/off (case-insensitive) become YAML booleans</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="nullTokensInput">Null-like tokens (treated as empty)</label>
+                            <input type="text" id="nullTokensInput" value="NULL, null, N/A, NA, -">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Empty value handling</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="null" checked> Convert to null</label>
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="empty"> Empty string ""</label>
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="omit"> Omit the key entirely</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Structure</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Structure mode</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="structureMode" value="list" checked> List of records</label>
+                                <label class="radio-opt"><input type="radio" name="structureMode" value="keyed"> Keyed object (one column as key)</label>
+                                <label class="radio-opt"><input type="radio" name="structureMode" value="grouped"> Grouped by column value</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="keyColumnInput">Key / group-by column</label>
+                            <input type="text" id="keyColumnInput" placeholder="e.g. id">
+                            <span class="field-hint">Used only in Keyed or Grouped mode.</span>
+                        </div>
+                        <div class="field-group">
+                            <label for="rootWrapperInput">Root wrapper key (optional)</label>
+                            <input type="text" id="rootWrapperInput" placeholder="e.g. items">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>YAML Formatting</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Style</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="yamlStyle" value="block" checked> Block style</label>
+                                <label class="radio-opt"><input type="radio" name="yamlStyle" value="flow"> Flow style (JSON-like)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSortKeys">
+                            <span><span class="setting-name">Sort keys alphabetically</span><span class="setting-hint">Recursive, applied to every nested map</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optQuoteStrings">
+                            <span><span class="setting-name">Always quote string scalars</span><span class="setting-hint">Wraps every string value in double quotes, even when not required</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDocStart">
+                            <span><span class="setting-name">Add "---" document start marker</span><span class="setting-hint">Prefixes the output with a leading document separator</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMultiDoc">
+                            <span><span class="setting-name">Multi-document output</span><span class="setting-hint">In List mode, writes one YAML document per record separated by "---"</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="indentSelect">Indent width</label>
+                            <select id="indentSelect">
+                                <option value="2" selected>2 spaces</option>
+                                <option value="4">4 spaces</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict mode</span><span class="setting-hint">Fail loudly when a row has a different number of columns than the header</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowSchema" checked>
+                            <span><span class="setting-name">Infer schema</span><span class="setting-hint">Populates the Schema tab with a best-effort JSON Schema of the parsed data</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>CSV Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".csv,.tsv,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="csvInput" spellcheck="false" placeholder="id,name,address.city,tags[0],tags[1]
+1,Alpha,Lahore,production,edge
+
+Paste or type your CSV here, or upload .csv file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag & drop .csv / .tsv / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="csvRowCount">0</strong> data rows</span>
+                        <span><strong id="csvColCount">0</strong> columns</span>
+                        <span><strong id="csvDelimiterUsed">—</strong> delimiter</span>
+                        <span><strong id="csvCharCount">0</strong> characters</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .yaml</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="yaml" type="button">YAML Output</button>
+                        <button class="output-tab" data-tab="tree" type="button">Tree View</button>
+                        <button class="output-tab" data-tab="schema" type="button">Inferred Schema</button>
+                    </div>
+                    <div class="output-pane active" id="pane-yaml">
+                        <textarea id="yamlOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-tree">
+                        <div class="tree-pane" id="treePane"><p class="tree-empty">Parse valid CSV to see the tree structure here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-schema">
+                        <div class="schema-pane" id="schemaPane"><p class="schema-empty">Enable "Infer schema" and parse valid CSV to see the inferred schema here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="yamlSizeCount">0</strong> bytes</span>
+                        <span><strong id="yamlKeyCount">0</strong> keys</span>
+                        <span><strong id="yamlArrayItemCount">0</strong> array items</span>
+                        <span><strong id="yamlDepthCount">0</strong> max depth</span>
+                        <span><strong id="yamlStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How do I turn flat columns into nested YAML?</h4>
+                        <p>Name your columns using dot notation, like <code>address.city</code> or <code>owner.contact.email</code>, and turn on "Expand dot notation." Each dot becomes a nesting level, so a spreadsheet export can produce config-shaped YAML without editing the source file.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How do repeated columns become arrays?</h4>
+                        <p>Columns named with bracket suffixes, like <code>tags[0]</code>, <code>tags[1]</code>, <code>tags[2]</code>, are collapsed into a single <code>tags</code> array in index order when "Expand bracket notation" is on — useful for exporting multi-value fields from a flat spreadsheet.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between List, Keyed, and Grouped output?</h4>
+                        <p>List (the default) writes every row as an item in a YAML sequence. Keyed mode uses one column's value as the top-level map key for each record — handy for inventories keyed by hostname or ID. Grouped mode buckets records into arrays under each distinct value of a chosen column.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are empty cells and null-like values handled?</h4>
+                        <p>Cells that exactly match one of your null-like tokens (like <code>N/A</code> or <code>-</code>) and genuinely empty cells are both routed through the same "Empty value handling" setting — converted to <code>null</code>, an empty string, or dropped from the record entirely.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Block style vs. Flow style — which should I use?</h4>
+                        <p>Block style is the familiar indented YAML most tools and humans expect. Flow style packs the same data into JSON-like <code>{ }</code> / <code>[ ]</code> braces on fewer lines — valid YAML, but denser and better suited to short config snippets than long documents.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .csv files and each becomes a tab above the editor. "Download All (.zip)" converts every loaded file with your current settings and bundles the resulting .yaml files into one archive.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files you upload are read locally in your browser and the conversion happens entirely client-side — nothing is sent anywhere. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // CSV → YAML CONVERTER — ENTERPRISE EDITION
+        // ============================================
+        const csvInputEl = document.getElementById('csvInput');
+        const yamlOutput = document.getElementById('yamlOutput');
+        const treePane = document.getElementById('treePane');
+        const schemaPane = document.getElementById('schemaPane');
+        const errorBanner = document.getElementById('errorBanner');
+        const OMIT = Symbol('omit');
+
+        const sampleCsv =
+`id,name,active,replicas,address.city,address.zip,tags[0],tags[1]
+1,awjunaid-api,true,3,Lahore,54000,production,edge
+2,awjunaid-worker,false,1,Karachi,75500,staging,`;
+        csvInputEl.value = sampleCsv;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optAutoDetectDelimiter','optHasHeader','optSkipBlankLines','optTrimFields','optDotNotation','optBracketNotation','optParseNumbers','optParseBooleans','optSortKeys','optQuoteStrings','optDocStart','optMultiDoc','optStrictMode','optShowSchema'],
+            text: ['customDelimiterInput','quoteCharInput','customHeaderInput','renameMapInput','includeColsInput','excludeColsInput','nullTokensInput','keyColumnInput','rootWrapperInput'],
+            select: ['delimiterSelect','indentSelect'],
+            number: ['skipRowsInput'],
+            radio: ['emptyHandling','structureMode','yamlStyle']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.number.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+
+            let delimiter = raw.delimiterSelect === 'custom' ? (raw.customDelimiterInput || ',') : raw.delimiterSelect;
+            if (delimiter === '\\t') delimiter = '\t';
+
+            const nullTokens = raw.nullTokensInput.split(',').map(s => s.trim()).filter(s => s !== '');
+            const includeCols = raw.includeColsInput.split(',').map(s => s.trim()).filter(s => s !== '');
+            const excludeCols = raw.excludeColsInput.split(',').map(s => s.trim()).filter(s => s !== '');
+            const customHeaders = raw.customHeaderInput.split(',').map(s => s.trim()).filter(s => s !== '');
+            const renameMap = {};
+            raw.renameMapInput.split('\n').forEach(line => {
+                const idx = line.indexOf(':');
+                if (idx > -1) {
+                    const from = line.slice(0, idx).trim();
+                    const to = line.slice(idx + 1).trim();
+                    if (from && to) renameMap[from] = to;
+                }
+            });
+
+            return {
+                delimiter, quoteChar: raw.quoteCharInput || '"',
+                skipRows: Math.max(0, parseInt(raw.skipRowsInput, 10) || 0),
+                autoDetectDelimiter: raw.optAutoDetectDelimiter,
+                hasHeader: raw.optHasHeader,
+                customHeaders, skipBlankLines: raw.optSkipBlankLines, trimFields: raw.optTrimFields,
+                dotNotation: raw.optDotNotation, bracketNotation: raw.optBracketNotation,
+                renameMap, includeCols, excludeCols,
+                parseNumbers: raw.optParseNumbers, parseBooleans: raw.optParseBooleans,
+                nullTokens, emptyHandling: raw.emptyHandling,
+                structureMode: raw.structureMode, keyColumn: raw.keyColumnInput.trim(), rootWrapper: raw.rootWrapperInput.trim(),
+                yamlStyle: raw.yamlStyle, sortKeys: raw.optSortKeys, quoteStrings: raw.optQuoteStrings,
+                docStart: raw.optDocStart, multiDoc: raw.optMultiDoc,
+                indentWidth: parseInt(raw.indentSelect, 10) || 2,
+                strictMode: raw.optStrictMode, showSchema: raw.optShowSchema,
+                _raw: raw
+            };
+        }
+
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.number.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            strict: {
+                delimiterSelect: ',', customDelimiterInput: '', quoteCharInput: '"', skipRowsInput: '0',
+                optAutoDetectDelimiter: false, optHasHeader: true, customHeaderInput: '',
+                optSkipBlankLines: true, optTrimFields: true,
+                optDotNotation: false, optBracketNotation: false, renameMapInput: '', includeColsInput: '', excludeColsInput: '',
+                optParseNumbers: true, optParseBooleans: true, nullTokensInput: 'NULL, null, N/A, NA, -', emptyHandling: 'null',
+                structureMode: 'list', keyColumnInput: '', rootWrapperInput: '',
+                yamlStyle: 'block', optSortKeys: true, optQuoteStrings: false, optDocStart: false, optMultiDoc: false,
+                indentSelect: '2', optStrictMode: true, optShowSchema: true
+            },
+            config: {
+                delimiterSelect: ',', customDelimiterInput: '', quoteCharInput: '"', skipRowsInput: '0',
+                optAutoDetectDelimiter: false, optHasHeader: true, customHeaderInput: '',
+                optSkipBlankLines: true, optTrimFields: true,
+                optDotNotation: true, optBracketNotation: true, renameMapInput: '', includeColsInput: '', excludeColsInput: '',
+                optParseNumbers: true, optParseBooleans: true, nullTokensInput: 'NULL, null, N/A, NA, -', emptyHandling: 'omit',
+                structureMode: 'list', keyColumnInput: '', rootWrapperInput: 'items',
+                yamlStyle: 'block', optSortKeys: false, optQuoteStrings: false, optDocStart: false, optMultiDoc: false,
+                indentSelect: '2', optStrictMode: true, optShowSchema: true
+            },
+            inventory: {
+                delimiterSelect: ',', customDelimiterInput: '', quoteCharInput: '"', skipRowsInput: '0',
+                optAutoDetectDelimiter: false, optHasHeader: true, customHeaderInput: '',
+                optSkipBlankLines: true, optTrimFields: true,
+                optDotNotation: true, optBracketNotation: true, renameMapInput: '', includeColsInput: '', excludeColsInput: '',
+                optParseNumbers: true, optParseBooleans: true, nullTokensInput: 'NULL, null, N/A, NA, -', emptyHandling: 'null',
+                structureMode: 'keyed', keyColumnInput: 'id', rootWrapperInput: '',
+                yamlStyle: 'block', optSortKeys: true, optQuoteStrings: false, optDocStart: true, optMultiDoc: false,
+                indentSelect: '2', optStrictMode: true, optShowSchema: false
+            },
+            compact: {
+                delimiterSelect: ',', customDelimiterInput: '', quoteCharInput: '"', skipRowsInput: '0',
+                optAutoDetectDelimiter: true, optHasHeader: true, customHeaderInput: '',
+                optSkipBlankLines: true, optTrimFields: true,
+                optDotNotation: false, optBracketNotation: false, renameMapInput: '', includeColsInput: '', excludeColsInput: '',
+                optParseNumbers: true, optParseBooleans: true, nullTokensInput: 'NULL, null, N/A, NA, -', emptyHandling: 'omit',
+                structureMode: 'list', keyColumnInput: '', rootWrapperInput: '',
+                yamlStyle: 'flow', optSortKeys: true, optQuoteStrings: false, optDocStart: false, optMultiDoc: false,
+                indentSelect: '2', optStrictMode: false, optShowSchema: false
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'csvYamlConverterCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select, .settings-card textarea').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'csv-to-yaml-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // HELPERS
+        // ============================================
+        function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+        function typeOf(v) {
+            if (v === null) return 'null';
+            if (Array.isArray(v)) return 'array';
+            return typeof v;
+        }
+        function isEmptyContainer(v) {
+            if (Array.isArray(v)) return v.length === 0;
+            if (isPlainObject(v)) return Object.keys(v).length === 0;
+            return false;
+        }
+        function sortKeysDeep(v) {
+            if (Array.isArray(v)) return v.map(sortKeysDeep);
+            if (isPlainObject(v)) {
+                const out = {};
+                Object.keys(v).sort((a, b) => a.localeCompare(b)).forEach(k => { out[k] = sortKeysDeep(v[k]); });
+                return out;
+            }
+            return v;
+        }
+
+        // ============================================
+        // DELIMITER AUTO-DETECTION
+        // ============================================
+        function detectDelimiter(text) {
+            const candidates = [',', ';', '\t', '|'];
+            const lines = text.split(/\r\n|\r|\n/).filter(l => l.trim() !== '').slice(0, 6);
+            if (lines.length === 0) return ',';
+            let best = ','; let bestScore = -1;
+            candidates.forEach(cand => {
+                const counts = lines.map(l => l.split(cand).length - 1);
+                const nonZero = counts.filter(c => c > 0);
+                if (nonZero.length === 0) return;
+                const avg = nonZero.reduce((a, b) => a + b, 0) / nonZero.length;
+                const consistent = counts.every(c => c === counts[0]);
+                const score = avg * (consistent ? 2 : 1);
+                if (score > bestScore) { bestScore = score; best = cand; }
+            });
+            return best;
+        }
+
+        // ============================================
+        // CSV PARSER
+        // ============================================
+        function parseCSVText(text, delimiter, quoteChar) {
+            const rows = [];
+            let row = [], field = '', i = 0, inQuotes = false;
+            const n = text.length;
+            while (i < n) {
+                const c = text[i];
+                if (inQuotes) {
+                    if (c === quoteChar) {
+                        if (text[i + 1] === quoteChar) { field += quoteChar; i += 2; continue; }
+                        inQuotes = false; i++; continue;
+                    }
+                    field += c; i++; continue;
+                }
+                if (c === quoteChar) { inQuotes = true; i++; continue; }
+                if (c === delimiter) { row.push(field); field = ''; i++; continue; }
+                if (c === '\r') { i++; continue; }
+                if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+                field += c; i++;
+            }
+            if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+            return rows;
+        }
+
+        // ============================================
+        // VALUE COERCION
+        // ============================================
+        function emptyValue(opts) {
+            if (opts.emptyHandling === 'null') return null;
+            if (opts.emptyHandling === 'omit') return OMIT;
+            return '';
+        }
+        function coerceCell(raw, opts) {
+            let v = raw;
+            if (opts.trimFields) v = v.trim();
+            if (v === '' || opts.nullTokens.includes(v)) return emptyValue(opts);
+            if (opts.parseBooleans) {
+                const lower = v.toLowerCase();
+                if (['true', 'yes', 'on'].includes(lower)) return true;
+                if (['false', 'no', 'off'].includes(lower)) return false;
+            }
+            if (opts.parseNumbers && /^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(v) && !/^0\d+$/.test(v.replace(/^-/, ''))) {
+                const n = Number(v);
+                if (!Number.isNaN(n)) return n;
+            }
+            return v;
+        }
+
+        // ============================================
+        // NESTED KEY EXPANSION
+        // ============================================
+        function setNestedValue(target, path, value, opts) {
+            const parts = [];
+            path.split('.').forEach(seg => {
+                if (opts.bracketNotation) {
+                    const m = seg.match(/^([^\[\]]+)((?:\[\d+\])*)$/);
+                    if (m) {
+                        parts.push({ key: m[1], indices: [] });
+                        const idxMatches = m[2].match(/\[(\d+)\]/g) || [];
+                        idxMatches.forEach(im => parts[parts.length - 1].indices.push(parseInt(im.slice(1, -1), 10)));
+                        return;
+                    }
+                }
+                parts.push({ key: seg, indices: [] });
+            });
+
+            let cursor = target;
+            parts.forEach((part, idx) => {
+                const isLast = idx === parts.length - 1;
+                if (!isLast || part.indices.length > 0) {
+                    if (!(part.key in cursor) || typeof cursor[part.key] !== 'object' || cursor[part.key] === null) {
+                        cursor[part.key] = part.indices.length > 0 ? [] : {};
+                    }
+                    let node = cursor[part.key];
+                    part.indices.forEach((arrIdx, iPos) => {
+                        const isLastIndex = isLast && iPos === part.indices.length - 1;
+                        if (isLastIndex) {
+                            if (value !== OMIT) node[arrIdx] = value;
+                        } else {
+                            if (typeof node[arrIdx] !== 'object' || node[arrIdx] === null) node[arrIdx] = {};
+                            node = node[arrIdx];
+                        }
+                    });
+                    if (part.indices.length === 0) cursor = node;
+                } else {
+                    if (value !== OMIT) cursor[part.key] = value;
+                }
+            });
+        }
+
+        function compactArrayHoles(v) {
+            if (Array.isArray(v)) {
+                const compact = v.filter(x => x !== undefined).map(compactArrayHoles);
+                return compact;
+            }
+            if (isPlainObject(v)) {
+                const out = {};
+                Object.keys(v).forEach(k => { out[k] = compactArrayHoles(v[k]); });
+                return out;
+            }
+            return v;
+        }
+
+        // ============================================
+        // CSV -> RECORDS -> STRUCTURE
+        // ============================================
+        function buildRecords(text, opts) {
+            const delimiter = opts.autoDetectDelimiter ? detectDelimiter(text) : opts.delimiter;
+            let rows = parseCSVText(text, delimiter, opts.quoteChar);
+            if (opts.skipBlankLines) rows = rows.filter(r => !(r.length === 1 && r[0].trim() === ''));
+            rows = rows.slice(opts.skipRows);
+            if (rows.length === 0) throw new Error('No data rows found after parsing.');
+
+            let headers;
+            let dataRows;
+            if (opts.hasHeader) {
+                headers = rows[0].map(h => (opts.trimFields ? h.trim() : h));
+                dataRows = rows.slice(1);
+            } else {
+                const width = rows[0].length;
+                headers = [];
+                for (let c = 0; c < width; c++) headers.push(opts.customHeaders[c] || ('col_' + (c + 1)));
+                dataRows = rows;
+            }
+
+            headers = headers.map(h => opts.renameMap[h] || h);
+
+            const seen = {};
+            headers.forEach((h, i) => {
+                if (seen[h] !== undefined) headers[i] = h + '_' + (i + 1);
+                seen[headers[i]] = true;
+            });
+
+            let includeSet = opts.includeCols.length ? new Set(opts.includeCols) : null;
+            let excludeSet = new Set(opts.excludeCols);
+
+            const records = dataRows.map((row, rIdx) => {
+                if (opts.strictMode && row.length !== headers.length) {
+                    throw new Error('Row ' + (rIdx + (opts.hasHeader ? 2 : 1)) + ' has ' + row.length + ' columns, expected ' + headers.length + ' (based on the header). Turn off Strict mode to ignore this.');
+                }
+                let record = opts.dotNotation || opts.bracketNotation ? {} : {};
+                headers.forEach((h, cIdx) => {
+                    if (includeSet && !includeSet.has(h)) return;
+                    if (excludeSet.has(h)) return;
+                    const raw = cIdx < row.length ? row[cIdx] : '';
+                    const val = coerceCell(raw, opts);
+                    if (opts.dotNotation || opts.bracketNotation) {
+                        if (h.includes('.') || (opts.bracketNotation && /\[\d+\]/.test(h))) {
+                            setNestedValue(record, h, val, opts);
+                            return;
+                        }
+                    }
+                    if (val !== OMIT) record[h] = val;
+                });
+                return compactArrayHoles(record);
+            });
+
+            return { records, headers, delimiterUsed: delimiter };
+        }
+
+        function buildOutputStructure(records, opts) {
+            let result;
+            if (opts.structureMode === 'keyed' && opts.keyColumn) {
+                result = {};
+                records.forEach(r => {
+                    const k = r[opts.keyColumn];
+                    result[k === null || k === undefined ? '(null)' : String(k)] = r;
+                });
+            } else if (opts.structureMode === 'grouped' && opts.keyColumn) {
+                result = {};
+                records.forEach(r => {
+                    const k = r[opts.keyColumn];
+                    const key = k === null || k === undefined ? '(null)' : String(k);
+                    if (!result[key]) result[key] = [];
+                    result[key].push(r);
+                });
+            } else {
+                result = records;
+            }
+
+            if (opts.rootWrapper) {
+                const wrapped = {};
+                wrapped[opts.rootWrapper] = result;
+                result = wrapped;
+            }
+            if (opts.sortKeys) result = sortKeysDeep(result);
+            return result;
+        }
+
+        // ============================================
+        // YAML SERIALIZATION
+        // ============================================
+        const YAML_RESERVED = new Set(['null', 'Null', 'NULL', '~', 'true', 'True', 'TRUE', 'false', 'False', 'FALSE', 'yes', 'Yes', 'YES', 'no', 'No', 'NO', 'on', 'On', 'ON', 'off', 'Off', 'OFF', '']);
+        function needsQuoting(str) {
+            if (str === '') return true;
+            if (YAML_RESERVED.has(str)) return true;
+            if (/^[\s]|[\s]$/.test(str)) return true;
+            if (/^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(str)) return true;
+            if (/^[-?:,\[\]{}#&*!|>'"%@`]/.test(str)) return true;
+            if (/:( |$)/.test(str)) return true;
+            if (/ #/.test(str)) return true;
+            if (/[\n\t]/.test(str)) return true;
+            return false;
+        }
+        function quoteYamlString(str) {
+            return JSON.stringify(str);
+        }
+        function scalarToYAML(v, opts) {
+            if (v === null || v === undefined) return 'null';
+            if (typeof v === 'boolean') return String(v);
+            if (typeof v === 'number') return String(v);
+            const str = String(v);
+            if (opts.quoteStrings || needsQuoting(str)) return quoteYamlString(str);
+            return str;
+        }
+        function keyToYAML(k, opts) {
+            const str = String(k);
+            if (opts.quoteStrings || needsQuoting(str)) return quoteYamlString(str);
+            return str;
+        }
+
+        function toYamlLines(value, indent, opts) {
+            const pad = ' '.repeat(indent);
+            const lines = [];
+            if (Array.isArray(value)) {
+                if (value.length === 0) { lines.push(pad + '[]'); return lines; }
+                value.forEach(item => {
+                    if ((Array.isArray(item) || isPlainObject(item)) && !isEmptyContainer(item)) {
+                        const childLines = toYamlLines(item, indent + opts.indentWidth, opts);
+                        const firstContent = childLines[0].slice(indent + opts.indentWidth);
+                        lines.push(pad + '- ' + firstContent);
+                        lines.push(...childLines.slice(1));
+                    } else if ((Array.isArray(item) || isPlainObject(item)) && isEmptyContainer(item)) {
+                        lines.push(pad + '- ' + (Array.isArray(item) ? '[]' : '{}'));
+                    } else {
+                        lines.push(pad + '- ' + scalarToYAML(item, opts));
+                    }
+                });
+                return lines;
+            }
+            if (isPlainObject(value)) {
+                const keys = Object.keys(value);
+                if (keys.length === 0) { lines.push(pad + '{}'); return lines; }
+                keys.forEach(k => {
+                    const v = value[k];
+                    const keyStr = keyToYAML(k, opts);
+                    if ((Array.isArray(v) || isPlainObject(v)) && !isEmptyContainer(v)) {
+                        lines.push(pad + keyStr + ':');
+                        lines.push(...toYamlLines(v, indent + opts.indentWidth, opts));
+                    } else if ((Array.isArray(v) || isPlainObject(v)) && isEmptyContainer(v)) {
+                        lines.push(pad + keyStr + ': ' + (Array.isArray(v) ? '[]' : '{}'));
+                    } else {
+                        lines.push(pad + keyStr + ': ' + scalarToYAML(v, opts));
+                    }
+                });
+                return lines;
+            }
+            lines.push(pad + scalarToYAML(value, opts));
+            return lines;
+        }
+
+        function toYamlFlow(value, opts) {
+            if (Array.isArray(value)) return '[' + value.map(v => toYamlFlow(v, opts)).join(', ') + ']';
+            if (isPlainObject(value)) {
+                const keys = Object.keys(value);
+                return '{' + keys.map(k => keyToYAML(k, opts) + ': ' + toYamlFlow(value[k], opts)).join(', ') + '}';
+            }
+            return scalarToYAML(value, opts);
+        }
+
+        function stringifyYaml(data, opts) {
+            let body;
+            if (opts.multiDoc && opts.structureMode === 'list' && Array.isArray(data)) {
+                const docs = data.map(rec => opts.yamlStyle === 'flow' ? toYamlFlow(rec, opts) : toYamlLines(rec, 0, opts).join('\n'));
+                body = docs.join('\n---\n');
+            } else if (opts.yamlStyle === 'flow') {
+                body = toYamlFlow(data, opts);
+            } else {
+                body = toYamlLines(data, 0, opts).join('\n');
+            }
+            let out = (opts.docStart ? '---\n' : '') + body + '\n';
+            return out;
+        }
+
+        // ============================================
+        // TREE VIEW
+        // ============================================
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function renderTreeNode(key, value) {
+            const t = typeOf(value);
+            let row = `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(String(key))}</span><span class="tree-type">${t}</span>`;
+            if (t === 'object') {
+                const keys = Object.keys(value);
+                row += ` <span class="tree-val">{${keys.length}}</span></div>`;
+                row += `<div class="tree-node">${keys.map(k => renderTreeNode(k, value[k])).join('')}</div>`;
+            } else if (t === 'array') {
+                row += ` <span class="tree-val">[${value.length}]</span></div>`;
+                row += `<div class="tree-node">${value.map((v, i) => renderTreeNode(i, v)).join('')}</div>`;
+            } else {
+                row += ` <span class="tree-val">${escapeHtmlStr(JSON.stringify(value))}</span></div>`;
+            }
+            return row;
+        }
+        function updateTree(data) {
+            if (data === undefined) {
+                treePane.innerHTML = '<p class="tree-empty">Parse valid CSV to see the tree structure here.</p>';
+                return;
+            }
+            if (Array.isArray(data)) {
+                treePane.innerHTML = data.map((v, i) => renderTreeNode(i, v)).join('') || '<p class="tree-empty">Empty document.</p>';
+            } else if (isPlainObject(data)) {
+                const keys = Object.keys(data);
+                treePane.innerHTML = keys.length ? keys.map(k => renderTreeNode(k, data[k])).join('') : '<p class="tree-empty">Empty document.</p>';
+            } else {
+                treePane.innerHTML = renderTreeNode('(root)', data);
+            }
+        }
+
+        // ============================================
+        // INFERRED JSON SCHEMA
+        // ============================================
+        function typeSchema(v) {
+            if (v === null || v === undefined) return { type: 'null' };
+            if (Array.isArray(v)) {
+                if (v.length === 0) return { type: 'array', items: {} };
+                return { type: 'array', items: typeSchema(v[0]) };
+            }
+            if (typeof v === 'object') {
+                const properties = {};
+                const required = [];
+                Object.entries(v).forEach(([k, val]) => { properties[k] = typeSchema(val); required.push(k); });
+                return { type: 'object', properties, required };
+            }
+            if (typeof v === 'number') return { type: Number.isInteger(v) ? 'integer' : 'number' };
+            if (typeof v === 'boolean') return { type: 'boolean' };
+            return { type: 'string' };
+        }
+        function buildJsonSchema(data) {
+            const schema = Object.assign({ '$schema': 'http://json-schema.org/draft-07/schema#' }, typeSchema(data));
+            return JSON.stringify(schema, null, 2);
+        }
+        function updateSchema(data, opts) {
+            if (!opts.showSchema) {
+                schemaPane.innerHTML = '<p class="schema-empty">Enable "Infer schema" to see the inferred schema here.</p>';
+                return;
+            }
+            if (data === undefined) {
+                schemaPane.innerHTML = '<p class="schema-empty">Parse valid CSV to see the inferred schema here.</p>';
+                return;
+            }
+            schemaPane.textContent = buildJsonSchema(data);
+        }
+
+        // ============================================
+        // STRUCTURE STATS
+        // ============================================
+        function countStructure(data) {
+            const acc = { keys: 0, arrayItems: 0, maxDepth: 0 };
+            function walk(v, depth) {
+                acc.maxDepth = Math.max(acc.maxDepth, depth);
+                if (Array.isArray(v)) {
+                    acc.arrayItems += v.length;
+                    v.forEach(x => walk(x, depth + 1));
+                } else if (isPlainObject(v)) {
+                    const keys = Object.keys(v);
+                    acc.keys += keys.length;
+                    keys.forEach(k => walk(v[k], depth + 1));
+                }
+            }
+            walk(data, 0);
+            return acc;
+        }
+
+        // ============================================
+        // ERROR HANDLING
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            csvInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            csvInputEl.classList.remove('has-error');
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function convert() {
+            const opts = getOptions();
+            clearError();
+
+            const text = csvInputEl.value;
+            if (text.trim() === '') {
+                yamlOutput.value = '';
+                updateTree(undefined);
+                updateSchema(undefined, opts);
+                updateInputStats(0, 0, '—', text.length);
+                resetOutputStats();
+                saveDraft();
+                return;
+            }
+
+            let parsed;
+            try {
+                parsed = buildRecords(text, opts);
+            } catch (err) {
+                showError(err && err.message ? err.message : String(err));
+                yamlOutput.value = '';
+                treePane.innerHTML = '<p class="tree-empty">Fix the CSV error to see the tree structure.</p>';
+                schemaPane.innerHTML = '<p class="schema-empty">Fix the CSV error to see the inferred schema.</p>';
+                updateInputStats(0, 0, '—', text.length);
+                resetOutputStats(true);
+                saveDraft();
+                return;
+            }
+
+            const structured = buildOutputStructure(parsed.records, opts);
+
+            let yamlText;
+            try {
+                yamlText = stringifyYaml(structured, opts);
+            } catch (err) {
+                showError('Conversion error: ' + (err && err.message ? err.message : String(err)));
+                saveDraft();
+                return;
+            }
+
+            yamlOutput.value = yamlText;
+
+            updateTree(structured);
+            updateSchema(structured, opts);
+            const delimLabel = parsed.delimiterUsed === '\t' ? 'Tab' : parsed.delimiterUsed;
+            updateInputStats(parsed.records.length, parsed.headers.length, delimLabel, text.length);
+            updateOutputStats(yamlText, structured);
+            saveDraft();
+        }
+
+        function updateInputStats(rowCount, colCount, delimLabel, charCount) {
+            document.getElementById('csvRowCount').textContent = rowCount.toLocaleString();
+            document.getElementById('csvColCount').textContent = colCount.toLocaleString();
+            document.getElementById('csvDelimiterUsed').textContent = delimLabel;
+            document.getElementById('csvCharCount').textContent = charCount.toLocaleString();
+        }
+
+        function updateOutputStats(yamlText, data) {
+            const byteSize = new Blob([yamlText]).size;
+            document.getElementById('yamlSizeCount').textContent = byteSize.toLocaleString();
+            const { keys, arrayItems, maxDepth } = countStructure(data);
+            document.getElementById('yamlKeyCount').textContent = keys.toLocaleString();
+            document.getElementById('yamlArrayItemCount').textContent = arrayItems.toLocaleString();
+            document.getElementById('yamlDepthCount').textContent = maxDepth.toLocaleString();
+            const statusEl = document.getElementById('yamlStatus');
+            statusEl.textContent = 'Valid YAML';
+            statusEl.parentElement.classList.remove('error');
+        }
+
+        function resetOutputStats(isError) {
+            document.getElementById('yamlSizeCount').textContent = '0';
+            document.getElementById('yamlKeyCount').textContent = '0';
+            document.getElementById('yamlArrayItemCount').textContent = '0';
+            document.getElementById('yamlDepthCount').textContent = '0';
+            const statusEl = document.getElementById('yamlStatus');
+            statusEl.textContent = isError ? 'Invalid CSV' : '—';
+            statusEl.parentElement.classList.toggle('error', !!isError);
+        }
+
+        // Live conversion
+        csvInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select, .settings-card textarea').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = csvInputEl.value;
+            }
+            activeBatchIndex = index;
+            csvInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = csvInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    const parsed = buildRecords(f.content, opts);
+                    const structured = buildOutputStructure(parsed.records, opts);
+                    out = stringifyYaml(structured, opts);
+                } catch (err) {
+                    out = '# error: ' + (err && err.message ? err.message : String(err)) + '\n';
+                }
+                const outName = f.name.replace(/\.(csv|tsv|txt)$/i, '') + '.yaml';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted-csv.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            csvInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            csvInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                csvInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(yamlOutput.value);
+            } catch (err) {
+                yamlOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([yamlOutput.value], { type: 'application/x-yaml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted.yaml';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'csvYamlConverterDraft';
+        const DRAFT_SETTINGS_KEY = 'csvYamlConverterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, csvInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') csvInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
