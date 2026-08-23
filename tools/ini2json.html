@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | INI to JSON Converter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free INI to JSON converter with section nesting, duplicate-key handling, inline comments, quoted values, line continuation, array detection, type coercion, and inferred JSON Schema. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/ini2json.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/ini2json.html" />
+<meta property="og:title" content="INI to JSON Converter — awjunaid" />
+<meta property="og:description" content="Convert INI / CFG / properties files to clean JSON with live preview, tree view, inferred JSON Schema, dotted-key nesting, duplicate-key strategy, and batch export. 100% client-side — nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ini2json.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="INI to JSON Converter — awjunaid" />
+<meta name="twitter:description" content="Convert INI to JSON with live preview, tree view, inferred JSON Schema, dotted-key nesting, and batch export. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ini2json.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea {
+            width: 100%; min-height: 90px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; resize: vertical;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #iniInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #iniInput:focus { outline: none; border-color: var(--border-color); }
+        #iniInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #jsonOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .tree-pane, .schema-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .schema-pane { white-space: pre; }
+        .tree-pane .tree-empty, .schema-pane .schema-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .tree-node { margin-left: 16px; }
+        .tree-row { padding: 3px 0; white-space: nowrap; }
+        .tree-key { font-weight: 700; }
+        .tree-type { opacity: 0.5; font-size: 11px; margin-left: 6px; }
+        .tree-val { opacity: 0.85; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #iniInput, #jsonOutput, .tree-pane, .schema-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">INI to JSON Converter</h1>
+                <div class="tool-dek">Upload or paste INI, CFG, .env-style, or Java .properties files, fine-tune section nesting, duplicate-key strategy, quoting, line continuation and array detection, then preview live as JSON, a tree view, or an inferred JSON Schema — all in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="classic">Classic INI</option>
+                    <option value="nested">Nested (dotted keys → objects)</option>
+                    <option value="properties">Java .properties style</option>
+                    <option value="dotenv">.env style (no sections)</option>
+                    <option value="php">PHP-style (arrays with [])</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Sections & Structure</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="globalKeyInput">Global/root section key name</label>
+                            <input type="text" id="globalKeyInput" placeholder="e.g. _global" value="_global">
+                        </div>
+                        <div class="field-group">
+                            <label for="nestSeparatorInput">Section nesting separator</label>
+                            <input type="text" id="nestSeparatorInput" placeholder="e.g. ." value=".">
+                        </div>
+                        <div class="field-group">
+                            <label for="keyNestSeparatorInput">Dotted key-name separator</label>
+                            <input type="text" id="keyNestSeparatorInput" placeholder="e.g. ." value=".">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNestSections" checked>
+                            <span><span class="setting-name">Nest sections by separator</span><span class="setting-hint">[database.primary] becomes database → primary as nested objects instead of one flat key</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNestDottedKeys">
+                            <span><span class="setting-name">Nest dotted key names</span><span class="setting-hint">A key like server.host = x becomes { server: { host: "x" } } inside its section</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optKeepGlobalKeys" checked>
+                            <span><span class="setting-name">Keep keys found before any [section]</span><span class="setting-hint">Placed under the global-section key above instead of being discarded</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCaseInsensitiveKeys">
+                            <span><span class="setting-name">Lowercase section/key names</span><span class="setting-hint">Normalizes case so [Server] and [server] merge together</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Parsing Rules</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="delimiterSelect">Key/value delimiter</label>
+                            <select id="delimiterSelect">
+                                <option value="=" selected>= (equals)</option>
+                                <option value=":">: (colon)</option>
+                                <option value="both">Either = or :</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="commentCharsSelect">Comment characters</label>
+                            <select id="commentCharsSelect">
+                                <option value="both" selected>; and #</option>
+                                <option value=";">; only</option>
+                                <option value="#"># only</option>
+                                <option value="none">None (disable comments)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label>Duplicate key strategy</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="dupKeyHandling" value="overwrite" checked> Last wins</label>
+                                <label class="radio-opt"><input type="radio" name="dupKeyHandling" value="array"> Collect as array</label>
+                                <label class="radio-opt"><input type="radio" name="dupKeyHandling" value="error"> Error</label>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label>Duplicate section strategy</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="dupSectionHandling" value="merge" checked> Merge keys</label>
+                                <label class="radio-opt"><input type="radio" name="dupSectionHandling" value="overwrite"> Overwrite</label>
+                                <label class="radio-opt"><input type="radio" name="dupSectionHandling" value="error"> Error</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optInlineComments" checked>
+                            <span><span class="setting-name">Strip inline comments</span><span class="setting-hint">host = localhost ; dev only → keeps only "localhost" as the value</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLineContinuation" checked>
+                            <span><span class="setting-name">Support line continuation</span><span class="setting-hint">A trailing backslash joins the next line onto the current value</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUnescapeSequences" checked>
+                            <span><span class="setting-name">Unescape \n \t \\ \" sequences</span><span class="setting-hint">Applies inside quoted values, matching common INI parser behavior</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAllowBareKeys" checked>
+                            <span><span class="setting-name">Allow bare keys (no delimiter)</span><span class="setting-hint">A line with just a key and no = or : becomes { key: true } instead of erroring</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Values & Types</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrimValues" checked>
+                            <span><span class="setting-name">Trim surrounding whitespace</span><span class="setting-hint">Removes leading/trailing spaces and tabs around keys and values</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripQuotes" checked>
+                            <span><span class="setting-name">Strip matching quotes</span><span class="setting-hint">"value" or 'value' becomes value with the quote characters removed</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseNumbers" checked>
+                            <span><span class="setting-name">Parse numeric strings</span><span class="setting-hint">"3" and "2.5" become JSON numbers instead of strings</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseBooleans" checked>
+                            <span><span class="setting-name">Parse true/false/yes/no/on/off</span><span class="setting-hint">Common INI boolean spellings become JSON booleans</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseNull" checked>
+                            <span><span class="setting-name">Parse null/none/nil as null</span><span class="setting-hint">Case-insensitive match on the whole trimmed value</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseArrays" checked>
+                            <span><span class="setting-name">Split comma-separated values into arrays</span><span class="setting-hint">tags = a, b, c becomes ["a","b","c"] — quoted commas are respected</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPhpArrayKeys">
+                            <span><span class="setting-name">Support PHP-style key[] arrays</span><span class="setting-hint">Repeated tags[] = a / tags[] = b lines collect into one array under "tags"</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Empty value handling</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="empty" checked> Empty string ""</label>
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="null"> Convert to null</label>
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="true"> Treat as boolean true (flag)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Formatting</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSortKeys">
+                            <span><span class="setting-name">Sort object keys</span><span class="setting-hint">Alphabetical, recursive</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMinify">
+                            <span><span class="setting-name">Minify JSON</span><span class="setting-hint">Single line, no whitespace — overrides indent width</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrailingNewline" checked>
+                            <span><span class="setting-name">Trailing newline</span><span class="setting-hint">Adds a final newline to downloaded/copied output</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="indentSelect">Indent width</label>
+                            <select id="indentSelect">
+                                <option value="2" selected>2 spaces</option>
+                                <option value="4">4 spaces</option>
+                                <option value="tab">Tab</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict mode</span><span class="setting-hint">Fail loudly on malformed lines, unmatched brackets/quotes, or duplicate errors instead of skipping them</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowSchema" checked>
+                            <span><span class="setting-name">Infer JSON Schema</span><span class="setting-hint">Populates the Schema tab from the converted structure</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>INI Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".ini,.cfg,.conf,.properties,.env,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="iniInput" spellcheck="false" placeholder="[section]
+key = value
+
+Paste or type your INI here, or upload .ini/.cfg/.properties/.env file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag & drop .ini / .cfg / .conf / .properties / .env file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="iniLineCount">0</strong> lines</span>
+                        <span><strong id="iniCharCount">0</strong> characters</span>
+                        <span><strong id="iniSectionCount">0</strong> sections</span>
+                        <span><strong id="iniKeyCount">0</strong> keys</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .json</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="json" type="button">JSON Output</button>
+                        <button class="output-tab" data-tab="tree" type="button">Tree View</button>
+                        <button class="output-tab" data-tab="schema" type="button">Inferred Schema</button>
+                    </div>
+                    <div class="output-pane active" id="pane-json">
+                        <textarea id="jsonOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-tree">
+                        <div class="tree-pane" id="treePane"><p class="tree-empty">Parse valid INI to see the tree structure here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-schema">
+                        <div class="schema-pane" id="schemaPane"><p class="schema-empty">Enable "Infer JSON Schema" and parse valid INI to see the inferred schema here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="jsonSizeCount">0</strong> bytes</span>
+                        <span><strong id="jsonKeyCount">0</strong> keys</span>
+                        <span><strong id="jsonArrayItemCount">0</strong> array items</span>
+                        <span><strong id="jsonDepthCount">0</strong> max depth</span>
+                        <span><strong id="jsonStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How are [sections] turned into JSON?</h4>
+                        <p>Each [section] becomes a top-level key holding an object of its key/value pairs. With "Nest sections by separator" on, a name like [database.primary] is split on the dot and turned into database → primary as nested objects, matching how many real configs group related settings.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What happens to keys that appear before any section header?</h4>
+                        <p>Some INI files start with loose key = value lines before the first [section]. With "Keep keys found before any section" on, those are collected under the global-section key name you set above instead of being silently dropped.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are duplicate keys and sections handled?</h4>
+                        <p>Real-world INI files often repeat a key or reopen the same section further down the file. Choose "Last wins" to overwrite, "Collect as array" to gather every value, or "Error" to fail loudly under Strict Mode so you catch accidental duplicates before they cause bugs.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Does it support comments, quoting, and line continuation?</h4>
+                        <p>Yes — full-line and inline comments starting with <code>;</code> or <code>#</code> are stripped, matching quotes around a value are removed, escape sequences like <code>\n</code> and <code>\"</code> are unescaped inside quoted values, and a trailing backslash joins a value onto the next line.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are lists/arrays represented in INI?</h4>
+                        <p>Two common conventions are supported: comma-separated values on one line (<code>tags = a, b, c</code>) via "Split comma-separated values", and repeated PHP-style <code>key[] = value</code> lines via "Support PHP-style key[] arrays", which collect every match into a single JSON array.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the Tree View and Inferred Schema show?</h4>
+                        <p>Tree View lays out the converted JSON as an indented outline of keys, types, and values so you can scan deeply nested results at a glance. Inferred Schema generates a best-effort JSON Schema (types, object properties, array item shapes) from your data — a useful starting point, not a substitute for a hand-written schema.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files you upload are read locally in your browser and the conversion happens entirely client-side — nothing is sent anywhere. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // INI → JSON CONVERTER — ENTERPRISE EDITION
+        // ============================================
+        const iniInputEl = document.getElementById('iniInput');
+        const jsonOutput = document.getElementById('jsonOutput');
+        const treePane = document.getElementById('treePane');
+        const schemaPane = document.getElementById('schemaPane');
+        const errorBanner = document.getElementById('errorBanner');
+
+        const sampleIni =
+`; awjunaid-api configuration
+app_name = awjunaid-api
+debug = false
+
+[server]
+host = 0.0.0.0
+port = 8080
+timeout = 30 ; seconds
+
+[database.primary]
+driver = postgres
+host = "db01.internal"
+user = svc_api
+password = "s3cr3t\\nrotate-me"
+pool_size = 10
+
+[database.replica]
+driver = postgres
+host = db02.internal
+port = 5432
+
+[features]
+tags = auth, billing, search
+allowed_origins[] = https://app.example.com
+allowed_origins[] = https://admin.example.com
+
+[logging]
+level = info
+handlers =`;
+        iniInputEl.value = sampleIni;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optNestSections','optNestDottedKeys','optKeepGlobalKeys','optCaseInsensitiveKeys','optInlineComments','optLineContinuation','optUnescapeSequences','optAllowBareKeys','optTrimValues','optStripQuotes','optParseNumbers','optParseBooleans','optParseNull','optParseArrays','optPhpArrayKeys','optSortKeys','optMinify','optTrailingNewline','optStrictMode','optShowSchema'],
+            text: ['globalKeyInput','nestSeparatorInput','keyNestSeparatorInput'],
+            select: ['delimiterSelect','commentCharsSelect','indentSelect'],
+            radio: ['dupKeyHandling','dupSectionHandling','emptyHandling']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return {
+                globalKey: raw.globalKeyInput || '_global',
+                sectionSep: raw.nestSeparatorInput || '.',
+                keySep: raw.keyNestSeparatorInput || '.',
+                delimiter: raw.delimiterSelect,
+                commentChars: raw.commentCharsSelect,
+                dupKeyHandling: raw.dupKeyHandling,
+                dupSectionHandling: raw.dupSectionHandling,
+                emptyHandling: raw.emptyHandling,
+                indentWidth: raw.indentSelect,
+                optNestSections: raw.optNestSections,
+                optNestDottedKeys: raw.optNestDottedKeys,
+                optKeepGlobalKeys: raw.optKeepGlobalKeys,
+                optCaseInsensitiveKeys: raw.optCaseInsensitiveKeys,
+                optInlineComments: raw.optInlineComments,
+                optLineContinuation: raw.optLineContinuation,
+                optUnescapeSequences: raw.optUnescapeSequences,
+                optAllowBareKeys: raw.optAllowBareKeys,
+                optTrimValues: raw.optTrimValues,
+                optStripQuotes: raw.optStripQuotes,
+                optParseNumbers: raw.optParseNumbers,
+                optParseBooleans: raw.optParseBooleans,
+                optParseNull: raw.optParseNull,
+                optParseArrays: raw.optParseArrays,
+                optPhpArrayKeys: raw.optPhpArrayKeys,
+                optSortKeys: raw.optSortKeys,
+                optMinify: raw.optMinify,
+                optTrailingNewline: raw.optTrailingNewline,
+                optStrictMode: raw.optStrictMode,
+                optShowSchema: raw.optShowSchema,
+                _raw: raw
+            };
+        }
+
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            classic: {
+                globalKeyInput: '_global', nestSeparatorInput: '.', keyNestSeparatorInput: '.',
+                delimiterSelect: '=', commentCharsSelect: 'both', indentSelect: '2',
+                dupKeyHandling: 'overwrite', dupSectionHandling: 'merge', emptyHandling: 'empty',
+                optNestSections: false, optNestDottedKeys: false, optKeepGlobalKeys: true, optCaseInsensitiveKeys: false,
+                optInlineComments: true, optLineContinuation: true, optUnescapeSequences: true, optAllowBareKeys: true,
+                optTrimValues: true, optStripQuotes: true, optParseNumbers: true, optParseBooleans: true, optParseNull: true,
+                optParseArrays: false, optPhpArrayKeys: false, optSortKeys: false, optMinify: false,
+                optTrailingNewline: true, optStrictMode: true, optShowSchema: true
+            },
+            nested: {
+                globalKeyInput: '_global', nestSeparatorInput: '.', keyNestSeparatorInput: '.',
+                delimiterSelect: '=', commentCharsSelect: 'both', indentSelect: '2',
+                dupKeyHandling: 'overwrite', dupSectionHandling: 'merge', emptyHandling: 'empty',
+                optNestSections: true, optNestDottedKeys: true, optKeepGlobalKeys: true, optCaseInsensitiveKeys: false,
+                optInlineComments: true, optLineContinuation: true, optUnescapeSequences: true, optAllowBareKeys: true,
+                optTrimValues: true, optStripQuotes: true, optParseNumbers: true, optParseBooleans: true, optParseNull: true,
+                optParseArrays: true, optPhpArrayKeys: false, optSortKeys: false, optMinify: false,
+                optTrailingNewline: true, optStrictMode: true, optShowSchema: true
+            },
+            properties: {
+                globalKeyInput: '_global', nestSeparatorInput: '.', keyNestSeparatorInput: '.',
+                delimiterSelect: 'both', commentCharsSelect: '#', indentSelect: '2',
+                dupKeyHandling: 'overwrite', dupSectionHandling: 'merge', emptyHandling: 'empty',
+                optNestSections: false, optNestDottedKeys: true, optKeepGlobalKeys: true, optCaseInsensitiveKeys: false,
+                optInlineComments: false, optLineContinuation: true, optUnescapeSequences: true, optAllowBareKeys: true,
+                optTrimValues: true, optStripQuotes: false, optParseNumbers: false, optParseBooleans: false, optParseNull: false,
+                optParseArrays: false, optPhpArrayKeys: false, optSortKeys: true, optMinify: false,
+                optTrailingNewline: true, optStrictMode: false, optShowSchema: true
+            },
+            dotenv: {
+                globalKeyInput: '_global', nestSeparatorInput: '.', keyNestSeparatorInput: '.',
+                delimiterSelect: '=', commentCharsSelect: '#', indentSelect: '2',
+                dupKeyHandling: 'overwrite', dupSectionHandling: 'merge', emptyHandling: 'empty',
+                optNestSections: false, optNestDottedKeys: false, optKeepGlobalKeys: true, optCaseInsensitiveKeys: false,
+                optInlineComments: false, optLineContinuation: false, optUnescapeSequences: true, optAllowBareKeys: false,
+                optTrimValues: true, optStripQuotes: true, optParseNumbers: true, optParseBooleans: true, optParseNull: true,
+                optParseArrays: false, optPhpArrayKeys: false, optSortKeys: false, optMinify: false,
+                optTrailingNewline: true, optStrictMode: false, optShowSchema: false
+            },
+            php: {
+                globalKeyInput: '_global', nestSeparatorInput: '.', keyNestSeparatorInput: '.',
+                delimiterSelect: '=', commentCharsSelect: 'both', indentSelect: '2',
+                dupKeyHandling: 'array', dupSectionHandling: 'merge', emptyHandling: 'empty',
+                optNestSections: false, optNestDottedKeys: false, optKeepGlobalKeys: true, optCaseInsensitiveKeys: false,
+                optInlineComments: true, optLineContinuation: true, optUnescapeSequences: true, optAllowBareKeys: true,
+                optTrimValues: true, optStripQuotes: true, optParseNumbers: true, optParseBooleans: true, optParseNull: true,
+                optParseArrays: true, optPhpArrayKeys: true, optSortKeys: false, optMinify: false,
+                optTrailingNewline: true, optStrictMode: true, optShowSchema: true
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'iniJsonConverterCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ini-to-json-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // HELPERS
+        // ============================================
+        const OMIT = Symbol('omit');
+        function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+        function typeOf(v) {
+            if (v === null) return 'null';
+            if (Array.isArray(v)) return 'array';
+            return typeof v;
+        }
+        function sortKeysDeep(v) {
+            if (Array.isArray(v)) return v.map(sortKeysDeep);
+            if (isPlainObject(v)) {
+                const out = {};
+                Object.keys(v).sort((a, b) => a.localeCompare(b)).forEach(k => { out[k] = sortKeysDeep(v[k]); });
+                return out;
+            }
+            return v;
+        }
+        function unescapeSeq(str) {
+            return str
+                .replace(/\\n/g, '\n')
+                .replace(/\\t/g, '\t')
+                .replace(/\\r/g, '\r')
+                .replace(/\\"/g, '"')
+                .replace(/\\'/g, "'")
+                .replace(/\\\\/g, '\\');
+        }
+        function splitRespectingQuotes(str, sep) {
+            const parts = [];
+            let cur = '';
+            let quote = null;
+            for (let i = 0; i < str.length; i++) {
+                const ch = str[i];
+                if (quote) {
+                    cur += ch;
+                    if (ch === quote) quote = null;
+                } else if (ch === '"' || ch === "'") {
+                    quote = ch;
+                    cur += ch;
+                } else if (ch === sep) {
+                    parts.push(cur);
+                    cur = '';
+                } else {
+                    cur += ch;
+                }
+            }
+            parts.push(cur);
+            return parts;
+        }
+        function coerceValue(raw, opts) {
+            let str = raw;
+            let wasQuoted = false;
+            if (opts.optTrimValues) str = str.trim();
+
+            if (opts.optStripQuotes && str.length >= 2) {
+                const first = str[0], last = str[str.length - 1];
+                if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+                    str = str.slice(1, -1);
+                    wasQuoted = true;
+                    if (opts.optUnescapeSequences && first === '"') str = unescapeSeq(str);
+                }
+            }
+
+            if (str === '') {
+                if (opts.emptyHandling === 'null') return null;
+                if (opts.emptyHandling === 'true') return true;
+                return '';
+            }
+
+            if (!wasQuoted && opts.optParseArrays && !opts.optPhpArrayKeys && str.indexOf(',') !== -1) {
+                const items = splitRespectingQuotes(str, ',').map(s => coerceScalar(s.trim(), opts));
+                if (items.length > 1) return items;
+            }
+
+            return coerceScalar(str, opts);
+        }
+        function coerceScalar(str, opts) {
+            let s = str;
+            let quoted = false;
+            if (opts.optStripQuotes && s.length >= 2) {
+                const first = s[0], last = s[s.length - 1];
+                if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+                    s = s.slice(1, -1);
+                    quoted = true;
+                    if (opts.optUnescapeSequences && first === '"') s = unescapeSeq(s);
+                }
+            }
+            if (quoted) return s;
+            if (opts.optParseNull && /^(null|none|nil)$/i.test(s)) return null;
+            if (opts.optParseBooleans && /^(true|yes|on)$/i.test(s)) return true;
+            if (opts.optParseBooleans && /^(false|no|off)$/i.test(s)) return false;
+            if (opts.optParseNumbers && /^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(s)) {
+                const n = Number(s);
+                if (!Number.isNaN(n)) return n;
+            }
+            return s;
+        }
+        function setNested(obj, path, value, opts, isSection) {
+            let node = obj;
+            for (let i = 0; i < path.length - 1; i++) {
+                const seg = opts.optCaseInsensitiveKeys ? path[i].toLowerCase() : path[i];
+                if (!(seg in node) || !isPlainObject(node[seg])) node[seg] = {};
+                node = node[seg];
+            }
+            const lastKey = opts.optCaseInsensitiveKeys ? path[path.length - 1].toLowerCase() : path[path.length - 1];
+            applyDup(node, lastKey, value, opts, isSection);
+        }
+        function applyDup(node, key, value, opts, isSection) {
+            const strategy = isSection ? opts.dupSectionHandling : opts.dupKeyHandling;
+            if (!(key in node)) { node[key] = value; return; }
+            if (isSection && isPlainObject(node[key]) && isPlainObject(value)) {
+                if (strategy === 'merge') { Object.assign(node[key], value); return; }
+                if (strategy === 'overwrite') { node[key] = value; return; }
+                throw new Error(`Duplicate section detected: "${key}"`);
+            }
+            if (!isSection) {
+                if (strategy === 'overwrite') { node[key] = value; return; }
+                if (strategy === 'array') {
+                    if (Array.isArray(node[key])) node[key].push(value);
+                    else node[key] = [node[key], value];
+                    return;
+                }
+                throw new Error(`Duplicate key detected: "${key}"`);
+            }
+            node[key] = value;
+        }
+
+        // ============================================
+        // INI PARSER
+        // ============================================
+        function stripComment(line, opts) {
+            if (opts.commentChars === 'none') return line;
+            let quote = null;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (quote) {
+                    if (ch === quote) quote = null;
+                    continue;
+                }
+                if (ch === '"' || ch === "'") { quote = ch; continue; }
+                const isCommentChar =
+                    (opts.commentChars === 'both' && (ch === ';' || ch === '#')) ||
+                    (opts.commentChars === ';' && ch === ';') ||
+                    (opts.commentChars === '#' && ch === '#');
+                if (isCommentChar) return line.slice(0, i);
+            }
+            return line;
+        }
+        function findDelimiterIndex(line, opts) {
+            let quote = null;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (quote) { if (ch === quote) quote = null; continue; }
+                if (ch === '"' || ch === "'") { quote = ch; continue; }
+                if (opts.delimiter === '=' && ch === '=') return i;
+                if (opts.delimiter === ':' && ch === ':') return i;
+                if (opts.delimiter === 'both' && (ch === '=' || ch === ':')) return i;
+            }
+            return -1;
+        }
+
+        function parseIni(text, opts) {
+            const result = {};
+            let sectionCount = 0;
+            let keyCount = 0;
+
+            const rawLines = text.split(/\r\n|\r|\n/);
+            const lines = [];
+            for (let i = 0; i < rawLines.length; i++) {
+                let line = rawLines[i];
+                if (opts.optLineContinuation) {
+                    while (/\\\s*$/.test(line) && i + 1 < rawLines.length) {
+                        line = line.replace(/\\\s*$/, '') + rawLines[++i];
+                    }
+                }
+                lines.push(line);
+            }
+
+            let currentPath = null; // array of section path segments, or null = global
+            let lineNo = 0;
+
+            for (const rawLine of lines) {
+                lineNo++;
+                let line = opts.optInlineComments ? stripComment(rawLine, opts) : rawLine;
+                if (!opts.optInlineComments) {
+                    const trimmedStart = rawLine.trim();
+                    if (opts.commentChars !== 'none') {
+                        if ((opts.commentChars === 'both' && /^[;#]/.test(trimmedStart)) ||
+                            (opts.commentChars === ';' && trimmedStart.startsWith(';')) ||
+                            (opts.commentChars === '#' && trimmedStart.startsWith('#'))) {
+                            continue;
+                        }
+                    }
+                }
+                const trimmed = line.trim();
+                if (trimmed === '') continue;
+
+                const sectionMatch = trimmed.match(/^\[([^\]]*)\]$/);
+                if (sectionMatch) {
+                    sectionCount++;
+                    const rawName = sectionMatch[1].trim();
+                    let path = opts.optNestSections && opts.sectionSep
+                        ? rawName.split(opts.sectionSep).map(s => s.trim()).filter(s => s !== '')
+                        : [rawName];
+                    if (path.length === 0) path = [rawName];
+                    currentPath = path;
+                    try {
+                        setNested(result, path, {}, opts, true);
+                    } catch (err) {
+                        if (opts.optStrictMode) throw new Error(`Line ${lineNo}: ${err.message}`);
+                    }
+                    continue;
+                }
+
+                const delimIdx = findDelimiterIndex(line, opts);
+                let rawKey, rawVal;
+                if (delimIdx === -1) {
+                    if (!opts.optAllowBareKeys) {
+                        if (opts.optStrictMode) throw new Error(`Line ${lineNo}: expected "key = value" but found "${trimmed}"`);
+                        continue;
+                    }
+                    rawKey = trimmed;
+                    rawVal = 'true';
+                } else {
+                    rawKey = line.slice(0, delimIdx);
+                    rawVal = line.slice(delimIdx + 1);
+                }
+                if (opts.optTrimValues) rawKey = rawKey.trim();
+                if (rawKey === '') {
+                    if (opts.optStrictMode) throw new Error(`Line ${lineNo}: empty key`);
+                    continue;
+                }
+
+                let isPhpArray = false;
+                let keyName = rawKey;
+                if (opts.optPhpArrayKeys && /\[\]$/.test(rawKey)) {
+                    isPhpArray = true;
+                    keyName = rawKey.replace(/\[\]$/, '');
+                }
+
+                const value = coerceValue(rawVal, opts);
+
+                let keyPath = [keyName];
+                if (opts.optNestDottedKeys && opts.keySep && keyName.indexOf(opts.keySep) !== -1) {
+                    keyPath = keyName.split(opts.keySep).map(s => s.trim()).filter(s => s !== '');
+                    if (keyPath.length === 0) keyPath = [keyName];
+                }
+
+                let targetSectionObj;
+                if (currentPath === null) {
+                    if (!opts.optKeepGlobalKeys) continue;
+                    const gKey = opts.optCaseInsensitiveKeys ? opts.globalKey.toLowerCase() : opts.globalKey;
+                    if (!(gKey in result) || !isPlainObject(result[gKey])) result[gKey] = {};
+                    targetSectionObj = result[gKey];
+                } else {
+                    let node = result;
+                    for (const seg of currentPath) {
+                        const k = opts.optCaseInsensitiveKeys ? seg.toLowerCase() : seg;
+                        if (!(k in node) || !isPlainObject(node[k])) node[k] = {};
+                        node = node[k];
+                    }
+                    targetSectionObj = node;
+                }
+
+                keyCount++;
+                try {
+                    if (isPhpArray) {
+                        const k = opts.optCaseInsensitiveKeys ? keyPath[keyPath.length - 1].toLowerCase() : keyPath[keyPath.length - 1];
+                        let node = targetSectionObj;
+                        for (let i = 0; i < keyPath.length - 1; i++) {
+                            const seg = opts.optCaseInsensitiveKeys ? keyPath[i].toLowerCase() : keyPath[i];
+                            if (!(seg in node) || !isPlainObject(node[seg])) node[seg] = {};
+                            node = node[seg];
+                        }
+                        if (!Array.isArray(node[k])) node[k] = [];
+                        node[k].push(value);
+                    } else {
+                        setNested(targetSectionObj, keyPath, value, opts, false);
+                    }
+                } catch (err) {
+                    if (opts.optStrictMode) throw new Error(`Line ${lineNo}: ${err.message}`);
+                }
+            }
+
+            let final = result;
+            if (opts.optSortKeys) final = sortKeysDeep(final);
+            return { data: final, sectionCount, keyCount };
+        }
+
+        function stringifyJson(data, opts) {
+            const indent = opts.optMinify ? 0 : (opts.indentWidth === 'tab' ? '\t' : (parseInt(opts.indentWidth, 10) || 2));
+            let out = JSON.stringify(data === undefined ? null : data, null, indent);
+            if (opts.optTrailingNewline && !opts.optMinify) out += '\n';
+            return out;
+        }
+
+        // ============================================
+        // TREE VIEW (of the converted JSON)
+        // ============================================
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function renderTreeNode(key, value) {
+            const t = typeOf(value);
+            let row = `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(String(key))}</span><span class="tree-type">${t}</span>`;
+            if (t === 'object') {
+                const keys = Object.keys(value);
+                row += ` <span class="tree-val">{${keys.length}}</span></div>`;
+                row += `<div class="tree-node">${keys.map(k => renderTreeNode(k, value[k])).join('')}</div>`;
+            } else if (t === 'array') {
+                row += ` <span class="tree-val">[${value.length}]</span></div>`;
+                row += `<div class="tree-node">${value.map((v, i) => renderTreeNode(i, v)).join('')}</div>`;
+            } else {
+                row += ` <span class="tree-val">${escapeHtmlStr(JSON.stringify(value))}</span></div>`;
+            }
+            return row;
+        }
+        function updateTree(data) {
+            if (data === undefined) {
+                treePane.innerHTML = '<p class="tree-empty">Parse valid INI to see the tree structure here.</p>';
+                return;
+            }
+            if (Array.isArray(data)) {
+                treePane.innerHTML = data.map((v, i) => renderTreeNode(i, v)).join('') || '<p class="tree-empty">Empty document.</p>';
+            } else if (isPlainObject(data)) {
+                const keys = Object.keys(data);
+                treePane.innerHTML = keys.length ? keys.map(k => renderTreeNode(k, data[k])).join('') : '<p class="tree-empty">Empty document.</p>';
+            } else {
+                treePane.innerHTML = renderTreeNode('(root)', data);
+            }
+        }
+
+        // ============================================
+        // INFERRED JSON SCHEMA
+        // ============================================
+        function typeSchema(v) {
+            if (v === null || v === undefined) return { type: 'null' };
+            if (Array.isArray(v)) {
+                if (v.length === 0) return { type: 'array', items: {} };
+                return { type: 'array', items: typeSchema(v[0]) };
+            }
+            if (typeof v === 'object') {
+                const properties = {};
+                const required = [];
+                Object.entries(v).forEach(([k, val]) => { properties[k] = typeSchema(val); required.push(k); });
+                return { type: 'object', properties, required };
+            }
+            if (typeof v === 'number') return { type: Number.isInteger(v) ? 'integer' : 'number' };
+            if (typeof v === 'boolean') return { type: 'boolean' };
+            return { type: 'string' };
+        }
+        function buildJsonSchema(data) {
+            const schema = Object.assign({ '$schema': 'http://json-schema.org/draft-07/schema#' }, typeSchema(data));
+            return JSON.stringify(schema, null, 2);
+        }
+        function updateSchema(data, opts) {
+            if (!opts.optShowSchema) {
+                schemaPane.innerHTML = '<p class="schema-empty">Enable "Infer JSON Schema" to see the inferred schema here.</p>';
+                return;
+            }
+            if (data === undefined) {
+                schemaPane.innerHTML = '<p class="schema-empty">Parse valid INI to see the inferred schema here.</p>';
+                return;
+            }
+            schemaPane.textContent = buildJsonSchema(data);
+        }
+
+        // ============================================
+        // STRUCTURE STATS
+        // ============================================
+        function countJsonStructure(data) {
+            const acc = { keys: 0, arrayItems: 0, maxDepth: 0 };
+            function walk(v, depth) {
+                acc.maxDepth = Math.max(acc.maxDepth, depth);
+                if (Array.isArray(v)) {
+                    acc.arrayItems += v.length;
+                    v.forEach(x => walk(x, depth + 1));
+                } else if (isPlainObject(v)) {
+                    const keys = Object.keys(v);
+                    acc.keys += keys.length;
+                    keys.forEach(k => walk(v[k], depth + 1));
+                }
+            }
+            walk(data, 0);
+            return acc;
+        }
+
+        // ============================================
+        // ERROR HANDLING
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            iniInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            iniInputEl.classList.remove('has-error');
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        let lastJsonText = '';
+
+        function convert() {
+            const opts = getOptions();
+            clearError();
+
+            const text = iniInputEl.value;
+            if (text.trim() === '') {
+                jsonOutput.value = '';
+                lastJsonText = '';
+                updateTree(undefined);
+                updateSchema(undefined, opts);
+                updateInputStats(0, 0);
+                resetOutputStats();
+                saveDraft();
+                return;
+            }
+
+            let parsed;
+            try {
+                parsed = parseIni(text, opts);
+            } catch (err) {
+                showError(err && err.message ? err.message : String(err));
+                jsonOutput.value = '';
+                lastJsonText = '';
+                treePane.innerHTML = '<p class="tree-empty">Fix the INI error to see the tree structure.</p>';
+                schemaPane.innerHTML = '<p class="schema-empty">Fix the INI error to see the inferred schema.</p>';
+                updateInputStats(0, 0);
+                resetOutputStats(true);
+                saveDraft();
+                return;
+            }
+
+            let jsonText;
+            try {
+                jsonText = stringifyJson(parsed.data, opts);
+            } catch (err) {
+                showError('Conversion error: ' + (err && err.message ? err.message : String(err)));
+                saveDraft();
+                return;
+            }
+
+            jsonOutput.value = jsonText;
+            lastJsonText = jsonText;
+
+            updateTree(parsed.data);
+            updateSchema(parsed.data, opts);
+            updateInputStats(parsed.sectionCount, parsed.keyCount);
+            updateOutputStats(jsonText, parsed.data);
+            saveDraft();
+        }
+
+        function updateInputStats(sectionCount, keyCount) {
+            const text = iniInputEl.value;
+            document.getElementById('iniLineCount').textContent = (text === '' ? 0 : text.split('\n').length).toLocaleString();
+            document.getElementById('iniCharCount').textContent = text.length.toLocaleString();
+            document.getElementById('iniSectionCount').textContent = (sectionCount || 0).toLocaleString();
+            document.getElementById('iniKeyCount').textContent = (keyCount || 0).toLocaleString();
+        }
+
+        function updateOutputStats(jsonText, data) {
+            const byteSize = new Blob([jsonText]).size;
+            document.getElementById('jsonSizeCount').textContent = byteSize.toLocaleString();
+            const { keys, arrayItems, maxDepth } = countJsonStructure(data);
+            document.getElementById('jsonKeyCount').textContent = keys.toLocaleString();
+            document.getElementById('jsonArrayItemCount').textContent = arrayItems.toLocaleString();
+            document.getElementById('jsonDepthCount').textContent = maxDepth.toLocaleString();
+            const statusEl = document.getElementById('jsonStatus');
+            statusEl.textContent = 'Valid JSON';
+            statusEl.parentElement.classList.remove('error');
+        }
+
+        function resetOutputStats(isError) {
+            document.getElementById('jsonSizeCount').textContent = '0';
+            document.getElementById('jsonKeyCount').textContent = '0';
+            document.getElementById('jsonArrayItemCount').textContent = '0';
+            document.getElementById('jsonDepthCount').textContent = '0';
+            const statusEl = document.getElementById('jsonStatus');
+            statusEl.textContent = isError ? 'Invalid INI' : '—';
+            statusEl.parentElement.classList.toggle('error', !!isError);
+        }
+
+        // Live conversion
+        iniInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = iniInputEl.value;
+            }
+            activeBatchIndex = index;
+            iniInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = iniInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    const parsed = parseIni(f.content, opts);
+                    out = stringifyJson(parsed.data, opts);
+                } catch (err) {
+                    out = JSON.stringify({ error: (err && err.message ? err.message : String(err)) }, null, 2) + '\n';
+                }
+                const outName = f.name.replace(/\.(ini|cfg|conf|properties|env|txt)$/i, '') + '.json';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted-ini.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            iniInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            iniInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                iniInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(jsonOutput.value);
+            } catch (err) {
+                jsonOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([jsonOutput.value], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'iniJsonConverterDraft';
+        const DRAFT_SETTINGS_KEY = 'iniJsonConverterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, iniInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') iniInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
