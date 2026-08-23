@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | CSV to JSON Converter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free CSV to JSON converter with real quoted-field/embedded-newline parsing, delimiter auto-detect, dot-notation nested keys, type coercion, null-token mapping, keyed/columnar/JSON-Lines output, inferred JSON Schema, and batch conversion. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/csv2json.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/csv2json.html" />
+<meta property="og:title" content="CSV to JSON Converter — awjunaid" />
+<meta property="og:description" content="Convert CSV to clean JSON with live preview — proper quoted/multiline field parsing, delimiter auto-detect, dot-notation nesting, keyed/columnar/JSONL output, and inferred JSON Schema. 100% client-side — nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/csv2json.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="CSV to JSON Converter — awjunaid" />
+<meta name="twitter:description" content="Convert CSV to JSON with real CSV parsing, delimiter auto-detect, nested keys, keyed/columnar/JSONL output, and inferred JSON Schema. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/csv2json.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea {
+            width: 100%; min-height: 90px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; resize: vertical;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 6px; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #csvInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #csvInput:focus { outline: none; border-color: var(--border-color); }
+        #csvInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+        .warn-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid #d97706;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: #d97706;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .warn-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #jsonOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .tree-pane, .schema-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .schema-pane { white-space: pre; }
+        .tree-pane .tree-empty, .schema-pane .schema-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .tree-node { margin-left: 16px; }
+        .tree-row { padding: 3px 0; white-space: nowrap; }
+        .tree-key { font-weight: 700; }
+        .tree-type { opacity: 0.5; font-size: 11px; margin-left: 6px; }
+        .tree-val { opacity: 0.85; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #csvInput, #jsonOutput, .tree-pane, .schema-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">CSV to JSON Converter</h1>
+                <div class="tool-dek">Upload or paste CSV, fine-tune delimiter detection, headers, nested keys, type coercion and output shape, then preview live as JSON, a tree view, or an inferred JSON Schema — all in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="standard">Standard (RFC 4180)</option>
+                    <option value="messy">Messy Export (Excel/TSV quirks)</option>
+                    <option value="lookup">Lookup Table (keyed by column)</option>
+                    <option value="ndjson">Streaming (JSON Lines)</option>
+                    <option value="compact">Compact / Minified</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Delimiter & Quoting</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="delimiterSelect">Delimiter</label>
+                            <select id="delimiterSelect">
+                                <option value="auto" selected>Auto-detect</option>
+                                <option value=",">Comma ( , )</option>
+                                <option value=";">Semicolon ( ; )</option>
+                                <option value="\t">Tab</option>
+                                <option value="|">Pipe ( | )</option>
+                                <option value="custom">Custom…</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="customDelimiterInput">Custom delimiter</label>
+                            <input type="text" id="customDelimiterInput" placeholder="e.g. ~" maxlength="3">
+                        </div>
+                        <div class="field-group">
+                            <label for="quoteCharInput">Quote character</label>
+                            <input type="text" id="quoteCharInput" value="&quot;" maxlength="1">
+                        </div>
+                        <div class="field-group">
+                            <label for="commentPrefixInput">Comment-line prefix (optional)</label>
+                            <input type="text" id="commentPrefixInput" placeholder="e.g. #" maxlength="3">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripBOM" checked>
+                            <span><span class="setting-name">Strip UTF-8 BOM</span><span class="setting-hint">Removes a leading byte-order-mark some editors and Excel exports add</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrimFields" checked>
+                            <span><span class="setting-name">Trim whitespace around fields</span><span class="setting-hint">Strips leading/trailing spaces from unquoted values</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSkipEmptyLines" checked>
+                            <span><span class="setting-name">Skip blank lines</span><span class="setting-hint">Ignores fully empty rows anywhere in the file</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Headers & Keys</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Header source</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="headerMode" value="first" checked> First row is header</label>
+                                <label class="radio-opt"><input type="radio" name="headerMode" value="none"> No header (col_1, col_2, …)</label>
+                                <label class="radio-opt"><input type="radio" name="headerMode" value="custom"> Custom header list</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="customHeaderInput">Custom headers (comma-separated, used when "Custom header list" is selected)</label>
+                            <input type="text" id="customHeaderInput" placeholder="id, name, email, address.city">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDotNesting" checked>
+                            <span><span class="setting-name">Dot-notation → nested objects</span><span class="setting-hint">A header like "address.city" builds {"address":{"city": …}} instead of a flat "address.city" key</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDedupeHeaders" checked>
+                            <span><span class="setting-name">De-duplicate repeated headers</span><span class="setting-hint">A second "email" column becomes "email_2" instead of overwriting the first</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Types & Nulls</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseNumbers" checked>
+                            <span><span class="setting-name">Parse numeric strings</span><span class="setting-hint">"3" and "2.5" become JSON numbers instead of strings</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseBooleans" checked>
+                            <span><span class="setting-name">Parse true/false strings</span><span class="setting-hint">Case-insensitive "true" / "false" become JSON booleans</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="nullTokensInput">Treat these values as null (comma-separated)</label>
+                            <input type="text" id="nullTokensInput" value="NULL,N/A,NaN,-" placeholder="e.g. NULL, N/A, -">
+                            <span class="field-hint">Case-sensitive match after trimming. An always-empty field is controlled separately below.</span>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Empty field handling</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="null" checked> Convert to null</label>
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="empty"> Empty string ""</label>
+                                <label class="radio-opt"><input type="radio" name="emptyHandling" value="omit"> Omit the key entirely</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Rows & Columns</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="skipRowsInput">Skip N data rows after header</label>
+                            <input type="number" id="skipRowsInput" value="0" min="0">
+                        </div>
+                        <div class="field-group">
+                            <label for="limitRowsInput">Limit to N rows (blank = all)</label>
+                            <input type="number" id="limitRowsInput" placeholder="e.g. 500" min="0">
+                        </div>
+                        <div class="field-group">
+                            <label for="includeColsInput">Include only columns (comma list, blank = all)</label>
+                            <input type="text" id="includeColsInput" placeholder="e.g. id, name, email">
+                        </div>
+                        <div class="field-group">
+                            <label for="excludeColsInput">Exclude columns (comma list)</label>
+                            <input type="text" id="excludeColsInput" placeholder="e.g. internal_notes">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Shape</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Structure</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="outputShape" value="array" checked> Array of row objects</label>
+                                <label class="radio-opt"><input type="radio" name="outputShape" value="columnar"> Columnar (object of arrays)</label>
+                                <label class="radio-opt"><input type="radio" name="outputShape" value="keyed"> Keyed object (lookup map)</label>
+                                <label class="radio-opt"><input type="radio" name="outputShape" value="jsonl"> JSON Lines (NDJSON)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="keyColumnInput">Key column (for "Keyed object")</label>
+                            <input type="text" id="keyColumnInput" placeholder="e.g. id">
+                        </div>
+                        <div class="field-group">
+                            <label style="visibility:hidden;">.</label>
+                            <label class="setting-toggle" style="margin-top:6px;">
+                                <input type="checkbox" id="optDropKeyColumn">
+                                <span><span class="setting-name">Drop key column from each value</span><span class="setting-hint">Avoids repeating the id inside its own record</span></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Formatting</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSortKeys">
+                            <span><span class="setting-name">Sort object keys</span><span class="setting-hint">Alphabetical, recursive</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMinify">
+                            <span><span class="setting-name">Minify JSON</span><span class="setting-hint">Single line, no whitespace — overrides indent width (ignored for JSON Lines)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrailingNewline" checked>
+                            <span><span class="setting-name">Trailing newline</span><span class="setting-hint">Adds a final newline to downloaded/copied output</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="indentSelect">Indent width</label>
+                            <select id="indentSelect">
+                                <option value="2" selected>2 spaces</option>
+                                <option value="4">4 spaces</option>
+                                <option value="tab">Tab</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict mode</span><span class="setting-hint">Fail loudly when a row has a different column count than the header instead of padding/truncating it</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowSchema" checked>
+                            <span><span class="setting-name">Infer JSON Schema</span><span class="setting-hint">Populates the Schema tab from the converted structure</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>CSV Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".csv,.tsv,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="csvInput" spellcheck="false" placeholder="id,name,email
+1,Alice,alice@example.com
+
+Paste or type your CSV here, or upload .csv/.tsv file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="warn-banner" id="warnBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag & drop .csv / .tsv / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="csvLineCount">0</strong> lines</span>
+                        <span><strong id="csvCharCount">0</strong> characters</span>
+                        <span><strong id="csvDelimiterUsed">—</strong> delimiter</span>
+                        <span><strong id="csvColumnCount">0</strong> columns</span>
+                        <span><strong id="csvRowCount">0</strong> data rows</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="json" type="button">JSON Output</button>
+                        <button class="output-tab" data-tab="tree" type="button">Tree View</button>
+                        <button class="output-tab" data-tab="schema" type="button">Inferred Schema</button>
+                    </div>
+                    <div class="output-pane active" id="pane-json">
+                        <textarea id="jsonOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-tree">
+                        <div class="tree-pane" id="treePane"><p class="tree-empty">Parse valid CSV to see the tree structure here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-schema">
+                        <div class="schema-pane" id="schemaPane"><p class="schema-empty">Enable "Infer JSON Schema" and parse valid CSV to see the inferred schema here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="jsonSizeCount">0</strong> bytes</span>
+                        <span><strong id="jsonRecordCount">0</strong> records</span>
+                        <span><strong id="jsonKeyCount">0</strong> keys</span>
+                        <span><strong id="jsonDepthCount">0</strong> max depth</span>
+                        <span><strong id="jsonStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Does this handle commas inside quoted fields?</h4>
+                        <p>Yes — this isn't a naive split-on-delimiter converter. It's a real character-by-character CSV parser, so a field like <code>"Los Angeles, CA"</code> or a quoted value containing a literal newline stays intact as one field instead of breaking the row apart.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does delimiter auto-detection work?</h4>
+                        <p>On "Auto-detect", the tool counts commas, semicolons, tabs, and pipes in the first non-comment line and picks whichever appears most consistently. If your file uses something unusual, set a custom delimiter directly instead of relying on auto-detect.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does dot-notation nesting do?</h4>
+                        <p>A header such as <code>address.city</code> or <code>address.zip</code> builds a nested <code>address</code> object on each record instead of a flat key with a literal dot in its name — handy for CSV exports that flatten nested data for spreadsheets.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between the four output shapes?</h4>
+                        <p><strong>Array</strong> gives one object per row (most common). <strong>Columnar</strong> gives one array per column — useful for charting libraries. <strong>Keyed</strong> turns rows into a lookup map keyed by a column you choose, like an id. <strong>JSON Lines</strong> writes one compact object per line for streaming/log-style ingestion.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does Strict Mode change?</h4>
+                        <p>With Strict Mode on, a row with more or fewer fields than the header stops conversion with the exact row number. With it off, short rows are padded with null and long rows have extra fields dropped, with a warning shown above the input.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .csv/.tsv files and each becomes a tab above the editor. "Download All (.zip)" converts every loaded file with your current settings and bundles the results into one archive.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What happens to the null-token list?</h4>
+                        <p>Any field whose trimmed value exactly matches an entry in the null-token list (e.g. <code>NULL</code>, <code>N/A</code>, <code>-</code>) becomes JSON <code>null</code>, separately from how a genuinely empty field is handled.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files you upload are read locally in your browser and the conversion happens entirely client-side — nothing is sent anywhere. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // CSV → JSON CONVERTER — ENTERPRISE EDITION
+        // ============================================
+        const csvInputEl = document.getElementById('csvInput');
+        const jsonOutput = document.getElementById('jsonOutput');
+        const treePane = document.getElementById('treePane');
+        const schemaPane = document.getElementById('schemaPane');
+        const errorBanner = document.getElementById('errorBanner');
+        const warnBanner = document.getElementById('warnBanner');
+        const OMIT = Symbol('omit');
+
+        const sampleCsv =
+`id,name,email,"address.city","address.zip",active,notes
+1,Alice Smith,alice@example.com,New York,10001,true,"Loves coffee, tea, and long walks"
+2,Bob Jones,bob@example.com,"Los Angeles, CA",90001,false,NULL
+3,Carol Diaz,carol@example.com,Chicago,60601,true,`;
+        csvInputEl.value = sampleCsv;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optStripBOM','optTrimFields','optSkipEmptyLines','optDotNesting','optDedupeHeaders','optParseNumbers','optParseBooleans','optDropKeyColumn','optSortKeys','optMinify','optTrailingNewline','optStrictMode','optShowSchema'],
+            text: ['customDelimiterInput','quoteCharInput','commentPrefixInput','customHeaderInput','nullTokensInput','includeColsInput','excludeColsInput','keyColumnInput'],
+            number: ['skipRowsInput','limitRowsInput'],
+            select: ['delimiterSelect','indentSelect'],
+            radio: ['headerMode','emptyHandling','outputShape']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.number.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+
+            let delimiter = raw.delimiterSelect;
+            if (delimiter === 'custom') delimiter = raw.customDelimiterInput || ',';
+            if (delimiter === '\\t') delimiter = '\t';
+
+            const nullTokens = (raw.nullTokensInput || '').split(',').map(s => s.trim()).filter(s => s !== '');
+            const customHeaders = (raw.customHeaderInput || '').split(',').map(s => s.trim()).filter(s => s !== '');
+            const includeCols = (raw.includeColsInput || '').split(',').map(s => s.trim()).filter(s => s !== '');
+            const excludeCols = (raw.excludeColsInput || '').split(',').map(s => s.trim()).filter(s => s !== '');
+
+            return {
+                delimiterMode: raw.delimiterSelect,
+                delimiter: delimiter,
+                quoteChar: (raw.quoteCharInput || '"').charAt(0) || '"',
+                commentPrefix: raw.commentPrefixInput || '',
+                headerMode: raw.headerMode,
+                customHeaders: customHeaders,
+                keyColumn: (raw.keyColumnInput || '').trim(),
+                nullTokens: nullTokens,
+                includeCols: includeCols,
+                excludeCols: excludeCols,
+                skipRows: Math.max(0, parseInt(raw.skipRowsInput, 10) || 0),
+                limitRows: raw.limitRowsInput === '' ? null : Math.max(0, parseInt(raw.limitRowsInput, 10) || 0),
+                emptyHandling: raw.emptyHandling,
+                outputShape: raw.outputShape,
+                indentWidth: raw.indentSelect,
+                optStripBOM: raw.optStripBOM,
+                optTrimFields: raw.optTrimFields,
+                optSkipEmptyLines: raw.optSkipEmptyLines,
+                optDotNesting: raw.optDotNesting,
+                optDedupeHeaders: raw.optDedupeHeaders,
+                optParseNumbers: raw.optParseNumbers,
+                optParseBooleans: raw.optParseBooleans,
+                optDropKeyColumn: raw.optDropKeyColumn,
+                optSortKeys: raw.optSortKeys,
+                optMinify: raw.optMinify,
+                optTrailingNewline: raw.optTrailingNewline,
+                optStrictMode: raw.optStrictMode,
+                optShowSchema: raw.optShowSchema,
+                _raw: raw
+            };
+        }
+
+        function getRawSettingsForPersist() {
+            return getOptions()._raw;
+        }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.number.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            standard: {
+                delimiterSelect: ',', customDelimiterInput: '', quoteCharInput: '"', commentPrefixInput: '',
+                headerMode: 'first', customHeaderInput: '', keyColumnInput: '', nullTokensInput: 'NULL,N/A,NaN,-',
+                includeColsInput: '', excludeColsInput: '', skipRowsInput: '0', limitRowsInput: '', emptyHandling: 'null',
+                outputShape: 'array', indentSelect: '2',
+                optStripBOM: true, optTrimFields: true, optSkipEmptyLines: true, optDotNesting: true, optDedupeHeaders: true,
+                optParseNumbers: true, optParseBooleans: true, optDropKeyColumn: false, optSortKeys: false, optMinify: false,
+                optTrailingNewline: true, optStrictMode: true, optShowSchema: true
+            },
+            messy: {
+                delimiterSelect: 'auto', customDelimiterInput: '', quoteCharInput: '"', commentPrefixInput: '#',
+                headerMode: 'first', customHeaderInput: '', keyColumnInput: '', nullTokensInput: 'NULL,N/A,NaN,-,n/a,#N/A',
+                includeColsInput: '', excludeColsInput: '', skipRowsInput: '0', limitRowsInput: '', emptyHandling: 'null',
+                outputShape: 'array', indentSelect: '2',
+                optStripBOM: true, optTrimFields: true, optSkipEmptyLines: true, optDotNesting: false, optDedupeHeaders: true,
+                optParseNumbers: true, optParseBooleans: true, optDropKeyColumn: false, optSortKeys: false, optMinify: false,
+                optTrailingNewline: true, optStrictMode: false, optShowSchema: true
+            },
+            lookup: {
+                delimiterSelect: ',', customDelimiterInput: '', quoteCharInput: '"', commentPrefixInput: '',
+                headerMode: 'first', customHeaderInput: '', keyColumnInput: 'id', nullTokensInput: 'NULL,N/A,NaN,-',
+                includeColsInput: '', excludeColsInput: '', skipRowsInput: '0', limitRowsInput: '', emptyHandling: 'null',
+                outputShape: 'keyed', indentSelect: '2',
+                optStripBOM: true, optTrimFields: true, optSkipEmptyLines: true, optDotNesting: true, optDedupeHeaders: true,
+                optParseNumbers: true, optParseBooleans: true, optDropKeyColumn: true, optSortKeys: true, optMinify: false,
+                optTrailingNewline: true, optStrictMode: true, optShowSchema: false
+            },
+            ndjson: {
+                delimiterSelect: ',', customDelimiterInput: '', quoteCharInput: '"', commentPrefixInput: '',
+                headerMode: 'first', customHeaderInput: '', keyColumnInput: '', nullTokensInput: 'NULL,N/A,NaN,-',
+                includeColsInput: '', excludeColsInput: '', skipRowsInput: '0', limitRowsInput: '', emptyHandling: 'null',
+                outputShape: 'jsonl', indentSelect: '2',
+                optStripBOM: true, optTrimFields: true, optSkipEmptyLines: true, optDotNesting: true, optDedupeHeaders: true,
+                optParseNumbers: true, optParseBooleans: true, optDropKeyColumn: false, optSortKeys: false, optMinify: true,
+                optTrailingNewline: true, optStrictMode: false, optShowSchema: false
+            },
+            compact: {
+                delimiterSelect: 'auto', customDelimiterInput: '', quoteCharInput: '"', commentPrefixInput: '',
+                headerMode: 'first', customHeaderInput: '', keyColumnInput: '', nullTokensInput: 'NULL,N/A,NaN,-',
+                includeColsInput: '', excludeColsInput: '', skipRowsInput: '0', limitRowsInput: '', emptyHandling: 'omit',
+                outputShape: 'array', indentSelect: '2',
+                optStripBOM: true, optTrimFields: true, optSkipEmptyLines: true, optDotNesting: false, optDedupeHeaders: true,
+                optParseNumbers: true, optParseBooleans: true, optDropKeyColumn: false, optSortKeys: true, optMinify: true,
+                optTrailingNewline: false, optStrictMode: false, optShowSchema: false
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'csvJsonConverterCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'csv-to-json-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // HELPERS
+        // ============================================
+        function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+        function typeOf(v) {
+            if (v === null) return 'null';
+            if (Array.isArray(v)) return 'array';
+            return typeof v;
+        }
+        function sortKeysDeep(v) {
+            if (Array.isArray(v)) return v.map(sortKeysDeep);
+            if (isPlainObject(v)) {
+                const out = {};
+                Object.keys(v).sort((a, b) => a.localeCompare(b)).forEach(k => { out[k] = sortKeysDeep(v[k]); });
+                return out;
+            }
+            return v;
+        }
+        function coerceValue(raw, opts) {
+            const trimmed = typeof raw === 'string' ? raw.trim() : raw;
+            if (opts.nullTokens.includes(trimmed)) return null;
+            let str = opts.optTrimFields ? trimmed : raw;
+            if (str === '') return emptyValue(opts);
+            if (opts.optParseBooleans && /^(true|false)$/i.test(str)) return str.toLowerCase() === 'true';
+            if (opts.optParseNumbers && /^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(str)) {
+                const n = Number(str);
+                if (!Number.isNaN(n)) return n;
+            }
+            return str;
+        }
+        function emptyValue(opts) {
+            if (opts.emptyHandling === 'null') return null;
+            if (opts.emptyHandling === 'omit') return OMIT;
+            return '';
+        }
+
+        // ============================================
+        // REAL CSV / DELIMITED-TEXT PARSER
+        // (handles quoted fields, embedded delimiters/newlines, escaped quotes)
+        // ============================================
+        function detectDelimiter(text) {
+            const firstLine = (text.split(/\r\n|\r|\n/).find(l => l.trim() !== '') || '');
+            const candidates = [',', ';', '\t', '|'];
+            let best = ',', bestCount = -1;
+            candidates.forEach(d => {
+                const count = firstLine.split(d).length - 1;
+                if (count > bestCount) { bestCount = count; best = d; }
+            });
+            return best;
+        }
+
+        function stripCommentLines(text, commentPrefix) {
+            if (!commentPrefix) return text;
+            return text.split(/\r\n|\r|\n/)
+                .filter(line => !line.startsWith(commentPrefix))
+                .join('\n');
+        }
+
+        function parseDelimited(text, delimiter, quoteChar) {
+            const rows = [];
+            let row = [];
+            let field = '';
+            let inQuotes = false;
+            let i = 0;
+            const n = text.length;
+            while (i < n) {
+                const c = text[i];
+                if (inQuotes) {
+                    if (c === quoteChar) {
+                        if (text[i + 1] === quoteChar) { field += quoteChar; i += 2; continue; }
+                        inQuotes = false; i++; continue;
+                    }
+                    field += c; i++; continue;
+                } else {
+                    if (c === quoteChar) { inQuotes = true; i++; continue; }
+                    if (c === delimiter) { row.push(field); field = ''; i++; continue; }
+                    if (c === '\r') { i++; continue; }
+                    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+                    field += c; i++; continue;
+                }
+            }
+            if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+            return rows;
+        }
+
+        function buildHeaders(firstDataColCount, rawRows, opts) {
+            let headers;
+            let dataStartIndex = 0;
+            if (opts.headerMode === 'first') {
+                headers = (rawRows[0] || []).map(h => (opts.optTrimFields ? h.trim() : h));
+                dataStartIndex = 1;
+            } else if (opts.headerMode === 'custom' && opts.customHeaders.length > 0) {
+                headers = opts.customHeaders.slice();
+                dataStartIndex = 0;
+            } else {
+                const width = rawRows.length ? Math.max(...rawRows.map(r => r.length)) : 0;
+                headers = Array.from({ length: width }, (_, i) => 'col_' + (i + 1));
+                dataStartIndex = 0;
+            }
+
+            if (opts.optDedupeHeaders) {
+                const seen = {};
+                headers = headers.map(h => {
+                    const key = h === '' ? 'col' : h;
+                    if (!(key in seen)) { seen[key] = 1; return key; }
+                    seen[key]++;
+                    return key + '_' + seen[key];
+                });
+            }
+            return { headers, dataStartIndex };
+        }
+
+        function setNested(obj, path, value, opts) {
+            if (!opts.optDotNesting || path.indexOf('.') === -1) {
+                if (value !== OMIT) obj[path] = value;
+                return;
+            }
+            const parts = path.split('.').filter(p => p !== '');
+            let cur = obj;
+            for (let i = 0; i < parts.length - 1; i++) {
+                const p = parts[i];
+                if (!isPlainObject(cur[p])) cur[p] = {};
+                cur = cur[p];
+            }
+            if (value !== OMIT) cur[parts[parts.length - 1]] = value;
+        }
+
+        function rowToObject(headers, rawRow, opts) {
+            const obj = {};
+            headers.forEach((h, idx) => {
+                if (opts.includeCols.length > 0 && !opts.includeCols.includes(h)) return;
+                if (opts.excludeCols.includes(h)) return;
+                const raw = idx < rawRow.length ? rawRow[idx] : '';
+                const value = coerceValue(raw, opts);
+                setNested(obj, h, value, opts);
+            });
+            return obj;
+        }
+
+        function convertCsvToJson(text, opts) {
+            let src = text;
+            if (opts.optStripBOM && src.charCodeAt(0) === 0xFEFF) src = src.slice(1);
+            src = stripCommentLines(src, opts.commentPrefix);
+
+            const delimiter = opts.delimiterMode === 'auto' ? detectDelimiter(src) : opts.delimiter;
+            if (!delimiter) throw new Error('No delimiter set — choose one or use Auto-detect.');
+
+            let rawRows = parseDelimited(src, delimiter, opts.quoteChar);
+            if (opts.optSkipEmptyLines) rawRows = rawRows.filter(r => !(r.length === 1 && r[0].trim() === ''));
+            if (rawRows.length === 0) throw new Error('No rows found in the input.');
+
+            const { headers, dataStartIndex } = buildHeaders(0, rawRows, opts);
+            if (headers.length === 0) throw new Error('No columns detected — check the delimiter and header settings.');
+
+            let dataRows = rawRows.slice(dataStartIndex);
+
+            const raggedRows = [];
+            dataRows.forEach((r, i) => {
+                if (r.length !== headers.length) raggedRows.push({ line: dataStartIndex + i + 1, found: r.length, expected: headers.length });
+            });
+            if (raggedRows.length > 0 && opts.optStrictMode) {
+                const first = raggedRows[0];
+                throw new Error('Row ' + first.line + ' has ' + first.found + ' field(s), expected ' + first.expected + ' (matching the header). Disable Strict Mode to pad/truncate ragged rows instead.');
+            }
+
+            if (opts.skipRows > 0) dataRows = dataRows.slice(opts.skipRows);
+            if (opts.limitRows !== null) dataRows = dataRows.slice(0, opts.limitRows);
+
+            const records = dataRows.map(r => rowToObject(headers, r, opts));
+
+            let effectiveHeaders = headers;
+            if (opts.includeCols.length > 0) effectiveHeaders = headers.filter(h => opts.includeCols.includes(h));
+            effectiveHeaders = effectiveHeaders.filter(h => !opts.excludeCols.includes(h));
+
+            let result;
+            if (opts.outputShape === 'columnar') {
+                result = {};
+                effectiveHeaders.forEach(h => {
+                    if (opts.optDotNesting && h.indexOf('.') !== -1) return; // columnar only supports flat top-level keys cleanly
+                });
+                effectiveHeaders.forEach(h => { result[h] = []; });
+                records.forEach(rec => {
+                    effectiveHeaders.forEach(h => { result[h].push(h in rec ? rec[h] : (rec[h.split('.')[0]] || null)); });
+                });
+                // simpler + correct: rebuild columnar straight from raw rows, respecting coercion, ignoring dot-nesting for this shape
+                result = {};
+                effectiveHeaders.forEach(h => { result[h] = []; });
+                dataRows.forEach(r => {
+                    headers.forEach((h, idx) => {
+                        if (!effectiveHeaders.includes(h)) return;
+                        const raw = idx < r.length ? r[idx] : '';
+                        result[h].push(coerceValue(raw, opts));
+                    });
+                });
+            } else if (opts.outputShape === 'keyed') {
+                if (!opts.keyColumn) throw new Error('Set a "Key column" to build a keyed object (e.g. "id").');
+                result = {};
+                records.forEach(rec => {
+                    const keyVal = opts.keyColumn.indexOf('.') !== -1 ? opts.keyColumn.split('.').reduce((o, p) => (o || {})[p], rec) : rec[opts.keyColumn];
+                    const key = keyVal === null || keyVal === undefined ? '' : String(keyVal);
+                    const value = opts.optDropKeyColumn ? Object.assign({}, rec) : rec;
+                    if (opts.optDropKeyColumn && !opts.optDotNesting) delete value[opts.keyColumn];
+                    else if (opts.optDropKeyColumn && opts.optDotNesting && opts.keyColumn.indexOf('.') === -1) delete value[opts.keyColumn];
+                    result[key] = value;
+                });
+            } else {
+                // 'array' and 'jsonl' both use the plain records array
+                result = records;
+            }
+
+            if (opts.optSortKeys) result = sortKeysDeep(result);
+
+            return {
+                data: result,
+                records,
+                headers,
+                effectiveHeaders,
+                delimiterUsed: delimiter === '\t' ? 'Tab' : delimiter,
+                columnCount: headers.length,
+                rowCount: dataRows.length,
+                raggedCount: raggedRows.length
+            };
+        }
+
+        function stringifyJson(converted, opts) {
+            const indent = opts.optMinify ? 0 : (opts.indentWidth === 'tab' ? '\t' : (parseInt(opts.indentWidth, 10) || 2));
+            if (opts.outputShape === 'jsonl') {
+                const lines = converted.records.map(rec => JSON.stringify(opts.optSortKeys ? sortKeysDeep(rec) : rec));
+                let out = lines.join('\n');
+                if (opts.optTrailingNewline) out += '\n';
+                return out;
+            }
+            let out = JSON.stringify(converted.data === undefined ? null : converted.data, null, indent);
+            if (opts.optTrailingNewline && !opts.optMinify) out += '\n';
+            return out;
+        }
+
+        // ============================================
+        // TREE VIEW
+        // ============================================
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function renderTreeNode(key, value) {
+            const t = typeOf(value);
+            let row = `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(String(key))}</span><span class="tree-type">${t}</span>`;
+            if (t === 'object') {
+                const keys = Object.keys(value);
+                row += ` <span class="tree-val">{${keys.length}}</span></div>`;
+                row += `<div class="tree-node">${keys.map(k => renderTreeNode(k, value[k])).join('')}</div>`;
+            } else if (t === 'array') {
+                row += ` <span class="tree-val">[${value.length}]</span></div>`;
+                row += `<div class="tree-node">${value.map((v, i) => renderTreeNode(i, v)).join('')}</div>`;
+            } else {
+                row += ` <span class="tree-val">${escapeHtmlStr(JSON.stringify(value))}</span></div>`;
+            }
+            return row;
+        }
+        function updateTree(data) {
+            if (data === undefined) {
+                treePane.innerHTML = '<p class="tree-empty">Parse valid CSV to see the tree structure here.</p>';
+                return;
+            }
+            if (Array.isArray(data)) {
+                treePane.innerHTML = data.map((v, i) => renderTreeNode(i, v)).join('') || '<p class="tree-empty">No rows to display.</p>';
+            } else if (isPlainObject(data)) {
+                const keys = Object.keys(data);
+                treePane.innerHTML = keys.length ? keys.map(k => renderTreeNode(k, data[k])).join('') : '<p class="tree-empty">No rows to display.</p>';
+            } else {
+                treePane.innerHTML = renderTreeNode('(root)', data);
+            }
+        }
+        function updateTreeForJsonl(records) {
+            treePane.innerHTML = records.length
+                ? records.map((v, i) => renderTreeNode(i, v)).join('')
+                : '<p class="tree-empty">No rows to display.</p>';
+        }
+
+        // ============================================
+        // INFERRED JSON SCHEMA
+        // ============================================
+        function typeSchema(v) {
+            if (v === null || v === undefined) return { type: 'null' };
+            if (Array.isArray(v)) {
+                if (v.length === 0) return { type: 'array', items: {} };
+                return { type: 'array', items: typeSchema(v[0]) };
+            }
+            if (typeof v === 'object') {
+                const properties = {};
+                const required = [];
+                Object.entries(v).forEach(([k, val]) => { properties[k] = typeSchema(val); required.push(k); });
+                return { type: 'object', properties, required };
+            }
+            if (typeof v === 'number') return { type: Number.isInteger(v) ? 'integer' : 'number' };
+            if (typeof v === 'boolean') return { type: 'boolean' };
+            return { type: 'string' };
+        }
+        function buildJsonSchema(data) {
+            const schema = Object.assign({ '$schema': 'http://json-schema.org/draft-07/schema#' }, typeSchema(data));
+            return JSON.stringify(schema, null, 2);
+        }
+        function updateSchema(data, opts) {
+            if (!opts.optShowSchema) {
+                schemaPane.innerHTML = '<p class="schema-empty">Enable "Infer JSON Schema" to see the inferred schema here.</p>';
+                return;
+            }
+            if (data === undefined) {
+                schemaPane.innerHTML = '<p class="schema-empty">Parse valid CSV to see the inferred schema here.</p>';
+                return;
+            }
+            schemaPane.textContent = buildJsonSchema(data);
+        }
+
+        // ============================================
+        // STRUCTURE STATS
+        // ============================================
+        function countJsonStructure(data) {
+            const acc = { keys: 0, maxDepth: 0 };
+            function walk(v, depth) {
+                acc.maxDepth = Math.max(acc.maxDepth, depth);
+                if (Array.isArray(v)) {
+                    v.forEach(x => walk(x, depth + 1));
+                } else if (isPlainObject(v)) {
+                    const keys = Object.keys(v);
+                    acc.keys += keys.length;
+                    keys.forEach(k => walk(v[k], depth + 1));
+                }
+            }
+            walk(data, 0);
+            return acc;
+        }
+
+        // ============================================
+        // ERROR / WARNING HANDLING
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            csvInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            csvInputEl.classList.remove('has-error');
+        }
+        function showWarn(msg) {
+            warnBanner.textContent = msg;
+            warnBanner.classList.add('show');
+        }
+        function clearWarn() {
+            warnBanner.classList.remove('show');
+            warnBanner.textContent = '';
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function convert() {
+            const opts = getOptions();
+            clearError();
+            clearWarn();
+
+            const text = csvInputEl.value;
+            if (text.trim() === '') {
+                jsonOutput.value = '';
+                updateTree(undefined);
+                updateSchema(undefined, opts);
+                updateInputStats(undefined, 0, 0);
+                resetOutputStats();
+                saveDraft();
+                return;
+            }
+
+            let converted;
+            try {
+                converted = convertCsvToJson(text, opts);
+            } catch (err) {
+                showError(err && err.message ? err.message : String(err));
+                jsonOutput.value = '';
+                treePane.innerHTML = '<p class="tree-empty">Fix the CSV error to see the tree structure.</p>';
+                schemaPane.innerHTML = '<p class="schema-empty">Fix the CSV error to see the inferred schema.</p>';
+                updateInputStats(undefined, 0, 0);
+                resetOutputStats(true);
+                saveDraft();
+                return;
+            }
+
+            if (converted.raggedCount > 0 && !opts.optStrictMode) {
+                showWarn(converted.raggedCount + ' row(s) had a different field count than the header and were padded/truncated to fit. Enable Strict Mode to see exact line numbers instead.');
+            }
+
+            let jsonText;
+            try {
+                jsonText = stringifyJson(converted, opts);
+            } catch (err) {
+                showError('Conversion error: ' + (err && err.message ? err.message : String(err)));
+                saveDraft();
+                return;
+            }
+
+            jsonOutput.value = jsonText;
+
+            if (opts.outputShape === 'jsonl') {
+                updateTreeForJsonl(converted.records);
+                updateSchema(converted.records[0], opts);
+            } else {
+                updateTree(converted.data);
+                updateSchema(converted.data, opts);
+            }
+            updateInputStats(converted.delimiterUsed, converted.columnCount, converted.rowCount);
+            updateOutputStats(jsonText, converted, opts);
+            saveDraft();
+        }
+
+        function updateInputStats(delimiterUsed, columnCount, rowCount) {
+            const text = csvInputEl.value;
+            document.getElementById('csvLineCount').textContent = (text === '' ? 0 : text.split('\n').length).toLocaleString();
+            document.getElementById('csvCharCount').textContent = text.length.toLocaleString();
+            document.getElementById('csvDelimiterUsed').textContent = delimiterUsed || '—';
+            document.getElementById('csvColumnCount').textContent = (columnCount || 0).toLocaleString();
+            document.getElementById('csvRowCount').textContent = (rowCount || 0).toLocaleString();
+        }
+
+        function updateOutputStats(jsonText, converted, opts) {
+            const byteSize = new Blob([jsonText]).size;
+            document.getElementById('jsonSizeCount').textContent = byteSize.toLocaleString();
+            document.getElementById('jsonRecordCount').textContent = converted.records.length.toLocaleString();
+            const basisForDepth = opts.outputShape === 'jsonl' ? converted.records : converted.data;
+            const { keys, maxDepth } = countJsonStructure(basisForDepth);
+            document.getElementById('jsonKeyCount').textContent = keys.toLocaleString();
+            document.getElementById('jsonDepthCount').textContent = maxDepth.toLocaleString();
+            const statusEl = document.getElementById('jsonStatus');
+            statusEl.textContent = 'Valid JSON';
+            statusEl.parentElement.classList.remove('error');
+        }
+
+        function resetOutputStats(isError) {
+            document.getElementById('jsonSizeCount').textContent = '0';
+            document.getElementById('jsonRecordCount').textContent = '0';
+            document.getElementById('jsonKeyCount').textContent = '0';
+            document.getElementById('jsonDepthCount').textContent = '0';
+            const statusEl = document.getElementById('jsonStatus');
+            statusEl.textContent = isError ? 'Invalid CSV' : '—';
+            statusEl.parentElement.classList.toggle('error', !!isError);
+        }
+
+        // Live conversion
+        csvInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = csvInputEl.value;
+            }
+            activeBatchIndex = index;
+            csvInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = csvInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            const ext = opts.outputShape === 'jsonl' ? '.jsonl' : '.json';
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    const converted = convertCsvToJson(f.content, opts);
+                    out = stringifyJson(converted, opts);
+                } catch (err) {
+                    out = JSON.stringify({ error: (err && err.message ? err.message : String(err)) }, null, 2) + '\n';
+                }
+                const outName = f.name.replace(/\.(csv|tsv|txt)$/i, '') + ext;
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted-csv.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            csvInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            csvInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                csvInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(jsonOutput.value);
+            } catch (err) {
+                jsonOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const ext = opts.outputShape === 'jsonl' ? 'jsonl' : 'json';
+            const mime = opts.outputShape === 'jsonl' ? 'application/x-ndjson' : 'application/json';
+            const blob = new Blob([jsonOutput.value], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted.' + ext;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'csvJsonConverterDraft';
+        const DRAFT_SETTINGS_KEY = 'csvJsonConverterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, csvInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') csvInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
