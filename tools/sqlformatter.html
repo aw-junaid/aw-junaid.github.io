@@ -1,0 +1,2040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | SQL Formatter & Beautifier</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free SQL formatter and beautifier: reformat, indent and beautify SQL queries with dialect-aware keyword casing, JOIN/ON alignment, AND/OR breaking, comma style, CASE expression formatting, alias handling, comment stripping, minify mode and batch file conversion. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/sqlformatter.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/sqlformatter.html" />
+<meta property="og:title" content="SQL Formatter & Beautifier — awjunaid" />
+<meta property="og:description" content="Beautify and reformat SQL with live preview, statement structure view, join/subquery counts, and batch export. 100% client-side — nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/sqlformatter.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="SQL Formatter & Beautifier — awjunaid" />
+<meta name="twitter:description" content="Format SQL with dialect-aware casing, JOIN alignment, CASE formatting, alias handling, comment control and batch export. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/sqlformatter.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #sqlInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #sqlInput:focus { outline: none; border-color: var(--border-color); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #sqlOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .structure-pane, .stats-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .structure-pane .empty-note, .stats-pane .empty-note { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+
+        .stmt-block { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border-light); }
+        .stmt-block:last-child { border-bottom: none; }
+        .stmt-type { font-weight: 800; font-size: 12.5px; letter-spacing: 0.5px; }
+        .stmt-clauses { margin-top: 6px; opacity: 0.8; font-size: 11.5px; line-height: 1.8; }
+        .clause-chip { display: inline-block; border: 1px solid var(--border-light); border-radius: 20px; padding: 2px 10px; margin: 2px 4px 2px 0; font-size: 10.5px; font-family: var(--font-body); font-weight: 600; }
+
+        .stat-line { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border-light); font-family: var(--font-body); font-size: 12.5px; }
+        .stat-line:last-child { border-bottom: none; }
+        .stat-line strong { font-family: var(--font-mono); }
+        .stat-warning { color: var(--danger); font-weight: 700; margin-top: 10px; font-family: var(--font-body); font-size: 12px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #sqlInput, #sqlOutput, .structure-pane, .stats-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">SQL Formatter & Beautifier</h1>
+                <div class="tool-dek">Paste any SQL — SELECT, INSERT, UPDATE, DELETE, CREATE TABLE, CTEs, joins, subqueries, CASE expressions — and get it reformatted with dialect-aware keyword casing, JOIN/ON alignment, AND/OR breaking, alias handling and comma style, previewed live alongside a statement structure view. All in your browser, nothing uploaded.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="standard">Standard (readable)</option>
+                    <option value="compactAlias">Compact (leading commas, no AS)</option>
+                    <option value="migration">Migration script style</option>
+                    <option value="minifyPreset">Minify (single line)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Dialect & Case</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="dialectSelect">Dialect (informational)</label>
+                            <select id="dialectSelect">
+                                <option value="generic">ANSI / Generic</option>
+                                <option value="mysql">MySQL</option>
+                                <option value="postgres">PostgreSQL</option>
+                                <option value="tsql">SQL Server (T-SQL)</option>
+                                <option value="oracle">Oracle</option>
+                                <option value="sqlite">SQLite</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="keywordCaseSelect">Keyword case</label>
+                            <select id="keywordCaseSelect">
+                                <option value="upper">UPPERCASE</option>
+                                <option value="lower">lowercase</option>
+                                <option value="capitalize">Capitalize</option>
+                                <option value="preserve">Preserve as typed</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="identifierCaseSelect">Identifier case</label>
+                            <select id="identifierCaseSelect">
+                                <option value="preserve">Preserve as typed</option>
+                                <option value="lower">lowercase</option>
+                                <option value="upper">UPPERCASE</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="functionCaseSelect">Function name case</label>
+                            <select id="functionCaseSelect">
+                                <option value="preserve">Preserve as typed</option>
+                                <option value="upper">UPPERCASE</option>
+                                <option value="lower">lowercase</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Indentation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseTabs">
+                            <span><span class="setting-name">Use tabs instead of spaces</span><span class="setting-hint">Each indent level becomes one tab character rather than N spaces</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="indentSizeInput">Indent width (spaces)</label>
+                            <input type="number" id="indentSizeInput" min="1" max="8" value="4">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Line Breaking & Layout</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOneColPerLine" checked>
+                            <span><span class="setting-name">One column per line</span><span class="setting-hint">SELECT / GROUP BY / ORDER BY lists get one item per line instead of staying inline</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBreakAndOr" checked>
+                            <span><span class="setting-name">Break AND / OR onto new lines</span><span class="setting-hint">Each condition in WHERE, HAVING and JOIN ... ON clauses gets its own line</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Comma placement</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="commaStyle" value="trailing" checked> Trailing (col,)</label>
+                                <label class="radio-opt"><input type="radio" name="commaStyle" value="leading"> Leading (, col)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Keywords & Aliasing</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>AS keyword for aliases</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="aliasKeyword" value="keep" checked> Keep as written</label>
+                                <label class="radio-opt"><input type="radio" name="aliasKeyword" value="always"> Always add AS</label>
+                                <label class="radio-opt"><input type="radio" name="aliasKeyword" value="never"> Never use AS</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Statements & Cleanup</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optEnsureSemicolon" checked>
+                            <span><span class="setting-name">Ensure trailing semicolon</span><span class="setting-hint">Adds a ; to the end of every statement if one isn't already there</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripComments">
+                            <span><span class="setting-name">Strip comments</span><span class="setting-hint">Removes -- line comments and /* block comments */ from the output</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBlankLineBetween" checked>
+                            <span><span class="setting-name">Blank line between statements</span><span class="setting-hint">Separates multiple ;-terminated statements with an empty line</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMinify">
+                            <span><span class="setting-name">Minify (single line per statement)</span><span class="setting-hint">Collapses each statement onto one compact line, overriding the layout options above</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Formatting</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optHeaderComment">
+                            <span><span class="setting-name">Add header comment</span><span class="setting-hint">Prepends a -- comment line to the generated SQL file</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrailingNewline" checked>
+                            <span><span class="setting-name">Trailing newline</span><span class="setting-hint">Adds a final newline to downloaded/copied output</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="headerCommentInput">Header comment text</label>
+                            <input type="text" id="headerCommentInput" value="Formatted by SQL Formatter">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Warn on unbalanced parentheses</span><span class="setting-hint">Flags statements with mismatched ( ) so malformed SQL doesn't format silently</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowStructure" checked>
+                            <span><span class="setting-name">Show statement structure</span><span class="setting-hint">Populates the Structure tab with each statement's type and clause list</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>SQL Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".sql,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple .sql files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="sqlInput" spellcheck="false" placeholder="SELECT * FROM your_table WHERE condition = true;
+
+Paste or type your SQL here, or upload .sql file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag & drop .sql / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="sqlLineCount">0</strong> lines</span>
+                        <span><strong id="sqlCharCount">0</strong> characters</span>
+                        <span><strong id="sqlStmtCount">0</strong> statement(s)</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .sql</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="sql" type="button">SQL Output</button>
+                        <button class="output-tab" data-tab="structure" type="button">Structure</button>
+                        <button class="output-tab" data-tab="stats" type="button">Statistics</button>
+                    </div>
+                    <div class="output-pane active" id="pane-sql">
+                        <textarea id="sqlOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-structure">
+                        <div class="structure-pane" id="structurePane"><p class="empty-note">Enable "Show statement structure" and type valid SQL to see each statement's type and clause list here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-stats">
+                        <div class="stats-pane" id="statsPane"><p class="empty-note">Type SQL to see statistics here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outSizeCount">0</strong> bytes</span>
+                        <span><strong id="outJoinCount">0</strong> joins</span>
+                        <span><strong id="outSubqueryCount">0</strong> subqueries</span>
+                        <span><strong id="outStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Why does JOIN ... ON break onto its own line, indented?</h4>
+                        <p>Each JOIN sits at the same indent as FROM, and its ON condition is indented one level further — the same convention used by most hand-formatted SQL, so you can scan the join graph of a query at a glance without the ON clause getting lost in a wall of text.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are subqueries and CTEs handled?</h4>
+                        <p>Any <code>(SELECT ...)</code> or <code>(WITH ...)</code> — whether it's a derived table in FROM, a correlated subquery in WHERE, or a CTE body — is recursively formatted and indented one level deeper than its parent, with the closing parenthesis (and any alias after it) kept together.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between "Break AND/OR" on and off?</h4>
+                        <p>On, every AND/OR-separated condition in WHERE, HAVING and ON clauses gets its own line — ideal for multi-condition filters. Off, the whole condition stays on one line after the clause keyword, which suits short queries.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does VARCHAR(100) have no space, but IN (SELECT ...) does?</h4>
+                        <p>The formatter checks whether there was whitespace between a name and its parenthesis in your original SQL. A tight function-call or type-size pattern like <code>VARCHAR(100)</code> or <code>COUNT(*)</code> stays tight; a keyword followed by a grouped expression like <code>IN (...)</code> or <code>WHERE (...)</code> gets a space, matching how each is actually written.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does the AS keyword setting work?</h4>
+                        <p>"Keep as written" leaves aliases exactly as you typed them. "Always add AS" inserts it wherever an implicit alias is detected (<code>u.name uname</code> → <code>u.name AS uname</code>). "Never use AS" strips any existing AS keyword from column and table aliases.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the Structure tab show?</h4>
+                        <p>For each statement it lists the statement type (SELECT, INSERT, UPDATE, CREATE, ...) and every top-level clause found (FROM, WHERE, GROUP BY, JOIN, ...) in order — a quick way to sanity-check a large or generated query before running it.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "Warn on unbalanced parentheses" catch?</h4>
+                        <p>If a statement has more <code>(</code> than <code>)</code> or vice versa, the Statistics tab flags it. The formatter still renders its best-effort output so you can see roughly what's there, but the warning tells you the SQL needs a fix before you run it.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I format multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .sql files and each becomes a tab above the editor. "Download All (.zip)" formats every loaded file with your current settings and bundles the results into one archive. Nothing is uploaded to a server; everything runs locally in your browser.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+    </script>
+
+    <script>
+        // ============================================================
+        // SQL FORMATTER ENGINE
+        // ============================================================
+        (function(global){
+// ============================================
+// SQL FORMATTER ENGINE (tested standalone, then embedded in the tool page)
+// ============================================
+
+const KEYWORDS_BASE = [
+  'SELECT','DISTINCT','ALL','FROM','WHERE','AND','OR','NOT','JOIN','ON','AS','INTO','VALUES','SET',
+  'UPDATE','DELETE','INSERT','CREATE','TABLE','ALTER','DROP','INDEX','VIEW','TRIGGER','PROCEDURE','FUNCTION',
+  'BEGIN','END','CASE','WHEN','THEN','ELSE','IN','EXISTS','BETWEEN','LIKE','ILIKE','IS','NULL',
+  'UNION','INTERSECT','EXCEPT','LIMIT','OFFSET','HAVING','GROUP','ORDER','BY','ASC','DESC','WITH',
+  'RECURSIVE','DEFAULT','CONSTRAINT','REFERENCES','CASCADE','UNIQUE','CHECK','RETURNING','OVER','PARTITION',
+  'WINDOW','LATERAL','CROSS','INNER','LEFT','RIGHT','FULL','OUTER','NATURAL','USING','TOP','FETCH','NEXT',
+  'ROWS','ROW','ONLY','TRUE','FALSE','UNKNOWN','COLLATE','ESCAPE','EXPLAIN','ANALYZE','VACUUM','GRANT',
+  'REVOKE','COMMIT','ROLLBACK','TRANSACTION','SAVEPOINT','DECLARE','IF','LOOP','WHILE','FOR','RETURN',
+  'EXEC','EXECUTE','MERGE','MATCHED','TABLESPACE','TEMPORARY','TEMP','REPLACE','ADD','COLUMN','RENAME',
+  'TO','PRIMARY','KEY','FOREIGN','AUTO_INCREMENT','IDENTITY','CONFLICT','DO','NOTHING','FILTER','WITHIN',
+  'ARRAY','ANY','SOME','ELSEIF','CURSOR','OPEN','CLOSE','DEALLOCATE'
+];
+const TYPES = [
+  'INT','INTEGER','BIGINT','SMALLINT','TINYINT','DECIMAL','NUMERIC','FLOAT','REAL','DOUBLE','CHAR',
+  'VARCHAR','NCHAR','NVARCHAR','TEXT','DATE','DATETIME','DATETIME2','TIMESTAMP','TIME','BOOLEAN','BOOL',
+  'BLOB','CLOB','JSON','JSONB','UUID','SERIAL','BIGSERIAL','MONEY','BYTEA','XML','GEOGRAPHY','GEOMETRY','ENUM'
+];
+const KEYWORDS = new Set([...KEYWORDS_BASE, ...TYPES]);
+
+const MULTI_WORD_RAW = [
+  ['GROUP','BY'], ['ORDER','BY'], ['UNION','ALL'], ['INSERT','INTO'], ['DELETE','FROM'],
+  ['LEFT','OUTER','JOIN'], ['RIGHT','OUTER','JOIN'], ['FULL','OUTER','JOIN'],
+  ['LEFT','JOIN'], ['RIGHT','JOIN'], ['FULL','JOIN'], ['CROSS','JOIN'], ['INNER','JOIN'], ['NATURAL','JOIN'],
+  ['IS','NOT','NULL'], ['IS','NOT'], ['NOT','IN'], ['NOT','LIKE'], ['NOT','BETWEEN'], ['NOT','EXISTS'],
+  ['PRIMARY','KEY'], ['FOREIGN','KEY'], ['NOT','NULL'],
+  ['FETCH','FIRST'], ['FETCH','NEXT'], ['ON','CONFLICT'], ['DO','UPDATE'], ['DO','NOTHING'],
+  ['PARTITION','BY'], ['FOR','UPDATE'], ['GROUP','BY']
+].sort((a,b)=>b.length-a.length);
+
+// ---------- Tokenizer ----------
+function tokenize(sql) {
+  const tokens = [];
+  let i = 0;
+  const n = sql.length;
+  function push(type, value, start, end) { tokens.push({type, value, start, end}); }
+  while (i < n) {
+    const ch = sql[i];
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') { i++; continue; }
+    const start0 = i;
+    if (ch === '-' && sql[i+1] === '-') {
+      let j = i+2; while (j<n && sql[j] !== '\n') j++;
+      push('comment', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if (ch === '/' && sql[i+1] === '*') {
+      let j = i+2; while (j<n && !(sql[j]==='*'&&sql[j+1]==='/')) j++;
+      j = Math.min(j+2, n);
+      push('comment', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if (ch === "'") {
+      let j = i+1;
+      while (j<n) {
+        if (sql[j] === "'" && sql[j+1] === "'") { j+=2; continue; }
+        if (sql[j] === "'") { j++; break; }
+        j++;
+      }
+      push('string', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if (ch === '"') {
+      let j=i+1;
+      while (j<n) {
+        if (sql[j]==='"' && sql[j+1]==='"'){j+=2;continue;}
+        if (sql[j]==='"'){j++;break;}
+        j++;
+      }
+      push('quoted_identifier', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if (ch === '`') {
+      let j=i+1; while(j<n && sql[j] !== '`') j++; j=Math.min(j+1,n);
+      push('quoted_identifier', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if (ch === '[') {
+      let j=i+1; while(j<n && sql[j] !== ']') j++; j=Math.min(j+1,n);
+      push('quoted_identifier', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if (/[0-9]/.test(ch)) {
+      let j=i; while(j<n && /[0-9.]/.test(sql[j])) j++;
+      if (sql[j]==='e'||sql[j]==='E'){ let k=j+1; if(sql[k]==='+'||sql[k]==='-')k++; while(k<n&&/[0-9]/.test(sql[k]))k++; j=k; }
+      push('number', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if (/[A-Za-z_@#$]/.test(ch)) {
+      let j=i; while(j<n && /[A-Za-z0-9_@#$]/.test(sql[j])) j++;
+      push('word', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if (ch === ':' && sql[i+1] === ':') { push('operator', '::', start0, i+2); i+=2; continue; }
+    if (ch === '|' && sql[i+1] === '|') { push('operator', '||', start0, i+2); i+=2; continue; }
+    if ('<>!='.includes(ch)) {
+      let j=i+1;
+      if ((ch==='<'&&(sql[j]==='='||sql[j]==='>')) || (ch==='>'&&sql[j]==='=') || (ch==='!'&&sql[j]==='=')) j++;
+      push('operator', sql.slice(i,j), start0, j); i=j; continue;
+    }
+    if ('=+-*/%'.includes(ch)) { push('operator', ch, start0, i+1); i++; continue; }
+    if (ch === '(' ) { push('lparen', ch, start0, i+1); i++; continue; }
+    if (ch === ')' ) { push('rparen', ch, start0, i+1); i++; continue; }
+    if (ch === ',') { push('comma', ',', start0, i+1); i++; continue; }
+    if (ch === ';') { push('semicolon', ';', start0, i+1); i++; continue; }
+    if (ch === '.') { push('dot', '.', start0, i+1); i++; continue; }
+    push('punct', ch, start0, i+1); i++;
+  }
+  return tokens;
+}
+
+// ---------- Split into statements at top-level semicolons ----------
+function splitStatements(tokens) {
+  const statements = [];
+  let cur = [];
+  let depth = 0;
+  for (const t of tokens) {
+    if (t.type === 'lparen') depth++;
+    if (t.type === 'rparen') depth--;
+    if (t.type === 'semicolon' && depth === 0) {
+      if (cur.some(tok=>tok.type!=='comment')) statements.push(cur);
+      else if (cur.length) statements.push(cur); // pure-comment statement, keep for passthrough
+      cur = [];
+      continue;
+    }
+    cur.push(t);
+  }
+  if (cur.length) statements.push(cur);
+  return statements;
+}
+
+// ---------- Classify words into keyword / function / identifier, merge multi-word keywords ----------
+function classifyAndMerge(tokens) {
+  const out = [];
+  let i = 0;
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (t.type === 'word') {
+      let matched = null;
+      for (const seq of MULTI_WORD_RAW) {
+        if (i + seq.length <= tokens.length) {
+          let ok = true;
+          for (let k=0;k<seq.length;k++) {
+            const tk = tokens[i+k];
+            if (!tk || tk.type !== 'word' || tk.value.toUpperCase() !== seq[k]) { ok=false; break; }
+          }
+          if (ok) { matched = seq; break; }
+        }
+      }
+      if (matched) {
+        const origParts = [];
+        for (let k=0;k<matched.length;k++) origParts.push(tokens[i+k].value);
+        out.push({type:'keyword', value: matched.join(' '), orig: origParts.join(' '), start: t.start, end: tokens[i+matched.length-1].end});
+        i += matched.length;
+        continue;
+      }
+      const upper = t.value.toUpperCase();
+      const next = tokens[i+1];
+      const tight = !!(next && next.type === 'lparen' && next.start === t.end);
+      if (KEYWORDS.has(upper)) {
+        out.push({type:'keyword', value: upper, orig: t.value, start: t.start, end: t.end});
+      } else if (tight) {
+        out.push({type:'function', value: t.value, start: t.start, end: t.end});
+      } else {
+        out.push({type:'identifier', value: t.value, start: t.start, end: t.end});
+      }
+      i++;
+      continue;
+    }
+    out.push(t);
+    i++;
+  }
+  return out;
+}
+
+// ---------- Build nested tree (paren groups) ----------
+function buildTree(tokens) {
+  let i = 0;
+  function parse() {
+    const nodes = [];
+    while (i < tokens.length) {
+      const t = tokens[i];
+      if (t.type === 'lparen') {
+        const prev = nodes[nodes.length-1];
+        const tight = !!(prev && typeof prev.end === 'number' && prev.end === t.start);
+        i++;
+        const inner = parse();
+        nodes.push({type:'group', children: inner, tight});
+      } else if (t.type === 'rparen') {
+        i++;
+        return nodes;
+      } else {
+        nodes.push(t); i++;
+      }
+    }
+    return nodes;
+  }
+  return parse();
+}
+
+function hasTopClause(children) {
+  const first = children.find(c=>c.type!=='comment');
+  return !!first && first.type==='keyword' && (first.value==='SELECT'||first.value==='WITH');
+}
+
+// ---------- Casing helpers ----------
+function transformCaseWord(text, mode) {
+  if (mode==='lower') return text.toLowerCase();
+  if (mode==='capitalize') return text.toLowerCase().replace(/\b[a-z]/g, c=>c.toUpperCase());
+  if (mode==='preserve') return text; // fallback when no orig available
+  return text.toUpperCase();
+}
+function caseKeyword(node, opts) {
+  if (opts.keywordCase==='preserve' && node.orig) return node.orig;
+  return transformCaseWord(node.value, opts.keywordCase);
+}
+function caseIdent(text, mode) {
+  if (mode==='upper') return text.toUpperCase();
+  if (mode==='lower') return text.toLowerCase();
+  return text;
+}
+
+// ---------- Indent helper ----------
+function indentStr(level, opts) {
+  if (level<=0) return '';
+  if (opts.useTabs) return '\t'.repeat(level);
+  return ' '.repeat(level * opts.indentSize);
+}
+
+// ---------- List joiner (comma placement) ----------
+function renderList(itemStrings, level, opts) {
+  if (itemStrings.length === 0) return '';
+  if (opts.commaStyle === 'leading') {
+    const full = indentStr(level, opts);
+    const lead = full.length>=2 ? full.slice(0, full.length-2) + ', ' : ', ';
+    const first = full + itemStrings[0];
+    const rest = itemStrings.slice(1).map(s => lead + s);
+    return [first, ...rest].join('\n');
+  }
+  return itemStrings.map((s,idx)=> indentStr(level,opts) + s + (idx<itemStrings.length-1 ? ',' : '')).join('\n');
+}
+
+// ---------- Split helpers (operate on flat node arrays; groups are opaque) ----------
+function splitByTopLevelComma(nodes) {
+  const parts = [];
+  let cur = [];
+  for (const n of nodes) {
+    if (n.type === 'comma') { parts.push(cur); cur = []; }
+    else cur.push(n);
+  }
+  parts.push(cur);
+  return parts.filter(p=>p.length>0);
+}
+function splitByTopLevelAndOr(nodes) {
+  const parts = [];
+  let cur = [];
+  let connector = null;
+  for (const n of nodes) {
+    if (n.type === 'keyword' && (n.value==='AND' || n.value==='OR')) {
+      parts.push({connector, tokens: cur});
+      connector = n;
+      cur = [];
+    } else cur.push(n);
+  }
+  parts.push({connector, tokens: cur});
+  return parts.filter(p=>p.tokens.length>0 || p.connector);
+}
+
+// ---------- Alias (AS) helpers ----------
+function stripAliasAS(itemNodes) {
+  const idx = itemNodes.findIndex(n=>n.type==='keyword'&&n.value==='AS');
+  if (idx===-1) return itemNodes;
+  return itemNodes.slice(0,idx).concat(itemNodes.slice(idx+1));
+}
+function insertAliasAS(itemNodes) {
+  const hasAS = itemNodes.some(n=>n.type==='keyword'&&n.value==='AS');
+  if (hasAS || itemNodes.length<2) return itemNodes;
+  const last = itemNodes[itemNodes.length-1];
+  const prev = itemNodes[itemNodes.length-2];
+  if (last.type==='identifier' && prev.type!=='dot' && prev.type!=='operator' && prev.type!=='keyword' && prev.type!=='comma') {
+    const asNode = {type:'keyword', value:'AS', orig:'as'};
+    return itemNodes.slice(0,-1).concat([asNode, last]);
+  }
+  return itemNodes;
+}
+function applyAliasPolicy(itemNodes, opts) {
+  if (opts.aliasKeyword === 'always') return insertAliasAS(itemNodes);
+  if (opts.aliasKeyword === 'never') return stripAliasAS(itemNodes);
+  return itemNodes;
+}
+
+// ---------- Spacing ----------
+function spacingNeeded(last, next) {
+  if (last==='start') return false;
+  if (next==='comma') return false;
+  if (next==='dot') return false;
+  if (last==='dot') return false;
+  if (next==='rparen') return false;
+  if (last==='lparen') return false;
+  if (last==='dblcolon' || next==='dblcolon') return false;
+  return true;
+}
+function pieceFor(node, opts) {
+  switch(node.type) {
+    case 'keyword': return {text: caseKeyword(node, opts), cat:'word'};
+    case 'function': return {text: caseIdent(node.value, opts.functionCase), cat:'function'};
+    case 'identifier': return {text: caseIdent(node.value, opts.identifierCase), cat:'word'};
+    case 'string': return {text: node.value, cat:'word'};
+    case 'quoted_identifier': return {text: node.value, cat:'word'};
+    case 'number': return {text: node.value, cat:'word'};
+    case 'operator': return {text: node.value, cat: node.value==='::' ? 'dblcolon':'operator'};
+    case 'comma': return {text: ',', cat:'comma'};
+    case 'dot': return {text: '.', cat:'dot'};
+    case 'semicolon': return {text: ';', cat:'other'};
+    case 'comment': return {text: node.value, cat:'comment'};
+    default: return {text: node.value||'', cat:'other'};
+  }
+}
+
+// ---------- Inline group (function args / grouping parens) ----------
+function renderInlineGroup(children, level, opts) {
+  const parts = splitByTopLevelComma(children);
+  return parts.map(p => renderExpr(p, level, opts)).join(', ');
+}
+
+// ---------- Core expression renderer ----------
+// Returns a string. First line carries NO leading indent (caller prepends it);
+// any subsequent lines already contain their own absolute indentation.
+function renderExpr(nodes, level, opts) {
+  const linesOut = [];
+  let cur = '';
+  let lastCat = 'start';
+
+  function emit(piece) {
+    if (piece.cat==='comment') {
+      if (cur !== '' || linesOut.length>0) linesOut.push(cur);
+      cur='';
+      linesOut.push(indentStr(level,opts) + piece.text);
+      lastCat = 'start';
+      return;
+    }
+    const needSpace = spacingNeeded(lastCat, piece.cat);
+    cur += (needSpace? ' ':'') + piece.text;
+    lastCat = piece.cat;
+  }
+
+  const arr = nodes;
+  let i = 0;
+  while (i < arr.length) {
+    const node = arr[i];
+
+    if (node.type === 'group') {
+      const spaceBefore = lastCat !== 'start' && !node.tight;
+      if (hasTopClause(node.children)) {
+        cur += (spaceBefore?' ':'') + '(';
+        linesOut.push(cur); cur='';
+        const body = renderClauseSegments(node.children, level+1, opts);
+        linesOut.push(body);
+        cur = indentStr(level,opts) + ')';
+        lastCat = 'rparen';
+      } else {
+        const innerStr = renderInlineGroup(node.children, level, opts);
+        cur += (spaceBefore ? ' ' : '') + '(' + innerStr + ')';
+        lastCat = 'rparen';
+      }
+      i++;
+      continue;
+    }
+
+    if (node.type === 'keyword' && node.value === 'CASE') {
+      const caseKwText = caseKeyword(node, opts);
+      let j = i+1;
+      const exprTokens = [];
+      while (j<arr.length && !(arr[j].type==='keyword' && arr[j].value==='WHEN')) { exprTokens.push(arr[j]); j++; }
+      let header = caseKwText;
+      if (exprTokens.length) header += ' ' + renderExpr(exprTokens, level, opts);
+      cur += (spacingNeeded(lastCat,'word')?' ':'') + header;
+      linesOut.push(cur); cur='';
+      lastCat = 'start';
+
+      while (j<arr.length && arr[j].type==='keyword' && arr[j].value==='WHEN') {
+        const whenNode = arr[j]; j++;
+        const condTokens=[]; while(j<arr.length && !(arr[j].type==='keyword'&&arr[j].value==='THEN')) {condTokens.push(arr[j]); j++;}
+        const thenNode = arr[j]; j++;
+        const resTokens=[]; while(j<arr.length && !(arr[j].type==='keyword'&&(arr[j].value==='WHEN'||arr[j].value==='ELSE'||arr[j].value==='END'))) {resTokens.push(arr[j]); j++;}
+        linesOut.push(indentStr(level+1,opts) + caseKeyword(whenNode,opts) + ' ' + renderExpr(condTokens,level+1,opts) + ' ' + caseKeyword(thenNode,opts) + ' ' + renderExpr(resTokens,level+1,opts));
+      }
+      if (j<arr.length && arr[j].type==='keyword' && arr[j].value==='ELSE') {
+        const elseNode = arr[j]; j++;
+        const elseTokens=[]; while(j<arr.length && !(arr[j].type==='keyword'&&arr[j].value==='END')) {elseTokens.push(arr[j]); j++;}
+        linesOut.push(indentStr(level+1,opts) + caseKeyword(elseNode,opts) + ' ' + renderExpr(elseTokens,level+1,opts));
+      }
+      if (j<arr.length && arr[j].type==='keyword' && arr[j].value==='END') {
+        cur = indentStr(level,opts) + caseKeyword(arr[j],opts);
+        j++;
+      }
+      i = j;
+      lastCat = 'word';
+      continue;
+    }
+
+    emit(pieceFor(node, opts));
+    i++;
+  }
+  if (cur !== '' || linesOut.length===0) linesOut.push(cur);
+  return linesOut.join('\n');
+}
+
+function renderWhereBody(body, level, opts) {
+  if (!opts.breakAndOr) return renderExpr(body, level, opts);
+  const parts = splitByTopLevelAndOr(body);
+  if (parts.length <= 1) return renderExpr(body, level, opts);
+  const firstStr = renderExpr(parts[0].tokens, level, opts);
+  const rest = parts.slice(1).map(p => indentStr(level,opts) + caseKeyword(p.connector,opts) + ' ' + renderExpr(p.tokens, level, opts));
+  return [firstStr, ...rest].join('\n');
+}
+
+// ---------- Clause segmentation ----------
+const JOIN_SET = new Set(['JOIN','INNER JOIN','LEFT JOIN','LEFT OUTER JOIN','RIGHT JOIN','RIGHT OUTER JOIN','FULL JOIN','FULL OUTER JOIN','CROSS JOIN','NATURAL JOIN']);
+const CLAUSE_SET = new Set([
+  'SELECT','FROM','WHERE','GROUP BY','ORDER BY','HAVING','LIMIT','OFFSET','UNION','UNION ALL','INTERSECT','EXCEPT',
+  'INSERT INTO','VALUES','SET','DELETE FROM','WITH','RETURNING','ON CONFLICT','WINDOW','FOR UPDATE','UPDATE','ON',
+  ...JOIN_SET
+]);
+
+function segmentByClauses(nodes) {
+  const preamble = [];
+  const segments = [];
+  let current = null;
+  for (const node of nodes) {
+    if (node.type === 'keyword' && CLAUSE_SET.has(node.value)) {
+      current = {node, body: []};
+      segments.push(current);
+    } else {
+      if (current) current.body.push(node); else preamble.push(node);
+    }
+  }
+  return {preamble, segments};
+}
+
+function renderPreamble(nodes, level, opts) {
+  const groupIdx = nodes.findIndex(n=>n.type==='group');
+  if (groupIdx === -1) return indentStr(level,opts) + renderExpr(nodes, level, opts);
+  const group = nodes[groupIdx];
+  const items = splitByTopLevelComma(group.children);
+  if (hasTopClause(group.children) || items.length<2) {
+    return indentStr(level,opts) + renderExpr(nodes, level, opts);
+  }
+  const before = nodes.slice(0, groupIdx);
+  const after = nodes.slice(groupIdx+1);
+  const headerLine = indentStr(level,opts) + renderExpr(before, level, opts) + ' (';
+  const itemStrs = items.map(it=>renderExpr(it, level+1, opts));
+  const body = renderList(itemStrs, level+1, opts);
+  let closing = indentStr(level,opts) + ')';
+  if (after.length) closing += ' ' + renderExpr(after, level, opts);
+  return [headerLine, body, closing].join('\n');
+}
+
+function renderClauseSegments(nodes, level, opts) {
+  const {preamble, segments} = segmentByClauses(nodes);
+  const lines = [];
+  if (preamble.length) lines.push(renderPreamble(preamble, level, opts));
+
+  for (const seg of segments) {
+    const kw = seg.node.value;
+    const kwOut = caseKeyword(seg.node, opts);
+    const body = seg.body;
+
+    if (JOIN_SET.has(kw)) {
+      lines.push(indentStr(level,opts) + kwOut + (body.length? ' ' + renderExpr(applyAliasPolicy(body,opts), level, opts) : ''));
+    } else if (kw === 'ON') {
+      const onLevel = level+1;
+      lines.push(indentStr(onLevel,opts) + kwOut + ' ' + renderWhereBody(body, onLevel, opts));
+    } else if (kw === 'SELECT') {
+      let distinctPrefix = '';
+      let b = body;
+      if (b[0] && b[0].type==='keyword' && (b[0].value==='DISTINCT'||b[0].value==='ALL')) {
+        distinctPrefix = caseKeyword(b[0],opts); b = b.slice(1);
+      }
+      const cols = splitByTopLevelComma(b).map(c => applyAliasPolicy(c,opts)).map(c => renderExpr(c, level+1, opts));
+      if (cols.length===0) {
+        lines.push(indentStr(level,opts) + kwOut + (distinctPrefix?' '+distinctPrefix:''));
+      } else if (opts.oneColPerLine && cols.length>1) {
+        lines.push(indentStr(level,opts) + kwOut + (distinctPrefix?' '+distinctPrefix:''));
+        lines.push(renderList(cols, level+1, opts));
+      } else {
+        lines.push(indentStr(level,opts) + kwOut + (distinctPrefix?' '+distinctPrefix:'') + ' ' + cols.join(', '));
+      }
+    } else if (kw === 'FROM') {
+      const items = splitByTopLevelComma(body).map(c=>applyAliasPolicy(c,opts)).map(c=>renderExpr(c, level+1, opts));
+      if (items.length>1) {
+        lines.push(indentStr(level,opts)+kwOut);
+        lines.push(renderList(items, level+1, opts));
+      } else if (items.length===1) {
+        lines.push(indentStr(level,opts)+kwOut+' '+items[0]);
+      } else {
+        lines.push(indentStr(level,opts)+kwOut);
+      }
+    } else if (kw==='WHERE' || kw==='HAVING') {
+      lines.push(indentStr(level,opts) + kwOut + (body.length? ' ' + renderWhereBody(body, level, opts) : ''));
+    } else if (kw==='GROUP BY' || kw==='ORDER BY') {
+      const items = splitByTopLevelComma(body).map(c=>renderExpr(c, level+1, opts));
+      if (opts.oneColPerLine && items.length>1) {
+        lines.push(indentStr(level,opts)+kwOut);
+        lines.push(renderList(items, level+1, opts));
+      } else {
+        lines.push(indentStr(level,opts)+kwOut+(items.length?' '+items.join(', '):''));
+      }
+    } else if (kw==='VALUES') {
+      const rows = splitByTopLevelComma(body);
+      const rowStrs = rows.map(r => renderExpr(r, level+1, opts));
+      lines.push(indentStr(level,opts)+kwOut);
+      lines.push(renderList(rowStrs, level+1, opts));
+    } else if (kw==='SET') {
+      const items = splitByTopLevelComma(body).map(c=>renderExpr(c, level+1, opts));
+      lines.push(indentStr(level,opts)+kwOut);
+      lines.push(renderList(items, level+1, opts));
+    } else if (kw==='WITH') {
+      const ctes = splitByTopLevelComma(body).map(c=>renderExpr(c, level+1, opts));
+      lines.push(indentStr(level,opts)+kwOut);
+      lines.push(renderList(ctes, level+1, opts));
+    } else {
+      if (body.length) lines.push(indentStr(level,opts)+kwOut+' '+renderExpr(body, level, opts));
+      else lines.push(indentStr(level,opts)+kwOut);
+    }
+  }
+  return lines.join('\n');
+}
+
+// ---------- Minify ----------
+function renderMinified(nodes, opts) {
+  let cur = '';
+  let lastCat = 'start';
+  function emit(piece) {
+    const needSpace = spacingNeeded(lastCat, piece.cat);
+    cur += (needSpace? ' ':'') + piece.text;
+    lastCat = piece.cat;
+  }
+  function walk(arr) {
+    for (const node of arr) {
+      if (node.type==='comment') continue;
+      if (node.type==='group') {
+        const inner = splitByTopLevelComma(node.children).map(p=>{
+          let sub='';
+          const savedCur=cur, savedCat=lastCat;
+          cur=''; lastCat='start';
+          walk(p);
+          const res=cur;
+          cur=savedCur; lastCat=savedCat;
+          return res;
+        }).join(', ');
+        const spaceBefore = lastCat !== 'start' && !node.tight;
+        cur += (spaceBefore?' ':'') + '(' + inner + ')';
+        lastCat='rparen';
+        continue;
+      }
+      emit(pieceFor(node, opts));
+    }
+  }
+  walk(nodes);
+  return cur.trim();
+}
+
+// ---------- Stats ----------
+function collectStats(rawTokens, mergedFlat) {
+  let depth = 0, maxDepthReached = false, balanced = true;
+  for (const t of rawTokens) {
+    if (t.type==='lparen') depth++;
+    if (t.type==='rparen') depth--;
+    if (depth<0) { balanced = false; }
+  }
+  if (depth !== 0) balanced = false;
+
+  const commentCount = rawTokens.filter(t=>t.type==='comment').length;
+  const joinCount = mergedFlat.filter(t=>t.type==='keyword' && JOIN_SET.has(t.value)).length;
+  let subqueryCount = 0;
+  for (let i=0;i<mergedFlat.length-1;i++) {
+    if (mergedFlat[i].type==='lparen' || (mergedFlat[i].type==='group')) {} // handled elsewhere for flat token list
+  }
+  // subqueries: count '(' immediately followed by SELECT/WITH keyword in raw merged flat stream
+  for (let i=0;i<mergedFlat.length-1;i++) {
+    if (mergedFlat[i].type==='lparen') {
+      const nxt = mergedFlat[i+1];
+      if (nxt && nxt.type==='keyword' && (nxt.value==='SELECT'||nxt.value==='WITH')) subqueryCount++;
+    }
+  }
+  return { balanced, commentCount, joinCount, subqueryCount };
+}
+
+function firstStatementType(mergedFlat) {
+  const first = mergedFlat.find(t=>t.type==='keyword' || t.type==='identifier');
+  if (!first) return 'UNKNOWN';
+  return first.type==='keyword' ? first.value : 'UNKNOWN';
+}
+
+// ---------- Top-level format ----------
+const DEFAULT_OPTS = {
+  keywordCase: 'upper', identifierCase: 'preserve', functionCase: 'preserve',
+  indentSize: 4, useTabs: false,
+  oneColPerLine: true, breakAndOr: true, commaStyle: 'trailing',
+  aliasKeyword: 'keep',
+  ensureSemicolon: true, stripComments: false, blankLineBetweenStatements: true,
+  minify: false,
+  headerComment: '', trailingNewline: true
+};
+
+function formatSql(sqlText, userOpts) {
+  const opts = Object.assign({}, DEFAULT_OPTS, userOpts||{});
+  const rawTokens = tokenize(sqlText);
+  const stmtsRaw = splitStatements(rawTokens);
+
+  const results = [];
+  const allStats = { statements: 0, joins:0, subqueries:0, comments:0, balanced:true, types: [] };
+
+  for (const stmtTokens of stmtsRaw) {
+    allStats.comments += stmtTokens.filter(t=>t.type==='comment').length;
+    const hasRealContent = stmtTokens.some(t=>t.type!=='comment');
+
+    if (!hasRealContent) {
+      // pure-comment chunk (e.g. a trailing comment after the last statement) - pass through as-is, no semicolon
+      if (!opts.stripComments) {
+        results.push(stmtTokens.map(t=>t.value).join('\n'));
+      }
+      continue;
+    }
+
+    let toks = stmtTokens;
+    if (opts.stripComments || opts.minify) toks = toks.filter(t=>t.type!=='comment');
+
+    const merged = classifyAndMerge(toks);
+    const st = collectStats(stmtTokens, merged);
+    allStats.joins += st.joinCount;
+    allStats.subqueries += st.subqueryCount;
+    if (!st.balanced) allStats.balanced = false;
+    allStats.types.push(firstStatementType(merged));
+
+    let outText;
+    if (opts.minify) {
+      outText = renderMinified(merged, opts) ;
+    } else {
+      const tree = buildTree(merged);
+      outText = renderClauseSegments(tree, 0, opts);
+    }
+    if (opts.ensureSemicolon) outText += ';';
+    results.push(outText);
+    allStats.statements++;
+  }
+
+  let finalText;
+  if (opts.minify) {
+    finalText = results.join('\n');
+  } else {
+    const sep = opts.blankLineBetweenStatements ? '\n\n' : '\n';
+    finalText = results.join(sep);
+  }
+  if (opts.headerComment && opts.headerComment.trim()) {
+    finalText = '-- ' + opts.headerComment.trim() + '\n' + finalText;
+  }
+  if (opts.trailingNewline) finalText += '\n';
+
+  return { text: finalText, stats: allStats };
+}
+
+
+
+  global.SqlEngine = { formatSql, tokenize, classifyAndMerge, buildTree, DEFAULT_OPTS };
+})(window);
+    </script>
+
+    <script>
+        // ============================================================
+        // UI GLUE
+        // ============================================================
+        const sqlInputEl = document.getElementById('sqlInput');
+        const sqlOutput = document.getElementById('sqlOutput');
+        const structurePane = document.getElementById('structurePane');
+        const statsPane = document.getElementById('statsPane');
+        const errorBanner = document.getElementById('errorBanner');
+
+        const sampleSql = "SELECT c.customer_id, c.name AS customer_name, COUNT(o.order_id) AS order_count, SUM(o.total) AS lifetime_value,\n  CASE WHEN SUM(o.total) > 1000 THEN 'VIP' WHEN SUM(o.total) > 100 THEN 'Regular' ELSE 'New' END AS tier\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id AND o.status = 'completed'\nWHERE c.region = 'EU' AND (c.signup_date >= '2024-01-01' OR c.referral_id IN (SELECT id FROM top_referrers WHERE active = true))\nGROUP BY c.customer_id, c.name\nORDER BY lifetime_value DESC\nLIMIT 50;";
+        sqlInputEl.value = sampleSql;
+
+        // ---------------- Settings: read / write ----------------
+        const SETTING_IDS = {
+            checkboxes: ['optUseTabs','optOneColPerLine','optBreakAndOr','optEnsureSemicolon','optStripComments','optBlankLineBetween','optMinify','optHeaderComment','optTrailingNewline','optStrictMode','optShowStructure'],
+            text: ['headerCommentInput'],
+            number: ['indentSizeInput'],
+            select: ['dialectSelect','keywordCaseSelect','identifierCaseSelect','functionCaseSelect'],
+            radio: ['commaStyle','aliasKeyword']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.number.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return {
+                keywordCase: raw.keywordCaseSelect,
+                identifierCase: raw.identifierCaseSelect,
+                functionCase: raw.functionCaseSelect,
+                indentSize: parseInt(raw.indentSizeInput, 10) || 4,
+                useTabs: raw.optUseTabs,
+                oneColPerLine: raw.optOneColPerLine,
+                breakAndOr: raw.optBreakAndOr,
+                commaStyle: raw.commaStyle || 'trailing',
+                aliasKeyword: raw.aliasKeyword || 'keep',
+                ensureSemicolon: raw.optEnsureSemicolon,
+                stripComments: raw.optStripComments,
+                blankLineBetweenStatements: raw.optBlankLineBetween,
+                minify: raw.optMinify,
+                headerComment: raw.optHeaderComment ? raw.headerCommentInput : '',
+                trailingNewline: raw.optTrailingNewline,
+                showStructure: raw.optShowStructure,
+                strictMode: raw.optStrictMode,
+                dialect: raw.dialectSelect,
+                _raw: raw
+            };
+        }
+
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.number.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ---------------- Presets ----------------
+        const BUILTIN_PRESETS = {
+            standard: {
+                dialectSelect:'generic', keywordCaseSelect:'upper', identifierCaseSelect:'preserve', functionCaseSelect:'preserve',
+                indentSizeInput:4, optUseTabs:false, optOneColPerLine:true, optBreakAndOr:true, commaStyle:'trailing', aliasKeyword:'keep',
+                optEnsureSemicolon:true, optStripComments:false, optBlankLineBetween:true, optMinify:false,
+                optHeaderComment:false, headerCommentInput:'Formatted by SQL Formatter', optTrailingNewline:true, optStrictMode:true, optShowStructure:true
+            },
+            compactAlias: {
+                dialectSelect:'generic', keywordCaseSelect:'upper', identifierCaseSelect:'lower', functionCaseSelect:'upper',
+                indentSizeInput:2, optUseTabs:false, optOneColPerLine:true, optBreakAndOr:true, commaStyle:'leading', aliasKeyword:'never',
+                optEnsureSemicolon:true, optStripComments:true, optBlankLineBetween:true, optMinify:false,
+                optHeaderComment:false, headerCommentInput:'', optTrailingNewline:true, optStrictMode:true, optShowStructure:true
+            },
+            migration: {
+                dialectSelect:'postgres', keywordCaseSelect:'upper', identifierCaseSelect:'lower', functionCaseSelect:'upper',
+                indentSizeInput:4, optUseTabs:false, optOneColPerLine:true, optBreakAndOr:true, commaStyle:'trailing', aliasKeyword:'always',
+                optEnsureSemicolon:true, optStripComments:false, optBlankLineBetween:true, optMinify:false,
+                optHeaderComment:true, headerCommentInput:'Auto-generated migration — do not edit by hand', optTrailingNewline:true, optStrictMode:true, optShowStructure:true
+            },
+            minifyPreset: {
+                dialectSelect:'generic', keywordCaseSelect:'upper', identifierCaseSelect:'preserve', functionCaseSelect:'preserve',
+                indentSizeInput:4, optUseTabs:false, optOneColPerLine:false, optBreakAndOr:false, commaStyle:'trailing', aliasKeyword:'keep',
+                optEnsureSemicolon:true, optStripComments:true, optBlankLineBetween:false, optMinify:true,
+                optHeaderComment:false, headerCommentInput:'', optTrailingNewline:false, optStrictMode:false, optShowStructure:false
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'sqlFormatterCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sql-formatter-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------------- Structure / Stats rendering ----------------
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function updateStructure(sqlText, opts) {
+            if (!opts.showStructure) {
+                structurePane.innerHTML = '<p class="empty-note">Enable "Show statement structure" to see each statement\'s type and clause list here.</p>';
+                return;
+            }
+            if (!sqlText.trim()) {
+                structurePane.innerHTML = '<p class="empty-note">Type SQL to see its structure here.</p>';
+                return;
+            }
+            try {
+                const rawTokens = SqlEngine.tokenize(sqlText);
+                const html = [];
+                let depth = 0, cur = [];
+                const stmts = [];
+                for (const t of rawTokens) {
+                    if (t.type === 'lparen') depth++;
+                    if (t.type === 'rparen') depth--;
+                    if (t.type === 'semicolon' && depth === 0) { if (cur.some(x=>x.type!=='comment')) stmts.push(cur); cur = []; continue; }
+                    cur.push(t);
+                }
+                if (cur.some(x=>x.type!=='comment')) stmts.push(cur);
+
+                if (stmts.length === 0) {
+                    structurePane.innerHTML = '<p class="empty-note">No statements found yet.</p>';
+                    return;
+                }
+
+                stmts.forEach((toks, idx) => {
+                    const merged = SqlEngine.classifyAndMerge(toks.filter(t=>t.type!=='comment'));
+                    const first = merged.find(t=>t.type==='keyword' || t.type==='identifier');
+                    const stmtType = first ? (first.type==='keyword' ? first.value : 'STATEMENT') : 'STATEMENT';
+                    const clausesFound = [];
+                    const seen = new Set();
+                    const CLAUSE_ORDER = ['WITH','SELECT','INSERT INTO','UPDATE','DELETE FROM','FROM','JOIN','INNER JOIN','LEFT JOIN','LEFT OUTER JOIN','RIGHT JOIN','RIGHT OUTER JOIN','FULL JOIN','FULL OUTER JOIN','CROSS JOIN','NATURAL JOIN','ON','WHERE','SET','VALUES','GROUP BY','HAVING','WINDOW','UNION','UNION ALL','INTERSECT','EXCEPT','ORDER BY','LIMIT','OFFSET','RETURNING','ON CONFLICT','FOR UPDATE'];
+                    merged.forEach(t => {
+                        if (t.type==='keyword' && CLAUSE_ORDER.includes(t.value) && !seen.has(t.value+'#'+clausesFound.length)) {
+                            clausesFound.push(t.value);
+                        }
+                    });
+                    html.push('<div class="stmt-block">');
+                    html.push('<div class="stmt-type">#' + (idx+1) + ' — ' + escapeHtmlStr(stmtType) + '</div>');
+                    if (clausesFound.length) {
+                        html.push('<div class="stmt-clauses">' + clausesFound.map(c => '<span class="clause-chip">' + escapeHtmlStr(c) + '</span>').join('') + '</div>');
+                    } else {
+                        html.push('<div class="stmt-clauses" style="opacity:.5;">No recognized clauses</div>');
+                    }
+                    html.push('</div>');
+                });
+                structurePane.innerHTML = html.join('');
+            } catch (err) {
+                structurePane.innerHTML = '<p class="empty-note">Could not analyze structure: ' + escapeHtmlStr(err.message) + '</p>';
+            }
+        }
+
+        function updateStats(stats, opts) {
+            if (!stats) {
+                statsPane.innerHTML = '<p class="empty-note">Type SQL to see statistics here.</p>';
+                return;
+            }
+            const lines = [];
+            lines.push(['Statements', stats.statements]);
+            lines.push(['JOIN clauses', stats.joins]);
+            lines.push(['Subqueries', stats.subqueries]);
+            lines.push(['Comments found', stats.comments]);
+            lines.push(['Statement types', stats.types.join(', ') || '—']);
+            let html = lines.map(([label, val]) => '<div class="stat-line"><span>' + escapeHtmlStr(label) + '</span><strong>' + escapeHtmlStr(String(val)) + '</strong></div>').join('');
+            if (opts.strictMode && !stats.balanced) {
+                html += '<div class="stat-warning"><i class="fa-solid fa-triangle-exclamation"></i> Unbalanced parentheses detected in at least one statement — check the output carefully.</div>';
+            }
+            statsPane.innerHTML = html;
+        }
+
+        // ---------------- Error handling ----------------
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+
+        // ---------------- Main convert ----------------
+        function convert() {
+            const opts = getOptions();
+            clearError();
+
+            const text = sqlInputEl.value;
+            updateInputStats(text);
+
+            if (text.trim() === '') {
+                sqlOutput.value = '';
+                updateStructure('', opts);
+                updateStats(null, opts);
+                resetOutputStats();
+                saveDraft();
+                return;
+            }
+
+            let result;
+            try {
+                result = SqlEngine.formatSql(text, opts);
+            } catch (err) {
+                showError('Formatting error: ' + (err && err.message ? err.message : String(err)));
+                saveDraft();
+                return;
+            }
+
+            sqlOutput.value = result.text;
+            updateStructure(text, opts);
+            updateStats(result.stats, opts);
+            updateOutputStats(result);
+            saveDraft();
+        }
+
+        function updateInputStats(text) {
+            document.getElementById('sqlLineCount').textContent = (text === '' ? 0 : text.split('\n').length).toLocaleString();
+            document.getElementById('sqlCharCount').textContent = text.length.toLocaleString();
+            let stmtCount = 0;
+            if (text.trim()) {
+                try {
+                    const toks = SqlEngine.tokenize(text);
+                    let depth = 0, hasContent = false;
+                    for (const t of toks) {
+                        if (t.type==='lparen') depth++;
+                        if (t.type==='rparen') depth--;
+                        if (t.type!=='comment') hasContent = true;
+                        if (t.type==='semicolon' && depth===0) { if (hasContent) stmtCount++; hasContent = false; }
+                    }
+                    if (hasContent) stmtCount++;
+                } catch (err) { /* ignore */ }
+            }
+            document.getElementById('sqlStmtCount').textContent = stmtCount.toLocaleString();
+        }
+
+        function updateOutputStats(result) {
+            const byteSize = new Blob([result.text]).size;
+            document.getElementById('outSizeCount').textContent = byteSize.toLocaleString();
+            document.getElementById('outJoinCount').textContent = result.stats.joins.toLocaleString();
+            document.getElementById('outSubqueryCount').textContent = result.stats.subqueries.toLocaleString();
+            const statusEl = document.getElementById('outStatus');
+            statusEl.textContent = result.stats.balanced ? 'Formatted OK' : 'Unbalanced parens';
+            statusEl.parentElement.classList.toggle('error', !result.stats.balanced);
+        }
+
+        function resetOutputStats() {
+            document.getElementById('outSizeCount').textContent = '0';
+            document.getElementById('outJoinCount').textContent = '0';
+            document.getElementById('outSubqueryCount').textContent = '0';
+            const statusEl = document.getElementById('outStatus');
+            statusEl.textContent = '—';
+            statusEl.parentElement.classList.remove('error');
+        }
+
+        // Live conversion
+        sqlInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ---------------- Batch file management ----------------
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = sqlInputEl.value;
+            }
+            activeBatchIndex = index;
+            sqlInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = sqlInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    out = SqlEngine.formatSql(f.content, opts).text;
+                } catch (err) {
+                    out = '-- Error formatting this file: ' + (err && err.message ? err.message : String(err)) + '\n';
+                }
+                const outName = f.name.replace(/\.(sql|txt)$/i, '') + '.sql';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'formatted-sql.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            sqlInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            sqlInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                sqlInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(sqlOutput.value);
+            } catch (err) {
+                sqlOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([sqlOutput.value], { type: 'application/sql' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'formatted.sql';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------------- Autosave draft + settings ----------------
+        const DRAFT_KEY = 'sqlFormatterDraft';
+        const DRAFT_SETTINGS_KEY = 'sqlFormatterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, sqlInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') sqlInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
