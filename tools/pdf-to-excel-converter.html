@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF to Excel Converter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF to Excel converter: auto-detect tables in invoices, bank statements, and reports, tune column/row splitting, fix locale-aware numbers and dates, then export a clean, multi-sheet .xlsx or .csv — no manual retyping, no re-broken formulas. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-to-excel-converter.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-to-excel-converter.html" />
+<meta property="og:title" content="PDF to Excel Converter — awjunaid" />
+<meta property="og:description" content="Detect tables in any PDF, tune the extraction, fix numbers and dates, and export a real .xlsx workbook — client-side, no signup, no upload." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-to-excel-converter.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF to Excel Converter — awjunaid" />
+<meta name="twitter:description" content="Detect tables in any PDF, tune the extraction, fix numbers and dates, and export a real .xlsx workbook — client-side, no signup, no upload." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-to-excel-converter.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PROBLEM BANNER (what this tool is solving)
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--warn); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--warn) 8%, transparent);
+        }
+        .risk-banner i { font-size: 18px; color: var(--warn); margin-top: 2px; flex-shrink: 0; }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        /* Sheet-name mapping rows */
+        .kv-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .kv-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; }
+        .kv-row input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; }
+        .kv-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+        .kv-add-btn { align-self: flex-start; margin-top: 4px; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Detection score strip on the source panel */
+        .risk-score-strip {
+            display: none;
+            align-items: center; gap: 14px;
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 14px 18px; margin-bottom: 14px;
+        }
+        .risk-score-strip.show { display: flex; }
+        .risk-score-ring {
+            width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-header); font-weight: 800; font-size: 15px;
+            border: 3px solid var(--border-light);
+        }
+        .risk-score-ring.high { border-color: var(--accent); color: var(--accent); }
+        .risk-score-ring.med { border-color: var(--warn); color: var(--warn); }
+        .risk-score-ring.low { border-color: var(--danger); color: var(--danger); }
+        .risk-score-text strong { display: block; font-size: 13px; }
+        .risk-score-text span { font-size: 11px; opacity: 0.65; }
+
+        /* Page / table inspector list */
+        .field-inspector-wrap { display: none; }
+        .field-inspector-wrap.show { display: block; }
+        .field-inspector-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .field-inspector-toolbar button { font-size: 10px; padding: 7px 12px; }
+        .field-inspector {
+            border: 1px solid var(--border-light); border-radius: 16px;
+            max-height: 380px; overflow-y: auto;
+        }
+        .fi-group { border-bottom: 1px solid var(--border-light); }
+        .fi-group:last-child { border-bottom: none; }
+        .fi-group-head {
+            font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+            opacity: 0.5; padding: 10px 16px 6px; font-family: var(--font-header);
+        }
+        .fi-row {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 9px 16px; border-top: 1px solid var(--border-light);
+        }
+        .fi-row:first-of-type { border-top: none; }
+        .fi-row input[type="checkbox"] { margin-top: 3px; accent-color: var(--text-primary); cursor: pointer; flex-shrink: 0; }
+        .fi-row .fi-main { flex: 1; min-width: 0; }
+        .fi-row .fi-key { font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; }
+        .fi-row .fi-val { font-family: var(--font-mono); font-size: 11px; opacity: 0.65; word-break: break-word; margin-top: 2px; }
+        .fi-row .fi-val.empty { opacity: 0.35; font-style: italic; }
+        .fi-badge {
+            font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; flex-shrink: 0; margin-top: 1px;
+        }
+        .fi-badge.high { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .fi-badge.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .fi-badge.low { background: color-mix(in srgb, var(--border-light) 60%, transparent); opacity: 0.7; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        /* Table preview grid */
+        .preview-table-wrap { overflow: auto; max-height: 380px; border: 1px solid var(--border-light); border-radius: 12px; }
+        table.preview-table { border-collapse: collapse; width: 100%; font-size: 11px; font-family: var(--font-mono); }
+        table.preview-table th, table.preview-table td {
+            border: 1px solid var(--border-light); padding: 6px 10px; text-align: left; white-space: nowrap;
+        }
+        table.preview-table th { background: var(--input-bg); position: sticky; top: 0; font-weight: 700; }
+        table.preview-table td.is-number { text-align: right; color: var(--accent); }
+        table.preview-table td.is-date { color: var(--warn); }
+        .preview-page-tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .preview-page-tabs button {
+            border: 1px solid var(--border-light); border-radius: 50px; padding: 5px 12px; font-size: 10.5px; font-weight: 700;
+            background: transparent; color: var(--text-color); cursor: pointer; font-family: var(--font-header);
+        }
+        .preview-page-tabs button.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .verify-row {
+            display: grid; grid-template-columns: 1fr auto 1fr auto; align-items: center; gap: 10px;
+            padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 11.5px;
+        }
+        .verify-row:last-child { border-bottom: none; }
+        .verify-row .v-before { opacity: 0.55; word-break: break-word; }
+        .verify-row .v-after { word-break: break-word; }
+        .verify-row .v-arrow { opacity: 0.4; }
+        .verify-row .v-status { font-size: 9px; font-weight: 800; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; text-align: center; }
+        .verify-row .v-status.removed { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .verify-row .v-status.changed { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .verify-row .v-status.kept { background: color-mix(in srgb, var(--border-light) 60%, transparent); opacity: 0.7; }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .verify-row { grid-template-columns: 1fr; gap: 3px; }
+            .verify-row .v-arrow { display: none; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+            .kv-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF to Excel Converter</h1>
+                <div class="tool-dek">Invoices, bank statements, and vendor reports almost always arrive as PDFs — and almost never as usable spreadsheets. Retyping rows by hand introduces typos in totals, breaks decimal places, and loses hours you don't have. This tool detects the tables on every page, lets you tune exactly how columns and numbers are read, and exports a real, formula-ready .xlsx or .csv — entirely in your browser.</div>
+            </div>
+
+            <div class="risk-banner">
+                <i class="fa-solid fa-table-list"></i>
+                <div>
+                    <strong>The problem this solves</strong>
+                    <p>Copy-pasting a PDF table into Excel usually collapses every column into one, turns "1,234.56" into text, drops leading zeros, and merges wrapped line items into the row above. This tool reads each page's actual text positions, reconstructs rows and columns from the whitespace between them, and classifies each cell as a number, date, or currency amount before it ever reaches the spreadsheet — so totals stay totals and dates stay sortable.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="invoice">Invoice / Receipt</option>
+                    <option value="bankStatement">Bank Statement</option>
+                    <option value="report">Multi-Table Report</option>
+                    <option value="rawText">Raw Text Dump (no columns)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Extraction Mode</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="modeAutoTable" checked>
+                            <span><span class="setting-name">Auto-detect tables <span class="risk-tag high">Recommended</span></span><span class="setting-hint">Groups text into rows and columns using position gaps</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="modeDetectHeader" checked>
+                            <span><span class="setting-name">Detect header row</span><span class="setting-hint">First distinct row on a page becomes bold column headers</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="modeMergeWrapped" checked>
+                            <span><span class="setting-name">Merge wrapped line items</span><span class="setting-hint">Folds a short next row with no numbers back into the row above</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="modeSkipEmptyRows" checked>
+                            <span><span class="setting-name">Skip empty rows</span><span class="setting-hint">Drops rows where every detected cell is blank</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="modeDedupeSpaces" checked>
+                            <span><span class="setting-name">Collapse repeated spaces</span><span class="setting-hint">Cleans up dot-leaders and justified-text padding in cell text</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="modeAllText">
+                            <span><span class="setting-name">Raw text mode <span class="risk-tag med">Overrides columns</span></span><span class="setting-hint">Dumps each line as one single-column row instead of splitting columns</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Column & Row Detection</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="colGapThreshold">Column gap threshold (pt)</label>
+                            <input type="number" id="colGapThreshold" value="10" min="2" max="80" step="1">
+                            <div class="field-note">Larger = fewer, wider columns. Smaller = more columns split out.</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="rowTolerance">Row grouping tolerance (pt)</label>
+                            <input type="number" id="rowTolerance" value="3" min="0" max="20" step="0.5">
+                            <div class="field-note">Vertical distance within which text is treated as the same row.</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="minColumns">Minimum columns to call it a table</label>
+                            <input type="number" id="minColumns" value="2" min="1" max="10" step="1">
+                        </div>
+                        <div class="field-group">
+                            <label for="pageRange">Page range</label>
+                            <input type="text" id="pageRange" placeholder="e.g. 1-3,5 (blank = all pages)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Number, Currency & Date Parsing</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="parseNumbers" checked>
+                            <span><span class="setting-name">Parse numeric cells as numbers <span class="risk-tag high">Keeps totals sortable</span></span><span class="setting-hint">Writes real numeric values instead of text, so SUM/AVERAGE work</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripCurrencySymbols" checked>
+                            <span><span class="setting-name">Strip currency symbols</span><span class="setting-hint">Removes $, €, £, Rs, etc. before converting to a number</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="parseParenNegatives" checked>
+                            <span><span class="setting-name">Treat (123.45) as -123.45</span><span class="setting-hint">Common accounting notation for negative amounts</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="parseDates" checked>
+                            <span><span class="setting-name">Parse date-like cells as dates</span><span class="setting-hint">Converts recognized date text to real Excel date values</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="numberLocale">Number format</label>
+                            <select id="numberLocale">
+                                <option value="us">US — 1,234.56</option>
+                                <option value="eu">EU — 1.234,56</option>
+                                <option value="space">Space — 1 234,56</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="dateFormat">Expected date format in source</label>
+                            <select id="dateFormat">
+                                <option value="auto">Auto-detect</option>
+                                <option value="mdy">MM/DD/YYYY</option>
+                                <option value="dmy">DD/MM/YYYY</option>
+                                <option value="ymd">YYYY-MM-DD</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Sheet & Workbook Structure</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="oneSheetPerPage">
+                            <span><span class="setting-name">One sheet per PDF page</span><span class="setting-hint">Off = every detected table combined into a single sheet</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="freezeHeaderRow" checked>
+                            <span><span class="setting-name">Freeze header row</span><span class="setting-hint">Keeps column titles visible while scrolling in Excel</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="boldHeaderRow" checked>
+                            <span><span class="setting-name">Bold header row</span><span class="setting-hint">Applies bold styling to the detected header cells</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="autoColumnWidth" checked>
+                            <span><span class="setting-name">Auto-size column widths</span><span class="setting-hint">Sizes each column to fit its longest value</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="addSourceColumn">
+                            <span><span class="setting-name">Add source page column</span><span class="setting-hint">Appends a column recording which PDF page each row came from</span></span>
+                        </label>
+                    </div>
+                    <div class="field-group full-width" style="margin-top:14px;">
+                        <label>Custom sheet name overrides (page → name)</label>
+                        <div class="kv-rows" id="customKvRows"></div>
+                        <button class="btn-ghost kv-add-btn" id="addKvRowBtn" type="button"><i class="fa-solid fa-plus"></i> Add mapping</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVerifyAfter" checked>
+                            <span><span class="setting-name">Re-scan output after export</span><span class="setting-hint">Recounts rows/columns in the generated workbook so you can confirm nothing was dropped</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchZip" checked>
+                            <span><span class="setting-name">Bundle batch output as ZIP</span><span class="setting-hint">Applies when converting multiple files at once</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="outputFormat">Output format</label>
+                            <select id="outputFormat">
+                                <option value="xlsx">.xlsx (multi-sheet workbook)</option>
+                                <option value="csv">.csv (first table only)</option>
+                            </select>
+                        </div>
+                        <div class="field-group full-width">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="converted.xlsx">
+                            <div class="field-note">Applied to a single file. Batch mode appends "-converted" to each original name.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source PDF</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Choose PDF(s)</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop one or more .pdf files here, or use "Choose PDF(s)" above.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="risk-score-strip" id="riskScoreStrip">
+                        <div class="risk-score-ring" id="riskScoreRing">0</div>
+                        <div class="risk-score-text">
+                            <strong id="riskScoreLabel">No tables detected yet</strong>
+                            <span id="riskScoreSub">0 tables found</span>
+                        </div>
+                    </div>
+
+                    <div class="field-inspector-wrap" id="fieldInspectorWrap">
+                        <div class="field-inspector-toolbar">
+                            <button class="btn-ghost" id="fiSelectAllBtn" type="button">Include all detected tables</button>
+                            <button class="btn-ghost" id="fiSelectNoneBtn" type="button">Clear selection</button>
+                        </div>
+                        <div class="field-inspector" id="fieldInspector"></div>
+                    </div>
+
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalFieldsFound">0</strong> tables found</span>
+                        <span><strong id="totalFilesLoaded">0</strong> file(s) loaded</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Preview & Export</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="cleanBtn" type="button"><i class="fa-solid fa-file-excel"></i> Convert to Excel</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Extraction Plan</button>
+                        <button class="output-tab" data-tab="verify" type="button">Table Preview</button>
+                        <button class="output-tab" data-tab="files" type="button">Output Files</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Load a PDF and it'll be scanned automatically — the extraction plan appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-verify">
+                        <div class="info-pane" id="verifyPane"><p class="info-empty">Run "Convert to Excel" to preview the actual rows and columns that were extracted.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">Converted workbooks will be listed here after processing.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Scan and conversion activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputRemovedCount">0</strong> rows extracted</span>
+                        <span><strong id="outputLeakCount">0</strong> flagged for review</span>
+                        <span><strong id="outputStatus">Not converted yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How does it find tables without an AI model?</h4>
+                        <p>Every letter in a PDF has an exact x/y position. This tool groups text into rows by shared vertical position (Row grouping tolerance), then splits each row into columns wherever the horizontal gap between words exceeds the Column gap threshold — the same visual cue a person's eye uses to read a table.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does the column gap threshold matter so much?</h4>
+                        <p>Set it too low and normal word spacing gets treated as a new column, fragmenting a single sentence across cells. Set it too high and separate columns merge into one. Bank statements and dense reports usually need a smaller value than a simple one-page invoice.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are numbers and currency handled?</h4>
+                        <p>Cells matching a numeric pattern are written as real Excel numbers, not text — so totals can be summed directly. Currency symbols are stripped first, accounting-style parentheses become negative values, and the number format setting controls whether "1.234,56" or "1,234.56" is read correctly for your source locale.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What happens to line items that wrap onto a second line?</h4>
+                        <p>A wrapped description often lands as a short row with no numeric cells beneath the row it belongs to. With "Merge wrapped line items" on, such rows are folded back into the row above instead of appearing as a broken, mostly-empty row in the output.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>One sheet per page, or one combined sheet?</h4>
+                        <p>Turn on "One sheet per PDF page" for documents like multi-page bank statements where each page is its own self-contained table. Leave it off for reports where the same table continues across pages and should end up as one continuous sheet.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every PDF you load is parsed and converted locally in your browser — nothing is sent anywhere, which matters most for exactly the financial and business documents this tool is built for. Reload the page and everything is cleared except your settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        if (window['pdfjsLib']) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // ============================================
+        // PDF TO EXCEL CONVERTER — ENTERPRISE EDITION
+        // ============================================
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const verifyPane = document.getElementById('verifyPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const cleanBtn = document.getElementById('cleanBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const fieldInspectorWrap = document.getElementById('fieldInspectorWrap');
+        const fieldInspector = document.getElementById('fieldInspector');
+        const riskScoreStrip = document.getElementById('riskScoreStrip');
+
+        let loadedFiles = []; // { name, bytes, scan: { pages: [{ pageNum, rows, colCount, isTable }] } }
+        let outputs = []; // { name, blob, size }
+        let fieldSelection = {}; // 'page:N' -> bool, shared per loaded file (first file drives UI)
+        let kvRowCount = 0;
+        let lastConvertedWorkbookData = null; // for table preview tabs
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_CHECKBOXES = [
+            'modeAutoTable','modeDetectHeader','modeMergeWrapped','modeSkipEmptyRows','modeDedupeSpaces','modeAllText',
+            'parseNumbers','stripCurrencySymbols','parseParenNegatives','parseDates',
+            'oneSheetPerPage','freezeHeaderRow','boldHeaderRow','autoColumnWidth','addSourceColumn',
+            'optVerifyAfter','optBatchZip'
+        ];
+        const SETTING_TEXT = ['colGapThreshold','rowTolerance','minColumns','pageRange','outputFilename'];
+        const SETTING_SELECT = ['numberLocale','dateFormat','outputFormat'];
+
+        function getOptions() {
+            const opts = {};
+            SETTING_CHECKBOXES.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_TEXT.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_SELECT.forEach(id => opts[id] = document.getElementById(id).value);
+            opts.sheetNameMap = getCustomKvPairs();
+            return opts;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_CHECKBOXES.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_TEXT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_SELECT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (settings.sheetNameMap) {
+                document.getElementById('customKvRows').innerHTML = '';
+                kvRowCount = 0;
+                settings.sheetNameMap.forEach(([k, v]) => addKvRow(k, v));
+            }
+        }
+
+        // ============================================
+        // CUSTOM SHEET-NAME MAPPING ROWS
+        // ============================================
+        function addKvRow(key, val) {
+            kvRowCount++;
+            const id = 'kv' + kvRowCount;
+            const row = document.createElement('div');
+            row.className = 'kv-row';
+            row.dataset.rowid = id;
+            row.innerHTML = `
+                <input type="text" placeholder="Page number (e.g. 2)" class="kv-key" value="${escapeHtmlAttr(key || '')}">
+                <input type="text" placeholder="Sheet name" class="kv-val" value="${escapeHtmlAttr(val || '')}">
+                <button class="kv-remove" type="button"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            row.querySelector('.kv-remove').addEventListener('click', () => { row.remove(); markCustomAndSave(); });
+            row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', markCustomAndSave));
+            document.getElementById('customKvRows').appendChild(row);
+        }
+        document.getElementById('addKvRowBtn').addEventListener('click', () => { addKvRow('', ''); markCustomAndSave(); });
+        function getCustomKvPairs() {
+            const rows = document.querySelectorAll('#customKvRows .kv-row');
+            const pairs = [];
+            rows.forEach(r => {
+                const k = r.querySelector('.kv-key').value.trim();
+                const v = r.querySelector('.kv-val').value.trim();
+                if (k && v) pairs.push([k, v]);
+            });
+            return pairs;
+        }
+        function escapeHtmlAttr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function markCustomAndSave() {
+            document.getElementById('presetSelect').value = 'custom';
+            invalidateConvert();
+            if (loadedFiles.length) { rescanLoadedFiles().then(renderPlan); }
+            saveSettingsDraft();
+        }
+        document.querySelectorAll('.settings-card input[type="checkbox"], .settings-card input[type="text"], .settings-card input[type="number"], .settings-card select').forEach(el => {
+            el.addEventListener('input', markCustomAndSave);
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            invoice: {
+                modeAutoTable: true, modeDetectHeader: true, modeMergeWrapped: true, modeSkipEmptyRows: true, modeDedupeSpaces: true, modeAllText: false,
+                parseNumbers: true, stripCurrencySymbols: true, parseParenNegatives: true, parseDates: true,
+                oneSheetPerPage: false, freezeHeaderRow: true, boldHeaderRow: true, autoColumnWidth: true, addSourceColumn: false,
+                optVerifyAfter: true, optBatchZip: true,
+                colGapThreshold: '12', rowTolerance: '3', minColumns: '2', pageRange: '', outputFilename: 'converted.xlsx',
+                numberLocale: 'us', dateFormat: 'auto', outputFormat: 'xlsx', sheetNameMap: []
+            },
+            bankStatement: {
+                modeAutoTable: true, modeDetectHeader: true, modeMergeWrapped: true, modeSkipEmptyRows: true, modeDedupeSpaces: true, modeAllText: false,
+                parseNumbers: true, stripCurrencySymbols: true, parseParenNegatives: true, parseDates: true,
+                oneSheetPerPage: true, freezeHeaderRow: true, boldHeaderRow: true, autoColumnWidth: true, addSourceColumn: true,
+                optVerifyAfter: true, optBatchZip: true,
+                colGapThreshold: '8', rowTolerance: '2.5', minColumns: '3', pageRange: '', outputFilename: 'converted.xlsx',
+                numberLocale: 'us', dateFormat: 'mdy', outputFormat: 'xlsx', sheetNameMap: []
+            },
+            report: {
+                modeAutoTable: true, modeDetectHeader: true, modeMergeWrapped: false, modeSkipEmptyRows: true, modeDedupeSpaces: true, modeAllText: false,
+                parseNumbers: true, stripCurrencySymbols: true, parseParenNegatives: false, parseDates: true,
+                oneSheetPerPage: false, freezeHeaderRow: true, boldHeaderRow: true, autoColumnWidth: true, addSourceColumn: true,
+                optVerifyAfter: true, optBatchZip: true,
+                colGapThreshold: '14', rowTolerance: '3.5', minColumns: '2', pageRange: '', outputFilename: 'converted.xlsx',
+                numberLocale: 'us', dateFormat: 'auto', outputFormat: 'xlsx', sheetNameMap: []
+            },
+            rawText: {
+                modeAutoTable: false, modeDetectHeader: false, modeMergeWrapped: false, modeSkipEmptyRows: true, modeDedupeSpaces: true, modeAllText: true,
+                parseNumbers: false, stripCurrencySymbols: false, parseParenNegatives: false, parseDates: false,
+                oneSheetPerPage: true, freezeHeaderRow: false, boldHeaderRow: false, autoColumnWidth: true, addSourceColumn: false,
+                optVerifyAfter: false, optBatchZip: true,
+                colGapThreshold: '10', rowTolerance: '3', minColumns: '1', pageRange: '', outputFilename: 'converted.xlsx',
+                numberLocale: 'us', dateFormat: 'auto', outputFormat: 'xlsx', sheetNameMap: []
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfToExcelCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            invalidateConvert();
+            if (loadedFiles.length) { rescanLoadedFiles().then(renderPlan); }
+            saveSettingsDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-to-excel-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    invalidateConvert();
+                    if (loadedFiles.length) { rescanLoadedFiles().then(renderPlan); }
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // ERROR / LOG HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function clearLog() {
+            logLines = [];
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Scan and conversion activity will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function truncate(str, n) {
+            str = String(str);
+            return str.length > n ? str.slice(0, n) + '…' : str;
+        }
+
+        // ============================================
+        // PAGE RANGE PARSING
+        // ============================================
+        function parsePageRange(str, totalPages) {
+            const all = Array.from({ length: totalPages }, (_, i) => i + 1);
+            if (!str || !str.trim()) return all;
+            const out = new Set();
+            str.split(',').forEach(part => {
+                part = part.trim();
+                if (!part) return;
+                const m = part.match(/^(\d+)\s*-\s*(\d+)$/);
+                if (m) {
+                    const start = Math.max(1, parseInt(m[1], 10));
+                    const end = Math.min(totalPages, parseInt(m[2], 10));
+                    for (let i = start; i <= end; i++) out.add(i);
+                } else {
+                    const n = parseInt(part, 10);
+                    if (!isNaN(n) && n >= 1 && n <= totalPages) out.add(n);
+                }
+            });
+            return out.size ? Array.from(out).sort((a, b) => a - b) : all;
+        }
+
+        // ============================================
+        // NUMBER / DATE CLASSIFICATION
+        // ============================================
+        function classifyAndParseCell(raw, opts) {
+            let text = (raw || '').trim();
+            if (opts.modeDedupeSpaces) text = text.replace(/\.{2,}/g, ' ').replace(/\s{2,}/g, ' ').trim();
+            if (!text) return { display: '', value: '', type: 'empty' };
+
+            if (opts.parseNumbers) {
+                let numText = text;
+                let negative = false;
+                if (opts.parseParenNegatives && /^\(.*\)$/.test(numText)) {
+                    negative = true;
+                    numText = numText.slice(1, -1);
+                }
+                if (opts.stripCurrencySymbols) numText = numText.replace(/^[A-Za-z]{0,3}\s?[$€£¥₹]|[$€£¥₹]\s?[A-Za-z]{0,3}$/g, '').trim();
+                numText = numText.replace(/^[$€£¥₹]|[$€£¥₹]$/g, '').trim();
+
+                let cleaned = numText;
+                if (opts.numberLocale === 'eu') {
+                    cleaned = cleaned.replace(/\./g, '').replace(/,/g, '.');
+                } else if (opts.numberLocale === 'space') {
+                    cleaned = cleaned.replace(/\s/g, '').replace(/,/g, '.');
+                } else {
+                    cleaned = cleaned.replace(/,/g, '');
+                }
+                if (/^-?\d+(\.\d+)?%?$/.test(cleaned.replace(/\s/g, ''))) {
+                    const isPct = /%$/.test(cleaned);
+                    const num = parseFloat(cleaned.replace('%', ''));
+                    if (!isNaN(num)) {
+                        const val = (negative ? -Math.abs(num) : num) * (isPct ? 0.01 : 1);
+                        return { display: text, value: val, type: 'number' };
+                    }
+                }
+            }
+
+            if (opts.parseDates) {
+                const parsedDate = tryParseDate(text, opts.dateFormat);
+                if (parsedDate) return { display: text, value: parsedDate, type: 'date' };
+            }
+
+            return { display: text, value: text, type: 'text' };
+        }
+
+        function tryParseDate(text, mode) {
+            const m1 = text.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+            const m2 = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            let y, mo, d;
+            if (m2) {
+                y = parseInt(m2[1], 10); mo = parseInt(m2[2], 10); d = parseInt(m2[3], 10);
+            } else if (m1) {
+                let a = parseInt(m1[1], 10), b = parseInt(m1[2], 10);
+                y = parseInt(m1[3], 10);
+                if (y < 100) y += (y < 50 ? 2000 : 1900);
+                if (mode === 'dmy') { d = a; mo = b; }
+                else if (mode === 'ymd') { return null; }
+                else if (mode === 'mdy') { mo = a; d = b; }
+                else { // auto
+                    if (a > 12) { d = a; mo = b; } else { mo = a; d = b; }
+                }
+            } else {
+                const monthNames = /^(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{2,4})$/i;
+                const mm = text.match(monthNames);
+                if (mm) {
+                    d = parseInt(mm[1], 10);
+                    const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+                    mo = months.indexOf(mm[2].toLowerCase().slice(0,3)) + 1;
+                    y = parseInt(mm[3], 10);
+                    if (y < 100) y += (y < 50 ? 2000 : 1900);
+                } else {
+                    return null;
+                }
+            }
+            if (!mo || mo < 1 || mo > 12 || !d || d < 1 || d > 31) return null;
+            const date = new Date(Date.UTC(y, mo - 1, d));
+            if (isNaN(date.getTime())) return null;
+            return date;
+        }
+
+        // ============================================
+        // TABLE EXTRACTION (position-based row/column grouping)
+        // ============================================
+        async function extractPageTable(page, opts) {
+            const textContent = await page.getTextContent();
+            const items = textContent.items
+                .filter(it => it.str && it.str.trim().length)
+                .map(it => ({
+                    str: it.str,
+                    x: it.transform[4],
+                    y: it.transform[5],
+                    width: it.width || 0
+                }));
+            if (!items.length) return { rows: [], colCount: 0, isTable: false };
+
+            const rowTol = parseFloat(opts.rowTolerance) || 3;
+            items.sort((a, b) => b.y - a.y || a.x - b.x);
+
+            const rawRows = [];
+            items.forEach(it => {
+                let row = rawRows.find(r => Math.abs(r.y - it.y) <= rowTol);
+                if (!row) { row = { y: it.y, items: [] }; rawRows.push(row); }
+                row.items.push(it);
+            });
+            rawRows.sort((a, b) => b.y - a.y);
+            rawRows.forEach(r => r.items.sort((a, b) => a.x - b.x));
+
+            if (opts.modeAllText) {
+                const rows = rawRows.map(r => [r.items.map(it => it.str).join(' ').trim()]);
+                return { rows, colCount: 1, isTable: false };
+            }
+
+            const gap = parseFloat(opts.colGapThreshold) || 10;
+            let rows = rawRows.map(r => {
+                const cells = [];
+                let current = null;
+                r.items.forEach(it => {
+                    if (current && (it.x - current.endX) < gap) {
+                        current.text += (it.str.startsWith(' ') ? '' : ' ') + it.str;
+                        current.endX = Math.max(current.endX, it.x + it.width);
+                    } else {
+                        current = { text: it.str, endX: it.x + it.width };
+                        cells.push(current);
+                    }
+                });
+                return cells.map(c => c.text.trim());
+            });
+
+            if (opts.modeMergeWrapped) {
+                const merged = [];
+                rows.forEach(r => {
+                    const hasNumberLike = r.some(c => /\d/.test(c));
+                    if (!hasNumberLike && r.length <= 2 && merged.length) {
+                        const prev = merged[merged.length - 1];
+                        prev[0] = (prev[0] || '') + ' ' + (r[0] || '');
+                    } else {
+                        merged.push(r.slice());
+                    }
+                });
+                rows = merged;
+            }
+
+            if (opts.modeSkipEmptyRows) {
+                rows = rows.filter(r => r.some(c => c && c.trim().length));
+            }
+
+            const colCount = rows.reduce((max, r) => Math.max(max, r.length), 0);
+            const isTable = colCount >= (parseInt(opts.minColumns, 10) || 2);
+            return { rows, colCount, isTable };
+        }
+
+        async function scanPdfFile(bytes, opts) {
+            const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+            const totalPages = doc.numPages;
+            const pageNums = parsePageRange(opts.pageRange, totalPages);
+            const pages = [];
+            for (const num of pageNums) {
+                const page = await doc.getPage(num);
+                const table = await extractPageTable(page, opts);
+                pages.push({ pageNum: num, ...table });
+            }
+            return { totalPages, pages };
+        }
+
+        // ============================================
+        // FILE LOADING
+        // ============================================
+        async function loadFiles(fileList) {
+            clearError();
+            clearLog();
+            const files = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+            if (files.length === 0) {
+                showError('No valid PDF files selected.');
+                return;
+            }
+            loadedFiles = [];
+            const opts = getOptions();
+            for (const file of files) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const scan = await scanPdfFile(bytes, opts);
+                    loadedFiles.push({ name: file.name, bytes, scan });
+                    const tableCount = scan.pages.filter(p => p.isTable).length;
+                    logMsg(`Scanned "${file.name}" — ${scan.totalPages} page(s), ${tableCount} table-like page(s) detected.`, 'success');
+                } catch (err) {
+                    logMsg(`Failed to scan "${file.name}": ${err.message || err}`, 'error');
+                }
+            }
+            if (loadedFiles.length === 0) {
+                showError('None of the selected files could be read as PDFs.');
+                return;
+            }
+
+            const first = loadedFiles[0];
+            document.getElementById('lfName').textContent = loadedFiles.length === 1 ? first.name : `${first.name} + ${loadedFiles.length - 1} more`;
+            const tableCount = first.scan.pages.filter(p => p.isTable).length;
+            document.getElementById('lfMeta').textContent = loadedFiles.length === 1
+                ? `${first.scan.totalPages} page(s), ${tableCount} table-like page(s)`
+                : `${loadedFiles.length} files loaded — batch mode`;
+            loadedFileCard.classList.add('show');
+            document.getElementById('totalFilesLoaded').textContent = loadedFiles.length;
+
+            const base = first.name.replace(/\.pdf$/i, '');
+            document.getElementById('outputFilename').value = base + '-converted.' + document.getElementById('outputFormat').value;
+
+            initFieldSelection();
+            renderRiskScore();
+            renderFieldInspector();
+            invalidateConvert();
+            renderPlan();
+        }
+
+        async function rescanLoadedFiles() {
+            if (!loadedFiles.length) return;
+            const opts = getOptions();
+            for (const entry of loadedFiles) {
+                entry.scan = await scanPdfFile(entry.bytes, opts);
+            }
+            initFieldSelection();
+            renderRiskScore();
+            renderFieldInspector();
+        }
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            loadedFiles = [];
+            loadedFileCard.classList.remove('show');
+            fieldInspectorWrap.classList.remove('show');
+            riskScoreStrip.classList.remove('show');
+            document.getElementById('totalFilesLoaded').textContent = '0';
+            document.getElementById('totalFieldsFound').textContent = '0';
+            invalidateConvert();
+            planPane.innerHTML = '<p class="info-empty">Load a PDF and it\'ll be scanned automatically — the extraction plan appears here.</p>';
+        });
+
+        // ============================================
+        // DETECTION SCORE
+        // ============================================
+        function renderRiskScore() {
+            if (loadedFiles.length === 0) { riskScoreStrip.classList.remove('show'); return; }
+            let tablePages = 0, totalRows = 0, totalPages = 0;
+            loadedFiles.forEach(f => {
+                totalPages += f.scan.totalPages;
+                f.scan.pages.forEach(p => {
+                    if (p.isTable) tablePages++;
+                    totalRows += p.rows.length;
+                });
+            });
+            const coverage = totalPages ? Math.round((tablePages / totalPages) * 100) : 0;
+            const ring = document.getElementById('riskScoreRing');
+            const label = document.getElementById('riskScoreLabel');
+            const sub = document.getElementById('riskScoreSub');
+            ring.textContent = coverage + '%';
+            ring.className = 'risk-score-ring ' + (coverage >= 60 ? 'high' : coverage >= 25 ? 'med' : 'low');
+            label.textContent = coverage >= 60 ? 'Strong table structure' : coverage >= 25 ? 'Mixed content' : coverage === 0 ? 'No tables detected yet' : 'Weak table structure';
+            sub.textContent = `${tablePages} table-like page(s), ${totalRows} row(s) across ${loadedFiles.length} file(s)`;
+            riskScoreStrip.classList.add('show');
+        }
+
+        // ============================================
+        // PAGE / TABLE INSPECTOR (first file drives the UI; batch applies same rules)
+        // ============================================
+        function initFieldSelection() {
+            fieldSelection = {};
+            const first = loadedFiles[0];
+            if (!first) return;
+            first.scan.pages.forEach(p => { fieldSelection['page:' + p.pageNum] = true; });
+        }
+
+        function renderFieldInspector() {
+            const first = loadedFiles[0];
+            if (!first) { fieldInspectorWrap.classList.remove('show'); return; }
+            let html = '';
+            let foundCount = 0;
+
+            html += `<div class="fi-group"><div class="fi-group-head">Pages</div>`;
+            first.scan.pages.forEach(p => {
+                foundCount++;
+                const key = 'page:' + p.pageNum;
+                const checked = fieldSelection[key] !== false;
+                const preview = p.rows.slice(0, 1).map(r => r.join(' | ')).join('');
+                html += `<div class="fi-row">
+                    <input type="checkbox" data-key="${escapeHtmlAttr(key)}" ${checked ? 'checked' : ''}>
+                    <div class="fi-main"><div class="fi-key">Page ${p.pageNum} — ${p.rows.length} row(s), ${p.colCount} column(s)</div><div class="fi-val${preview ? '' : ' empty'}">${preview ? escapeHtmlStr(truncate(preview, 90)) : '(no rows detected)'}</div></div>
+                    <span class="fi-badge ${p.isTable ? 'high' : 'low'}">${p.isTable ? 'Table' : 'Sparse'}</span>
+                </div>`;
+            });
+            html += `</div>`;
+
+            if (!html) {
+                html = '<div style="padding:20px;"><p class="info-empty">No pages found in this file.</p></div>';
+            }
+            fieldInspector.innerHTML = html;
+            document.getElementById('totalFieldsFound').textContent = first.scan.pages.filter(p => p.isTable).length;
+
+            fieldInspector.querySelectorAll('.fi-row input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    fieldSelection[cb.dataset.key] = cb.checked;
+                    invalidateConvert();
+                    renderPlan();
+                });
+            });
+
+            fieldInspectorWrap.classList.add('show');
+        }
+
+        document.getElementById('fiSelectAllBtn').addEventListener('click', () => {
+            Object.keys(fieldSelection).forEach(k => fieldSelection[k] = true);
+            fieldInspector.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            invalidateConvert(); renderPlan();
+        });
+        document.getElementById('fiSelectNoneBtn').addEventListener('click', () => {
+            Object.keys(fieldSelection).forEach(k => fieldSelection[k] = false);
+            fieldInspector.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            invalidateConvert(); renderPlan();
+        });
+
+        // ============================================
+        // EXTRACTION PLAN PREVIEW
+        // ============================================
+        function renderPlan() {
+            if (loadedFiles.length === 0) {
+                planPane.innerHTML = '<p class="info-empty">Load a PDF and it\'ll be scanned automatically — the extraction plan appears here.</p>';
+                return;
+            }
+            const opts = getOptions();
+            const includedPages = Object.entries(fieldSelection).filter(([k, v]) => v).length;
+            let html = `<div class="meta-row"><span>Files queued</span><span>${loadedFiles.length}</span></div>`;
+            html += `<div class="meta-row"><span>Pages included</span><span>${includedPages}</span></div>`;
+            html += `<div class="meta-row"><span>Extraction mode</span><span>${opts.modeAllText ? 'Raw text (single column)' : 'Auto table detection'}</span></div>`;
+            html += `<div class="meta-row"><span>Column gap / row tolerance</span><span>${escapeHtmlStr(opts.colGapThreshold)}pt / ${escapeHtmlStr(opts.rowTolerance)}pt</span></div>`;
+            html += `<div class="meta-row"><span>Number format</span><span>${labelForLocale(opts.numberLocale)}</span></div>`;
+            html += `<div class="meta-row"><span>Date parsing</span><span>${opts.parseDates ? labelForDateMode(opts.dateFormat) : 'Off'}</span></div>`;
+            html += `<div class="meta-row"><span>Sheet structure</span><span>${opts.oneSheetPerPage ? 'One sheet per page' : 'Combined into one sheet'}</span></div>`;
+            if (opts.sheetNameMap.length) html += `<div class="meta-row"><span>Sheet name overrides</span><span>${opts.sheetNameMap.map(([k, v]) => escapeHtmlStr(k) + ' → ' + escapeHtmlStr(v)).join(', ')}</span></div>`;
+            html += `<div class="meta-row"><span>Output format</span><span>${opts.outputFormat.toUpperCase()}</span></div>`;
+            html += `<div class="meta-row"><span>Re-scan after export</span><span>${opts.optVerifyAfter ? 'Yes' : 'No'}</span></div>`;
+            planPane.innerHTML = html;
+        }
+        function labelForLocale(mode) {
+            return { us: 'US — 1,234.56', eu: 'EU — 1.234,56', space: 'Space — 1 234,56' }[mode] || mode;
+        }
+        function labelForDateMode(mode) {
+            return { auto: 'Auto-detect', mdy: 'MM/DD/YYYY', dmy: 'DD/MM/YYYY', ymd: 'YYYY-MM-DD' }[mode] || mode;
+        }
+
+        // ============================================
+        // CONVERSION ENGINE
+        // ============================================
+        function sheetNameFor(pageNum, opts, fallback) {
+            const override = (opts.sheetNameMap || []).find(([k]) => String(k).trim() === String(pageNum));
+            let name = override ? override[1] : fallback;
+            name = String(name).replace(/[\\\/\?\*\[\]:]/g, ' ').trim().slice(0, 31);
+            return name || ('Sheet' + pageNum);
+        }
+
+        function buildSheetFromRows(rows, opts, pageNum) {
+            const aoa = [];
+            const cellTypeGrid = [];
+            let headerHandled = !opts.modeDetectHeader;
+
+            rows.forEach((row, rIdx) => {
+                const outRow = [];
+                const typeRow = [];
+                row.forEach(cellText => {
+                    if (!headerHandled && rIdx === 0) {
+                        outRow.push(cellText);
+                        typeRow.push('header');
+                    } else {
+                        const parsed = classifyAndParseCell(cellText, opts);
+                        outRow.push(parsed.value === '' ? '' : parsed.value);
+                        typeRow.push(parsed.type);
+                    }
+                });
+                if (!headerHandled && rIdx === 0) headerHandled = true;
+                if (opts.addSourceColumn) { outRow.push('p.' + pageNum); typeRow.push('text'); }
+                aoa.push(outRow);
+                cellTypeGrid.push(typeRow);
+            });
+            if (opts.addSourceColumn && aoa.length && cellTypeGrid[0].length) {
+                // label the header cell of the appended column
+                if (!opts.modeDetectHeader) { /* no header row to label */ }
+                else { aoa[0][aoa[0].length - 1] = 'Source Page'; }
+            }
+            return { aoa, cellTypeGrid };
+        }
+
+        function applySheetStyling(ws, aoa, cellTypeGrid, opts) {
+            const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+            if (opts.autoColumnWidth) {
+                const widths = [];
+                aoa.forEach(row => {
+                    row.forEach((val, c) => {
+                        const len = String(val === undefined || val === null ? '' : val).length;
+                        widths[c] = Math.max(widths[c] || 8, Math.min(40, len + 2));
+                    });
+                });
+                ws['!cols'] = widths.map(w => ({ wch: w }));
+            }
+            if (opts.freezeHeaderRow && opts.modeDetectHeader && aoa.length) {
+                ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+                ws['!pane'] = { ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' };
+            }
+            if (opts.boldHeaderRow && opts.modeDetectHeader && aoa.length) {
+                for (let c = range.s.c; c <= range.e.c; c++) {
+                    const addr = XLSX.utils.encode_cell({ r: 0, c });
+                    if (ws[addr]) ws[addr].s = { font: { bold: true } };
+                }
+            }
+            aoa.forEach((row, r) => {
+                row.forEach((val, c) => {
+                    const type = cellTypeGrid[r] && cellTypeGrid[r][c];
+                    const addr = XLSX.utils.encode_cell({ r, c });
+                    if (!ws[addr]) return;
+                    if (type === 'date' && val instanceof Date) {
+                        ws[addr].t = 'd';
+                        ws[addr].z = 'yyyy-mm-dd';
+                    }
+                });
+            });
+        }
+
+        async function convertOneFile(entry, opts) {
+            const rescanOpts = opts;
+            let scan = entry.scan;
+            // re-extract to honor the latest settings exactly (page selection uses the first file's map,
+            // but for batch files beyond the first, include all detected table pages)
+            const isFirst = loadedFiles[0] === entry;
+            const includedPages = isFirst
+                ? scan.pages.filter(p => fieldSelection['page:' + p.pageNum] !== false)
+                : scan.pages.filter(p => p.isTable || opts.modeAllText);
+
+            const wb = XLSX.utils.book_new();
+            let totalRows = 0;
+            let flaggedPages = 0;
+            const sheetsBuilt = [];
+
+            if (opts.oneSheetPerPage) {
+                includedPages.forEach(p => {
+                    if (!p.rows.length) { flaggedPages++; return; }
+                    const { aoa, cellTypeGrid } = buildSheetFromRows(p.rows, opts, p.pageNum);
+                    const ws = XLSX.utils.aoa_to_sheet(aoa);
+                    applySheetStyling(ws, aoa, cellTypeGrid, opts);
+                    const name = sheetNameFor(p.pageNum, opts, 'Page ' + p.pageNum);
+                    XLSX.utils.book_append_sheet(wb, ws, name);
+                    totalRows += p.rows.length;
+                    sheetsBuilt.push({ name, rows: p.rows, pageNum: p.pageNum });
+                    if (!p.isTable) flaggedPages++;
+                });
+            } else {
+                const combined = [];
+                let headerWritten = false;
+                includedPages.forEach(p => {
+                    if (!p.rows.length) { flaggedPages++; return; }
+                    let rows = p.rows;
+                    if (opts.modeDetectHeader && headerWritten) rows = rows.slice(1); // drop repeated header on later pages
+                    combined.push(...rows);
+                    totalRows += p.rows.length;
+                    if (opts.modeDetectHeader) headerWritten = true;
+                    if (!p.isTable) flaggedPages++;
+                });
+                if (combined.length) {
+                    const withSource = opts.addSourceColumn
+                        ? combined.map((r, i) => r) // source col added per-page already impossible when combined; append page-agnostic marker instead
+                        : combined;
+                    const { aoa, cellTypeGrid } = buildSheetFromRows(withSource, { ...opts, addSourceColumn: false }, includedPages[0] ? includedPages[0].pageNum : 1);
+                    const ws = XLSX.utils.aoa_to_sheet(aoa);
+                    applySheetStyling(ws, aoa, cellTypeGrid, opts);
+                    const name = sheetNameFor('all', opts, 'Data');
+                    XLSX.utils.book_append_sheet(wb, ws, name);
+                    sheetsBuilt.push({ name, rows: combined, pageNum: 'combined' });
+                }
+            }
+
+            if (!wb.SheetNames.length) {
+                const ws = XLSX.utils.aoa_to_sheet([['No table data detected']]);
+                XLSX.utils.book_append_sheet(wb, ws, 'Empty');
+            }
+
+            let bytes;
+            let filename;
+            if (opts.outputFormat === 'csv') {
+                const firstSheet = wb.Sheets[wb.SheetNames[0]];
+                const csv = XLSX.utils.sheet_to_csv(firstSheet);
+                bytes = new TextEncoder().encode(csv);
+                filename = null; // set by caller with .csv extension
+            } else {
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                bytes = new Uint8Array(wbout);
+            }
+
+            return { bytes, totalRows, flaggedPages, sheetsBuilt, format: opts.outputFormat };
+        }
+
+        async function cleanFiles() {
+            if (loadedFiles.length === 0) {
+                showError('Load a PDF before converting.');
+                return;
+            }
+            clearError();
+            clearLog();
+            cleanBtn.disabled = true;
+            downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Converting…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+            outputs = [];
+            lastConvertedWorkbookData = null;
+
+            const opts = getOptions();
+            let rowsTotal = 0;
+            let flaggedTotal = 0;
+
+            try {
+                for (let i = 0; i < loadedFiles.length; i++) {
+                    const entry = loadedFiles[i];
+                    const { bytes, totalRows, flaggedPages, sheetsBuilt, format } = await convertOneFile(entry, opts);
+
+                    let filename;
+                    const ext = format === 'csv' ? 'csv' : 'xlsx';
+                    if (loadedFiles.length === 1) {
+                        filename = (opts.outputFilename || ('converted.' + ext)).replace(/\.(xlsx|csv)$/i, '') + '.' + ext;
+                    } else {
+                        filename = entry.name.replace(/\.pdf$/i, '') + '-converted.' + ext;
+                    }
+                    const mime = format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    outputs.push({ name: filename, blob: new Blob([bytes], { type: mime }), size: bytes.length });
+                    logMsg(`Converted "${entry.name}" → "${filename}" — ${totalRows} row(s) across ${sheetsBuilt.length} sheet(s).`, 'success');
+                    rowsTotal += totalRows;
+                    flaggedTotal += flaggedPages;
+
+                    if (i === 0) {
+                        lastConvertedWorkbookData = sheetsBuilt;
+                        renderVerifyPreview(sheetsBuilt);
+                        if (opts.optVerifyAfter) {
+                            const rescanCount = sheetsBuilt.reduce((n, s) => n + s.rows.length, 0);
+                            if (rescanCount === totalRows) {
+                                logMsg('Re-scan confirms the generated workbook contains every extracted row.', 'success');
+                            } else {
+                                logMsg(`Re-scan found a row-count mismatch: extracted ${totalRows}, workbook has ${rescanCount}.`, 'warn');
+                            }
+                        }
+                    }
+                }
+
+                document.getElementById('outputRemovedCount').textContent = rowsTotal;
+                document.getElementById('outputLeakCount').textContent = flaggedTotal;
+
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = outputs.length > 1 ? `Converted ${outputs.length} files` : 'Converted';
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add(flaggedTotal > 0 ? 'error' : 'success');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                logMsg(`Conversion complete: ${outputs.length} file(s) processed, ${rowsTotal} row(s) extracted.`, 'success');
+            } catch (err) {
+                showError('Conversion failed: ' + (err.message || err));
+                logMsg('Conversion failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Conversion failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                outputs = [];
+                downloadBtn.disabled = true;
+            } finally {
+                cleanBtn.disabled = false;
+            }
+        }
+
+        function renderVerifyPreview(sheetsBuilt) {
+            if (!sheetsBuilt || !sheetsBuilt.length) {
+                verifyPane.innerHTML = '<p class="info-empty">No table data was extracted to preview.</p>';
+                return;
+            }
+            let tabsHtml = '<div class="preview-page-tabs">';
+            sheetsBuilt.forEach((s, i) => {
+                tabsHtml += `<button data-sheet-idx="${i}" class="${i === 0 ? 'active' : ''}" type="button">${escapeHtmlStr(s.name)}</button>`;
+            });
+            tabsHtml += '</div><div id="previewTableHost"></div>';
+            verifyPane.innerHTML = tabsHtml;
+            verifyPane.querySelectorAll('.preview-page-tabs button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    verifyPane.querySelectorAll('.preview-page-tabs button').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderPreviewTable(sheetsBuilt[parseInt(btn.dataset.sheetIdx, 10)]);
+                });
+            });
+            renderPreviewTable(sheetsBuilt[0]);
+        }
+
+        function renderPreviewTable(sheet) {
+            const host = document.getElementById('previewTableHost');
+            if (!host) return;
+            const rows = sheet.rows.slice(0, 60);
+            if (!rows.length) { host.innerHTML = '<p class="info-empty">No rows on this sheet.</p>'; return; }
+            let html = '<div class="preview-table-wrap"><table class="preview-table"><tbody>';
+            rows.forEach((r, i) => {
+                html += '<tr>';
+                r.forEach(cell => {
+                    const isNum = typeof cell === 'number' || /^-?\d+(\.\d+)?%?$/.test(String(cell).trim());
+                    const tag = i === 0 ? 'th' : 'td';
+                    const cls = i === 0 ? '' : (isNum ? ' class="is-number"' : '');
+                    html += `<${tag}${cls}>${escapeHtmlStr(cell === undefined || cell === null ? '' : String(cell))}</${tag}>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            if (sheet.rows.length > 60) html += `<p class="info-empty" style="margin-top:8px;">Showing first 60 of ${sheet.rows.length} rows.</p>`;
+            host.innerHTML = html;
+        }
+
+        function renderFilesPane() {
+            if (outputs.length === 0) {
+                filesPane.innerHTML = '<p class="info-empty">Converted workbooks will be listed here after processing.</p>';
+                return;
+            }
+            filesPane.innerHTML = '';
+            outputs.forEach((o, i) => {
+                const row = document.createElement('div');
+                row.className = 'output-list-item';
+                row.innerHTML = `
+                    <span class="oli-name" title="${escapeHtmlStr(o.name)}">${escapeHtmlStr(o.name)}</span>
+                    <span class="oli-meta">${o.size.toLocaleString()}b</span>
+                    <button class="oli-dl" type="button" data-idx="${i}">Save</button>
+                `;
+                row.querySelector('.oli-dl').addEventListener('click', () => downloadSingle(i));
+                filesPane.appendChild(row);
+            });
+        }
+
+        function downloadSingle(idx) {
+            const o = outputs[idx];
+            if (!o) return;
+            const url = URL.createObjectURL(o.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = o.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAll() {
+            if (outputs.length === 0) return;
+            if (outputs.length === 1) {
+                downloadSingle(0);
+                return;
+            }
+            const opts = getOptions();
+            if (!opts.optBatchZip || !window['JSZip']) {
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+                return;
+            }
+            try {
+                const zip = new JSZip();
+                for (const o of outputs) {
+                    const buf = await o.blob.arrayBuffer();
+                    zip.file(o.name, buf);
+                }
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted-workbooks.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logMsg(`Downloaded ZIP bundle with ${outputs.length} file(s).`, 'success');
+            } catch (err) {
+                logMsg(`ZIP bundling failed, falling back to individual downloads: ${err.message || err}`, 'warn');
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+            }
+        }
+
+        function invalidateConvert() {
+            if (outputs.length > 0) {
+                outputs = [];
+                downloadBtn.disabled = true;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Settings changed — convert again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                filesPane.innerHTML = '<p class="info-empty">Converted workbooks will be listed here after processing.</p>';
+                verifyPane.innerHTML = '<p class="info-empty">Run "Convert to Excel" to preview the actual rows and columns that were extracted.</p>';
+            }
+        }
+
+        document.getElementById('outputFormat').addEventListener('change', () => {
+            const ext = document.getElementById('outputFormat').value;
+            const nameInput = document.getElementById('outputFilename');
+            nameInput.value = nameInput.value.replace(/\.(xlsx|csv)$/i, '') + '.' + ext;
+        });
+
+        cleanBtn.addEventListener('click', cleanFiles);
+        downloadBtn.addEventListener('click', downloadAll);
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            loadFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            loadFiles(dropped);
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfToExcelLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(saved ? JSON.parse(saved) : null);
+            } catch (err) { /* ignore */ }
+        })();
+    </script>
+</body>
+</html>
