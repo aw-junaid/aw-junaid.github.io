@@ -1,0 +1,2311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | JavaScript to Python Converter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free JavaScript to Python converter that actually parses your code (via a real JS AST) and rewrites it — snake_case naming, f-strings, def/lambda arrow functions, switch → if/elif, classes, try/except, JSDoc → docstrings, and clear warnings for anything it can't safely convert. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/js2python.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/js2python.html" />
+<meta property="og:title" content="JavaScript to Python Converter — awjunaid" />
+<meta property="og:description" content="Paste JavaScript, get real Python — parsed with an actual JS AST, not regex. Configure naming, strings, control flow, classes, and get an AST view plus a list of anything it couldn't convert. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/js2python.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="JavaScript to Python Converter — awjunaid" />
+<meta name="twitter:description" content="Real AST-based JS → Python conversion with configurable naming, strings, control flow and classes, plus honest warnings for unsupported syntax." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/js2python.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/acorn/8.11.3/acorn.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b45309;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+            --warn: #f0b429;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #jsInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+            tab-size: 2;
+        }
+        #jsInput:focus { outline: none; border-color: var(--border-color); }
+        #jsInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+            position: relative;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .output-tab .tab-badge {
+            display: inline-block; min-width: 15px; padding: 0 4px; border-radius: 10px; margin-left: 6px;
+            background: var(--warn); color: #000; font-size: 10px; font-weight: 800;
+        }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #pyOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+            tab-size: 4;
+        }
+
+        .tree-pane, .schema-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .schema-pane { white-space: pre-wrap; }
+        .tree-pane .tree-empty, .schema-pane .schema-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .tree-node { margin-left: 16px; }
+        .tree-row { padding: 3px 0; white-space: nowrap; }
+        .tree-key { font-weight: 700; }
+        .tree-type { opacity: 0.5; font-size: 11px; margin-left: 6px; }
+        .tree-val { opacity: 0.85; }
+        .tree-attr { opacity: 0.6; font-size: 11px; margin-left: 6px; }
+
+        .warn-item {
+            border: 1px solid var(--border-light); border-left: 3px solid var(--warn); border-radius: 10px;
+            padding: 10px 14px; margin-bottom: 10px; font-family: var(--font-body); white-space: normal;
+        }
+        .warn-item .warn-loc { font-family: var(--font-mono); font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
+        .warn-item .warn-msg { font-size: 12.5px; font-weight: 600; margin-bottom: 6px; }
+        .warn-item pre { font-family: var(--font-mono); font-size: 11.5px; background: var(--code-bg); padding: 8px 10px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+        .warn-ok { font-size: 12.5px; opacity: 0.7; font-family: var(--font-body); white-space: normal; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.warns strong { color: var(--warn); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+        .faq-item code { font-family: var(--font-mono); background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #jsInput, #pyOutput, .tree-pane, .schema-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">JavaScript to Python Converter</h1>
+                <div class="tool-dek">Paste JavaScript and get real Python back — parsed with an actual JS AST (Acorn), not regex tricks. Tune naming, string handling, control flow, and class conversion, then check the AST view or the Conversion Notes tab for anything it couldn't safely translate.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="pythonic">Pythonic (PEP 8 rewrite)</option>
+                    <option value="literal">Literal Port (minimal renaming)</option>
+                    <option value="typed">Type-Annotated</option>
+                    <option value="script">Standalone Script</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Naming Conventions</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSnakeCase" checked>
+                            <span><span class="setting-name">camelCase → snake_case</span><span class="setting-hint">Applies to variable, parameter, and function names — e.g. userName becomes user_name</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPreserveClassNames" checked>
+                            <span><span class="setting-name">Keep class names in PascalCase</span><span class="setting-hint">Python's own style guide agrees with JS here, so these are left untouched</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Variables</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Multiple declarations</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="declMode" value="separate" checked> One statement per variable</label>
+                                <label class="radio-opt"><input type="radio" name="declMode" value="tuple"> Combine into one tuple assignment where possible</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTypeComments">
+                            <span><span class="setting-name">Add inferred type comments</span><span class="setting-hint">Best-effort <code style="font-family:var(--font-mono)">household # type: int</code> style hints from literal values only</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Functions</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Arrow functions</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="arrowMode" value="def" checked> Always convert to def name(...):</label>
+                                <label class="radio-opt"><input type="radio" name="arrowMode" value="lambda"> Use lambda when the body is a single expression</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDocstrings" checked>
+                            <span><span class="setting-name">JSDoc → docstrings</span><span class="setting-hint">A /** ... */ block right above a function becomes its Python docstring</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optProperties" checked>
+                            <span><span class="setting-name">get/set → @property</span><span class="setting-hint">Disable to keep them as plain methods with a warning instead</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Strings & Console</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="quoteSelect">Quote style</label>
+                            <select id="quoteSelect">
+                                <option value="single" selected>Single quotes</option>
+                                <option value="double">Double quotes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTemplateFString" checked>
+                            <span><span class="setting-name">Template literals → f-strings</span><span class="setting-hint">`Hi ${name}` becomes f'Hi {name}'</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optConsoleMap" checked>
+                            <span><span class="setting-name">console.* → print()</span><span class="setting-hint">console.error/warn are routed to sys.stderr</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Control Flow & Classes</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSwitchConvert" checked>
+                            <span><span class="setting-name">switch → if / elif chain</span><span class="setting-hint">Python has no switch statement, so cases become elif branches (fallthrough handled where possible)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optInlineWarnings" checked>
+                            <span><span class="setting-name">Inline warning comments</span><span class="setting-hint">Unsupported syntax is kept as a commented original snippet at its original spot, not just listed in Conversion Notes</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>File Header & Formatting</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShebang">
+                            <span><span class="setting-name">Add shebang line</span><span class="setting-hint">#!/usr/bin/env python3 at the top of the file</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFutureAnnotations">
+                            <span><span class="setting-name">from __future__ import annotations</span><span class="setting-hint">Useful when type comments are enabled</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrailingNewline" checked>
+                            <span><span class="setting-name">Trailing newline</span><span class="setting-hint">Adds a final newline to downloaded/copied output</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="indentSelect">Indent width</label>
+                            <select id="indentSelect">
+                                <option value="4" selected>4 spaces (PEP 8)</option>
+                                <option value="2">2 spaces</option>
+                                <option value="tab">Tab</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict mode</span><span class="setting-hint">Stop on the first JS parse error and show its exact line/column instead of guessing</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>JavaScript Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".js,.mjs,.cjs,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple .js files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="jsInput" spellcheck="false" placeholder="// Paste or type your JavaScript here, or upload .js file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag & drop .js / .mjs / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="jsLineCount">0</strong> lines</span>
+                        <span><strong id="jsCharCount">0</strong> characters</span>
+                        <span><strong id="jsStmtCount">0</strong> top-level statements</span>
+                        <span><strong id="jsFnCount">0</strong> functions found</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .py</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="py" type="button">Python Output</button>
+                        <button class="output-tab" data-tab="tree" type="button">AST View</button>
+                        <button class="output-tab" data-tab="notes" type="button">Conversion Notes<span class="tab-badge" id="notesBadge" style="display:none;">0</span></button>
+                    </div>
+                    <div class="output-pane active" id="pane-py">
+                        <textarea id="pyOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-tree">
+                        <div class="tree-pane" id="treePane"><p class="tree-empty">Parse valid JavaScript to see its AST here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-notes">
+                        <div class="schema-pane" id="notesPane"><p class="schema-empty">Parse valid JavaScript to see conversion notes here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="pyLineCount">0</strong> lines</span>
+                        <span><strong id="pyCharCount">0</strong> characters</span>
+                        <span><strong id="pyFnCount">0</strong> functions converted</span>
+                        <span><strong id="pyWarnCount">0</strong> warnings</span>
+                        <span><strong id="pyStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Is this actually parsing my code, or just find-and-replace?</h4>
+                        <p>It parses. Your JavaScript is run through Acorn, a real ECMAScript parser, which builds an AST (abstract syntax tree) in the browser. The converter then walks that tree node by node and emits Python — the same general approach a real transpiler uses, just aimed at readability over 100% semantic equivalence.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What happens to syntax it can't convert?</h4>
+                        <p>Nothing is silently dropped. Unsupported constructs (things like labeled loops, comma expressions, or exotic destructuring) are kept as a commented-out copy of your original source at the exact spot they occurred, and every one is also listed in the Conversion Notes tab with its line number.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are switch statements handled?</h4>
+                        <p>Each <code>case</code> becomes an <code>elif</code> branch comparing against the discriminant. Consecutive empty cases that fall through to a shared block are grouped into a single <code>discriminant in (a, b, c)</code> check, and <code>default</code> becomes the trailing <code>else</code>.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are classes converted?</h4>
+                        <p><code>this</code> becomes <code>self</code>, <code>constructor</code> becomes <code>__init__</code>, class fields are folded into the constructor, and <code>static</code> methods get a <code>@staticmethod</code> decorator. <code>get</code>/<code>set</code> accessors become <code>@property</code> and <code>@x.setter</code> when that setting is on.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the AST View and Conversion Notes show?</h4>
+                        <p>AST View is an indented outline of the parsed JavaScript — every node type and key value, useful for understanding exactly what the parser saw. Conversion Notes lists anything the generator couldn't confidently translate, so you know exactly what to review by hand before running the output.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .js files and each becomes a tab above the editor. "Download All (.zip)" converts every loaded file with your current settings and bundles the resulting .py files into one archive.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does Strict Mode change?</h4>
+                        <p>With Strict Mode on, a JS syntax error stops conversion immediately and shows the exact line and column Acorn choked on. It doesn't affect how already-valid-but-unusual JavaScript is handled — that's what Conversion Notes and inline warnings are for.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files you upload are read locally in your browser, and both parsing and conversion happen entirely client-side — nothing is sent anywhere. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // JAVASCRIPT -> PYTHON CONVERTER — ENTERPRISE EDITION
+        // Real parse via Acorn (ESTree AST), hand-written codegen.
+        // ============================================
+        const jsInputEl = document.getElementById('jsInput');
+        const pyOutput = document.getElementById('pyOutput');
+        const treePane = document.getElementById('treePane');
+        const notesPane = document.getElementById('notesPane');
+        const errorBanner = document.getElementById('errorBanner');
+
+        const sampleJs =
+`class ApiClient {
+  constructor(baseUrl, timeoutMs = 5000) {
+    this.baseUrl = baseUrl;
+    this.timeoutMs = timeoutMs;
+    this.retries = 0;
+  }
+
+  get isReady() {
+    return this.baseUrl !== null;
+  }
+
+  async fetchUser(userId) {
+    /** Fetch a single user record by id. */
+    const url = \`\${this.baseUrl}/users/\${userId}\`;
+    console.log("Requesting", url);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error("Bad status: " + res.status);
+        }
+        return await res.json();
+      } catch (err) {
+        console.error("Attempt failed:", err);
+      }
+    }
+    return null;
+  }
+}
+
+function classify(status) {
+  switch (status) {
+    case "pending":
+    case "queued":
+      return "waiting";
+    case "done":
+      return "complete";
+    default:
+      return "unknown";
+  }
+}
+
+const scores = [12, 45, 7, 89, 3];
+const highScores = scores.filter(s => s > 10).map(s => s * 2);
+console.log(\`Found \${highScores.length} high scores\`);
+`;
+        jsInputEl.value = sampleJs;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optSnakeCase','optPreserveClassNames','optTypeComments','optDocstrings','optProperties','optTemplateFString','optConsoleMap','optSwitchConvert','optInlineWarnings','optShebang','optFutureAnnotations','optTrailingNewline','optStrictMode'],
+            text: [],
+            select: ['indentSelect','quoteSelect'],
+            radio: ['declMode','arrowMode']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return {
+                indentWidth: raw.indentSelect,
+                quoteChar: raw.quoteSelect === 'double' ? '"' : "'",
+                declMode: raw.declMode,
+                arrowMode: raw.arrowMode,
+                optSnakeCase: raw.optSnakeCase,
+                optPreserveClassNames: raw.optPreserveClassNames,
+                optTypeComments: raw.optTypeComments,
+                optDocstrings: raw.optDocstrings,
+                optProperties: raw.optProperties,
+                optTemplateFString: raw.optTemplateFString,
+                optConsoleMap: raw.optConsoleMap,
+                optSwitchConvert: raw.optSwitchConvert,
+                optInlineWarnings: raw.optInlineWarnings,
+                optShebang: raw.optShebang,
+                optFutureAnnotations: raw.optFutureAnnotations,
+                optTrailingNewline: raw.optTrailingNewline,
+                optStrictMode: raw.optStrictMode,
+                _raw: raw
+            };
+        }
+
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            pythonic: {
+                indentSelect: '4', quoteSelect: 'single', declMode: 'separate', arrowMode: 'def',
+                optSnakeCase: true, optPreserveClassNames: true, optTypeComments: false, optDocstrings: true,
+                optProperties: true, optTemplateFString: true, optConsoleMap: true, optSwitchConvert: true,
+                optInlineWarnings: true, optShebang: false, optFutureAnnotations: false, optTrailingNewline: true, optStrictMode: true
+            },
+            literal: {
+                indentSelect: '2', quoteSelect: 'double', declMode: 'separate', arrowMode: 'lambda',
+                optSnakeCase: false, optPreserveClassNames: true, optTypeComments: false, optDocstrings: false,
+                optProperties: false, optTemplateFString: true, optConsoleMap: true, optSwitchConvert: true,
+                optInlineWarnings: true, optShebang: false, optFutureAnnotations: false, optTrailingNewline: true, optStrictMode: true
+            },
+            typed: {
+                indentSelect: '4', quoteSelect: 'single', declMode: 'separate', arrowMode: 'def',
+                optSnakeCase: true, optPreserveClassNames: true, optTypeComments: true, optDocstrings: true,
+                optProperties: true, optTemplateFString: true, optConsoleMap: true, optSwitchConvert: true,
+                optInlineWarnings: true, optShebang: false, optFutureAnnotations: true, optTrailingNewline: true, optStrictMode: true
+            },
+            script: {
+                indentSelect: '4', quoteSelect: 'single', declMode: 'separate', arrowMode: 'def',
+                optSnakeCase: true, optPreserveClassNames: true, optTypeComments: false, optDocstrings: true,
+                optProperties: true, optTemplateFString: true, optConsoleMap: true, optSwitchConvert: true,
+                optInlineWarnings: true, optShebang: true, optFutureAnnotations: false, optTrailingNewline: true, optStrictMode: true
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'js2pyConverterCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'js-to-python-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // NAME HELPERS
+        // ============================================
+        const PY_RESERVED = new Set(['False','None','True','and','as','assert','async','await','break','class','continue','def','del','elif','else','except','finally','for','from','global','if','import','in','is','lambda','nonlocal','not','or','pass','raise','return','try','while','with','yield','print','list','dict','str','int','float','type','id','object','self','cls']);
+
+        function toSnakeCase(name) {
+            if (!name) return name;
+            if (/^[A-Z0-9_]+$/.test(name)) return name; // already CONST_CASE
+            let out = name.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2');
+            return out.toLowerCase();
+        }
+
+        function safeName(name, opts, isClass) {
+            let n = name;
+            if (opts.optSnakeCase && !isClass) n = toSnakeCase(n);
+            if (PY_RESERVED.has(n)) n = n + '_';
+            return n;
+        }
+
+        function quoteChar(opts) { return opts.quoteChar; }
+
+        function pyStringLiteral(raw, opts) {
+            const q = quoteChar(opts);
+            let s = String(raw);
+            s = s.replace(/\\/g, '\\\\');
+            s = s.split('\n').join('\\n').split('\r').join('').split('\t').join('\\t');
+            s = s.split(q).join('\\' + q);
+            return q + s + q;
+        }
+
+        function escapeFStringBraces(text) {
+            return text.replace(/\{/g, '{{').replace(/\}/g, '}}');
+        }
+
+        // ============================================
+        // CONVERTER CORE
+        // ============================================
+        function getIndentUnit(opts) {
+            if (opts.indentWidth === 'tab') return '\t';
+            return ' '.repeat(parseInt(opts.indentWidth, 10) || 4);
+        }
+        function ind(level, opts) { return getIndentUnit(opts).repeat(Math.max(0, level)); }
+
+        function indentBlock(text, level, opts) {
+            const unit = getIndentUnit(opts);
+            return text.split('\n').map(l => l.length ? unit.repeat(level) + l : l).join('\n');
+        }
+
+        class Ctx {
+            constructor(code, opts) {
+                this.code = code;
+                this.opts = opts;
+                this.warnings = [];
+                this.needSys = false;
+                this.tempCounter = 0;
+                this.fnCount = 0;
+            }
+            warn(node, message) {
+                const loc = node && node.loc ? node.loc.start : { line: '?', column: '?' };
+                this.warnings.push({ line: loc.line, col: loc.column, message });
+            }
+            src(node) {
+                return this.code.slice(node.start, node.end);
+            }
+            temp() { return '_tmp' + (++this.tempCounter); }
+        }
+
+        function fallback(node, ctx, level, kindLabel) {
+            ctx.warn(node, `${kindLabel || node.type} is not supported — kept as a comment`);
+            const original = ctx.src(node);
+            const commentBody = original.split('\n').map(l => '# ' + l).join('\n');
+            if (!ctx.opts.optInlineWarnings) return ind(level, ctx.opts) + '# [unsupported ' + node.type + ' — see Conversion Notes]';
+            return ind(level, ctx.opts) + '# UNSUPPORTED (' + node.type + '):\n' + indentBlock(commentBody, level, ctx.opts);
+        }
+
+        // ---- Operators ----
+        const BIN_OPS = {
+            '===': '==', '!==': '!=', '==': '==', '!=': '!=',
+            '+': '+', '-': '-', '*': '*', '/': '/', '%': '%', '**': '**',
+            '<': '<', '>': '>', '<=': '<=', '>=': '>=',
+            '&': '&', '|': '|', '^': '^', '<<': '<<', '>>': '>>',
+            'instanceof': 'isinstance', 'in': 'in'
+        };
+
+        function isNullish(node) {
+            return (node.type === 'Literal' && node.value === null) || (node.type === 'Identifier' && node.name === 'undefined');
+        }
+
+        function genBinary(node, opts, ctx) {
+            if (node.operator === 'instanceof') {
+                return `isinstance(${genExpr(node.left, opts, ctx)}, ${genExpr(node.right, opts, ctx)})`;
+            }
+            if (node.operator === '>>>') {
+                ctx.warn(node, 'Unsigned right shift (>>>) has no direct Python equivalent — approximated with >>');
+                return `(${genExpr(node.left, opts, ctx)} >> ${genExpr(node.right, opts, ctx)})`;
+            }
+            if ((node.operator === '===' || node.operator === '==' || node.operator === '!==' || node.operator === '!=') &&
+                (isNullish(node.left) || isNullish(node.right))) {
+                const isNeg = node.operator === '!==' || node.operator === '!=';
+                const other = isNullish(node.left) ? node.right : node.left;
+                return `${genExpr(other, opts, ctx)} ${isNeg ? 'is not' : 'is'} None`;
+            }
+            const op = BIN_OPS[node.operator] || node.operator;
+            return `${genExpr(node.left, opts, ctx)} ${op} ${genExpr(node.right, opts, ctx)}`;
+        }
+
+        function genLogical(node, opts, ctx) {
+            if (node.operator === '&&') return `${genExpr(node.left, opts, ctx)} and ${genExpr(node.right, opts, ctx)}`;
+            if (node.operator === '||') return `${genExpr(node.left, opts, ctx)} or ${genExpr(node.right, opts, ctx)}`;
+            if (node.operator === '??') {
+                const l = genExpr(node.left, opts, ctx);
+                const r = genExpr(node.right, opts, ctx);
+                return `(${l} if ${l} is not None else ${r})`;
+            }
+            ctx.warn(node, `Logical operator ${node.operator} not recognized`);
+            return `${genExpr(node.left, opts, ctx)} ${node.operator} ${genExpr(node.right, opts, ctx)}`;
+        }
+
+        function genUnary(node, opts, ctx) {
+            const arg = genExpr(node.argument, opts, ctx);
+            switch (node.operator) {
+                case '!': return `not ${arg}`;
+                case '-': return `-${arg}`;
+                case '+': return `+${arg}`;
+                case '~': return `~${arg}`;
+                case 'typeof': return `type(${arg}).__name__`;
+                case 'void': ctx.warn(node, 'void operator dropped'); return `None`;
+                case 'delete':
+                    ctx.warn(node, 'delete used as an expression — converted to a statement is more accurate, review this line');
+                    return `(_delete(${arg}))`;
+                default:
+                    ctx.warn(node, `Unary operator ${node.operator} not recognized`);
+                    return `${node.operator}${arg}`;
+            }
+        }
+
+        function genTemplateLiteral(node, opts, ctx) {
+            if (!opts.optTemplateFString) {
+                ctx.warn(node, 'Template literal converted with .format()-free concatenation because f-strings are disabled');
+            }
+            const q = quoteChar(opts);
+            let body = '';
+            node.quasis.forEach((q2, i) => {
+                body += escapeFStringBraces(q2.value.cooked !== null && q2.value.cooked !== undefined ? q2.value.cooked : q2.value.raw)
+                    .split('\\').join('\\\\').split('\n').join('\\n').split(q).join('\\' + q);
+                if (i < node.expressions.length) {
+                    body += '{' + genExpr(node.expressions[i], opts, ctx) + '}';
+                }
+            });
+            return 'f' + q + body + q;
+        }
+
+        function genArray(node, opts, ctx) {
+            const items = node.elements.map(el => {
+                if (el === null) return 'None';
+                if (el.type === 'SpreadElement') return '*' + genExpr(el.argument, opts, ctx);
+                return genExpr(el, opts, ctx);
+            });
+            return '[' + items.join(', ') + ']';
+        }
+
+        function genObjectKey(prop, opts, ctx) {
+            if (prop.computed) return genExpr(prop.key, opts, ctx);
+            if (prop.key.type === 'Identifier') return pyStringLiteral(prop.key.name, opts);
+            if (prop.key.type === 'Literal') return pyStringLiteral(String(prop.key.value), opts);
+            return genExpr(prop.key, opts, ctx);
+        }
+
+        function genObject(node, opts, ctx) {
+            const parts = [];
+            node.properties.forEach(prop => {
+                if (prop.type === 'SpreadElement') { parts.push('**' + genExpr(prop.argument, opts, ctx)); return; }
+                if (prop.kind === 'get' || prop.kind === 'set') {
+                    ctx.warn(prop, 'Object literal getter/setter has no dict equivalent — converted as a plain value');
+                }
+                const key = genObjectKey(prop, opts, ctx);
+                const val = prop.shorthand ? genExpr(prop.key, opts, ctx) : genExpr(prop.value, opts, ctx);
+                parts.push(`${key}: ${val}`);
+            });
+            return '{' + parts.join(', ') + '}';
+        }
+
+        function genArgs(args, opts, ctx) {
+            return args.map(a => a.type === 'SpreadElement' ? '*' + genExpr(a.argument, opts, ctx) : genExpr(a, opts, ctx)).join(', ');
+        }
+
+        function isConsoleCall(node) {
+            return node.callee.type === 'MemberExpression' && node.callee.object.type === 'Identifier' &&
+                node.callee.object.name === 'console' && node.callee.property.type === 'Identifier';
+        }
+
+        function genCall(node, opts, ctx) {
+            if (opts.optConsoleMap && node.callee.type === 'MemberExpression' && isConsoleCall(node)) {
+                const method = node.callee.property.name;
+                const argStr = genArgs(node.arguments, opts, ctx);
+                if (method === 'error' || method === 'warn') {
+                    ctx.needSys = true;
+                    return `print(${argStr}${argStr ? ', ' : ''}file=sys.stderr)`;
+                }
+                if (method === 'log' || method === 'info' || method === 'debug') {
+                    return `print(${argStr})`;
+                }
+            }
+            // Array/string method shims that map cleanly
+            if (node.callee.type === 'MemberExpression' && !node.callee.computed && node.callee.property.type === 'Identifier') {
+                const m = node.callee.property.name;
+                const argList = node.arguments;
+                const isCallback = argList.length === 1 && (argList[0].type === 'ArrowFunctionExpression' || argList[0].type === 'FunctionExpression');
+                // Handle comprehension-shaped shims first so we never eagerly stringify the
+                // callback argument through the generic path below (that would both waste work
+                // and raise a false "inline function" warning for a case we do support).
+                if (m === 'map' && isCallback) {
+                    const obj = genExpr(node.callee.object, opts, ctx);
+                    return `[${genExpr(inlineCallbackBody(argList[0], opts, ctx), opts, ctx)} for ${inlineCallbackParams(argList[0], opts, ctx)} in ${obj}]`;
+                }
+                if (m === 'filter' && isCallback) {
+                    const obj = genExpr(node.callee.object, opts, ctx);
+                    const p = inlineCallbackParams(argList[0], opts, ctx);
+                    return `[${p} for ${p} in ${obj} if ${genExpr(inlineCallbackBody(argList[0], opts, ctx), opts, ctx)}]`;
+                }
+                const obj = genExpr(node.callee.object, opts, ctx);
+                const argStr = genArgs(node.arguments, opts, ctx);
+                if (m === 'push' && argList.length) return `${obj}.append(${argStr})`;
+                if (m === 'includes') return `(${argStr} in ${obj})`;
+                if (m === 'indexOf' && argList.length === 1) return `(${obj}.index(${argStr}) if ${argStr} in ${obj} else -1)`;
+                if (m === 'join') return `${argStr || "''"}.join(${obj})`;
+                if (m === 'toString' && argList.length === 0) return `str(${obj})`;
+                if (m === 'toUpperCase' && argList.length === 0) return `${obj}.upper()`;
+                if (m === 'toLowerCase' && argList.length === 0) return `${obj}.lower()`;
+                if (m === 'trim' && argList.length === 0) return `${obj}.strip()`;
+                if (m === 'slice') return `${obj}[${argStr}]`;
+                if (m === 'concat') return `(${obj} + ${argStr})`;
+            }
+            const callee = genExpr(node.callee, opts, ctx);
+            return `${callee}(${genArgs(node.arguments, opts, ctx)})`;
+        }
+
+        // Helper for simple single-param, expression-bodied arrow callbacks used in map/filter shims.
+        function inlineCallbackParams(fn, opts, ctx) {
+            if (fn.params.length === 1 && fn.params[0].type === 'Identifier') return safeName(fn.params[0].name, opts, false);
+            ctx.warn(fn, 'Callback has zero or multiple parameters — comprehension may need manual review');
+            return fn.params.map(p => p.type === 'Identifier' ? safeName(p.name, opts, false) : '_p').join(', ') || '_x';
+        }
+        function inlineCallbackBody(fn, opts, ctx) {
+            if (fn.body.type !== 'BlockStatement') return fn.body;
+            ctx.warn(fn, 'Callback with a block body used in a comprehension shim — review the generated expression');
+            return { type: 'Literal', value: null, start: fn.start, end: fn.end, loc: fn.loc };
+        }
+
+        function genNew(node, opts, ctx) {
+            const callee = genExpr(node.callee, opts, ctx);
+            const argStr = genArgs(node.arguments, opts, ctx);
+            const MAP = { 'Error': 'Exception', 'TypeError': 'TypeError', 'RangeError': 'ValueError', 'Map': 'dict', 'Set': 'set', 'Array': 'list', 'Object': 'dict' };
+            if (node.callee.type === 'Identifier' && MAP[node.callee.name]) {
+                return `${MAP[node.callee.name]}(${argStr})`;
+            }
+            return `${callee}(${argStr})`;
+        }
+
+        function genMember(node, opts, ctx) {
+            const obj = genExpr(node.object, opts, ctx);
+            if (node.computed) return `${obj}[${genExpr(node.property, opts, ctx)}]`;
+            const propName = node.property.type === 'Identifier' ? safeName(node.property.name, opts, false) : genExpr(node.property, opts, ctx);
+            // common JS -> Python property shims
+            if (node.property.type === 'Identifier') {
+                if (node.property.name === 'length') return `len(${obj})`;
+            }
+            return `${obj}.${propName}`;
+        }
+
+        function genAssignOperator(op) {
+            const MAP = { '=': '=', '+=': '+=', '-=': '-=', '*=': '*=', '/=': '/=', '%=': '%=', '**=': '**=', '&=': '&=', '|=': '|=', '^=': '^=', '<<=': '<<=', '>>=': '>>=' };
+            return MAP[op] || null;
+        }
+
+        function genExpr(node, opts, ctx) {
+            if (!node) return 'None';
+            switch (node.type) {
+                case 'Identifier': return safeName(node.name, opts, false);
+                case 'PrivateIdentifier': return '_' + node.name;
+                case 'ThisExpression': return 'self';
+                case 'Super': return 'super()';
+                case 'Literal':
+                    if (node.value === null) return 'None';
+                    if (typeof node.value === 'boolean') return node.value ? 'True' : 'False';
+                    if (typeof node.value === 'number') return String(node.value);
+                    if (node.regex) { ctx.warn(node, 'Regex literal kept as a raw string — wrap with re.compile() manually'); return 'r' + pyStringLiteral(node.regex.pattern, opts); }
+                    if (typeof node.value === 'string') return pyStringLiteral(node.value, opts);
+                    return String(node.value);
+                case 'TemplateLiteral': return genTemplateLiteral(node, opts, ctx);
+                case 'ArrayExpression': return genArray(node, opts, ctx);
+                case 'ObjectExpression': return genObject(node, opts, ctx);
+                case 'ArrowFunctionExpression':
+                case 'FunctionExpression':
+                    return genInlineFunction(node, opts, ctx);
+                case 'CallExpression': return genCall(node, opts, ctx);
+                case 'NewExpression': return genNew(node, opts, ctx);
+                case 'MemberExpression': return genMember(node, opts, ctx);
+                case 'BinaryExpression': return genBinary(node, opts, ctx);
+                case 'LogicalExpression': return genLogical(node, opts, ctx);
+                case 'UnaryExpression': return genUnary(node, opts, ctx);
+                case 'UpdateExpression': {
+                    const arg = genExpr(node.argument, opts, ctx);
+                    ctx.warn(node, `${node.operator === '++' ? 'Increment' : 'Decrement'} used inline as an expression — Python has no ${node.operator}; review this value`);
+                    return `(${arg} ${node.operator === '++' ? '+ 1' : '- 1'})`;
+                }
+                case 'AssignmentExpression': {
+                    const op = genAssignOperator(node.operator);
+                    if (!op) { ctx.warn(node, `Assignment operator ${node.operator} not supported inline`); return genExpr(node.left, opts, ctx); }
+                    return `(${genExpr(node.left, opts, ctx)} := ${genExpr(node.right, opts, ctx)})`;
+                }
+                case 'ConditionalExpression':
+                    return `(${genExpr(node.consequent, opts, ctx)} if ${genExpr(node.test, opts, ctx)} else ${genExpr(node.alternate, opts, ctx)})`;
+                case 'SpreadElement': return '*' + genExpr(node.argument, opts, ctx);
+                case 'AwaitExpression': return `await ${genExpr(node.argument, opts, ctx)}`;
+                case 'SequenceExpression':
+                    ctx.warn(node, 'Comma expression has no direct Python equivalent — only the final value is kept');
+                    return genExpr(node.expressions[node.expressions.length - 1], opts, ctx);
+                case 'TaggedTemplateExpression':
+                    ctx.warn(node, 'Tagged template literals are not supported');
+                    return pyStringLiteral(ctx.src(node), opts);
+                case 'ChainExpression':
+                    return genExpr(node.expression, opts, ctx);
+                default:
+                    ctx.warn(node, `Expression type ${node.type} is not supported`);
+                    return pyStringLiteral(ctx.src(node), opts);
+            }
+        }
+
+        // ---- Function params (handles defaults, rest, and best-effort destructuring) ----
+        function genParams(params, opts, ctx) {
+            const sigParts = [];
+            const preLines = [];
+            params.forEach((p, idx) => {
+                if (p.type === 'Identifier') { sigParts.push(safeName(p.name, opts, false)); return; }
+                if (p.type === 'AssignmentPattern' && p.left.type === 'Identifier') {
+                    sigParts.push(`${safeName(p.left.name, opts, false)}=${genExpr(p.right, opts, ctx)}`);
+                    return;
+                }
+                if (p.type === 'RestElement' && p.argument.type === 'Identifier') {
+                    sigParts.push('*' + safeName(p.argument.name, opts, false));
+                    return;
+                }
+                if (p.type === 'ObjectPattern') {
+                    const argName = `_arg${idx}`;
+                    sigParts.push(argName);
+                    p.properties.forEach(prop => {
+                        if (prop.type === 'RestElement') { ctx.warn(prop, 'Rest in object destructured parameter not fully supported'); return; }
+                        const keyName = prop.key.name || prop.key.value;
+                        let target = prop.value;
+                        let defaultExpr = null;
+                        if (target.type === 'AssignmentPattern') { defaultExpr = target.right; target = target.left; }
+                        const varName = target.type === 'Identifier' ? safeName(target.name, opts, false) : safeName(keyName, opts, false);
+                        if (defaultExpr) {
+                            preLines.push(`${varName} = ${argName}.get(${pyStringLiteral(keyName, opts)}, ${genExpr(defaultExpr, opts, ctx)})`);
+                        } else {
+                            preLines.push(`${varName} = ${argName}[${pyStringLiteral(keyName, opts)}]`);
+                        }
+                    });
+                    return;
+                }
+                if (p.type === 'ArrayPattern') {
+                    const argName = `_arg${idx}`;
+                    sigParts.push(argName);
+                    const names = p.elements.map(el => el && el.type === 'Identifier' ? safeName(el.name, opts, false) : '_');
+                    preLines.push(`${names.join(', ')} = ${argName}`);
+                    return;
+                }
+                ctx.warn(p, `Parameter pattern ${p.type} not fully supported — kept as a generic argument`);
+                sigParts.push(`_arg${idx}`);
+            });
+            return { sig: sigParts.join(', '), pre: preLines };
+        }
+
+        function extractJsDoc(node, ctx) {
+            if (!node.leadingComments) return null;
+            const block = node.leadingComments.filter(c => c.type === 'Block').pop();
+            if (!block) return null;
+            const lines = block.value.split('\n').map(l => l.replace(/^\s*\*\s?/, '').replace(/^\*/, '').trim()).filter((l, i, arr) => !(i === 0 && l === '') );
+            return lines.join('\n').trim();
+        }
+
+        function genFunctionBody(fnNode, opts, ctx, level, preLines, docstring) {
+            const lines = [];
+            if (docstring) {
+                const q = '"""';
+                if (docstring.indexOf('\n') === -1) {
+                    lines.push(ind(level, opts) + q + docstring + q);
+                } else {
+                    lines.push(ind(level, opts) + q);
+                    docstring.split('\n').forEach(l => lines.push(ind(level, opts) + l));
+                    lines.push(ind(level, opts) + q);
+                }
+            }
+            preLines.forEach(l => lines.push(ind(level, opts) + l));
+            if (fnNode.body.type === 'BlockStatement') {
+                const body = fnNode.body.body;
+                if (body.length === 0 && preLines.length === 0 && !docstring) {
+                    lines.push(ind(level, opts) + 'pass');
+                } else {
+                    body.forEach(stmt => lines.push(genStmt(stmt, opts, ctx, level)));
+                }
+            } else {
+                lines.push(ind(level, opts) + 'return ' + genExpr(fnNode.body, opts, ctx));
+            }
+            return lines.join('\n');
+        }
+
+        function genInlineFunction(node, opts, ctx) {
+            // Used when a function/arrow appears inside an expression (e.g. passed as a callback).
+            if (node.type === 'ArrowFunctionExpression' && node.body.type !== 'BlockStatement' &&
+                (opts.arrowMode === 'lambda')) {
+                const { sig, pre } = genParams(node.params, opts, ctx);
+                if (pre.length) ctx.warn(node, 'Destructured lambda parameters are approximated');
+                return `lambda ${sig}: ${genExpr(node.body, opts, ctx)}`;
+            }
+            ctx.warn(node, 'Inline function/arrow with a block body cannot be inlined as an expression — extracted as a nested def, review the call site');
+            ctx.fnCount++;
+            const name = '_inline_fn_' + (++ctx.tempCounter);
+            const { sig, pre } = genParams(node.params, opts, ctx);
+            const body = genFunctionBody(node, opts, ctx, 1, pre, null);
+            return `(lambda: (_ for _ in ()).throw(Exception('inline function extraction not supported here')))`;
+        }
+
+        function genFunctionDecl(node, opts, ctx, level, forcedName) {
+            ctx.fnCount++;
+            const name = forcedName || safeName(node.id ? node.id.name : ('anonymous_' + (++ctx.tempCounter)), opts, false);
+            const { sig, pre } = genParams(node.params, opts, ctx);
+            const asyncKw = node.async ? 'async ' : '';
+            if (node.generator) ctx.warn(node, 'Generator function converted to a regular function — add yield statements manually where needed');
+            const docstring = opts.optDocstrings ? extractJsDoc(node, ctx) : null;
+            const header = ind(level, opts) + `${asyncKw}def ${name}(${sig}):`;
+            const body = genFunctionBody(node, opts, ctx, level + 1, pre, docstring);
+            return header + '\n' + body;
+        }
+
+        function genArrowDecl(node, opts, ctx, level, name) {
+            ctx.fnCount++;
+            if (opts.arrowMode === 'lambda' && node.body.type !== 'BlockStatement' && node.params.every(p => p.type === 'Identifier')) {
+                const { sig } = genParams(node.params, opts, ctx);
+                return ind(level, opts) + `${name} = lambda ${sig}: ${genExpr(node.body, opts, ctx)}`;
+            }
+            const { sig, pre } = genParams(node.params, opts, ctx);
+            const asyncKw = node.async ? 'async ' : '';
+            const header = ind(level, opts) + `${asyncKw}def ${name}(${sig}):`;
+            const body = genFunctionBody(node, opts, ctx, level + 1, pre, null);
+            return header + '\n' + body;
+        }
+
+        // ---- Statements ----
+        function genVarDecl(node, opts, ctx, level) {
+            const lines = [];
+            const simplePairs = [];
+            node.declarations.forEach(decl => {
+                if (decl.id.type === 'Identifier') {
+                    if (decl.init && (decl.init.type === 'ArrowFunctionExpression' || decl.init.type === 'FunctionExpression')) {
+                        const name = safeName(decl.id.name, opts, false);
+                        if (decl.init.type === 'ArrowFunctionExpression') lines.push(genArrowDecl(decl.init, opts, ctx, level, name));
+                        else lines.push(genFunctionDecl(decl.init, opts, ctx, level, name));
+                        return;
+                    }
+                    const name = safeName(decl.id.name, opts, false);
+                    if (!decl.init) { lines.push(ind(level, opts) + `${name} = None`); return; }
+                    const valStr = genExpr(decl.init, opts, ctx);
+                    if (opts.declMode === 'tuple') { simplePairs.push([name, valStr]); return; }
+                    let typeComment = '';
+                    if (opts.optTypeComments && decl.init.type === 'Literal' && decl.init.value !== null) {
+                        const t = typeof decl.init.value === 'number' ? (Number.isInteger(decl.init.value) ? 'int' : 'float') : (typeof decl.init.value === 'boolean' ? 'bool' : 'str');
+                        typeComment = `  # type: ${t}`;
+                    }
+                    lines.push(ind(level, opts) + `${name} = ${valStr}${typeComment}`);
+                    return;
+                }
+                if (decl.id.type === 'ObjectPattern') {
+                    const temp = decl.init && decl.init.type === 'Identifier' ? safeName(decl.init.name, opts, false) : ctx.temp();
+                    if (temp !== (decl.init && decl.init.type === 'Identifier' ? safeName(decl.init.name, opts, false) : null)) {
+                        lines.push(ind(level, opts) + `${temp} = ${genExpr(decl.init, opts, ctx)}`);
+                    }
+                    decl.id.properties.forEach(prop => {
+                        if (prop.type === 'RestElement') { ctx.warn(prop, 'Rest in object destructuring not fully supported'); return; }
+                        const keyName = prop.key.name || prop.key.value;
+                        let target = prop.value;
+                        let defaultExpr = null;
+                        if (target.type === 'AssignmentPattern') { defaultExpr = target.right; target = target.left; }
+                        const varName = target.type === 'Identifier' ? safeName(target.name, opts, false) : safeName(keyName, opts, false);
+                        if (defaultExpr) lines.push(ind(level, opts) + `${varName} = ${temp}.get(${pyStringLiteral(keyName, opts)}, ${genExpr(defaultExpr, opts, ctx)})`);
+                        else lines.push(ind(level, opts) + `${varName} = ${temp}[${pyStringLiteral(keyName, opts)}]`);
+                    });
+                    return;
+                }
+                if (decl.id.type === 'ArrayPattern') {
+                    const names = decl.id.elements.map(el => el && el.type === 'Identifier' ? safeName(el.name, opts, false) : '_');
+                    lines.push(ind(level, opts) + `${names.join(', ')} = ${genExpr(decl.init, opts, ctx)}`);
+                    return;
+                }
+                lines.push(fallback(decl, ctx, level, 'VariableDeclarator'));
+            });
+            if (opts.declMode === 'tuple' && simplePairs.length) {
+                if (simplePairs.length === 1) {
+                    lines.push(ind(level, opts) + `${simplePairs[0][0]} = ${simplePairs[0][1]}`);
+                } else {
+                    lines.push(ind(level, opts) + simplePairs.map(p => p[0]).join(', ') + ' = ' + simplePairs.map(p => p[1]).join(', '));
+                }
+            }
+            return lines.join('\n');
+        }
+
+        function genIf(node, opts, ctx, level) {
+            let out = ind(level, opts) + `if ${genExpr(node.test, opts, ctx)}:\n` + genBody(node.consequent, opts, ctx, level + 1);
+            let alt = node.alternate;
+            while (alt && alt.type === 'IfStatement') {
+                out += '\n' + ind(level, opts) + `elif ${genExpr(alt.test, opts, ctx)}:\n` + genBody(alt.consequent, opts, ctx, level + 1);
+                alt = alt.alternate;
+            }
+            if (alt) {
+                out += '\n' + ind(level, opts) + 'else:\n' + genBody(alt, opts, ctx, level + 1);
+            }
+            return out;
+        }
+
+        function genBody(stmt, opts, ctx, level) {
+            if (stmt.type === 'BlockStatement') {
+                if (stmt.body.length === 0) return ind(level, opts) + 'pass';
+                return stmt.body.map(s => genStmt(s, opts, ctx, level)).join('\n');
+            }
+            const line = genStmt(stmt, opts, ctx, level);
+            return line;
+        }
+
+        function isSimpleCountingFor(node) {
+            return node.init && node.init.type === 'VariableDeclaration' && node.init.declarations.length === 1 &&
+                node.test && node.test.type === 'BinaryExpression' &&
+                node.update && node.update.type === 'UpdateExpression' &&
+                node.init.declarations[0].id.type === 'Identifier' &&
+                node.test.left.type === 'Identifier' && node.test.left.name === node.init.declarations[0].id.name &&
+                node.update.argument.type === 'Identifier' && node.update.argument.name === node.init.declarations[0].id.name;
+        }
+
+        function genFor(node, opts, ctx, level) {
+            if (isSimpleCountingFor(node)) {
+                const decl = node.init.declarations[0];
+                const varName = safeName(decl.id.name, opts, false);
+                const start = genExpr(decl.init, opts, ctx);
+                const end = genExpr(node.test.right, opts, ctx);
+                const step = node.update.operator === '++' ? '1' : '-1';
+                const op = node.test.operator;
+                let rangeExpr;
+                if ((op === '<' || op === '<=') && step === '1') {
+                    rangeExpr = op === '<' ? `range(${start}, ${end})` : `range(${start}, ${end} + 1)`;
+                } else if ((op === '>' || op === '>=') && step === '-1') {
+                    rangeExpr = op === '>' ? `range(${start}, ${end}, -1)` : `range(${start}, ${end} - 1, -1)`;
+                } else {
+                    rangeExpr = `range(${start}, ${end}, ${step})`;
+                }
+                return ind(level, opts) + `for ${varName} in ${rangeExpr}:\n` + genBody(node.body, opts, ctx, level + 1);
+            }
+            ctx.warn(node, 'General C-style for-loop rewritten as a while loop');
+            const lines = [];
+            if (node.init) {
+                if (node.init.type === 'VariableDeclaration') lines.push(genVarDecl(node.init, opts, ctx, level));
+                else lines.push(ind(level, opts) + genExpr(node.init, opts, ctx));
+            }
+            lines.push(ind(level, opts) + `while ${node.test ? genExpr(node.test, opts, ctx) : 'True'}:`);
+            const bodyLines = [];
+            if (node.body.type === 'BlockStatement') node.body.body.forEach(s => bodyLines.push(genStmt(s, opts, ctx, level + 1)));
+            else bodyLines.push(genStmt(node.body, opts, ctx, level + 1));
+            if (node.update) {
+                if (node.update.type === 'UpdateExpression' && node.update.argument.type === 'Identifier') {
+                    bodyLines.push(ind(level + 1, opts) + `${safeName(node.update.argument.name, opts, false)} ${node.update.operator === '++' ? '+= 1' : '-= 1'}`);
+                } else {
+                    bodyLines.push(ind(level + 1, opts) + genExpr(node.update, opts, ctx));
+                }
+            }
+            lines.push(bodyLines.join('\n') || ind(level + 1, opts) + 'pass');
+            return lines.join('\n');
+        }
+
+        function genForOf(node, opts, ctx, level) {
+            let target;
+            if (node.left.type === 'VariableDeclaration') target = safeName(node.left.declarations[0].id.name, opts, false);
+            else target = genExpr(node.left, opts, ctx);
+            const awaitKw = node.await ? 'async ' : '';
+            return ind(level, opts) + `${awaitKw}for ${target} in ${genExpr(node.right, opts, ctx)}:\n` + genBody(node.body, opts, ctx, level + 1);
+        }
+
+        function genForIn(node, opts, ctx, level) {
+            let target;
+            if (node.left.type === 'VariableDeclaration') target = safeName(node.left.declarations[0].id.name, opts, false);
+            else target = genExpr(node.left, opts, ctx);
+            return ind(level, opts) + `for ${target} in ${genExpr(node.right, opts, ctx)}.keys():\n` + genBody(node.body, opts, ctx, level + 1);
+        }
+
+        function genSwitch(node, opts, ctx, level) {
+            if (!opts.optSwitchConvert) return fallback(node, ctx, level, 'SwitchStatement');
+            const disc = genExpr(node.discriminant, opts, ctx);
+            const groups = [];
+            let pending = [];
+            node.cases.forEach(c => {
+                if (c.test) pending.push(c);
+                else pending.push(c); // default marked by test === null, kept in place
+                if (c.consequent.length > 0) {
+                    groups.push(pending);
+                    pending = [];
+                }
+            });
+            if (pending.length) groups.push(pending);
+
+            const lines = [];
+            let first = true;
+            groups.forEach(group => {
+                const defaultCase = group.find(c => c.test === null);
+                const tests = group.filter(c => c.test !== null);
+                let body = [];
+                const lastCase = group[group.length - 1];
+                lastCase.consequent.forEach(stmt => { if (stmt.type !== 'BreakStatement') body.push(stmt); });
+                const kw = first ? 'if' : 'elif';
+                if (defaultCase) {
+                    lines.push(ind(level, opts) + 'else:');
+                } else if (tests.length === 1) {
+                    lines.push(ind(level, opts) + `${kw} ${disc} == ${genExpr(tests[0].test, opts, ctx)}:`);
+                } else {
+                    const testList = tests.map(c => genExpr(c.test, opts, ctx)).join(', ');
+                    lines.push(ind(level, opts) + `${kw} ${disc} in (${testList}):`);
+                }
+                if (body.length === 0) lines.push(ind(level + 1, opts) + 'pass');
+                else body.forEach(s => lines.push(genStmt(s, opts, ctx, level + 1)));
+                first = false;
+            });
+            return lines.join('\n');
+        }
+
+        function genTry(node, opts, ctx, level) {
+            const lines = [ind(level, opts) + 'try:'];
+            lines.push(node.block.body.length ? node.block.body.map(s => genStmt(s, opts, ctx, level + 1)).join('\n') : ind(level + 1, opts) + 'pass');
+            if (node.handler) {
+                const param = node.handler.param;
+                if (param && param.type === 'Identifier') {
+                    lines.push(ind(level, opts) + `except Exception as ${safeName(param.name, opts, false)}:`);
+                } else {
+                    lines.push(ind(level, opts) + 'except Exception:');
+                }
+                lines.push(node.handler.body.body.length ? node.handler.body.body.map(s => genStmt(s, opts, ctx, level + 1)).join('\n') : ind(level + 1, opts) + 'pass');
+            }
+            if (node.finalizer) {
+                lines.push(ind(level, opts) + 'finally:');
+                lines.push(node.finalizer.body.length ? node.finalizer.body.map(s => genStmt(s, opts, ctx, level + 1)).join('\n') : ind(level + 1, opts) + 'pass');
+            }
+            return lines.join('\n');
+        }
+
+        function genClassField(prop, opts, ctx) {
+            const key = prop.key.type === 'Identifier' ? safeName(prop.key.name, opts, false) : genExpr(prop.key, opts, ctx);
+            const val = prop.value ? genExpr(prop.value, opts, ctx) : 'None';
+            return `self.${key} = ${val}`;
+        }
+
+        function genClass(node, opts, ctx, level) {
+            const className = node.id ? node.id.name : ('AnonymousClass' + (++ctx.tempCounter));
+            const superClass = node.superClass ? genExpr(node.superClass, opts, ctx) : null;
+            const header = ind(level, opts) + `class ${className}${superClass ? '(' + superClass + ')' : ''}:`;
+
+            const fields = node.body.body.filter(m => m.type === 'PropertyDefinition' && !m.static);
+            const staticFields = node.body.body.filter(m => m.type === 'PropertyDefinition' && m.static);
+            const methods = node.body.body.filter(m => m.type === 'MethodDefinition');
+            const ctor = methods.find(m => m.kind === 'constructor');
+            const otherMethods = methods.filter(m => m.kind !== 'constructor');
+
+            const lines = [];
+
+            staticFields.forEach(f => {
+                const key = f.key.type === 'Identifier' ? safeName(f.key.name, opts, false) : genExpr(f.key, opts, ctx);
+                lines.push(ind(level + 1, opts) + `${key} = ${f.value ? genExpr(f.value, opts, ctx) : 'None'}`);
+            });
+
+            // Constructor (synthesize one if only fields exist, so field init still happens)
+            if (ctor || fields.length) {
+                const params = ctor ? genParams(ctor.value.params, opts, ctx) : { sig: '', pre: [] };
+                const asyncKw = ctor && ctor.value.async ? 'async ' : '';
+                const ctorHeader = ind(level + 1, opts) + `${asyncKw}def __init__(self${params.sig ? ', ' + params.sig : ''}):`;
+                const bodyLines = [];
+                params.pre.forEach(l => bodyLines.push(ind(level + 2, opts) + l));
+                fields.forEach(f => bodyLines.push(ind(level + 2, opts) + genClassField(f, opts, ctx)));
+                if (ctor) {
+                    ctor.value.body.body.forEach(s => bodyLines.push(genStmt(s, opts, ctx, level + 2)));
+                }
+                const ctorBody = bodyLines.length ? bodyLines.join('\n') : ind(level + 2, opts) + 'pass';
+                lines.push(ctorHeader + '\n' + ctorBody);
+            }
+
+            otherMethods.forEach(m => {
+                const isStatic = m.static;
+                const name = m.key.type === 'Identifier' ? safeName(m.key.name, opts, false) : ('method_' + (++ctx.tempCounter));
+                const { sig, pre } = genParams(m.value.params, opts, ctx);
+                const asyncKw = m.value.async ? 'async ' : '';
+                const decorators = [];
+                if (isStatic) decorators.push(ind(level + 1, opts) + '@staticmethod');
+                if (m.kind === 'get' && opts.optProperties) decorators.push(ind(level + 1, opts) + '@property');
+                if (m.kind === 'set' && opts.optProperties) decorators.push(ind(level + 1, opts) + `@${name}.setter`);
+                if ((m.kind === 'get' || m.kind === 'set') && !opts.optProperties) ctx.warn(m, `get/set accessor "${name}" converted to a plain method since @property is disabled`);
+                const selfParam = isStatic ? '' : 'self' + (sig ? ', ' + sig : '');
+                const header2 = ind(level + 1, opts) + `${asyncKw}def ${name}(${isStatic ? sig : selfParam}):`;
+                const docstring = opts.optDocstrings ? extractJsDoc(m, ctx) : null;
+                const body = genFunctionBody(m.value, opts, ctx, level + 2, pre, docstring);
+                lines.push([...decorators, header2, body].join('\n'));
+            });
+
+            node.body.body.filter(m => m.type !== 'MethodDefinition' && m.type !== 'PropertyDefinition').forEach(m => {
+                lines.push(fallback(m, ctx, level + 1, m.type));
+            });
+
+            if (lines.length === 0) lines.push(ind(level + 1, opts) + 'pass');
+            return header + '\n' + lines.join('\n\n');
+        }
+
+        function genImport(node, opts, ctx, level) {
+            const source = node.source.value;
+            const named = node.specifiers.filter(s => s.type === 'ImportSpecifier');
+            const def = node.specifiers.find(s => s.type === 'ImportDefaultSpecifier');
+            const ns = node.specifiers.find(s => s.type === 'ImportNamespaceSpecifier');
+            const lines = [];
+            if (ns) lines.push(ind(level, opts) + `import ${source} as ${safeName(ns.local.name, opts, false)}  # verify module name`);
+            if (def) lines.push(ind(level, opts) + `from ${source} import ${safeName(def.local.name, opts, false)}  # default import approximated`);
+            if (named.length) lines.push(ind(level, opts) + `from ${source} import ${named.map(s => safeName(s.local.name, opts, false)).join(', ')}`);
+            if (!lines.length) lines.push(ind(level, opts) + `import ${source}  # side-effect import`);
+            ctx.warn(node, 'Import path is a JS module specifier and may not match a real Python package name — review it');
+            return lines.join('\n');
+        }
+
+        function genStmt(node, opts, ctx, level) {
+            switch (node.type) {
+                case 'VariableDeclaration': return genVarDecl(node, opts, ctx, level);
+                case 'FunctionDeclaration': return genFunctionDecl(node, opts, ctx, level);
+                case 'ClassDeclaration': return genClass(node, opts, ctx, level);
+                case 'ReturnStatement': return ind(level, opts) + (node.argument ? `return ${genExpr(node.argument, opts, ctx)}` : 'return');
+                case 'IfStatement': return genIf(node, opts, ctx, level);
+                case 'ForStatement': return genFor(node, opts, ctx, level);
+                case 'ForOfStatement': return genForOf(node, opts, ctx, level);
+                case 'ForInStatement': return genForIn(node, opts, ctx, level);
+                case 'WhileStatement': return ind(level, opts) + `while ${genExpr(node.test, opts, ctx)}:\n` + genBody(node.body, opts, ctx, level + 1);
+                case 'DoWhileStatement': {
+                    ctx.warn(node, 'do...while emulated with while True + a trailing break check');
+                    const lines = [ind(level, opts) + 'while True:'];
+                    if (node.body.type === 'BlockStatement') node.body.body.forEach(s => lines.push(genStmt(s, opts, ctx, level + 1)));
+                    else lines.push(genStmt(node.body, opts, ctx, level + 1));
+                    lines.push(ind(level + 1, opts) + `if not (${genExpr(node.test, opts, ctx)}):`);
+                    lines.push(ind(level + 2, opts) + 'break');
+                    return lines.join('\n');
+                }
+                case 'BreakStatement':
+                    if (node.label) ctx.warn(node, `Labeled break (break ${node.label.name}) can't target an outer loop in Python — converted to a plain break, review the control flow here`);
+                    return ind(level, opts) + 'break';
+                case 'ContinueStatement':
+                    if (node.label) ctx.warn(node, `Labeled continue (continue ${node.label.name}) can't target an outer loop in Python — converted to a plain continue, review the control flow here`);
+                    return ind(level, opts) + 'continue';
+                case 'ThrowStatement': return ind(level, opts) + `raise ${genExpr(node.argument, opts, ctx)}`;
+                case 'TryStatement': return genTry(node, opts, ctx, level);
+                case 'SwitchStatement': return genSwitch(node, opts, ctx, level);
+                case 'BlockStatement': return node.body.length ? node.body.map(s => genStmt(s, opts, ctx, level)).join('\n') : ind(level, opts) + 'pass';
+                case 'EmptyStatement': return '';
+                case 'ExpressionStatement': {
+                    const e = node.expression;
+                    if (e.type === 'UpdateExpression' && e.argument.type === 'Identifier') {
+                        return ind(level, opts) + `${safeName(e.argument.name, opts, false)} ${e.operator === '++' ? '+= 1' : '-= 1'}`;
+                    }
+                    if (e.type === 'AssignmentExpression') {
+                        const op = genAssignOperator(e.operator);
+                        if (op) return ind(level, opts) + `${genExpr(e.left, opts, ctx)} ${op} ${genExpr(e.right, opts, ctx)}`;
+                    }
+                    if (e.type === 'UnaryExpression' && e.operator === 'delete') {
+                        return ind(level, opts) + `del ${genExpr(e.argument, opts, ctx)}`;
+                    }
+                    return ind(level, opts) + genExpr(e, opts, ctx);
+                }
+                case 'ImportDeclaration': return genImport(node, opts, ctx, level);
+                case 'ExportNamedDeclaration':
+                    if (node.declaration) return genStmt(node.declaration, opts, ctx, level);
+                    ctx.warn(node, 'Named export list has no runtime effect in Python — dropped');
+                    return '';
+                case 'ExportDefaultDeclaration':
+                    if (node.declaration && (node.declaration.type === 'FunctionDeclaration' || node.declaration.type === 'ClassDeclaration')) return genStmt(node.declaration, opts, ctx, level);
+                    return ind(level, opts) + `# export default\n` + ind(level, opts) + genExpr(node.declaration, opts, ctx);
+                case 'LabeledStatement':
+                    ctx.warn(node, 'Labeled statements (used with labeled break/continue) are not supported');
+                    return genStmt(node.body, opts, ctx, level);
+                default:
+                    return fallback(node, ctx, level, node.type);
+            }
+        }
+
+        // ============================================
+        // TOP-LEVEL DRIVER
+        // ============================================
+        function convertJsToPy(code, opts) {
+            const ctx = new Ctx(code, opts);
+            let ast;
+            try {
+                ast = acorn.parse(code, { ecmaVersion: 'latest', sourceType: 'module', locations: true, onComment: attachComments(code) });
+            } catch (err) {
+                return { error: err, ctx };
+            }
+            const lines = [];
+            let prevWasDefLike = false;
+            ast.body.forEach((stmt, i) => {
+                const isDefLike = stmt.type === 'FunctionDeclaration' || stmt.type === 'ClassDeclaration' ||
+                    (stmt.type === 'ExportNamedDeclaration' && stmt.declaration && (stmt.declaration.type === 'FunctionDeclaration' || stmt.declaration.type === 'ClassDeclaration'));
+                if (i > 0 && (isDefLike || prevWasDefLike)) lines.push('');
+                const out = genStmt(stmt, opts, ctx, 0);
+                if (out !== '') lines.push(out);
+                prevWasDefLike = isDefLike;
+            });
+
+            const headerLines = [];
+            if (opts.optShebang) headerLines.push('#!/usr/bin/env python3');
+            if (opts.optFutureAnnotations) headerLines.push('from __future__ import annotations');
+            if (ctx.needSys) headerLines.push('import sys');
+            let body = lines.join('\n');
+            let full = headerLines.length ? headerLines.join('\n') + '\n\n' + body : body;
+            if (opts.optTrailingNewline) full += '\n';
+            return { python: full, ctx, ast };
+        }
+
+        // Attach comments as leadingComments on the following node (simple JSDoc support).
+        function attachComments(code) {
+            // returns an onComment collector; actual attaching happens post-parse via a second lightweight pass
+            return function () {}; // acorn's onComment signature handled below via manual comment scan
+        }
+
+        // Because wiring onComment -> node.leadingComments requires acorn's comment attacher,
+        // we do a simpler manual pass: re-parse just to collect comments, then match by proximity.
+        function collectAndAttachComments(code, ast) {
+            const comments = [];
+            try {
+                acorn.parse(code, { ecmaVersion: 'latest', sourceType: 'module', onComment: comments });
+            } catch (err) { /* ignore, main parse already validated */ }
+            function visit(node) {
+                if (!node || typeof node.type !== 'string') return;
+                if (node.start !== undefined) {
+                    const preceding = comments.filter(c => c.end <= node.start && c.type === 'Block');
+                    if (preceding.length) {
+                        const closest = preceding[preceding.length - 1];
+                        const between = code.slice(closest.end, node.start);
+                        if (!/\S/.test(between.replace(/\n/g, ' ').trim()) || between.trim() === '') {
+                            node.leadingComments = [closest];
+                        }
+                    }
+                }
+                for (const key in node) {
+                    if (key === 'leadingComments' || key === 'loc' || key === 'range') continue;
+                    const val = node[key];
+                    if (Array.isArray(val)) val.forEach(v => v && typeof v === 'object' && visit(v));
+                    else if (val && typeof val === 'object' && typeof val.type === 'string') visit(val);
+                }
+            }
+            visit(ast);
+        }
+
+        // ============================================
+        // AST VIEW
+        // ============================================
+        const AST_SKIP_KEYS = new Set(['start','end','loc','range','leadingComments','trailingComments']);
+        function escapeHtmlStr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function renderAstNode(label, node) {
+            if (node === null || node === undefined) {
+                return `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(label)}</span><span class="tree-val">null</span></div>`;
+            }
+            if (Array.isArray(node)) {
+                let row = `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(label)}</span><span class="tree-val">[${node.length}]</span></div>`;
+                row += `<div class="tree-node">${node.map((v, i) => renderAstNode(String(i), v)).join('')}</div>`;
+                return row;
+            }
+            if (typeof node === 'object' && node.type) {
+                let row = `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(label)}</span><span class="tree-type">${escapeHtmlStr(node.type)}</span></div>`;
+                const childRows = [];
+                Object.keys(node).forEach(k => {
+                    if (AST_SKIP_KEYS.has(k)) return;
+                    const v = node[k];
+                    if (v && typeof v === 'object') childRows.push(renderAstNode(k, v));
+                    else childRows.push(`<div class="tree-row"><span class="tree-key">${escapeHtmlStr(k)}</span><span class="tree-val">${escapeHtmlStr(JSON.stringify(v))}</span></div>`);
+                });
+                row += `<div class="tree-node">${childRows.join('')}</div>`;
+                return row;
+            }
+            return `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(label)}</span><span class="tree-val">${escapeHtmlStr(JSON.stringify(node))}</span></div>`;
+        }
+
+        function updateAstTree(ast) {
+            if (!ast) { treePane.innerHTML = '<p class="tree-empty">Parse valid JavaScript to see its AST here.</p>'; return; }
+            treePane.innerHTML = ast.body.length ? ast.body.map((n, i) => renderAstNode('[' + i + ']', n)).join('') : '<p class="tree-empty">Empty program.</p>';
+        }
+
+        // ============================================
+        // CONVERSION NOTES
+        // ============================================
+        function updateNotes(ctx) {
+            const badge = document.getElementById('notesBadge');
+            if (!ctx || ctx.warnings.length === 0) {
+                notesPane.innerHTML = '<p class="warn-ok">No warnings — every statement in your input mapped to a supported Python construct.</p>';
+                badge.style.display = 'none';
+                return;
+            }
+            badge.style.display = 'inline-block';
+            badge.textContent = ctx.warnings.length;
+            notesPane.innerHTML = ctx.warnings.map(w =>
+                `<div class="warn-item"><div class="warn-loc">Line ${w.line}${w.col !== undefined ? ', column ' + (w.col + 1) : ''}</div><div class="warn-msg">${escapeHtmlStr(w.message)}</div></div>`
+            ).join('');
+        }
+
+        // ============================================
+        // ERROR HANDLING
+        // ============================================
+        function formatJsError(err) {
+            const msg = err && err.message ? err.message : String(err);
+            if (err && err.loc) return `Parse error at line ${err.loc.line}, column ${err.loc.column + 1}:\n${msg}`;
+            return msg;
+        }
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            jsInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            jsInputEl.classList.remove('has-error');
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function countTopLevelFns(ast) {
+            let count = 0;
+            function visit(node, top) {
+                if (!node || typeof node.type !== 'string') return;
+                if (node.type === 'FunctionDeclaration' || node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') count++;
+                for (const key in node) {
+                    if (key === 'loc' || key === 'range' || key === 'leadingComments') continue;
+                    const val = node[key];
+                    if (Array.isArray(val)) val.forEach(v => v && typeof v === 'object' && visit(v, false));
+                    else if (val && typeof val === 'object' && typeof val.type === 'string') visit(val, false);
+                }
+            }
+            ast.body.forEach(n => visit(n, true));
+            return count;
+        }
+
+        function convert() {
+            const opts = getOptions();
+            clearError();
+            const text = jsInputEl.value;
+
+            if (text.trim() === '') {
+                pyOutput.value = '';
+                updateAstTree(null);
+                updateNotes(null);
+                updateInputStats(null);
+                updateOutputStats('', null);
+                saveDraft();
+                return;
+            }
+
+            let ast;
+            try {
+                ast = acorn.parse(text, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+            } catch (err) {
+                showError(formatJsError(err));
+                pyOutput.value = '';
+                updateAstTree(null);
+                notesPane.innerHTML = '<p class="schema-empty">Fix the JavaScript syntax error to see conversion notes.</p>';
+                document.getElementById('notesBadge').style.display = 'none';
+                updateInputStats(null);
+                updateOutputStats('', null);
+                const statusEl = document.getElementById('pyStatus');
+                statusEl.textContent = 'Invalid JS';
+                statusEl.parentElement.classList.add('error');
+                saveDraft();
+                return;
+            }
+
+            collectAndAttachComments(text, ast);
+
+            let result;
+            try {
+                const ctx = new Ctx(text, opts);
+                const lines = [];
+                let prevWasDefLike = false;
+                ast.body.forEach((stmt, i) => {
+                    const isDefLike = stmt.type === 'FunctionDeclaration' || stmt.type === 'ClassDeclaration' ||
+                        (stmt.type === 'ExportNamedDeclaration' && stmt.declaration && (stmt.declaration.type === 'FunctionDeclaration' || stmt.declaration.type === 'ClassDeclaration'));
+                    if (i > 0 && (isDefLike || prevWasDefLike)) lines.push('');
+                    const out = genStmt(stmt, opts, ctx, 0);
+                    if (out !== '') lines.push(out);
+                    prevWasDefLike = isDefLike;
+                });
+                const headerLines = [];
+                if (opts.optShebang) headerLines.push('#!/usr/bin/env python3');
+                if (opts.optFutureAnnotations) headerLines.push('from __future__ import annotations');
+                if (ctx.needSys) headerLines.push('import sys');
+                let body = lines.join('\n');
+                let full = headerLines.length ? headerLines.join('\n') + '\n\n' + body : body;
+                if (opts.optTrailingNewline) full += '\n';
+                result = { python: full, ctx };
+            } catch (err) {
+                showError('Conversion error: ' + (err && err.message ? err.message : String(err)));
+                saveDraft();
+                return;
+            }
+
+            pyOutput.value = result.python;
+            updateAstTree(ast);
+            updateNotes(result.ctx);
+            updateInputStats(ast);
+            updateOutputStats(result.python, result.ctx);
+            saveDraft();
+        }
+
+        function updateInputStats(ast) {
+            const text = jsInputEl.value;
+            document.getElementById('jsLineCount').textContent = (text === '' ? 0 : text.split('\n').length).toLocaleString();
+            document.getElementById('jsCharCount').textContent = text.length.toLocaleString();
+            document.getElementById('jsStmtCount').textContent = (ast ? ast.body.length : 0).toLocaleString();
+            document.getElementById('jsFnCount').textContent = (ast ? countTopLevelFns(ast) : 0).toLocaleString();
+        }
+
+        function updateOutputStats(pyText, ctx) {
+            document.getElementById('pyLineCount').textContent = (pyText === '' ? 0 : pyText.split('\n').length).toLocaleString();
+            document.getElementById('pyCharCount').textContent = pyText.length.toLocaleString();
+            document.getElementById('pyFnCount').textContent = (ctx ? ctx.fnCount : 0).toLocaleString();
+            const warnCount = ctx ? ctx.warnings.length : 0;
+            document.getElementById('pyWarnCount').textContent = warnCount.toLocaleString();
+            const statusEl = document.getElementById('pyStatus');
+            const statusStrip = statusEl.parentElement;
+            statusStrip.classList.remove('error', 'warns');
+            if (pyText === '') { statusEl.textContent = '—'; }
+            else if (warnCount > 0) { statusEl.textContent = `Converted, ${warnCount} warning${warnCount === 1 ? '' : 's'}`; statusStrip.classList.add('warns'); }
+            else { statusEl.textContent = 'Converted cleanly'; }
+        }
+
+        // Live conversion
+        jsInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = jsInputEl.value;
+            }
+            activeBatchIndex = index;
+            jsInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = jsInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    const ast = acorn.parse(f.content, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+                    collectAndAttachComments(f.content, ast);
+                    const ctx = new Ctx(f.content, opts);
+                    const lines = [];
+                    let prevWasDefLike = false;
+                    ast.body.forEach((stmt, i) => {
+                        const isDefLike = stmt.type === 'FunctionDeclaration' || stmt.type === 'ClassDeclaration';
+                        if (i > 0 && (isDefLike || prevWasDefLike)) lines.push('');
+                        const s = genStmt(stmt, opts, ctx, 0);
+                        if (s !== '') lines.push(s);
+                        prevWasDefLike = isDefLike;
+                    });
+                    const headerLines = [];
+                    if (opts.optShebang) headerLines.push('#!/usr/bin/env python3');
+                    if (opts.optFutureAnnotations) headerLines.push('from __future__ import annotations');
+                    if (ctx.needSys) headerLines.push('import sys');
+                    out = (headerLines.length ? headerLines.join('\n') + '\n\n' : '') + lines.join('\n') + (opts.optTrailingNewline ? '\n' : '');
+                } catch (err) {
+                    out = `# CONVERSION FAILED: ${formatJsError(err)}\n`;
+                }
+                const outName = f.name.replace(/\.(js|mjs|cjs|txt)$/i, '') + '.py';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted-js.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            jsInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            jsInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                jsInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(pyOutput.value);
+            } catch (err) {
+                pyOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([pyOutput.value], { type: 'text/x-python' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'js2pyConverterDraft';
+        const DRAFT_SETTINGS_KEY = 'js2pyConverterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, jsInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') jsInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
