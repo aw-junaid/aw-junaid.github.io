@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | C to Python Converter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free C to Python converter that handles real-world conversion pitfalls: pointers, malloc/free, structs to classes, switch/case, do-while, macros, printf/scanf formatting and more. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/c2python.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/c2python.html" />
+<meta property="og:title" content="C to Python Converter — awjunaid" />
+<meta property="og:description" content="Convert C source to readable Python with live preview, line-by-line mapping, and a diagnostics report that flags pointers, memory management and other constructs that need manual review. 100% client-side — nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/c2python.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="C to Python Converter — awjunaid" />
+<meta name="twitter:description" content="Convert C to Python with live preview, line mapping, and a diagnostics report for pointers, memory management, macros and more. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/c2python.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea {
+            width: 100%; min-height: 90px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; resize: vertical;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #cInput {
+            width: 100%;
+            min-height: 460px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #cInput:focus { outline: none; border-color: var(--border-color); }
+        #cInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .output-tab .tab-count {
+            display: inline-block; margin-left: 6px; opacity: 0.7; font-size: 10px;
+        }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #pyOutput {
+            width: 100%;
+            min-height: 460px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .map-pane, .diag-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 460px; max-height: 460px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12px;
+        }
+        .map-pane .map-empty, .diag-pane .diag-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .map-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            padding: 6px 0; border-bottom: 1px solid var(--border-light);
+        }
+        .map-row:last-child { border-bottom: none; }
+        .map-c, .map-py { white-space: pre-wrap; word-break: break-word; }
+        .map-c { opacity: 0.55; }
+        .map-py { color: var(--accent); }
+        .map-row.map-blank .map-py { opacity: 0.3; color: var(--text-primary); }
+        .map-linenum { opacity: 0.35; font-size: 10px; margin-right: 6px; }
+
+        .diag-item {
+            border-left: 3px solid var(--warn); padding: 8px 12px; margin-bottom: 8px;
+            border-radius: 0 8px 8px 0; background: rgba(245,158,11,0.08); font-size: 12px; line-height: 1.5;
+        }
+        .diag-ok {
+            border-left: 3px solid var(--accent); padding: 10px 12px; margin-bottom: 8px;
+            border-radius: 0 8px 8px 0; background: rgba(16,185,129,0.08); font-size: 12.5px; font-family: var(--font-body);
+        }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.warn strong { color: var(--warn); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #cInput, #pyOutput, .map-pane, .diag-pane { min-height: 320px; }
+            .map-row { grid-template-columns: 1fr; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">C to Python Converter</h1>
+                <div class="tool-dek">Paste or upload C source and get readable Python back, with live preview, a line-by-line mapping view, and a diagnostics report that calls out the constructs — pointers, manual memory management, macros, function pointers — that a rule-based converter can't fully resolve on its own.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="textbook">Textbook / Beginner</option>
+                    <option value="competitive">Competitive Programming</option>
+                    <option value="verbose">Verbose (type hints + notes)</option>
+                    <option value="minimal">Minimal / Strip everything</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Comments &amp; Preprocessor</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optConvertComments" checked>
+                            <span><span class="setting-name">Convert C comments to Python</span><span class="setting-hint">// and /* */ become # comments</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripIncludes" checked>
+                            <span><span class="setting-name">Strip #include directives</span><span class="setting-hint">Python has no header includes</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optKeepIncludeComment" checked>
+                            <span><span class="setting-name">List removed headers as a comment</span><span class="setting-hint">Keeps a record of what stdio.h etc. provided</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optConvertDefines" checked>
+                            <span><span class="setting-name">Convert simple #define to constants</span><span class="setting-hint">#define MAX 50 → MAX = 50. Function-like macros are flagged instead</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Types &amp; Declarations</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripTypes" checked>
+                            <span><span class="setting-name">Strip C type keywords</span><span class="setting-hint">int/float/char/long etc. removed — Python is dynamically typed</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTypeHints">
+                            <span><span class="setting-name">Add inferred type hints</span><span class="setting-hint">x: int = 5 instead of x = 5, based on the original C type</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optArraysToLists" checked>
+                            <span><span class="setting-name">Convert C arrays to Python lists</span><span class="setting-hint">int a[5]; → a = [0] * 5, and initializer lists → [1, 2, 3]</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="defaultValueInput">Default for uninitialized numeric vars</label>
+                            <input type="text" id="defaultValueInput" placeholder="e.g. 0" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Control Flow</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optForRange" checked>
+                            <span><span class="setting-name">Convert simple for-loops to range()</span><span class="setting-hint">for(int i=0;i&lt;n;i++) → for i in range(n):</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSwitchToIfElif" checked>
+                            <span><span class="setting-name">Convert switch/case to if/elif</span><span class="setting-hint">Each case becomes a comparison branch; break; is dropped</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTernary" checked>
+                            <span><span class="setting-name">Convert the ternary operator</span><span class="setting-hint">cond ? a : b → a if cond else b</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Operators &amp; Literals</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLogicalOps" checked>
+                            <span><span class="setting-name">Convert logical operators</span><span class="setting-hint">&amp;&amp; → and, || → or, ! → not</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBoolNull" checked>
+                            <span><span class="setting-name">Convert boolean/null literals</span><span class="setting-hint">true/false → True/False, NULL → None</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIncDec" checked>
+                            <span><span class="setting-name">Convert ++ / --</span><span class="setting-hint">i++ → i += 1 (Python has no increment operator)</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>I/O Functions</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPrintfToPrint" checked>
+                            <span><span class="setting-name">Convert printf() to print()</span><span class="setting-hint">Maps %d %f %s %c format specifiers to the arguments</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optScanfToInput" checked>
+                            <span><span class="setting-name">Convert scanf() to input()</span><span class="setting-hint">Wraps with int()/float() based on the format specifier</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>printf() output style</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="printfStyle" value="fstring" checked> f-strings</label>
+                                <label class="radio-opt"><input type="radio" name="printfStyle" value="format"> .format()</label>
+                                <label class="radio-opt"><input type="radio" name="printfStyle" value="percent"> % formatting</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Functions &amp; Structs</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFunctionDefs" checked>
+                            <span><span class="setting-name">Convert function signatures</span><span class="setting-hint">Strips the return type, writes def name(args):</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optWrapMain" checked>
+                            <span><span class="setting-name">Wrap main() in the standard entry point</span><span class="setting-hint">Adds if __name__ == "__main__": main()</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStructToClass" checked>
+                            <span><span class="setting-name">Convert structs to classes</span><span class="setting-hint">Fields become self.field assignments in __init__</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBlankLineBetweenFuncs" checked>
+                            <span><span class="setting-name">Blank line between top-level functions</span><span class="setting-hint">Matches common Python style</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Pointers &amp; Memory — Real-World Pitfalls</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripPointers" checked>
+                            <span><span class="setting-name">Strip pointer/address-of symbols</span><span class="setting-hint">int *p and &amp;x become plain names, flagged in Diagnostics for review</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagMalloc" checked>
+                            <span><span class="setting-name">Flag malloc/free/realloc calls</span><span class="setting-hint">Python has no manual allocation — these are rewritten or commented, and always logged as a diagnostic</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>malloc() handling</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="mallocHandling" value="listalloc" checked> Convert to a pre-sized list where possible</label>
+                                <label class="radio-opt"><input type="radio" name="mallocHandling" value="comment"> Comment out with a TODO</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output &amp; Diagnostics</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optHeaderComment" checked>
+                            <span><span class="setting-name">Add a generated-file header comment</span><span class="setting-hint">Notes that this is a machine-assisted conversion</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Thorough diagnostics scan</span><span class="setting-hint">Also flags goto, sizeof, unions, function pointers, multi-dim arrays and bit-fields</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="indentSelect">Indent width</label>
+                            <select id="indentSelect">
+                                <option value="2">2 spaces</option>
+                                <option value="4" selected>4 spaces</option>
+                                <option value="tab">Tab</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>C Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".c,.h,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple .c files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="cInput" spellcheck="false" placeholder="#include <stdio.h>
+
+int main() {
+    printf(&quot;Hello, world!\n&quot;);
+    return 0;
+}
+
+Paste or type C code here, or upload .c/.h file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag &amp; drop .c / .h / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="cLineCount">0</strong> lines</span>
+                        <span><strong id="cCharCount">0</strong> characters</span>
+                        <span><strong id="cFuncCount">0</strong> functions</span>
+                        <span><strong id="cIncludeCount">0</strong> includes</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .py</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="py" type="button">Python Output</button>
+                        <button class="output-tab" data-tab="map" type="button">Line Mapping</button>
+                        <button class="output-tab" data-tab="diag" type="button">Diagnostics<span class="tab-count" id="diagTabCount"></span></button>
+                    </div>
+                    <div class="output-pane active" id="pane-py">
+                        <textarea id="pyOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-map">
+                        <div class="map-pane" id="mapPane"><p class="map-empty">Convert valid C code to see the line-by-line mapping here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-diag">
+                        <div class="diag-pane" id="diagPane"><p class="diag-empty">Convert C code to see a report of constructs that need manual review.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="pyLineCount">0</strong> lines</span>
+                        <span><strong id="pyFuncCount">0</strong> def blocks</span>
+                        <span class="warn"><strong id="pyDiagCount">0</strong> diagnostics</span>
+                        <span><strong id="pyStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Is this a full C compiler front-end?</h4>
+                        <p>No — it's a rule-based, pattern-matching converter, not a full parser or semantic analyzer. It handles common constructs (functions, loops, conditionals, structs, arrays, printf/scanf) reliably, but it can't reason about types the way a compiler does. Always review the output, especially anything flagged in the Diagnostics tab.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are pointers handled?</h4>
+                        <p>Python has no pointers or address-of operator, so <code>*</code> and <code>&amp;</code> are stripped from declarations and expressions when "Strip pointer/address-of symbols" is on. Every occurrence is logged as a diagnostic, because the actual semantics — pass-by-reference for mutable objects, pointer arithmetic, double indirection — need a human to verify.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What happens to malloc(), free(), and realloc()?</h4>
+                        <p>Python's garbage collector manages memory automatically, so there's no direct equivalent. Depending on the "malloc() handling" setting, a simple <code>malloc(n * sizeof(type))</code> pattern is rewritten as a pre-sized list, or commented out with a TODO. <code>free()</code> calls are removed with an explanatory comment. Both are always reported in Diagnostics.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How are structs converted?</h4>
+                        <p>A <code>struct Name { ... };</code> becomes a Python <code>class Name:</code> with an <code>__init__</code> method, and each field becomes a <code>self.field</code> assignment with a type-appropriate default. This gives you a starting point for a dataclass-style object — it doesn't replicate struct memory layout or padding, which don't exist in Python.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the Line Mapping and Diagnostics tab show?</h4>
+                        <p>Line Mapping lines up each original C line against the Python it produced, so you can trace exactly where a translation came from. Diagnostics is a plain-language report of constructs a rule-based converter can't safely resolve — pointers, manual memory management, macros, goto, unions, function pointers, and multi-dimensional arrays — each with the line number to check.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How is switch/case converted?</h4>
+                        <p>Since Python has no switch statement, each <code>case</code> becomes an <code>if</code>/<code>elif</code> comparison against the switch expression, <code>default</code> becomes <code>else</code>, and <code>break;</code> lines are dropped since they're no longer needed. Fallthrough between cases (no break) isn't automatically replicated — it's flagged for manual review.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .c files and each becomes a tab above the editor. "Download All (.zip)" converts every loaded file with your current settings and bundles the resulting .py files into one archive.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files you upload are read locally in your browser and the conversion happens entirely client-side — nothing is sent anywhere. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // C → PYTHON CONVERTER — ENTERPRISE EDITION
+        // ============================================
+        const cInputEl = document.getElementById('cInput');
+        const pyOutput = document.getElementById('pyOutput');
+        const mapPane = document.getElementById('mapPane');
+        const diagPane = document.getElementById('diagPane');
+        const errorBanner = document.getElementById('errorBanner');
+
+        const sampleC = [
+            '#include <stdio.h>',
+            '#include <stdlib.h>',
+            '',
+            '#define MAX_STUDENTS 50',
+            '',
+            'struct Student {',
+            '    char name[50];',
+            '    int age;',
+            '    float gpa;',
+            '};',
+            '',
+            'int square(int n) {',
+            '    return n * n;',
+            '}',
+            '',
+            'int main() {',
+            '    int scores[5] = {90, 85, 77, 92, 88};',
+            '    int total = 0;',
+            '    int *ptr = &total;',
+            '',
+            '    for (int i = 0; i < 5; i++) {',
+            '        total += scores[i];',
+            '    }',
+            '',
+            '    float average = total / 5.0;',
+            '',
+            '    if (average >= 90) {',
+            '        printf("Grade: A\\n");',
+            '    } else if (average >= 80) {',
+            '        printf("Grade: B\\n");',
+            '    } else {',
+            '        printf("Grade: C\\n");',
+            '    }',
+            '',
+            '    int x = 7;',
+            '    switch (x) {',
+            '        case 1:',
+            '            printf("one\\n");',
+            '            break;',
+            '        case 7:',
+            '            printf("seven\\n");',
+            '            break;',
+            '        default:',
+            '            printf("other\\n");',
+            '    }',
+            '',
+            '    printf("Total: %d, Average: %.2f\\n", total, average);',
+            '    return 0;',
+            '}'
+        ].join('\n');
+        cInputEl.value = sampleC;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optConvertComments','optStripIncludes','optKeepIncludeComment','optConvertDefines',
+                'optStripTypes','optTypeHints','optArraysToLists',
+                'optForRange','optSwitchToIfElif','optTernary',
+                'optLogicalOps','optBoolNull','optIncDec',
+                'optPrintfToPrint','optScanfToInput',
+                'optFunctionDefs','optWrapMain','optStructToClass','optBlankLineBetweenFuncs',
+                'optStripPointers','optFlagMalloc',
+                'optHeaderComment','optStrictMode'],
+            text: ['defaultValueInput'],
+            select: ['indentSelect'],
+            radio: ['printfStyle','mallocHandling']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return Object.assign({}, raw, { _raw: raw, defaultValue: raw.defaultValueInput || '0' });
+        }
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            textbook: {
+                optConvertComments: true, optStripIncludes: true, optKeepIncludeComment: true, optConvertDefines: true,
+                optStripTypes: true, optTypeHints: false, optArraysToLists: true,
+                optForRange: true, optSwitchToIfElif: true, optTernary: true,
+                optLogicalOps: true, optBoolNull: true, optIncDec: true,
+                optPrintfToPrint: true, optScanfToInput: true,
+                optFunctionDefs: true, optWrapMain: true, optStructToClass: true, optBlankLineBetweenFuncs: true,
+                optStripPointers: true, optFlagMalloc: true,
+                optHeaderComment: true, optStrictMode: true,
+                defaultValueInput: '0', indentSelect: '4', printfStyle: 'fstring', mallocHandling: 'listalloc'
+            },
+            competitive: {
+                optConvertComments: false, optStripIncludes: true, optKeepIncludeComment: false, optConvertDefines: true,
+                optStripTypes: true, optTypeHints: false, optArraysToLists: true,
+                optForRange: true, optSwitchToIfElif: true, optTernary: true,
+                optLogicalOps: true, optBoolNull: true, optIncDec: true,
+                optPrintfToPrint: true, optScanfToInput: true,
+                optFunctionDefs: true, optWrapMain: false, optStructToClass: true, optBlankLineBetweenFuncs: false,
+                optStripPointers: true, optFlagMalloc: true,
+                optHeaderComment: false, optStrictMode: false,
+                defaultValueInput: '0', indentSelect: '4', printfStyle: 'fstring', mallocHandling: 'listalloc'
+            },
+            verbose: {
+                optConvertComments: true, optStripIncludes: true, optKeepIncludeComment: true, optConvertDefines: true,
+                optStripTypes: true, optTypeHints: true, optArraysToLists: true,
+                optForRange: true, optSwitchToIfElif: true, optTernary: true,
+                optLogicalOps: true, optBoolNull: true, optIncDec: true,
+                optPrintfToPrint: true, optScanfToInput: true,
+                optFunctionDefs: true, optWrapMain: true, optStructToClass: true, optBlankLineBetweenFuncs: true,
+                optStripPointers: true, optFlagMalloc: true,
+                optHeaderComment: true, optStrictMode: true,
+                defaultValueInput: '0', indentSelect: '4', printfStyle: 'format', mallocHandling: 'comment'
+            },
+            minimal: {
+                optConvertComments: false, optStripIncludes: true, optKeepIncludeComment: false, optConvertDefines: true,
+                optStripTypes: true, optTypeHints: false, optArraysToLists: true,
+                optForRange: true, optSwitchToIfElif: true, optTernary: true,
+                optLogicalOps: true, optBoolNull: true, optIncDec: true,
+                optPrintfToPrint: true, optScanfToInput: true,
+                optFunctionDefs: true, optWrapMain: false, optStructToClass: false, optBlankLineBetweenFuncs: false,
+                optStripPointers: true, optFlagMalloc: false,
+                optHeaderComment: false, optStrictMode: false,
+                defaultValueInput: '0', indentSelect: '2', printfStyle: 'percent', mallocHandling: 'comment'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'cToPyConverterCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(presets) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ } }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'c-to-python-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // SMALL HELPERS
+        // ============================================
+        const C_TYPE_WORDS = ['void','int','float','double','char','long','short','unsigned','signed','const','static','struct'];
+        function getIndentUnit(opts) { return opts.indentSelect === 'tab' ? '\t' : ' '.repeat(parseInt(opts.indentSelect, 10) || 4); }
+        function stripTypeTokens(str) {
+            let s = str.trim();
+            let changed = true;
+            while (changed) {
+                changed = false;
+                for (const w of C_TYPE_WORDS) {
+                    const re = new RegExp('^' + w + '\\b\\s*');
+                    if (re.test(s)) { s = s.replace(re, ''); changed = true; }
+                }
+            }
+            return s.trim();
+        }
+        function pyTypeHint(typeStr) {
+            const t = typeStr.toLowerCase();
+            if (t.includes('float') || t.includes('double')) return 'float';
+            if (t.includes('char') && t.includes('*')) return 'str';
+            if (t.includes('char')) return 'str';
+            if (t.includes('bool')) return 'bool';
+            return 'int';
+        }
+        function defaultForType(typeStr, opts) {
+            const t = (typeStr || '').toLowerCase();
+            if (t.includes('float') || t.includes('double')) return opts.defaultValue || '0';
+            if (t.includes('char') && t.includes('*')) return '""';
+            if (t.includes('char')) return "''";
+            return opts.defaultValue || '0';
+        }
+        function findLineCommentIndex(line) {
+            let inStr = false, inChar = false;
+            for (let i = 0; i < line.length - 1; i++) {
+                const c = line[i];
+                if (c === '"' && !inChar) inStr = !inStr;
+                else if (c === "'" && !inStr) inChar = !inChar;
+                else if (!inStr && !inChar && c === '/' && line[i + 1] === '/') return i;
+            }
+            return -1;
+        }
+        function convertLogicalOps(expr) {
+            return expr.replace(/&&/g, ' and ').replace(/\|\|/g, ' or ')
+                        .replace(/(?<![=!<>])!(?!=)/g, ' not ')
+                        .replace(/\s+/g, ' ').trim();
+        }
+        function convertLiterals(expr) {
+            return expr.replace(/\btrue\b/g, 'True').replace(/\bfalse\b/g, 'False').replace(/\bNULL\b/g, 'None');
+        }
+        function convertIncDec(expr) {
+            return expr.replace(/\+\+(\w+)/g, '$1 += 1').replace(/(\w+)\+\+/g, '$1 += 1')
+                        .replace(/--(\w+)/g, '$1 -= 1').replace(/(\w+)--/g, '$1 -= 1');
+        }
+        function convertTernary(expr, opts) {
+            if (!opts.optTernary) return expr;
+            const m = expr.match(/^(.+?)\?(.+):(.+)$/);
+            if (m) return `${m[2].trim()} if ${m[1].trim()} else ${m[3].trim()}`;
+            return expr;
+        }
+        function convertOperatorsInExpr(expr, opts) {
+            let e = expr;
+            e = convertTernary(e, opts);
+            if (opts.optIncDec) e = convertIncDec(e);
+            if (opts.optLogicalOps) e = convertLogicalOps(e);
+            if (opts.optBoolNull) e = convertLiterals(e);
+            if (opts.optStripPointers) e = e.replace(/&(\w)/g, '$1');
+            return e;
+        }
+        function stripSemicolon(s) { return s.replace(/;\s*$/, ''); }
+        function escapePyStr(s) { return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
+
+        function convertPrintf(inner, opts) {
+            const m = inner.match(/^"((?:[^"\\]|\\.)*)"\s*(?:,\s*([\s\S]*))?$/);
+            if (!m) return null;
+            let fmt = m[1];
+            const rawArgs = m[2] ? splitArgs(m[2]) : [];
+            const specs = fmt.match(/%[-+0-9.lh]*[dioxXufFeEgGscp%]/g) || [];
+            const trailingNewline = /\\n\s*$/.test(fmt);
+            let fmtNoNl = fmt.replace(/\\n\s*$/, '');
+            let argIdx = 0;
+            if (opts.printfStyle === 'fstring') {
+                let out = fmtNoNl.replace(/%[-+0-9.lh]*[dioxXufFeEgGscp%]/g, (spec) => {
+                    if (spec === '%%') return '%';
+                    const arg = rawArgs[argIdx] !== undefined ? convertOperatorsInExpr(rawArgs[argIdx], opts) : '';
+                    argIdx++;
+                    const precMatch = spec.match(/%[-+0]*\d*\.(\d+)[fFeEgG]/);
+                    if (precMatch) return `{${arg}:.${precMatch[1]}f}`;
+                    return `{${arg}}`;
+                });
+                const call = `print(f"${out}"${trailingNewline ? '' : ', end=""'})`;
+                return call;
+            } else if (opts.printfStyle === 'percent') {
+                let out = fmtNoNl.replace(/%%/g, '%%');
+                const argList = rawArgs.map(a => convertOperatorsInExpr(a, opts)).join(', ');
+                const tail = argList ? ` % (${argList}${rawArgs.length === 1 ? ',' : ''})` : '';
+                return `print("${out}"${tail}${trailingNewline ? '' : ''})`.replace(') % (', ' % (').length ? buildPercentPrint(out, argList, trailingNewline) : '';
+            } else {
+                let idx = 0;
+                let out = fmtNoNl.replace(/%[-+0-9.lh]*[dioxXufFeEgGscp%]/g, (spec) => {
+                    if (spec === '%%') return '%';
+                    const r = `{${idx}}`; idx++; return r;
+                });
+                const argList = rawArgs.map(a => convertOperatorsInExpr(a, opts)).join(', ');
+                return `print("${out}"${argList ? '.format(' + argList + ')' : ''}${trailingNewline ? '' : ''})`;
+            }
+        }
+        function buildPercentPrint(fmtNoNl, argList, trailingNewline) {
+            if (!argList) return `print("${fmtNoNl}")`;
+            return `print("${fmtNoNl}" % (${argList}${argList.indexOf(',') === -1 ? ',' : ''}))`;
+        }
+        function splitArgs(str) {
+            const args = []; let depth = 0, cur = '', inStr = false;
+            for (let i = 0; i < str.length; i++) {
+                const c = str[i];
+                if (c === '"' && str[i-1] !== '\\') inStr = !inStr;
+                if (!inStr) {
+                    if (c === '(') depth++;
+                    if (c === ')') depth--;
+                    if (c === ',' && depth === 0) { args.push(cur.trim()); cur = ''; continue; }
+                }
+                cur += c;
+            }
+            if (cur.trim()) args.push(cur.trim());
+            return args;
+        }
+        function convertScanf(inner, opts) {
+            const m = inner.match(/^"((?:[^"\\]|\\.)*)"\s*,\s*(.+)$/);
+            if (!m) return null;
+            const fmt = m[1];
+            const specs = fmt.match(/%[lh]*[dfscu]/g) || [];
+            const rawArgs = splitArgs(m[2]).map(a => a.replace(/^&/, ''));
+            if (specs.length !== rawArgs.length || specs.length === 0) return null;
+            const caster = (spec) => {
+                if (/f$/.test(spec)) return 'float';
+                if (/d$/.test(spec) || /u$/.test(spec)) return 'int';
+                return null; // string
+            };
+            if (specs.length === 1) {
+                const c = caster(specs[0]);
+                return `${rawArgs[0]} = ${c ? c + '(input())' : 'input()'}`;
+            }
+            const allInt = specs.every(s => caster(s) === 'int');
+            const allFloat = specs.every(s => caster(s) === 'float');
+            if (allInt || allFloat) {
+                const fn = allInt ? 'int' : 'float';
+                return `${rawArgs.join(', ')} = map(${fn}, input().split())`;
+            }
+            return `${rawArgs.join(', ')} = input().split()  # TODO: cast each value to the right type`;
+        }
+
+        // ============================================
+        // MAIN CONVERSION ENGINE
+        // ============================================
+        function convertCToPython(cCode, opts) {
+            const unit = getIndentUnit(opts);
+            const rawLines = cCode.split('\n');
+            const outLines = []; // {depth, text}
+            const mapping = []; // {c, py}
+            const diagnostics = [];
+            const includes = [];
+            let depth = 0;
+            const stack = [];
+            let inBlockComment = false;
+            let funcCount = 0;
+
+            function emit(text, cText) {
+                if (text !== null) outLines.push({ depth, text });
+                mapping.push({ c: cText !== undefined ? cText : '', py: text === null ? '' : unit.repeat(depth) + text });
+            }
+            function warn(msg, lineno) { diagnostics.push(`Line ${lineno}: ${msg}`); }
+            function topCtx() { return stack.length ? stack[stack.length - 1] : null; }
+
+            function findClosingName(startIdx) {
+                let d = 0;
+                for (let j = startIdx; j < rawLines.length; j++) {
+                    for (const ch of rawLines[j]) {
+                        if (ch === '{') d++;
+                        else if (ch === '}') { d--; if (d === 0) { const m = rawLines[j].match(/\}\s*([A-Za-z_]\w*)\s*;/); return m ? m[1] : null; } }
+                    }
+                }
+                return null;
+            }
+
+            let i = 0;
+            while (i < rawLines.length) {
+                const lineno = i + 1;
+                const raw = rawLines[i];
+                let line = raw.trim();
+
+                if (inBlockComment) {
+                    const endIdx = line.indexOf('*/');
+                    if (endIdx === -1) {
+                        emit(opts.optConvertComments ? ('# ' + line) : line, raw);
+                        i++; continue;
+                    }
+                    const commentPart = line.slice(0, endIdx).trim();
+                    if (commentPart) emit(opts.optConvertComments ? ('# ' + commentPart) : commentPart, raw);
+                    inBlockComment = false;
+                    line = line.slice(endIdx + 2).trim();
+                    if (line === '') { i++; continue; }
+                }
+
+                if (line === '') { emit('', raw); i++; continue; }
+
+                const blockInline = line.match(/^\/\*([\s\S]*?)\*\/\s*$/);
+                if (blockInline) {
+                    emit(opts.optConvertComments ? ('# ' + blockInline[1].trim()) : line, raw);
+                    i++; continue;
+                }
+                const blockStart = line.match(/^\/\*(.*)$/);
+                if (blockStart) {
+                    emit(opts.optConvertComments ? ('# ' + blockStart[1].trim()) : line, raw);
+                    inBlockComment = true;
+                    i++; continue;
+                }
+
+                let trailingComment = '';
+                const slashIdx = findLineCommentIndex(line);
+                if (slashIdx !== -1) { trailingComment = line.slice(slashIdx + 2).trim(); line = line.slice(0, slashIdx).trim(); }
+                if (line === '') {
+                    if (trailingComment && opts.optConvertComments) emit('# ' + trailingComment, raw);
+                    else if (trailingComment) emit('// ' + trailingComment, raw);
+                    i++; continue;
+                }
+                const commentSuffix = trailingComment ? (opts.optConvertComments ? ('  # ' + trailingComment) : ('  // ' + trailingComment)) : '';
+
+                if (/^#include\s*[<"]/.test(line)) {
+                    const m = line.match(/[<"]([^">]+)[">]/);
+                    if (m) includes.push(m[1]);
+                    if (!opts.optStripIncludes) emit('# ' + line, raw);
+                    else emit(null, raw);
+                    i++; continue;
+                }
+                const defMatch = line.match(/^#define\s+(\w+)(\([^)]*\))?\s+(.+)$/);
+                if (defMatch) {
+                    if (defMatch[2]) {
+                        warn(`Function-like macro '${defMatch[1]}' has no direct Python equivalent — convert it into a real function`, lineno);
+                        emit(`# TODO: convert macro -> ${line}`, raw);
+                    } else if (opts.optConvertDefines) {
+                        emit(`${defMatch[1]} = ${defMatch[3].trim()}`, raw);
+                    } else {
+                        emit('# ' + line, raw);
+                    }
+                    i++; continue;
+                }
+                if (/^#/.test(line)) {
+                    warn(`Preprocessor directive skipped: ${line}`, lineno);
+                    emit('# ' + line, raw);
+                    i++; continue;
+                }
+
+                if (opts.optStrictMode) {
+                    if (/\bgoto\b/.test(line)) warn(`goto has no Python equivalent — refactor with a function, loop, or flag variable`, lineno);
+                    if (/\bsizeof\s*\(/.test(line)) warn(`sizeof() has no Python equivalent — usually replaceable with len()`, lineno);
+                    if (/^\s*union\b/.test(line)) warn(`union types aren't supported — consider a class with a type tag`, lineno);
+                    if (/\(\s*\*\s*\w+\s*\)\s*\(/.test(line)) warn(`function pointer detected — pass the Python function/callable directly instead`, lineno);
+                    if (/\w+\[\s*\d*\s*\]\[\s*\d*\s*\]/.test(line)) warn(`multi-dimensional array — verify the nested-list conversion`, lineno);
+                    if (/:\s*\d+\s*;/.test(line) && topCtx() && topCtx().kind === 'struct') warn(`bit-field detected — Python has no native bit-fields`, lineno);
+                }
+
+                // do-while closer: "} while (cond);"
+                let mDoWhileClose = line.match(/^\}\s*while\s*\((.*)\)\s*;?$/);
+                if (mDoWhileClose && topCtx() && topCtx().kind === 'dowhile') {
+                    const ctx = stack.pop();
+                    const cond = convertOperatorsInExpr(mDoWhileClose[1], opts);
+                    emit(`if not (${cond}):`, raw);
+                    depth++;
+                    emit('break', undefined);
+                    depth = ctx.baseDepth;
+                    i++; continue;
+                }
+
+                // "} else if (...) {" / "} else {"
+                let mElseIf = line.match(/^\}\s*else\s+if\s*\((.*)\)\s*\{$/);
+                let mElse = line.match(/^\}\s*else\s*\{$/);
+                if ((mElseIf || mElse) && topCtx()) {
+                    const ctx = stack.pop();
+                    depth = ctx.baseDepth;
+                    if (mElseIf) emit(`elif ${convertOperatorsInExpr(mElseIf[1], opts)}:`, raw);
+                    else emit('else:', raw);
+                    stack.push({ kind: 'block', baseDepth: ctx.baseDepth });
+                    depth = ctx.baseDepth + 1;
+                    i++; continue;
+                }
+
+                // plain closing brace
+                if (line === '}' || line === '};') {
+                    const ctx = stack.pop();
+                    if (ctx) {
+                        if (ctx.kind === 'struct') {
+                            if (ctx.fieldCount === 0) emit('pass', raw);
+                            depth = ctx.baseDepth;
+                            if (ctx.pendingName) {
+                                const resolved = findClosingName(i) || ctx.pendingName;
+                                outLines[ctx.classLineIdx].text = outLines[ctx.classLineIdx].text.replace('AnonStruct', resolved);
+                            }
+                        } else if (ctx.kind === 'switch') {
+                            depth = ctx.baseDepth;
+                        } else {
+                            depth = ctx.baseDepth;
+                        }
+                    }
+                    if (ctx && ctx.kind === 'function' && opts.optBlankLineBetweenFuncs && stack.length === 0) emit('', undefined);
+                    i++; continue;
+                }
+
+                // switch
+                let mSwitch = line.match(/^switch\s*\((.*)\)\s*\{$/);
+                if (mSwitch && opts.optSwitchToIfElif) {
+                    stack.push({ kind: 'switch', baseDepth: depth, expr: convertOperatorsInExpr(mSwitch[1], opts), hasCase: false });
+                    emit(null, raw);
+                    i++; continue;
+                }
+                if (topCtx() && topCtx().kind === 'switch') {
+                    const ctx = topCtx();
+                    let mCase = line.match(/^case\s+(.+?)\s*:$/);
+                    let mDefault = line.match(/^default\s*:$/);
+                    if (mCase) {
+                        depth = ctx.baseDepth;
+                        const cmpVal = mCase[1].trim();
+                        emit(`${ctx.hasCase ? 'elif' : 'if'} ${ctx.expr} == ${cmpVal}:`, raw);
+                        ctx.hasCase = true;
+                        depth = ctx.baseDepth + 1;
+                        i++; continue;
+                    }
+                    if (mDefault) {
+                        depth = ctx.baseDepth;
+                        emit('else:', raw);
+                        depth = ctx.baseDepth + 1;
+                        i++; continue;
+                    }
+                    if (/^break\s*;$/.test(line)) { emit(null, raw); i++; continue; }
+                }
+
+                // do { -> while True:
+                if (/^do\s*\{$/.test(line)) {
+                    stack.push({ kind: 'dowhile', baseDepth: depth });
+                    emit('while True:', raw);
+                    depth++;
+                    i++; continue;
+                }
+
+                // struct Name { ...  OR  typedef struct [Name] {
+                let mStruct = line.match(/^(?:typedef\s+)?struct\s*(\w+)?\s*\{$/);
+                if (mStruct && opts.optStructToClass) {
+                    let name = mStruct[1];
+                    let pendingName = false;
+                    if (!name) {
+                        name = findClosingName(i) || 'AnonStruct';
+                        if (name === 'AnonStruct') pendingName = true;
+                    }
+                    emit(`class ${name}:`, raw);
+                    const classLineIdx = outLines.length - 1;
+                    stack.push({ kind: 'struct', baseDepth: depth, fieldCount: 0, classLineIdx, pendingName });
+                    depth++;
+                    emit('def __init__(self):', undefined);
+                    depth++;
+                    i++; continue;
+                }
+                if (topCtx() && topCtx().kind === 'struct') {
+                    const ctx = topCtx();
+                    let mArrField = line.match(/^[\w\s\*]+?\s(\w+)\s*\[\s*(\d*)\s*\]\s*;$/);
+                    let mField = line.match(/^[\w\s\*]+?\s\*?(\w+)\s*;$/);
+                    if (mArrField) {
+                        const size = mArrField[2] || '0';
+                        emit(`self.${mArrField[1]} = [0] * ${size}`, raw);
+                        ctx.fieldCount++;
+                        i++; continue;
+                    } else if (mField) {
+                        const typeStr = line.slice(0, line.lastIndexOf(mField[1]));
+                        emit(`self.${mField[1]} = ${defaultForType(typeStr, opts)}`, raw);
+                        ctx.fieldCount++;
+                        i++; continue;
+                    }
+                }
+
+                // function definition
+                let mFunc = line.match(/^(?:static\s+|inline\s+)*[\w\s\*]+?\s\*?(\w+)\s*\(([^)]*)\)\s*\{$/);
+                if (mFunc && opts.optFunctionDefs && !/^(if|for|while|switch)$/.test(mFunc[1])) {
+                    const fname = mFunc[1];
+                    const paramsRaw = mFunc[2].trim();
+                    let params = 'void' === paramsRaw || paramsRaw === '' ? '' : splitArgs(paramsRaw).map(p => {
+                        let pp = p.trim().replace(/\[\]/g, '');
+                        pp = pp.replace(/\*/g, '');
+                        const parts = pp.trim().split(/\s+/);
+                        const pname = parts[parts.length - 1] || pp;
+                        if (opts.optTypeHints && parts.length > 1) return `${pname}: ${pyTypeHint(parts.slice(0, -1).join(' '))}`;
+                        return pname;
+                    }).join(', ');
+                    funcCount++;
+                    if (fname === 'main' && opts.optWrapMain) {
+                        emit('def main():', raw);
+                        stack.push({ kind: 'function', baseDepth: depth, name: fname });
+                        depth++;
+                    } else {
+                        emit(`def ${fname}(${params}):`, raw);
+                        stack.push({ kind: 'function', baseDepth: depth, name: fname });
+                        depth++;
+                    }
+                    i++; continue;
+                }
+
+                // for loop
+                let mFor = line.match(/^for\s*\(\s*(?:int\s+)?(\w+)\s*=\s*(.+?)\s*;\s*\1\s*(<=|<)\s*(.+?)\s*;\s*\1\s*(?:\+\+|\+=\s*1)\s*\)\s*\{$/);
+                if (mFor && opts.optForRange) {
+                    const [, v, start, cmp, end] = mFor;
+                    const endExpr = convertOperatorsInExpr(end, opts);
+                    const startExpr = convertOperatorsInExpr(start, opts);
+                    const upper = cmp === '<=' ? `${endExpr} + 1` : endExpr;
+                    const rangeExpr = startExpr === '0' ? `range(${upper})` : `range(${startExpr}, ${upper})`;
+                    emit(`for ${v} in ${rangeExpr}:`, raw);
+                    stack.push({ kind: 'block', baseDepth: depth });
+                    depth++;
+                    i++; continue;
+                }
+                let mForGeneric = line.match(/^for\s*\((.*)\)\s*\{$/);
+                if (mForGeneric) {
+                    warn(`for-loop couldn't be mapped to range() automatically — review the translated while-loop`, lineno);
+                    const parts = mForGeneric[1].split(';');
+                    if (parts[0] && parts[0].trim()) emit(stripSemicolon(stripTypeTokens(convertOperatorsInExpr(parts[0], opts))), raw);
+                    const cond = parts[1] ? convertOperatorsInExpr(parts[1], opts) : 'True';
+                    emit(`while ${cond}:`, undefined);
+                    stack.push({ kind: 'block', baseDepth: depth, forIncrement: parts[2] ? convertOperatorsInExpr(parts[2], opts) : null });
+                    depth++;
+                    i++; continue;
+                }
+
+                // while
+                let mWhile = line.match(/^while\s*\((.*)\)\s*\{$/);
+                if (mWhile) {
+                    emit(`while ${convertOperatorsInExpr(mWhile[1], opts)}:`, raw);
+                    stack.push({ kind: 'block', baseDepth: depth });
+                    depth++;
+                    i++; continue;
+                }
+
+                // if
+                let mIf = line.match(/^if\s*\((.*)\)\s*\{$/);
+                if (mIf) {
+                    emit(`if ${convertOperatorsInExpr(mIf[1], opts)}:`, raw);
+                    stack.push({ kind: 'block', baseDepth: depth });
+                    depth++;
+                    i++; continue;
+                }
+
+                // bare closing of a generic for-loop with pending increment, appended just before the closing brace is handled at "}" above;
+                // insert the increment right before the closing brace line if present
+                if (line === '}' ) { /* handled earlier */ }
+
+                // return
+                let mReturn = line.match(/^return\s*(.*);$/);
+                if (mReturn) {
+                    const val = mReturn[1].trim();
+                    if (topCtx() && topCtx().name === 'main' && (val === '0' || val === '')) {
+                        emit(null, raw);
+                    } else {
+                        emit(val ? `return ${convertOperatorsInExpr(val, opts)}` : 'return', raw);
+                    }
+                    i++; continue;
+                }
+
+                // break / continue (outside switch, plain loop keywords)
+                if (/^break\s*;$/.test(line)) { emit('break', raw); i++; continue; }
+                if (/^continue\s*;$/.test(line)) { emit('continue', raw); i++; continue; }
+
+                // malloc / free
+                if (opts.optFlagMalloc && /\b(malloc|calloc|realloc)\s*\(/.test(line)) {
+                    warn(`Manual memory allocation (${line.match(/\b(malloc|calloc|realloc)\b/)[1]}) — Python allocates automatically`, lineno);
+                    let handled = false;
+                    if (opts.mallocHandling === 'listalloc') {
+                        const mAlloc = line.match(/^\*?(\w+)\s*=\s*\([\w\s\*]*\)?\s*malloc\s*\(\s*(.+?)\s*\*\s*sizeof\s*\([^)]*\)\s*\)\s*;$/);
+                        if (mAlloc) {
+                            emit(`${mAlloc[1]} = [0] * (${convertOperatorsInExpr(mAlloc[2], opts)})`, raw);
+                            handled = true;
+                        }
+                    }
+                    if (!handled) emit(`# TODO: manual allocation -> ${stripSemicolon(line)}`, raw);
+                    i++; continue;
+                }
+                if (opts.optFlagMalloc && /^\s*free\s*\(\s*\w+\s*\)\s*;$/.test(line)) {
+                    warn(`free() removed — Python's garbage collector reclaims memory automatically`, lineno);
+                    emit(null, raw);
+                    i++; continue;
+                }
+
+                // printf
+                let mPrintf = line.match(/^printf\s*\((.*)\)\s*;$/);
+                if (mPrintf && opts.optPrintfToPrint) {
+                    const converted = convertPrintf(mPrintf[1], opts);
+                    if (converted) { emit(converted + commentSuffix, raw); i++; continue; }
+                    warn(`printf() call with a format this converter couldn't fully parse — check the arguments manually`, lineno);
+                }
+
+                // scanf
+                let mScanf = line.match(/^scanf\s*\((.*)\)\s*;$/);
+                if (mScanf && opts.optScanfToInput) {
+                    const converted = convertScanf(mScanf[1], opts);
+                    if (converted) { emit(converted + commentSuffix, raw); i++; continue; }
+                    warn(`scanf() call with a format this converter couldn't fully parse — check the arguments manually`, lineno);
+                }
+
+                // array declaration with initializer: type name[] = {1,2,3};  or type name[N] = {..};
+                let mArrInit = line.match(/^[\w\s\*]+?\s\*?(\w+)\s*\[\s*\d*\s*\]\s*=\s*\{(.*)\}\s*;$/);
+                if (mArrInit && opts.optArraysToLists) {
+                    emit(`${mArrInit[1]} = [${mArrInit[2].trim()}]${commentSuffix}`, raw);
+                    i++; continue;
+                }
+                // array declaration without initializer: type name[N];
+                let mArrDecl = line.match(/^[\w\s\*]+?\s\*?(\w+)\s*\[\s*(\d+)\s*\]\s*;$/);
+                if (mArrDecl && opts.optArraysToLists) {
+                    emit(`${mArrDecl[1]} = [${opts.defaultValue || '0'}] * ${mArrDecl[2]}${commentSuffix}`, raw);
+                    i++; continue;
+                }
+
+                // multiple declaration: int a, b, c;
+                let mMultiDecl = line.match(/^(?:const\s+)?(?:unsigned\s+)?(int|float|double|char|long|short|bool)\s+([\w\s,\*]+);$/);
+                if (mMultiDecl && mMultiDecl[2].includes(',') && !mMultiDecl[2].includes('=')) {
+                    const vars = mMultiDecl[2].split(',').map(v => v.trim().replace(/^\*/, ''));
+                    const def = defaultForType(mMultiDecl[1], opts);
+                    emit(`${vars.join(', ')} = ${vars.map(() => def).join(', ')}${commentSuffix}`, raw);
+                    i++; continue;
+                }
+
+                // simple declaration with assignment: type name = expr;
+                let mDeclAssign = line.match(/^((?:const\s+|static\s+|unsigned\s+|struct\s+\w+\s+)*[A-Za-z_]\w*)\s+\*?(\w+)\s*=\s*(.+);$/);
+                if (mDeclAssign && C_TYPE_WORDS.some(w => mDeclAssign[1].split(/\s+/).includes(w))) {
+                    const typeStr = mDeclAssign[1];
+                    const varName = mDeclAssign[2];
+                    let rhs = mDeclAssign[3];
+                    let ptrWarn = false;
+                    if (/^&/.test(rhs.trim())) { ptrWarn = true; }
+                    rhs = convertOperatorsInExpr(rhs, opts);
+                    if (ptrWarn) warn(`'${varName}' takes the address of another variable — Python has no pointers; verify the reference semantics still hold`, lineno);
+                    if (/\*/.test(mDeclAssign[0].split('=')[0])) warn(`'${varName}' is declared as a pointer — stripped to a plain reference, verify manually`, lineno);
+                    if (opts.optTypeHints) emit(`${varName}: ${pyTypeHint(typeStr)} = ${rhs}${commentSuffix}`, raw);
+                    else emit(`${varName} = ${rhs}${commentSuffix}`, raw);
+                    i++; continue;
+                }
+
+                // declaration without assignment: type name;
+                let mDeclOnly = line.match(/^((?:const\s+|static\s+|unsigned\s+|struct\s+\w+\s+)*[A-Za-z_]\w*)\s+\*?(\w+)\s*;$/);
+                if (mDeclOnly && C_TYPE_WORDS.some(w => mDeclOnly[1].split(/\s+/).includes(w))) {
+                    const typeStr = mDeclOnly[1];
+                    const varName = mDeclOnly[2];
+                    if (/\*/.test(mDeclOnly[0].split(varName)[0])) warn(`'${varName}' is declared as a pointer — stripped to a plain reference, verify manually`, lineno);
+                    const def = defaultForType(typeStr, opts);
+                    if (opts.optTypeHints) emit(`${varName}: ${pyTypeHint(typeStr)} = ${def}${commentSuffix}`, raw);
+                    else emit(`${varName} = ${def}${commentSuffix}`, raw);
+                    i++; continue;
+                }
+
+                // plain assignment / expression statement ending in ;
+                if (/;$/.test(line)) {
+                    let body = stripSemicolon(line);
+                    body = convertOperatorsInExpr(body, opts);
+                    emit(body + commentSuffix, raw);
+                    i++; continue;
+                }
+
+                // fallback: unrecognized construct
+                warn(`Line couldn't be automatically converted — left as a comment for manual translation`, lineno);
+                emit(`# TODO: ${line}`, raw);
+                i++;
+            }
+
+            // close any dangling function context (missing closing brace) gracefully — no-op, best effort
+
+            let header = [];
+            if (opts.optHeaderComment) {
+                header.push('# Converted from C to Python (rule-based, machine-assisted).');
+                header.push('# Review anything noted in the Diagnostics report before running this in production.');
+            }
+            if (opts.optKeepIncludeComment && includes.length) {
+                header.push(`# Originally included: ${includes.join(', ')}`);
+            }
+            if (header.length) header.push('');
+
+            const bodyText = outLines.map(l => unit.repeat(l.depth) + l.text).join('\n');
+            let fullText = header.length ? header.join('\n') + '\n' + bodyText : bodyText;
+
+            if (opts.optWrapMain && /\bdef main\(\):/.test(fullText)) {
+                fullText += `\n\nif __name__ == "__main__":\n${unit}main()\n`;
+            }
+
+            return { pythonCode: fullText, mapping, diagnostics, funcCount, includes };
+        }
+
+        // ============================================
+        // RENDERING: OUTPUT TABS
+        // ============================================
+        function updateMapPane(mapping) {
+            if (!mapping.length) { mapPane.innerHTML = '<p class="map-empty">Convert valid C code to see the line-by-line mapping here.</p>'; return; }
+            mapPane.innerHTML = mapping.map((m, idx) => {
+                const blank = !m.c.trim() && !m.py.trim();
+                return `<div class="map-row${blank ? ' map-blank' : ''}"><div class="map-c"><span class="map-linenum">${idx + 1}</span>${escapeHtmlStr(m.c)}</div><div class="map-py">${escapeHtmlStr(m.py)}</div></div>`;
+            }).join('');
+        }
+        function updateDiagPane(diagnostics) {
+            const countEl = document.getElementById('diagTabCount');
+            countEl.textContent = diagnostics.length ? `(${diagnostics.length})` : '';
+            if (!diagnostics.length) {
+                diagPane.innerHTML = '<div class="diag-ok">No risky constructs detected. Rule-based conversion is still not a substitute for a careful read-through, but nothing here needed a manual-review flag.</div>';
+                return;
+            }
+            diagPane.innerHTML = diagnostics.map(d => `<div class="diag-item">${escapeHtmlStr(d)}</div>`).join('');
+        }
+        function escapeHtmlStr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ============================================
+        // ERROR HANDLING
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            cInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            cInputEl.classList.remove('has-error');
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function convert() {
+            const opts = getOptions();
+            clearError();
+            const text = cInputEl.value;
+
+            let result;
+            try {
+                result = convertCToPython(text, opts);
+            } catch (err) {
+                showError('Conversion error: ' + (err && err.message ? err.message : String(err)));
+                pyOutput.value = '';
+                updateMapPane([]);
+                updateDiagPane([]);
+                updateInputStats(text, 0, 0);
+                updateOutputStats('', 0);
+                return;
+            }
+
+            pyOutput.value = result.pythonCode;
+            updateMapPane(result.mapping);
+            updateDiagPane(result.diagnostics);
+            updateInputStats(text, result.funcCount, result.includes.length);
+            updateOutputStats(result.pythonCode, result.diagnostics.length);
+            saveDraft();
+        }
+
+        function updateInputStats(text, funcCount, includeCount) {
+            document.getElementById('cLineCount').textContent = (text === '' ? 0 : text.split('\n').length).toLocaleString();
+            document.getElementById('cCharCount').textContent = text.length.toLocaleString();
+            document.getElementById('cFuncCount').textContent = funcCount.toLocaleString();
+            document.getElementById('cIncludeCount').textContent = includeCount.toLocaleString();
+        }
+        function updateOutputStats(pyText, diagCount) {
+            const lines = pyText === '' ? 0 : pyText.split('\n').length;
+            const defCount = (pyText.match(/^\s*def\s+\w+\(/gm) || []).length;
+            document.getElementById('pyLineCount').textContent = lines.toLocaleString();
+            document.getElementById('pyFuncCount').textContent = defCount.toLocaleString();
+            document.getElementById('pyDiagCount').textContent = diagCount.toLocaleString();
+            const statusEl = document.getElementById('pyStatus');
+            const statWrap = statusEl.parentElement;
+            statWrap.classList.remove('error');
+            if (diagCount > 0) { statusEl.textContent = 'Needs review'; statWrap.classList.add('warn'); }
+            else { statusEl.textContent = 'Converted'; statWrap.classList.remove('warn'); }
+        }
+
+        // Live conversion
+        cInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = [];
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+            row.innerHTML = '';
+            if (batchFiles.length === 0) { row.appendChild(emptyNote); zipBtn.disabled = true; return; }
+            zipBtn.disabled = false;
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => { e.stopPropagation(); removeBatchFile(i); });
+                row.appendChild(chip);
+            });
+        }
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = cInputEl.value;
+            activeBatchIndex = index;
+            cInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) activeBatchIndex = -1;
+            else if (activeBatchIndex > index) activeBatchIndex--;
+            renderBatchChips();
+        }
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = cInputEl.value;
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try { out = convertCToPython(f.content, opts).pythonCode; }
+                catch (err) { out = `# Conversion error: ${err && err.message ? err.message : String(err)}\n`; }
+                const outName = f.name.replace(/\.(c|h|txt)$/i, '') + '.py';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'converted-c.zip';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            cInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            cInputEl.focus();
+        });
+
+        // Upload
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) readSingleFile(e.target.files[0]);
+            else addFilesToBatch(e.target.files);
+            fileInput.value = '';
+        });
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => { cInputEl.value = e.target.result; convert(); };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border-color)'; dropZone.style.opacity = '1'; });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = ''; dropZone.style.opacity = ''; });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) readSingleFile(files[0]);
+            else addFilesToBatch(files);
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(pyOutput.value); }
+            catch (err) { pyOutput.select(); document.execCommand('copy'); }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([pyOutput.value], { type: 'text/x-python' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'converted.py';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS
+        // ============================================
+        const DRAFT_KEY = 'cToPyConverterDraft';
+        const DRAFT_SETTINGS_KEY = 'cToPyConverterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, cInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') cInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
