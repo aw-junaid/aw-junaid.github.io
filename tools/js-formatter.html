@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | JavaScript Formatter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free JavaScript formatter with configurable indentation, quote style, semicolon insertion/removal, trailing commas, arrow-function parens, bracket spacing, blank-line control and more. See a live outline and formatting warnings. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/js-formatter.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/js-formatter.html" />
+<meta property="og:title" content="JavaScript Formatter — awjunaid" />
+<meta property="og:description" content="Format and clean up JavaScript with live preview, a code outline, safe semicolon insertion, quote normalization, trailing commas and batch export. 100% client-side — nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/js-formatter.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="JavaScript Formatter — awjunaid" />
+<meta name="twitter:description" content="Format JavaScript with live preview, an outline view, safe semicolon handling, quote/comma normalization, and batch export. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/js-formatter.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #d97706;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #jsInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+            tab-size: 2;
+        }
+        #jsInput:focus { outline: none; border-color: var(--border-color); }
+        #jsInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .output-tab .tab-badge {
+            display: inline-block; margin-left: 6px; background: var(--warn); color: #fff; border-radius: 20px;
+            padding: 1px 6px; font-size: 9.5px;
+        }
+        .output-tab.active .tab-badge { background: var(--bg-primary); color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #formattedOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+            tab-size: 2;
+        }
+
+        .outline-pane, .warnings-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .outline-pane .pane-empty, .warnings-pane .pane-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .outline-row { padding: 4px 0; white-space: nowrap; }
+        .outline-kind { opacity: 0.5; font-size: 11px; margin-right: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .outline-name { font-weight: 700; }
+
+        .warning-row {
+            padding: 10px 12px; border: 1px solid var(--border-light); border-left: 3px solid var(--warn);
+            border-radius: 8px; margin-bottom: 8px; font-size: 12px; line-height: 1.5; white-space: normal;
+        }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.warn strong { color: var(--warn); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #jsInput, #formattedOutput, .outline-pane, .warnings-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">JavaScript Formatter</h1>
+                <div class="tool-dek">Paste or upload JavaScript, control indentation, quotes, semicolons, trailing commas, arrow-function parens and blank lines, then preview live — with a code outline and a list of any spots the formatter played it safe on. All in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="standard">Standard (2-space, single quotes, semicolons)</option>
+                    <option value="airbnb">Airbnb-style (semicolons, trailing commas everywhere)</option>
+                    <option value="standardjs">No-semicolon style</option>
+                    <option value="tabs">Tabs, double quotes</option>
+                    <option value="minimal">Minimal (reindent only, preserve the rest)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Indentation</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="indentStyleSelect">Indent style</label>
+                            <select id="indentStyleSelect">
+                                <option value="space">Spaces</option>
+                                <option value="tab">Tabs</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="indentSizeInput">Indent size (spaces)</label>
+                            <input type="number" id="indentSizeInput" min="1" max="8" value="2">
+                        </div>
+                        <div class="field-group">
+                            <label for="maxBlankLinesInput">Max consecutive blank lines</label>
+                            <input type="number" id="maxBlankLinesInput" min="0" max="5" value="1">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrimBlockEdges" checked>
+                            <span><span class="setting-name">Trim blank lines at block edges</span><span class="setting-hint">Removes a stray blank line right after an opening { or right before a closing }</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Spacing</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBracketSpacing" checked>
+                            <span><span class="setting-name">Bracket spacing in objects</span><span class="setting-hint">{ foo: 1 } instead of {foo: 1} for inline object literals</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optArraySpacing">
+                            <span><span class="setting-name">Bracket spacing in arrays</span><span class="setting-hint">[ 1, 2, 3 ] instead of [1, 2, 3]</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSpaceBeforeFunctionParen">
+                            <span><span class="setting-name">Space before function ( )</span><span class="setting-hint">function foo (a) instead of function foo(a) — control-statement parens like if ( always get a space regardless</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Quotes</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="quoteStyleSelect">String quote style</label>
+                            <select id="quoteStyleSelect">
+                                <option value="single">Single ('like this')</option>
+                                <option value="double">Double ("like this")</option>
+                                <option value="preserve">Preserve as written</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="quotePropsSelect">Object property keys</label>
+                            <select id="quotePropsSelect">
+                                <option value="as-needed">Unquote when valid identifier</option>
+                                <option value="preserve">Preserve as written</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Semicolons &amp; Commas</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="semicolonsSelect">Semicolons</label>
+                            <select id="semicolonsSelect">
+                                <option value="insert">Insert where missing</option>
+                                <option value="remove">Remove where safe</option>
+                                <option value="preserve">Preserve as written</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="trailingCommaSelect">Trailing commas (multi-line lists)</label>
+                            <select id="trailingCommaSelect">
+                                <option value="none">None</option>
+                                <option value="es5">ES5 — arrays &amp; objects</option>
+                                <option value="all">All — incl. function args</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <p style="font-size:11px; opacity:0.6; line-height:1.5;">Semicolon changes only touch lines the formatter can classify as complete, statement-level lines — see the Warnings tab for anywhere it deliberately left something alone.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Arrow Functions &amp; Comments</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="arrowParensSelect">Arrow function parentheses</label>
+                            <select id="arrowParensSelect">
+                                <option value="always">Always: (x) =&gt; x</option>
+                                <option value="avoid">Avoid for single param: x =&gt; x</option>
+                                <option value="preserve">Preserve as written</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNormalizeLineComments" checked>
+                            <span><span class="setting-name">Normalize // comment spacing</span><span class="setting-hint">Ensures exactly one space after // (leaves //!, ///, //# directives alone)</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Line Endings &amp; Validation</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="eolSelect">Line endings</label>
+                            <select id="eolSelect">
+                                <option value="lf">LF (Unix)</option>
+                                <option value="crlf">CRLF (Windows)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFinalNewline" checked>
+                            <span><span class="setting-name">Ensure trailing final newline</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict mode</span><span class="setting-hint">Stop with an error on unbalanced brackets instead of guessing at indentation</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowOutline" checked>
+                            <span><span class="setting-name">Show outline</span><span class="setting-hint">Populates the Outline tab with top-level functions, classes and declarations</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>JavaScript Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".js,.mjs,.cjs,.jsx,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="jsInput" spellcheck="false" placeholder="function greet(name) {
+  return 'Hello, ' + name
+}
+
+Paste or type your JavaScript here, or upload .js file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag &amp; drop .js / .mjs / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="jsLineCount">0</strong> lines</span>
+                        <span><strong id="jsCharCount">0</strong> characters</span>
+                        <span><strong id="jsTokenCount">0</strong> tokens</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .js</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="formatted" type="button">Formatted JS</button>
+                        <button class="output-tab" data-tab="outline" type="button">Outline</button>
+                        <button class="output-tab" data-tab="warnings" type="button">Warnings<span class="tab-badge" id="warningsBadge" style="display:none;">0</span></button>
+                    </div>
+                    <div class="output-pane active" id="pane-formatted">
+                        <textarea id="formattedOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-outline">
+                        <div class="outline-pane" id="outlinePane"><p class="pane-empty">Enter valid JavaScript to see top-level functions, classes and declarations here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-warnings">
+                        <div class="warnings-pane" id="warningsPane"><p class="pane-empty">Any lines the formatter deliberately left untouched — for safety — will be listed here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outSizeCount">0</strong> bytes</span>
+                        <span><strong id="outLineCount">0</strong> lines</span>
+                        <span><strong id="outFunctionCount">0</strong> functions</span>
+                        <span><strong id="outClassCount">0</strong> classes</span>
+                        <span><strong id="outStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Does this fully re-parse and rewrite my code like Prettier?</h4>
+                        <p>No — it's a lighter-weight tokenizer-based formatter that runs entirely in your browser. It re-indents based on bracket nesting, fixes spacing, quotes, commas and semicolons, but it deliberately does not reflow or rewrap your existing line breaks. That keeps it fast, predictable, and safe to run on real code without a full JavaScript engine.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why didn't it add a semicolon on every line?</h4>
+                        <p>Automatic Semicolon Insertion in JavaScript has real edge cases — a line starting with <code>(</code>, <code>[</code>, a backtick, or an arithmetic operator can silently merge with the line above it. This tool only inserts or removes semicolons on lines it can confirm are safe, and lists anywhere it held back on the Warnings tab so you can check it by hand.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why is the closing brace of an arrow function assigned to a variable missing a semicolon?</h4>
+                        <p>This is a known, intentional limitation. Telling a block body (<code>if</code>, <code>for</code>, a function) apart from an object literal or an arrow-function body that's itself part of a larger statement needing a semicolon requires more context than a line-based formatter safely tracks. The formatter always errs on the side of not risking a syntax change — review these spots manually.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does trailing comma handling work?</h4>
+                        <p>The formatter adds or removes a trailing comma only on the last item of an array, object, or (with "All") function argument list that's already spread across multiple lines — never inside a <code>for (;;)</code> header, a grouping <code>(...)</code>, or a class body. "None" also strips a stray trailing comma from a single-line list.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "Arrow function parentheses" change?</h4>
+                        <p><code>x =&gt; x * 2</code> and <code>(x) =&gt; x * 2</code> are both valid for a single simple parameter. "Always" wraps a bare parameter in parentheses; "Avoid" strips them back off when the sole parameter is a simple identifier (no default, destructuring, or rest syntax involved).</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is the Outline tab for?</h4>
+                        <p>Before trusting a large formatted file, it helps to see its shape at a glance. The Outline lists top-level <code>function</code>, <code>class</code>, <code>const</code>/<code>let</code>/<code>var</code> declarations and named <code>export</code>s in the order they appear, so you can quickly sanity-check nothing structural changed.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Does it understand JSX or TypeScript?</h4>
+                        <p>The tokenizer targets plain JavaScript (ES2020+ syntax including optional chaining, nullish coalescing, private class fields and template literals). JSX tags and TypeScript-only syntax like type annotations aren't specifically recognized and may format unpredictably — stick to plain <code>.js</code> input for reliable results.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .js files and each becomes a tab above the editor. "Download All (.zip)" formats every loaded file with your current settings and bundles the results into one archive. Nothing is uploaded to a server; everything runs locally in your browser.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+    </script>
+
+    <script>
+        // ============================================================
+        // JAVASCRIPT FORMATTER — CORE ENGINE
+        // (tokenizer-based: re-indents by bracket nesting and normalizes
+        //  spacing/quotes/semicolons/commas without reflowing line breaks)
+        // ============================================================
+        'use strict';
+
+        const PUNCT_LIST = [
+          '>>>=', '...', '===', '!==', '**=', '<<=', '>>=', '&&=', '||=', '??=', '>>>',
+          '=>', '==', '!=', '<=', '>=', '&&', '||', '??', '?.', '++', '--',
+          '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<', '>>', '**',
+          '{', '}', '(', ')', '[', ']', ';', ',', '.', '<', '>', '+', '-', '*', '/', '%',
+          '&', '|', '^', '!', '~', '?', ':', '=',
+        ].sort((a, b) => b.length - a.length);
+
+        const CONTROL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'catch']);
+        const BLOCK_KEYWORDS = new Set(['else', 'try', 'finally', 'do']);
+        const REGEX_PRECEDERS_KEYWORDS = new Set([
+          'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void',
+          'throw', 'case', 'yield', 'do', 'else', 'await'
+        ]);
+        const KEYWORDS = new Set([
+          'break','case','catch','class','const','continue','debugger','default','delete',
+          'do','else','export','extends','finally','for','function','if','import','in',
+          'instanceof','let','new','return','super','switch','this','throw','try','typeof',
+          'var','void','while','with','yield','async','await','static','get','set','of',
+          'true','false','null','undefined'
+        ]);
+
+        function isIdentStart(c) { return /[A-Za-z_$]/.test(c); }
+        function isIdentPart(c) { return /[A-Za-z0-9_$]/.test(c); }
+
+        function skipStringLiteral(src, i) {
+          const quote = src[i];
+          i++;
+          while (i < src.length) {
+            if (src[i] === '\\') { i += 2; continue; }
+            if (src[i] === quote) { i++; break; }
+            if (src[i] === '\n') break;
+            i++;
+          }
+          return i;
+        }
+
+        function scanTemplateLiteral(src, start) {
+          let i = start + 1;
+          let mode = 'text';
+          const bstack = [];
+          while (i < src.length) {
+            if (mode === 'text') {
+              if (src[i] === '\\') { i += 2; continue; }
+              if (src[i] === '`') { i++; return i; }
+              if (src[i] === '$' && src[i + 1] === '{') { bstack.push('expr'); mode = 'expr'; i += 2; continue; }
+              i++;
+            } else {
+              const c = src[i];
+              if (c === "'" || c === '"') { i = skipStringLiteral(src, i); continue; }
+              if (c === '`') { i = scanTemplateLiteral(src, i); continue; }
+              if (c === '/' && src[i + 1] === '/') { while (i < src.length && src[i] !== '\n') i++; continue; }
+              if (c === '/' && src[i + 1] === '*') { i += 2; while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++; i += 2; continue; }
+              if (c === '{' || c === '(' || c === '[') { bstack.push(c); i++; continue; }
+              if (c === '}') { const top = bstack.pop(); if (top === 'expr') mode = 'text'; i++; continue; }
+              if (c === ')' || c === ']') { bstack.pop(); i++; continue; }
+              i++;
+            }
+          }
+          return i;
+        }
+
+        function canPrecedeRegex(prevSig) {
+          if (!prevSig) return true;
+          if (prevSig.type === 'name') {
+            if (REGEX_PRECEDERS_KEYWORDS.has(prevSig.value)) return true;
+            return false;
+          }
+          if (prevSig.type === 'number' || prevSig.type === 'string' || prevSig.type === 'template' || prevSig.type === 'regex') return false;
+          if (prevSig.type === 'punct') { if ([')', ']'].includes(prevSig.value)) return false; return true; }
+          return true;
+        }
+
+        function tokenize(src) {
+          const tokens = [];
+          let i = 0;
+          const n = src.length;
+          let prevSig = null;
+
+          while (i < n) {
+            const ch = src[i];
+
+            if (ch === '\n') { tokens.push({ type: 'nl' }); i++; continue; }
+            if (ch === '\r') { i++; continue; }
+            if (ch === ' ' || ch === '\t') { i++; continue; }
+
+            if (ch === '/' && src[i + 1] === '/') {
+              let j = i + 2;
+              while (j < n && src[j] !== '\n') j++;
+              tokens.push({ type: 'linecomment', value: src.slice(i, j) });
+              i = j;
+              continue;
+            }
+            if (ch === '/' && src[i + 1] === '*') {
+              let j = i + 2;
+              while (j < n && !(src[j] === '*' && src[j + 1] === '/')) j++;
+              j = Math.min(j + 2, n);
+              tokens.push({ type: 'blockcomment', value: src.slice(i, j) });
+              i = j;
+              continue;
+            }
+
+            if (ch === "'" || ch === '"') {
+              const j = skipStringLiteral(src, i);
+              const tok = { type: 'string', value: src.slice(i, j) };
+              tokens.push(tok); prevSig = tok; i = j; continue;
+            }
+
+            if (ch === '`') {
+              const j = scanTemplateLiteral(src, i);
+              const tok = { type: 'template', value: src.slice(i, j) };
+              tokens.push(tok); prevSig = tok; i = j; continue;
+            }
+
+            if (ch === '/' && canPrecedeRegex(prevSig)) {
+              let j = i + 1, inClass = false, ok = false;
+              while (j < n) {
+                if (src[j] === '\\') { j += 2; continue; }
+                if (src[j] === '[') { inClass = true; j++; continue; }
+                if (src[j] === ']') { inClass = false; j++; continue; }
+                if (src[j] === '\n') break;
+                if (src[j] === '/' && !inClass) { ok = true; j++; break; }
+                j++;
+              }
+              if (ok) {
+                while (j < n && /[a-z]/i.test(src[j])) j++;
+                const tok = { type: 'regex', value: src.slice(i, j) };
+                tokens.push(tok); prevSig = tok; i = j; continue;
+              }
+            }
+
+            if (/[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(src[i + 1] || ''))) {
+              let j = i;
+              if (src[j] === '0' && (src[j + 1] === 'x' || src[j + 1] === 'X')) { j += 2; while (j < n && /[0-9a-fA-F_]/.test(src[j])) j++; }
+              else if (src[j] === '0' && (src[j + 1] === 'b' || src[j + 1] === 'B')) { j += 2; while (j < n && /[01_]/.test(src[j])) j++; }
+              else if (src[j] === '0' && (src[j + 1] === 'o' || src[j + 1] === 'O')) { j += 2; while (j < n && /[0-7_]/.test(src[j])) j++; }
+              else {
+                while (j < n && /[0-9_]/.test(src[j])) j++;
+                if (src[j] === '.') { j++; while (j < n && /[0-9_]/.test(src[j])) j++; }
+                if (src[j] === 'e' || src[j] === 'E') { j++; if (src[j] === '+' || src[j] === '-') j++; while (j < n && /[0-9_]/.test(src[j])) j++; }
+              }
+              if (src[j] === 'n') j++;
+              const tok = { type: 'number', value: src.slice(i, j) };
+              tokens.push(tok); prevSig = tok; i = j; continue;
+            }
+
+            if (ch === '#' && isIdentStart(src[i + 1] || '')) {
+              let j = i + 1;
+              while (j < n && isIdentPart(src[j])) j++;
+              const tok = { type: 'name', value: src.slice(i, j), keyword: false, isPrivate: true };
+              tokens.push(tok); prevSig = tok; i = j; continue;
+            }
+
+            if (isIdentStart(ch)) {
+              let j = i + 1;
+              while (j < n && isIdentPart(src[j])) j++;
+              const value = src.slice(i, j);
+              const tok = { type: 'name', value, keyword: KEYWORDS.has(value) };
+              tokens.push(tok); prevSig = tok; i = j; continue;
+            }
+
+            let matched = null;
+            for (const p of PUNCT_LIST) { if (src.startsWith(p, i)) { matched = p; break; } }
+            if (matched) {
+              const tok = { type: 'punct', value: matched };
+              tokens.push(tok); prevSig = tok; i += matched.length; continue;
+            }
+
+            const tok = { type: 'punct', value: ch };
+            tokens.push(tok); prevSig = tok; i++;
+          }
+
+          return tokens;
+        }
+
+        function isValueEnd(tok) {
+          if (!tok) return false;
+          if (tok.type === 'string' || tok.type === 'template' || tok.type === 'number' || tok.type === 'regex') return true;
+          if (tok.type === 'name' && !tok.keyword) return true;
+          if (tok.type === 'name' && ['this', 'super', 'true', 'false', 'null', 'undefined'].includes(tok.value)) return true;
+          if (tok.type === 'punct' && (tok.value === ')' || tok.value === ']')) return true;
+          return false;
+        }
+
+        function significantTokens(tokens) {
+          return tokens.filter(t => t.type !== 'nl' && t.type !== 'linecomment' && t.type !== 'blockcomment');
+        }
+
+        function applyArrowParens(tokens, mode) {
+          if (mode === 'preserve') return tokens;
+          const sig = [], sigIdxToTokIdx = [];
+          for (let i = 0; i < tokens.length; i++) {
+            const t = tokens[i];
+            if (t.type !== 'nl' && t.type !== 'linecomment' && t.type !== 'blockcomment') { sigIdxToTokIdx.push(i); sig.push(t); }
+          }
+          const removeSet = new Set(), insertOpenBefore = new Set(), insertCloseAfter = new Set();
+          for (let k = 0; k < sig.length; k++) {
+            const tok = sig[k];
+            if (mode === 'always') {
+              if (tok.type === 'name' && !tok.keyword && sig[k + 1] && sig[k + 1].type === 'punct' && sig[k + 1].value === '=>') {
+                const tokIdx = sigIdxToTokIdx[k];
+                insertOpenBefore.add(tokIdx); insertCloseAfter.add(tokIdx);
+              }
+            } else if (mode === 'avoid') {
+              if (tok.type === 'punct' && tok.value === '(' &&
+                  sig[k + 1] && sig[k + 1].type === 'name' && !sig[k + 1].keyword &&
+                  sig[k + 2] && sig[k + 2].type === 'punct' && sig[k + 2].value === ')' &&
+                  sig[k + 3] && sig[k + 3].type === 'punct' && sig[k + 3].value === '=>') {
+                removeSet.add(sigIdxToTokIdx[k]); removeSet.add(sigIdxToTokIdx[k + 2]);
+              }
+            }
+          }
+          if (removeSet.size === 0 && insertOpenBefore.size === 0) return tokens;
+          const out = [];
+          for (let i = 0; i < tokens.length; i++) {
+            if (removeSet.has(i)) continue;
+            if (insertOpenBefore.has(i)) out.push({ type: 'punct', value: '(' });
+            out.push(tokens[i]);
+            if (insertCloseAfter.has(i)) out.push({ type: 'punct', value: ')' });
+          }
+          return out;
+        }
+
+        function classifyBrackets(sig) {
+          const kindMap = new Map();
+          const stack = [];
+          let atStmtStartTok = null;
+          const ternaryStack = [];
+
+          for (let idx = 0; idx < sig.length; idx++) {
+            const tok = sig[idx];
+            const prev = idx > 0 ? sig[idx - 1] : null;
+
+            if (tok.type === 'punct' && tok.value === '?') {
+              ternaryStack.push(stack.length);
+            } else if (tok.type === 'punct' && tok.value === ':') {
+              if (ternaryStack.length && ternaryStack[ternaryStack.length - 1] === stack.length) {
+                ternaryStack.pop(); tok.isTernaryColon = true;
+              }
+            }
+
+            if (tok.type === 'punct' && (tok.value === '{' || tok.value === '(' || tok.value === '[')) {
+              let kind;
+              if (tok.value === '{') {
+                if (!prev) kind = 'block';
+                else if (prev.type === 'punct' && prev.value === ')') kind = 'block';
+                else if (prev.type === 'punct' && prev.value === '=>') kind = 'block';
+                else if (prev.type === 'name' && BLOCK_KEYWORDS.has(prev.value)) kind = 'block';
+                else if (prev.type === 'punct' && (prev.value === '{' && kindMap.get(prev) === 'block')) kind = 'block';
+                else if (prev.type === 'punct' && prev.value === '}') kind = 'block';
+                else if (prev.type === 'punct' && prev.value === ';') kind = 'block';
+                else if (atStmtStartTok && atStmtStartTok.value === 'class') kind = 'block';
+                else if (prev.type === 'name' && !prev.keyword) kind = 'block';
+                else kind = 'object';
+              } else if (tok.value === '(') {
+                if (prev && isValueEnd(prev) && !(prev.type === 'name' && CONTROL_KEYWORDS.has(prev.value))) kind = 'args';
+                else kind = 'group';
+              } else {
+                if (prev && isValueEnd(prev)) kind = 'subscript';
+                else kind = 'array';
+              }
+              kindMap.set(tok, kind); tok._kind = kind; stack.push({ tok, kind });
+            } else if (tok.type === 'punct' && (tok.value === '}' || tok.value === ')' || tok.value === ']')) {
+              const opener = stack.pop();
+              if (opener) { kindMap.set(tok, opener.kind); tok._kind = opener.kind; }
+            }
+
+            if (!prev || (prev.type === 'punct' && [';'].includes(prev.value)) ||
+                (prev.type === 'punct' && prev.value === '{' && kindMap.get(prev) === 'block') ||
+                (prev.type === 'punct' && prev.value === '}')) {
+              atStmtStartTok = tok;
+            }
+          }
+          return kindMap;
+        }
+
+        function checkBalance(sig) {
+          const stack = [];
+          const PAIRS = { '}': '{', ')': '(', ']': '[' };
+          for (const tok of sig) {
+            if (tok.type !== 'punct') continue;
+            if (tok.value === '{' || tok.value === '(' || tok.value === '[') stack.push(tok.value);
+            else if (tok.value === '}' || tok.value === ')' || tok.value === ']') {
+              const top = stack.pop();
+              if (top !== PAIRS[tok.value]) return 'Mismatched bracket: found "' + tok.value + '" but expected to close "' + (top || '(nothing open)') + '".';
+            }
+          }
+          if (stack.length) return 'Unclosed bracket(s): ' + stack.join(' ') + ' never closed.';
+          return null;
+        }
+
+        const DEFAULT_OPTS = {
+          indentStyle: 'space', indentSize: 2,
+          quoteStyle: 'single', quoteProps: 'as-needed',
+          semicolons: 'insert', trailingComma: 'es5',
+          bracketSpacing: true, arraySpacing: false,
+          arrowParens: 'always', spaceBeforeFunctionParen: false,
+          maxBlankLines: 1, trimBlockEdges: true,
+          normalizeLineComments: true,
+          eol: '\n', finalNewline: true, strictMode: true, showOutline: true,
+        };
+
+        function convertQuote(raw, target) {
+          const q = raw[0];
+          if (target === 'preserve' || q === target) return raw;
+          const inner = raw.slice(1, -1);
+          let out = '';
+          for (let i = 0; i < inner.length; i++) {
+            const c = inner[i];
+            if (c === '\\') {
+              const next = inner[i + 1];
+              if (next === q && q !== target) { out += q; i++; continue; }
+              out += c + (next !== undefined ? next : ''); i++; continue;
+            }
+            if (c === target) { out += '\\' + c; continue; }
+            out += c;
+          }
+          return target + out + target;
+        }
+
+        function normalizeLineComment(raw) {
+          const m = raw.match(/^\/\/(.*)$/s);
+          if (!m) return raw;
+          let rest = m[1];
+          if (rest === '') return '//';
+          if (/^[\s!/#]/.test(rest)) return raw;
+          return '// ' + rest;
+        }
+
+        function prevOpenerFor() { return undefined; }
+
+        const CONTINUATION_PUNCT = new Set([
+          '.', '?.', '&&', '||', '??', '+', '-', '*', '/', '%', '**',
+          '===', '!==', '==', '!=', '<=', '>=', '<', '>', '?', ':', '=', '=>',
+        ]);
+        function isContinuationStart(tok) { return !!(tok && tok.type === 'punct' && CONTINUATION_PUNCT.has(tok.value)); }
+
+        function renderToken(tok) {
+          if (tok.type === 'string') return tok.out !== undefined ? tok.out : tok.value;
+          if (tok.type === 'linecomment') return tok.out !== undefined ? tok.out : tok.value;
+          if (tok.type === 'blockcomment') return tok.value;
+          return tok.value;
+        }
+
+        function needsSpace(prev, cur, opts) {
+          if (prev.type === 'blockcomment' || cur.type === 'blockcomment') return true;
+          if (prev.type === 'linecomment') return true;
+
+          if (cur.type === 'punct' && cur.value === ':' && cur.isTernaryColon) return true;
+          const noSpaceBefore = new Set([',', ';', ')', ']', '.', '?.', ':']);
+          if (cur.type === 'punct' && noSpaceBefore.has(cur.value)) return false;
+
+          const noSpaceAfter = new Set(['(', '[', '.', '?.', '!']);
+          if (prev.type === 'punct' && noSpaceAfter.has(prev.value)) return false;
+
+          if (prev.type === 'punct' && (prev.value === '++' || prev.value === '--')) {
+            if (cur.type === 'name' || cur.type === 'number') return false;
+          }
+
+          if (cur.type === 'punct' && cur.value === '(') {
+            if (prev.type === 'name' && !prev.keyword) return false;
+            if (prev.type === 'name' && prev.keyword) {
+              if (['if', 'for', 'while', 'switch', 'catch'].includes(prev.value)) return true;
+              if (prev.value === 'function') return opts.spaceBeforeFunctionParen;
+              return true;
+            }
+            if (prev.type === 'punct' && (prev.value === ')' || prev.value === ']')) return false;
+            return true;
+          }
+          if (prev.type === 'punct' && prev.value === '(') return false;
+          if (cur.type === 'punct' && cur.value === ')') return false;
+
+          if (cur.type === 'punct' && cur.value === '{') return true;
+          if (prev.type === 'punct' && prev.value === '{') {
+            if (cur.type === 'punct' && cur.value === '}') return false;
+            if (kindMapRef.get(prev) === 'object') return opts.bracketSpacing;
+            if (kindMapRef.get(prev) === 'block') return true;
+            return opts.bracketSpacing;
+          }
+          if (cur.type === 'punct' && cur.value === '}') {
+            if (cur._kind === 'object') return opts.bracketSpacing;
+            return true;
+          }
+
+          if (cur.type === 'punct' && cur.value === '[') {
+            if (prev.type === 'name' && !prev.keyword) return false;
+            if (prev.type === 'punct' && (prev.value === ')' || prev.value === ']')) return false;
+            return true;
+          }
+          if (prev.type === 'punct' && prev.value === '[') return opts.arraySpacing;
+          if (cur.type === 'punct' && cur.value === ']') return opts.arraySpacing;
+
+          if (cur.type === 'punct' && cur.value === ',') return false;
+          if (prev.type === 'punct' && prev.value === ',') return true;
+          if (cur.type === 'punct' && cur.value === ';') return false;
+          if (prev.type === 'punct' && prev.value === ';') return true;
+          if (cur.type === 'punct' && cur.value === ':') return false;
+          if (prev.type === 'punct' && prev.value === ':') return true;
+          if (cur.type === 'punct' && cur.value === '.') return false;
+          if (prev.type === 'punct' && prev.value === '.') return false;
+          if (cur.type === 'punct' && cur.value === '?.') return false;
+          if (prev.type === 'punct' && prev.value === '?.') return false;
+          if (cur.value === '++' || cur.value === '--') return false;
+
+          return true;
+        }
+
+        // needsSpace references the current call's kindMap via this module-level
+        // handle, set at the top of each format() call (single-threaded, so safe).
+        let kindMapRef = new Map();
+
+        function postProcessLines(outLines, lineTokenGroups, opts, warnings, lineContextAfter, lineCommentOffset) {
+          const ASI_HAZARD_STARTS = new Set(['(', '[', '`', '+', '-', '/', '*', ',', '.', '?.']);
+
+          const meta = lineTokenGroups.map(group => {
+            const toks = group.filter(t => t.type !== 'nl');
+            const codeToks = toks.filter(t => t.type !== 'linecomment' && t.type !== 'blockcomment');
+            return { toks, first: toks[0] || null, last: toks[toks.length - 1] || null, lastCode: codeToks[codeToks.length - 1] || null };
+          });
+
+          for (let i = 0; i < outLines.length; i++) {
+            if (outLines[i] === '') continue;
+            const m = meta[i];
+            if (!m || !m.last) continue;
+
+            const first = m.first;
+            if (first && first.type === 'punct' && (first.value === '}' || first.value === ']' || first.value === ')')) {
+              const kind = first._kind;
+              let pj = i - 1;
+              while (pj >= 0 && outLines[pj] === '') pj--;
+              if (pj >= 0 && meta[pj] && meta[pj].last) {
+                const prevLast = meta[pj].last;
+                const hasComma = prevLast.type === 'punct' && prevLast.value === ',';
+                let wantComma = false;
+                if (opts.trailingComma === 'es5' && (kind === 'array' || kind === 'object')) wantComma = true;
+                if (opts.trailingComma === 'all' && (kind === 'array' || kind === 'object' || kind === 'args')) wantComma = true;
+                if (kind === 'group' || kind === 'subscript' || kind === 'block' || kind === undefined) wantComma = false;
+                if (wantComma && !hasComma && prevLast.type !== 'punct') {
+                  outLines[pj] += ',';
+                } else if (wantComma && !hasComma && prevLast.type === 'punct' && !['{', '(', '['].includes(prevLast.value)) {
+                  outLines[pj] += ',';
+                } else if (!wantComma && hasComma && opts.trailingComma === 'none') {
+                  outLines[pj] = outLines[pj].replace(/,\s*$/, '');
+                }
+              }
+            }
+
+            if (opts.semicolons === 'preserve') continue;
+            const last = m.lastCode;
+            if (!last) continue;
+            const ctxAfter = lineContextAfter[i];
+            if (ctxAfter !== 'block' && ctxAfter !== 'top') continue;
+            const endsSemicolon = last.type === 'punct' && last.value === ';';
+            let safeEndTypes = last.type === 'name' || last.type === 'number' || last.type === 'string' || last.type === 'template' || last.type === 'regex' ||
+              (last.type === 'punct' && [')', ']', '++', '--'].includes(last.value));
+            if (last.type === 'punct' && last.value === '}' && last._kind === 'object') safeEndTypes = true;
+            if (!safeEndTypes && !endsSemicolon) continue;
+            if (last.type === 'name' && last.keyword && ['else', 'try', 'finally', 'do', 'default'].includes(last.value)) continue;
+            if (last.type === 'punct' && last.value === ')' && last._kind === 'group') continue;
+
+            let nj = i + 1;
+            while (nj < outLines.length && outLines[nj] === '') nj++;
+            const nextFirst = meta[nj] && meta[nj].first ? meta[nj].first : null;
+            const hazard = nextFirst && nextFirst.type === 'punct' && ASI_HAZARD_STARTS.has(nextFirst.value);
+            const commentOffset = lineCommentOffset[i];
+
+            if (opts.semicolons === 'insert') {
+              if (!endsSemicolon && safeEndTypes && !hazard) {
+                if (commentOffset !== null) {
+                  const before = outLines[i].slice(0, commentOffset).replace(/\s+$/, '');
+                  const after = outLines[i].slice(commentOffset).replace(/^\s+/, '');
+                  outLines[i] = before + '; ' + after;
+                } else {
+                  outLines[i] += ';';
+                }
+              } else if (!endsSemicolon && safeEndTypes && hazard) {
+                warnings.push('Line ' + (i + 1) + ': left semicolon untouched (next line starts with a token that could change meaning under ASI).');
+              }
+            } else if (opts.semicolons === 'remove') {
+              if (endsSemicolon) {
+                if (!hazard) {
+                  if (commentOffset !== null) {
+                    const before = outLines[i].slice(0, commentOffset).replace(/;\s*$/, '');
+                    const after = outLines[i].slice(commentOffset).replace(/^\s+/, '');
+                    outLines[i] = before + ' ' + after;
+                  } else {
+                    outLines[i] = outLines[i].replace(/;\s*$/, '');
+                  }
+                } else {
+                  warnings.push('Line ' + (i + 1) + ': kept semicolon (removing it could merge with the next line unexpectedly).');
+                }
+              }
+            }
+          }
+        }
+
+        function format(src, userOpts) {
+          const opts = Object.assign({}, DEFAULT_OPTS, userOpts);
+          opts.eol = opts.eol === 'crlf' ? '\r\n' : '\n';
+          const warnings = [];
+          const outline = [];
+
+          let tokens = tokenize(src);
+          tokens = applyArrowParens(tokens, opts.arrowParens);
+
+          let sig = significantTokens(tokens);
+          const balanceError = checkBalance(sig);
+          if (balanceError && opts.strictMode) throw new Error(balanceError);
+          if (balanceError) warnings.push(balanceError + ' (indentation past this point may be unreliable.)');
+          let kindMap = classifyBrackets(sig);
+          kindMapRef = kindMap;
+
+          if (opts.trailingComma === 'none') {
+            const dropSet = new Set();
+            for (let k = 0; k < sig.length; k++) {
+              const tok = sig[k];
+              if (tok.type !== 'punct' || tok.value !== ',') continue;
+              const next = sig[k + 1];
+              if (!next || next.type !== 'punct') continue;
+              const nk = next._kind;
+              if ((next.value === ']' && nk === 'array') || (next.value === '}' && nk === 'object') || (next.value === ')' && nk === 'args')) dropSet.add(tok);
+            }
+            if (dropSet.size) {
+              tokens = tokens.filter(t => !dropSet.has(t));
+              sig = significantTokens(tokens);
+              kindMap = classifyBrackets(sig);
+              kindMapRef = kindMap;
+            }
+          }
+
+          const QUOTE_CHARS = { single: "'", double: '"', preserve: 'preserve' };
+          const targetQuoteChar = QUOTE_CHARS[opts.quoteStyle] || 'preserve';
+          for (const tok of sig) if (tok.type === 'string') tok.out = convertQuote(tok.value, targetQuoteChar);
+
+          if (opts.quoteProps === 'as-needed') {
+            for (let idx = 0; idx < sig.length; idx++) {
+              const tok = sig[idx];
+              if (tok.type !== 'string') continue;
+              const next = sig[idx + 1], prev = sig[idx - 1];
+              if (!next || next.type !== 'punct' || next.value !== ':') continue;
+              if (!prev || prev.type !== 'punct' || !(prev.value === '{' || prev.value === ',')) continue;
+              if (prev.type === 'punct' && prev.value === '{' && kindMap.get(prev) !== 'object') continue;
+              const content = tok.value.slice(1, -1);
+              if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(content) && !/^\d/.test(content)) tok.out = content;
+            }
+          }
+          if (opts.normalizeLineComments) {
+            for (const tok of sig) if (tok.type === 'linecomment') tok.out = normalizeLineComment(tok.value);
+          }
+
+          const rawLines = [];
+          let cur = [];
+          for (const tok of tokens) { if (tok.type === 'nl') { rawLines.push(cur); cur = []; } else cur.push(tok); }
+          rawLines.push(cur);
+
+          const lines = [];
+          let blankRun = 0;
+          for (const line of rawLines) {
+            if (line.length === 0) { blankRun++; if (blankRun <= opts.maxBlankLines) lines.push(line); }
+            else { blankRun = 0; lines.push(line); }
+          }
+          while (lines.length && lines[0].length === 0) lines.shift();
+          while (lines.length && lines[lines.length - 1].length === 0) lines.pop();
+
+          if (opts.trimBlockEdges) {
+            for (let i = lines.length - 1; i >= 0; i--) {
+              if (lines[i].length !== 0) continue;
+              const prevContentLine = lines[i - 1], nextContentLine = lines[i + 1];
+              const prevLast = prevContentLine && prevContentLine.length ? prevContentLine[prevContentLine.length - 1] : null;
+              const nextFirst = nextContentLine && nextContentLine.length ? nextContentLine[0] : null;
+              const afterOpenBlock = prevLast && prevLast.type === 'punct' && prevLast.value === '{';
+              const beforeCloseBlock = nextFirst && nextFirst.type === 'punct' && nextFirst.value === '}';
+              if (afterOpenBlock || beforeCloseBlock) lines.splice(i, 1);
+            }
+          }
+
+          const ctxStack = [];
+          const outLines = [];
+          const lineContextAfter = [];
+          const lineCommentOffset = [];
+          const indentUnit = opts.indentStyle === 'tab' ? '\t' : ' '.repeat(opts.indentSize);
+
+          function isOpener(t) { return t.type === 'punct' && (t.value === '{' || t.value === '(' || t.value === '['); }
+          function isCloser(t) { return t.type === 'punct' && (t.value === '}' || t.value === ')' || t.value === ']'); }
+          function topCtx() { return ctxStack.length ? ctxStack[ctxStack.length - 1] : 'top'; }
+
+          for (let li = 0; li < lines.length; li++) {
+            const lineToks = lines[li].filter(t => t.type !== 'nl');
+            if (lineToks.length === 0) { outLines.push(''); lineContextAfter.push(topCtx()); lineCommentOffset.push(null); continue; }
+
+            const firstReal = lineToks[0];
+            let lineDepth = ctxStack.length;
+            if (isCloser(firstReal)) lineDepth = Math.max(0, ctxStack.length - 1);
+            else if (isContinuationStart(firstReal)) lineDepth = ctxStack.length + 1;
+
+            for (const t of lineToks) {
+              if (isOpener(t)) ctxStack.push(t._kind || kindMap.get(t) || 'group');
+              else if (isCloser(t)) ctxStack.pop();
+            }
+            lineContextAfter.push(topCtx());
+
+            let text = '';
+            let preCommentOffset = null;
+            for (let ti = 0; ti < lineToks.length; ti++) {
+              const tok = lineToks[ti];
+              const prev = ti > 0 ? lineToks[ti - 1] : null;
+              const rendered = renderToken(tok);
+
+              if ((tok.type === 'linecomment' || tok.type === 'blockcomment') && preCommentOffset === null) {
+                const restAreComments = lineToks.slice(ti).every(t => t.type === 'linecomment' || t.type === 'blockcomment');
+                if (restAreComments) preCommentOffset = text.length;
+              }
+              if (prev) { if (needsSpace(prev, tok, opts)) text += ' '; }
+              text += rendered;
+            }
+
+            const indentStr = indentUnit.repeat(lineDepth);
+            outLines.push(indentStr + text);
+            lineCommentOffset.push(preCommentOffset === null ? null : indentStr.length + preCommentOffset);
+
+            if (opts.showOutline && lineDepth <= 1) {
+              const w0 = lineToks[0];
+              if (w0.type === 'name' && ['function', 'class'].includes(w0.value)) {
+                const nameTok = lineToks[1] && lineToks[1].type === 'name' ? lineToks[1].value : '(anonymous)';
+                outline.push({ kind: w0.value, name: nameTok });
+              } else if (w0.type === 'name' && w0.value === 'export' && lineToks[1] && ['function', 'class', 'const', 'let', 'var', 'default'].includes(lineToks[1].value)) {
+                const kindTok = lineToks[1].value;
+                let nm = '(anonymous)';
+                if (['function', 'class'].includes(kindTok) && lineToks[2] && lineToks[2].type === 'name') nm = lineToks[2].value;
+                if (['const', 'let', 'var'].includes(kindTok) && lineToks[2] && lineToks[2].type === 'name') nm = lineToks[2].value;
+                outline.push({ kind: 'export ' + kindTok, name: nm });
+              } else if (w0.type === 'name' && ['const', 'let', 'var'].includes(w0.value) && lineToks[1] && lineToks[1].type === 'name') {
+                outline.push({ kind: w0.value, name: lineToks[1].value });
+              }
+            }
+          }
+
+          postProcessLines(outLines, lines, opts, warnings, lineContextAfter, lineCommentOffset);
+
+          let text = outLines.join(opts.eol);
+          if (opts.finalNewline) text += opts.eol;
+
+          return { text, warnings, outline };
+        }
+
+        // ============================================================
+        // UI WIRING
+        // ============================================================
+        const jsInputEl = document.getElementById('jsInput');
+        const formattedOutput = document.getElementById('formattedOutput');
+        const outlinePane = document.getElementById('outlinePane');
+        const warningsPane = document.getElementById('warningsPane');
+        const warningsBadge = document.getElementById('warningsBadge');
+        const errorBanner = document.getElementById('errorBanner');
+
+        const sampleJs = [
+          "function greet(name) {",
+          "    if (!name) {",
+          "        return 'Hello, stranger!'",
+          "    }",
+          "    return 'Hello, ' + name + '!'",
+          "}",
+          "",
+          "class Cart {",
+          "    constructor() {",
+          "        this.items = []",
+          "    }",
+          "    add(item) {",
+          "        this.items.push(item)",
+          "        return this",
+          "    }",
+          "    total() {",
+          "        return this.items.reduce((sum, i) => sum + i.price, 0)",
+          "    }",
+          "}",
+          "",
+          "const config = {",
+          "    retries : 3,",
+          "    timeout: 5000,",
+          "    headers: {'Content-Type': 'application/json'}",
+          "}",
+          "",
+          "export function formatPrice(cents) {",
+          "    return '$' + (cents / 100).toFixed(2)",
+          "}",
+        ].join('\n');
+        jsInputEl.value = sampleJs;
+
+        const SETTING_IDS = {
+          checkboxes: ['optTrimBlockEdges','optBracketSpacing','optArraySpacing','optSpaceBeforeFunctionParen','optNormalizeLineComments','optFinalNewline','optStrictMode','optShowOutline'],
+          select: ['indentStyleSelect','quoteStyleSelect','quotePropsSelect','semicolonsSelect','trailingCommaSelect','arrowParensSelect','eolSelect'],
+          number: ['indentSizeInput','maxBlankLinesInput'],
+        };
+
+        function getOptions() {
+          const raw = {};
+          SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+          SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+          SETTING_IDS.number.forEach(id => raw[id] = document.getElementById(id).value);
+          return {
+            indentStyle: raw.indentStyleSelect,
+            indentSize: parseInt(raw.indentSizeInput, 10) || 2,
+            maxBlankLines: parseInt(raw.maxBlankLinesInput, 10) || 0,
+            trimBlockEdges: raw.optTrimBlockEdges,
+            bracketSpacing: raw.optBracketSpacing,
+            arraySpacing: raw.optArraySpacing,
+            spaceBeforeFunctionParen: raw.optSpaceBeforeFunctionParen,
+            quoteStyle: raw.quoteStyleSelect,
+            quoteProps: raw.quotePropsSelect,
+            semicolons: raw.semicolonsSelect,
+            trailingComma: raw.trailingCommaSelect,
+            arrowParens: raw.arrowParensSelect,
+            normalizeLineComments: raw.optNormalizeLineComments,
+            eol: raw.eolSelect,
+            finalNewline: raw.optFinalNewline,
+            strictMode: raw.optStrictMode,
+            showOutline: raw.optShowOutline,
+            _raw: raw,
+          };
+        }
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+
+        function applySettingsObject(settings) {
+          if (!settings) return;
+          SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+          SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+          SETTING_IDS.number.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+        }
+
+        const BUILTIN_PRESETS = {
+          standard: {
+            indentStyleSelect: 'space', indentSizeInput: 2, maxBlankLinesInput: 1,
+            optTrimBlockEdges: true, optBracketSpacing: true, optArraySpacing: false, optSpaceBeforeFunctionParen: false,
+            quoteStyleSelect: 'single', quotePropsSelect: 'as-needed', semicolonsSelect: 'insert', trailingCommaSelect: 'es5',
+            arrowParensSelect: 'always', optNormalizeLineComments: true, eolSelect: 'lf', optFinalNewline: true, optStrictMode: true, optShowOutline: true,
+          },
+          airbnb: {
+            indentStyleSelect: 'space', indentSizeInput: 2, maxBlankLinesInput: 1,
+            optTrimBlockEdges: true, optBracketSpacing: true, optArraySpacing: false, optSpaceBeforeFunctionParen: false,
+            quoteStyleSelect: 'single', quotePropsSelect: 'as-needed', semicolonsSelect: 'insert', trailingCommaSelect: 'all',
+            arrowParensSelect: 'always', optNormalizeLineComments: true, eolSelect: 'lf', optFinalNewline: true, optStrictMode: true, optShowOutline: true,
+          },
+          standardjs: {
+            indentStyleSelect: 'space', indentSizeInput: 2, maxBlankLinesInput: 1,
+            optTrimBlockEdges: true, optBracketSpacing: true, optArraySpacing: false, optSpaceBeforeFunctionParen: true,
+            quoteStyleSelect: 'single', quotePropsSelect: 'as-needed', semicolonsSelect: 'remove', trailingCommaSelect: 'none',
+            arrowParensSelect: 'avoid', optNormalizeLineComments: true, eolSelect: 'lf', optFinalNewline: true, optStrictMode: true, optShowOutline: true,
+          },
+          tabs: {
+            indentStyleSelect: 'tab', indentSizeInput: 2, maxBlankLinesInput: 1,
+            optTrimBlockEdges: true, optBracketSpacing: true, optArraySpacing: false, optSpaceBeforeFunctionParen: false,
+            quoteStyleSelect: 'double', quotePropsSelect: 'as-needed', semicolonsSelect: 'insert', trailingCommaSelect: 'es5',
+            arrowParensSelect: 'always', optNormalizeLineComments: true, eolSelect: 'lf', optFinalNewline: true, optStrictMode: true, optShowOutline: true,
+          },
+          minimal: {
+            indentStyleSelect: 'space', indentSizeInput: 2, maxBlankLinesInput: 2,
+            optTrimBlockEdges: false, optBracketSpacing: true, optArraySpacing: false, optSpaceBeforeFunctionParen: false,
+            quoteStyleSelect: 'preserve', quotePropsSelect: 'preserve', semicolonsSelect: 'preserve', trailingCommaSelect: 'es5',
+            arrowParensSelect: 'preserve', optNormalizeLineComments: false, eolSelect: 'lf', optFinalNewline: true, optStrictMode: true, optShowOutline: true,
+          },
+        };
+
+        const CUSTOM_PRESETS_KEY = 'jsFormatterCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(presets) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) {} }
+
+        function refreshPresetOptions() {
+          const select = document.getElementById('presetSelect');
+          document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+          const custom = loadCustomPresets();
+          Object.keys(custom).forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = 'custom:' + name;
+            opt.textContent = name + ' (saved)';
+            opt.dataset.custom = '1';
+            select.appendChild(opt);
+          });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+          const val = e.target.value;
+          if (val === 'custom') return;
+          if (val.startsWith('custom:')) {
+            const name = val.slice('custom:'.length);
+            const custom = loadCustomPresets();
+            if (custom[name]) applySettingsObject(custom[name]);
+          } else if (BUILTIN_PRESETS[val]) {
+            applySettingsObject(BUILTIN_PRESETS[val]);
+          }
+          convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+          el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+          const name = prompt('Name this preset:');
+          if (!name) return;
+          const custom = loadCustomPresets();
+          custom[name] = getRawSettingsForPersist();
+          saveCustomPresets(custom);
+          refreshPresetOptions();
+          document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+          const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'js-formatter-config.json';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const settings = JSON.parse(ev.target.result);
+              applySettingsObject(settings);
+              document.getElementById('presetSelect').value = 'custom';
+              convert();
+            } catch (err) { alert('That file is not a valid config JSON.'); }
+          };
+          reader.readAsText(file);
+          importSettingsInput.value = '';
+        });
+
+        function escapeHtmlStr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function updateOutline(outline, opts) {
+          if (!opts.showOutline) { outlinePane.innerHTML = '<p class="pane-empty">Enable "Show outline" to see top-level declarations here.</p>'; return; }
+          if (!outline || outline.length === 0) { outlinePane.innerHTML = '<p class="pane-empty">No top-level functions, classes, or declarations detected.</p>'; return; }
+          outlinePane.innerHTML = outline.map(o =>
+            '<div class="outline-row"><span class="outline-kind">' + escapeHtmlStr(o.kind) + '</span><span class="outline-name">' + escapeHtmlStr(o.name) + '</span></div>'
+          ).join('');
+        }
+
+        function updateWarnings(warnings) {
+          warningsBadge.style.display = warnings.length ? 'inline-block' : 'none';
+          warningsBadge.textContent = String(warnings.length);
+          if (!warnings.length) { warningsPane.innerHTML = '<p class="pane-empty">No warnings — every changed line was safe to touch.</p>'; return; }
+          warningsPane.innerHTML = warnings.map(w => '<div class="warning-row">' + escapeHtmlStr(w) + '</div>').join('');
+        }
+
+        function showError(msg) {
+          errorBanner.textContent = msg;
+          errorBanner.classList.add('show');
+          jsInputEl.classList.add('has-error');
+        }
+        function clearError() {
+          errorBanner.classList.remove('show');
+          errorBanner.textContent = '';
+          jsInputEl.classList.remove('has-error');
+        }
+
+        function convert() {
+          const opts = getOptions();
+          clearError();
+
+          const text = jsInputEl.value;
+          if (text.trim() === '') {
+            formattedOutput.value = '';
+            updateOutline([], opts);
+            updateWarnings([]);
+            updateInputStats(0);
+            resetOutputStats();
+            saveDraft();
+            return;
+          }
+
+          let result;
+          try {
+            result = format(text, opts);
+          } catch (err) {
+            showError(err && err.message ? err.message : String(err));
+            formattedOutput.value = '';
+            outlinePane.innerHTML = '<p class="pane-empty">Fix the error above to see the outline.</p>';
+            warningsPane.innerHTML = '<p class="pane-empty">Fix the error above to see warnings.</p>';
+            warningsBadge.style.display = 'none';
+            updateInputStats(0);
+            resetOutputStats(true);
+            saveDraft();
+            return;
+          }
+
+          formattedOutput.value = result.text;
+          updateOutline(result.outline, opts);
+          updateWarnings(result.warnings);
+          updateInputStats();
+          updateOutputStats(result);
+          saveDraft();
+        }
+
+        function updateInputStats() {
+          const text = jsInputEl.value;
+          document.getElementById('jsLineCount').textContent = (text === '' ? 0 : text.split('\n').length).toLocaleString();
+          document.getElementById('jsCharCount').textContent = text.length.toLocaleString();
+          let tokenCount = 0;
+          try { tokenCount = significantTokens(tokenize(text)).length; } catch (e) { tokenCount = 0; }
+          document.getElementById('jsTokenCount').textContent = tokenCount.toLocaleString();
+        }
+
+        function updateOutputStats(result) {
+          const byteSize = new Blob([result.text]).size;
+          document.getElementById('outSizeCount').textContent = byteSize.toLocaleString();
+          document.getElementById('outLineCount').textContent = (result.text === '' ? 0 : result.text.split('\n').length).toLocaleString();
+          document.getElementById('outFunctionCount').textContent = result.outline.filter(o => o.kind.includes('function')).length.toLocaleString();
+          document.getElementById('outClassCount').textContent = result.outline.filter(o => o.kind.includes('class')).length.toLocaleString();
+          const statusEl = document.getElementById('outStatus');
+          if (result.warnings.length) { statusEl.textContent = result.warnings.length + ' warning(s)'; statusEl.parentElement.classList.add('warn'); statusEl.parentElement.classList.remove('error'); }
+          else { statusEl.textContent = 'Formatted'; statusEl.parentElement.classList.remove('warn'); statusEl.parentElement.classList.remove('error'); }
+        }
+
+        function resetOutputStats(isError) {
+          document.getElementById('outSizeCount').textContent = '0';
+          document.getElementById('outLineCount').textContent = '0';
+          document.getElementById('outFunctionCount').textContent = '0';
+          document.getElementById('outClassCount').textContent = '0';
+          const statusEl = document.getElementById('outStatus');
+          statusEl.textContent = isError ? 'Invalid JS' : '—';
+          statusEl.parentElement.classList.toggle('error', !!isError);
+          statusEl.parentElement.classList.remove('warn');
+        }
+
+        jsInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => { el.addEventListener('input', convert); });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+          });
+        });
+
+        // ============================================================
+        // BATCH FILE MANAGEMENT
+        // ============================================================
+        let batchFiles = [];
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+          const row = document.getElementById('batchRow');
+          const emptyNote = document.getElementById('batchEmptyNote');
+          const zipBtn = document.getElementById('downloadZipBtn');
+          row.innerHTML = '';
+          if (batchFiles.length === 0) { row.appendChild(emptyNote); zipBtn.disabled = true; return; }
+          zipBtn.disabled = false;
+          batchFiles.forEach((f, i) => {
+            const chip = document.createElement('div');
+            chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+            chip.innerHTML = '<span class="chip-label" title="' + f.name + '">' + f.name + '</span><button class="chip-close" type="button" aria-label="Remove ' + f.name + '">&times;</button>';
+            chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+            chip.querySelector('.chip-close').addEventListener('click', (e) => { e.stopPropagation(); removeBatchFile(i); });
+            row.appendChild(chip);
+          });
+        }
+
+        function switchBatchFile(index) {
+          if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = jsInputEl.value;
+          activeBatchIndex = index;
+          jsInputEl.value = batchFiles[index].content;
+          convert();
+          renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+          batchFiles.splice(index, 1);
+          if (activeBatchIndex === index) activeBatchIndex = -1;
+          else if (activeBatchIndex > index) activeBatchIndex--;
+          renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+          const files = Array.from(fileList);
+          let remaining = files.length;
+          if (remaining === 0) return;
+          const startCount = batchFiles.length;
+          files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              batchFiles.push({ name: file.name, content: e.target.result });
+              remaining--;
+              if (remaining === 0) { if (activeBatchIndex === -1) switchBatchFile(startCount); renderBatchChips(); }
+            };
+            reader.readAsText(file);
+          });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+          if (!window.JSZip || batchFiles.length === 0) return;
+          if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = jsInputEl.value;
+          const zip = new JSZip();
+          const opts = getOptions();
+          batchFiles.forEach(f => {
+            let out;
+            try { out = format(f.content, opts).text; }
+            catch (err) { out = '// Error formatting this file: ' + (err && err.message ? err.message : String(err)) + '\n' + f.content; }
+            const outName = f.name.replace(/\.(js|mjs|cjs|jsx|txt)$/i, '') + '.formatted.js';
+            zip.file(outName, out);
+          });
+          const blob = await zip.generateAsync({ type: 'blob' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'formatted-js.zip';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+          jsInputEl.value = '';
+          if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+          convert();
+          jsInputEl.focus();
+        });
+
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+          if (!e.target.files.length) return;
+          if (e.target.files.length === 1 && batchFiles.length === 0) readSingleFile(e.target.files[0]);
+          else addFilesToBatch(e.target.files);
+          fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+          const reader = new FileReader();
+          reader.onload = (e) => { jsInputEl.value = e.target.result; convert(); };
+          reader.readAsText(file);
+        }
+
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+          dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border-color)'; dropZone.style.opacity = '1'; });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+          dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = ''; dropZone.style.opacity = ''; });
+        });
+        dropZone.addEventListener('drop', (e) => {
+          const files = e.dataTransfer.files;
+          if (!files.length) return;
+          if (files.length === 1 && batchFiles.length === 0) readSingleFile(files[0]);
+          else addFilesToBatch(files);
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(formattedOutput.value); }
+          catch (err) { formattedOutput.select(); document.execCommand('copy'); }
+          const toast = document.getElementById('copyToast');
+          toast.classList.add('show');
+          setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+          const blob = new Blob([formattedOutput.value], { type: 'text/javascript' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'formatted.js';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+
+        // ============================================================
+        // AUTOSAVE DRAFT + SETTINGS
+        // ============================================================
+        const DRAFT_KEY = 'jsFormatterDraft';
+        const DRAFT_SETTINGS_KEY = 'jsFormatterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+          clearTimeout(draftTimer);
+          draftTimer = setTimeout(() => {
+            try {
+              localStorage.setItem(DRAFT_KEY, jsInputEl.value);
+              localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+            } catch (err) {}
+          }, 400);
+        }
+
+        (function restoreDraft() {
+          try {
+            const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+            if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+            const savedDraft = localStorage.getItem(DRAFT_KEY);
+            if (savedDraft !== null && savedDraft !== '') jsInputEl.value = savedDraft;
+          } catch (err) {}
+        })();
+
+        convert();
+    </script>
+</body>
+</html>
