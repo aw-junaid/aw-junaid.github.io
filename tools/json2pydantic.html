@@ -1,0 +1,2280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | JSON to Pydantic Model Generator</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free JSON to Pydantic v2 model generator. Infers Field constraints (ge/le, min_length/max_length) from real sample data, detects EmailStr/HttpUrl/IPvAnyAddress/SecretStr/Decimal fields, generates ConfigDict, alias_generator, field_validator boilerplate, and JSON Schema. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/json2pydantic.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/json2pydantic.html" />
+<meta property="og:title" content="JSON to Pydantic Model Generator — awjunaid" />
+<meta property="og:description" content="Convert JSON to Pydantic v2 BaseModel/BaseSettings classes with inferred constraints, EmailStr/HttpUrl/SecretStr/Decimal detection, ConfigDict, alias generation, and validator boilerplate. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/json2pydantic.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="JSON to Pydantic Model Generator — awjunaid" />
+<meta name="twitter:description" content="Convert JSON to Pydantic v2 models with inferred constraints, EmailStr/HttpUrl/SecretStr/Decimal detection, ConfigDict, and alias generation. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/json2pydantic.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea {
+            width: 100%; min-height: 90px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; resize: vertical;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #jsonInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+            tab-size: 4;
+        }
+        #jsonInput:focus { outline: none; border-color: var(--border-color); }
+        #jsonInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        .warn-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid #d9a300;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 11.5px;
+            font-family: var(--font-mono);
+            color: #d9a300;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .warn-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #pyOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .notes-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .notes-pane .notes-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .notes-row { padding: 7px 0; border-bottom: 1px solid var(--border-light); }
+        .notes-row:last-child { border-bottom: none; }
+        .notes-line { font-weight: 700; opacity: 0.6; font-size: 11px; margin-right: 8px; }
+        .notes-tag { display: inline-block; border-radius: 20px; padding: 1px 9px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px; border: 1px solid var(--border-light); }
+        .notes-tag.tag-warn { border-color: #d9a300; color: #d9a300; }
+        .notes-tag.tag-info { border-color: var(--accent); color: var(--accent); }
+        .notes-tag.tag-manual { border-color: var(--danger); color: var(--danger); }
+        .notes-tag.tag-security { border-color: #a855f7; color: #a855f7; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* Class map pane */
+        .classmap-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12px;
+        }
+        .classmap-pane .notes-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .classmap-row { padding: 8px 0; border-bottom: 1px solid var(--border-light); }
+        .classmap-row:last-child { border-bottom: none; }
+        .classmap-name { font-weight: 700; }
+        .classmap-fields { opacity: 0.65; font-size: 11px; margin-top: 3px; }
+
+        /* Schema pane */
+        .schema-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 0; min-height: 420px; max-height: 420px; overflow-y: auto;
+        }
+        .schema-pane textarea {
+            width: 100%; height: 420px; border: none; background: var(--input-bg); color: var(--text-primary);
+            font-family: var(--font-mono); font-size: 11.5px; padding: 16px 18px; resize: none; line-height: 1.6;
+        }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #jsonInput, #pyOutput, .notes-pane, .classmap-pane, .schema-pane textarea { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">JSON to Pydantic Model Generator</h1>
+                <div class="tool-dek">Paste or upload real-world JSON — API responses, webhook payloads, DB exports — and get validated Pydantic v2 <code>BaseModel</code> classes. Numeric and string constraints are inferred from your actual sample data, sensitive-looking fields become <code>SecretStr</code>, emails/URLs/IPs are typed properly, and you get ready-to-use <code>ConfigDict</code>, alias generation, and validator boilerplate. All in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="api">REST API Model (camelCase alias, from_attributes, ignore extra)</option>
+                    <option value="strict">Strict Ingest (extra=forbid, inferred bounds, frozen)</option>
+                    <option value="orm">ORM Read Model (from_attributes, populate_by_name)</option>
+                    <option value="settings">Env Settings (BaseSettings, env_prefix, .env)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Output Style & Root</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="rootStyleSelect">Root base class</label>
+                            <select id="rootStyleSelect">
+                                <option value="basemodel" selected>BaseModel (API / data model)</option>
+                                <option value="settings">BaseSettings (env-based config)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="rootNameInput">Root class name</label>
+                            <input type="text" id="rootNameInput" value="Root" spellcheck="false">
+                        </div>
+                        <div class="field-group">
+                            <label for="envPrefixInput">Env prefix (BaseSettings only)</label>
+                            <input type="text" id="envPrefixInput" value="APP_" spellcheck="false">
+                        </div>
+                        <div class="field-group">
+                            <label for="indentSelect">Indent width</label>
+                            <select id="indentSelect">
+                                <option value="2">2 spaces</option>
+                                <option value="4" selected>4 spaces</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFrozen">
+                            <span><span class="setting-name">Frozen (<code>frozen=True</code>)</span><span class="setting-hint">Immutable model instances, hashable if all fields are hashable</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictTypes">
+                            <span><span class="setting-name">Strict mode (<code>strict=True</code>)</span><span class="setting-hint">Disables Pydantic's lax coercion (e.g. "1" won't validate as int) — catches upstream data-quality bugs early</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optValidateAssignment">
+                            <span><span class="setting-name">Validate on assignment</span><span class="setting-hint"><code>validate_assignment=True</code> — re-runs validators when attributes are mutated after construction</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Model Config (real-world API behavior)</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="extraPolicySelect">Unknown/extra fields</label>
+                            <select id="extraPolicySelect">
+                                <option value="ignore" selected>Ignore (tolerate upstream additions)</option>
+                                <option value="forbid">Forbid (reject unexpected keys)</option>
+                                <option value="allow">Allow (keep as extra attributes)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="aliasStrategySelect">Alias strategy</label>
+                            <select id="aliasStrategySelect">
+                                <option value="none">No aliasing (use Python field names as-is)</option>
+                                <option value="perfield" selected>Per-field <code>Field(alias=...)</code></option>
+                                <option value="generator">Alias generator (<code>to_camel</code>)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFromAttributes" checked>
+                            <span><span class="setting-name"><code>from_attributes=True</code></span><span class="setting-hint">Lets the model build directly from ORM objects (SQLAlchemy rows, etc.) via <code>model_validate(obj)</code>, not just dicts</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrWhitespace">
+                            <span><span class="setting-name">Strip string whitespace</span><span class="setting-hint"><code>str_strip_whitespace=True</code> — trims stray leading/trailing spaces from form or copy-pasted input</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPopulateByName" checked>
+                            <span><span class="setting-name"><code>populate_by_name=True</code></span><span class="setting-hint">Lets you construct with either the Python field name or its alias — required for per-field aliasing to stay ergonomic</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Naming</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="keyCaseSelect">Field name case</label>
+                            <select id="keyCaseSelect">
+                                <option value="snake" selected>snake_case (Pythonic)</option>
+                                <option value="preserve">Preserve original key</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="classCaseSelect">Generated class naming</label>
+                            <select id="classCaseSelect">
+                                <option value="parentkey" selected>From parent key (singularized)</option>
+                                <option value="path">Full path (Root_Items_Item)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="reservedWordSuffix">Reserved-word suffix</label>
+                            <select id="reservedWordSuffix">
+                                <option value="_field" selected>trailing underscore (class_)</option>
+                                <option value="field_">leading underscore (_class)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDeduplicateClasses" checked>
+                            <span><span class="setting-name">Deduplicate structurally identical classes</span><span class="setting-hint">Two objects with the same field set/types reuse one generated class instead of duplicating it</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Real-World Field Detection</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectEmail" checked>
+                            <span><span class="setting-name">Detect email fields → <code>EmailStr</code></span><span class="setting-hint">Matched by key name (email/e_mail) or sample values shaped like an email address</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectUrl" checked>
+                            <span><span class="setting-name">Detect URL fields → <code>HttpUrl</code></span><span class="setting-hint">Matched by key name (url/website/link) or http(s):// sample values</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectIp">
+                            <span><span class="setting-name">Detect IP address fields → <code>IPvAnyAddress</code></span><span class="setting-hint">Matched by sample values shaped like IPv4/IPv6 addresses</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectDecimal" checked>
+                            <span><span class="setting-name">Detect money fields → <code>Decimal</code></span><span class="setting-hint">Key names like price/amount/total/cost/balance get typed as <code>Decimal</code> instead of <code>float</code> to avoid binary floating-point rounding errors</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectSecret" checked>
+                            <span><span class="setting-name">Detect sensitive fields → <code>SecretStr</code></span><span class="setting-hint">Key names like password/token/secret/api_key/ssn are wrapped in <code>SecretStr</code> so values don't leak into logs or <code>repr()</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectEnum">
+                            <span><span class="setting-name">Detect low-cardinality strings as <code>Enum</code></span><span class="setting-hint">A string field repeating &le; 6 distinct values across an array of siblings becomes a generated <code>Enum</code> class</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Inferred Constraints (from your sample data)</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optInferNumericBounds" checked>
+                            <span><span class="setting-name">Infer numeric bounds (<code>ge</code>/<code>le</code>)</span><span class="setting-hint">Uses the min/max observed across samples as a starting constraint — widen or remove them once you know the real domain</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optInferStringLength" checked>
+                            <span><span class="setting-name">Infer string length (<code>min_length</code>/<code>max_length</code>)</span><span class="setting-hint">Uses the shortest/longest string observed for that field as a starting constraint</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNonEmptyListValidator">
+                            <span><span class="setting-name">Generate non-empty <code>field_validator</code> for lists</span><span class="setting-hint">A common real-world requirement (e.g. an order must have &ge;1 line item) — review per field, not every list needs this</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMixedArrayUnion" checked>
+                            <span><span class="setting-name">Mixed-type arrays → <code>Union[...]</code></span><span class="setting-hint">Off falls back to <code>List[Any]</code> and flags it for manual review instead</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Type Inference</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="numericWideningSelect">Mixed int/float array</label>
+                            <select id="numericWideningSelect">
+                                <option value="float" selected>Widen to <code>float</code></option>
+                                <option value="union">Use <code>Union[int, float]</code></option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="emptyContainerSelect">Empty array element type</label>
+                            <select id="emptyContainerSelect">
+                                <option value="any" selected>Any</option>
+                                <option value="object">dict</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNullOptional" checked>
+                            <span><span class="setting-name"><code>null</code> → <code>Optional[T]</code></span><span class="setting-hint">A field seen as both a value and <code>null</code> across siblings becomes Optional with default <code>None</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectDatetime" checked>
+                            <span><span class="setting-name">Detect ISO 8601 date/datetime strings</span><span class="setting-hint">Typed as <code>datetime.date</code> / <code>datetime.datetime</code> — Pydantic v2 parses these natively, no custom validator needed</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectUUID" checked>
+                            <span><span class="setting-name">Detect UUID strings</span><span class="setting-hint">Typed as <code>uuid.UUID</code> — Pydantic v2 parses these natively</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAllFieldsRequired">
+                            <span><span class="setting-name">All fields required (no defaults)</span><span class="setting-hint">Off allows Optional/missing-in-some-siblings fields to default to <code>None</code>/empty automatically</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Schema & Documentation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFieldDescriptions" checked>
+                            <span><span class="setting-name">Auto-generate field descriptions</span><span class="setting-hint">Humanizes the key name into <code>Field(description="...")</code>, used in <code>model_json_schema()</code> and OpenAPI docs</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optExamplesInField">
+                            <span><span class="setting-name">Include sample values as <code>examples=[...]</code></span><span class="setting-hint">Shows up in generated OpenAPI/Swagger docs — skipped automatically for sensitive fields</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optClassDocstrings">
+                            <span><span class="setting-name">Add docstring to each generated class</span><span class="setting-hint">Notes which JSON path it was derived from</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optJsonSchemaComment" checked>
+                            <span><span class="setting-name">Append JSON Schema usage snippet</span><span class="setting-hint">Adds a short <code>if __name__ == "__main__"</code> block showing <code>model_json_schema()</code></span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Structure, Imports & Comments</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoImports" checked>
+                            <span><span class="setting-name">Auto-detect required imports</span><span class="setting-hint">Scans output for <code>Optional</code>/<code>datetime</code>/<code>EmailStr</code>/etc. and only imports what's used</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFutureAnnotations">
+                            <span><span class="setting-name">Add <code>from __future__ import annotations</code></span><span class="setting-hint">Allows forward references between generated classes without string quoting or reordering</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTopDownOrder" checked>
+                            <span><span class="setting-name">Emit nested classes before parents (bottom-up)</span><span class="setting-hint">Off + future-annotations lets you order top-down instead, matching the JSON's visual nesting</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optModuleDocstring" checked>
+                            <span><span class="setting-name">Add module docstring header</span><span class="setting-hint">Notes this file was generated, plus the source field/class/enum count</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFieldComments" checked>
+                            <span><span class="setting-name">Inline example-value comments</span><span class="setting-hint">Adds <code># e.g. "value from source JSON"</code> after each field — masked for sensitive fields</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation & Notes</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict JSON parse</span><span class="setting-hint">Fail loudly with a JSON.parse error position instead of guessing on malformed input</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagInconsistentSchema" checked>
+                            <span><span class="setting-name">Flag inconsistent sibling schemas</span><span class="setting-hint">Array elements/objects that don't share the same field set or types get called out for manual review</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagKeyCollisions" checked>
+                            <span><span class="setting-name">Flag key-name collisions after case conversion</span><span class="setting-hint">e.g. <code>userId</code> and <code>user_id</code> both mapping to <code>user_id</code> in the same object</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>JSON Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".json,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple .json files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="jsonInput" spellcheck="false" placeholder='{"id": 1, "name": "example"}
+
+Paste or type your JSON here, or upload .json file(s)...'></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="warn-banner" id="warnBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag &amp; drop .json / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="jsonLineCount">0</strong> lines</span>
+                        <span><strong id="jsonCharCount">0</strong> characters</span>
+                        <span><strong id="jsonDepthCount">0</strong> max depth</span>
+                        <span><strong id="jsonKeyCount">0</strong> unique keys</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .py</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="py" type="button">Python Output</button>
+                        <button class="output-tab" data-tab="classes" type="button">Model Map</button>
+                        <button class="output-tab" data-tab="schema" type="button">JSON Schema</button>
+                        <button class="output-tab" data-tab="notes" type="button">Conversion Notes</button>
+                    </div>
+                    <div class="output-pane active" id="pane-py">
+                        <textarea id="pyOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-classes">
+                        <div class="classmap-pane" id="classmapPane"><p class="notes-empty">Convert valid JSON to see the generated model hierarchy here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-schema">
+                        <div class="schema-pane"><textarea id="schemaOutput" readonly placeholder="Convert valid JSON to see the equivalent JSON Schema (draft-2020-12) here."></textarea></div>
+                    </div>
+                    <div class="output-pane" id="pane-notes">
+                        <div class="notes-pane" id="notesPane"><p class="notes-empty">Convert valid JSON to see flagged fields, security notes, and manual-review items here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="pyLineCount">0</strong> lines</span>
+                        <span><strong id="pyClassCount">0</strong> models</span>
+                        <span><strong id="pyWarnCount">0</strong> warnings</span>
+                        <span><strong id="pyManualCount">0</strong> manual-review</span>
+                        <span><strong id="pyStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Where do the <code>ge</code>/<code>le</code>/<code>min_length</code>/<code>max_length</code> numbers come from?</h4>
+                        <p>They're read straight from your pasted JSON — the smallest and largest number (or string length) seen for that field across every sibling sample. They're a starting point derived from one snapshot, not a guarantee about production traffic, so treat them as something to review and widen, not ship blindly.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does it decide a field is sensitive?</h4>
+                        <p>By key name only — things like <code>password</code>, <code>token</code>, <code>secret</code>, <code>api_key</code>, or <code>ssn</code> get wrapped in <code>SecretStr</code> so the value doesn't leak into logs, tracebacks, or <code>repr()</code> output. It never inspects or stores the actual sensitive value in the generated comments — those are masked.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why <code>Decimal</code> instead of <code>float</code> for money fields?</h4>
+                        <p>Binary floating point can't represent most decimal fractions exactly (0.1 + 0.2 isn't quite 0.3), which is a real source of off-by-a-cent bugs in billing code. Fields whose key name looks monetary (price, amount, total, cost, balance) are typed as <code>Decimal</code> instead, which is what most payment APIs expect.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the alias generator do versus per-field aliasing?</h4>
+                        <p>Per-field aliasing adds an explicit <code>Field(alias="camelKey")</code> to each renamed attribute. The alias generator instead sets <code>model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)</code> once, so every snake_case field automatically accepts its camelCase JSON key without listing each one — better when the whole API is consistently camelCased.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between the BaseModel and BaseSettings root styles?</h4>
+                        <p><code>BaseModel</code> validates a JSON payload (a request/response body). <code>BaseSettings</code> (from <code>pydantic-settings</code>) instead reads values from environment variables or a <code>.env</code> file at startup — useful when the pasted JSON represents your app's configuration shape rather than API traffic.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Does it handle nested objects and arrays of objects?</h4>
+                        <p>Yes — nested objects become their own <code>BaseModel</code> classes (deduplicated when structurally identical), and arrays of objects become <code>List[ThatModel]</code>. Inconsistent element shapes within one array are flagged in the Conversion Notes tab for manual review.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple JSON files at once?</h4>
+                        <p>Yes — upload or drag in several .json files and each becomes a tab above the editor. "Download All (.zip)" converts every loaded file with your current settings and bundles the resulting .py modules into one archive.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files you upload are read locally in your browser and the conversion happens entirely client-side — nothing is sent anywhere, which matters given this tool often sees real payloads with sensitive-looking field names. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // JSON → PYDANTIC v2 MODEL — REAL-WORLD EDITION
+        // ============================================
+        const jsonInputEl = document.getElementById('jsonInput');
+        const pyOutput = document.getElementById('pyOutput');
+        const schemaOutput = document.getElementById('schemaOutput');
+        const notesPane = document.getElementById('notesPane');
+        const classmapPane = document.getElementById('classmapPane');
+        const errorBanner = document.getElementById('errorBanner');
+        const warnBanner = document.getElementById('warnBanner');
+
+        const sampleJson = JSON.stringify({
+            userId: "usr_9f2c",
+            userName: "alice_wong",
+            email: "alice@example.com",
+            website: "https://alice.dev",
+            password: "hunter2_do_not_log_this",
+            isActive: true,
+            createdAt: "2024-03-11T09:15:00Z",
+            accountBalance: 128.5,
+            loginCount: 42,
+            tags: ["vip", "beta"],
+            status: "active",
+            address: {
+                street: "22 Baker St",
+                city: "London",
+                postalCode: "NW1 6XE",
+                country: null
+            },
+            orders: [
+                { orderId: "ORD-1001", total: 42.0, items: ["sku_1", "sku_2"], placedOn: "2024-01-05" },
+                { orderId: "ORD-1002", total: 19.99, items: ["sku_3"], placedOn: "2024-02-14" }
+            ],
+            metadata: {}
+        }, null, 2);
+        jsonInputEl.value = sampleJson;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optFrozen','optStrictTypes','optValidateAssignment',
+                'optFromAttributes','optStrWhitespace','optPopulateByName',
+                'optDeduplicateClasses',
+                'optDetectEmail','optDetectUrl','optDetectIp','optDetectDecimal','optDetectSecret','optDetectEnum',
+                'optInferNumericBounds','optInferStringLength','optNonEmptyListValidator','optMixedArrayUnion',
+                'optNullOptional','optDetectDatetime','optDetectUUID','optAllFieldsRequired',
+                'optFieldDescriptions','optExamplesInField','optClassDocstrings','optJsonSchemaComment',
+                'optAutoImports','optFutureAnnotations','optTopDownOrder','optModuleDocstring','optFieldComments',
+                'optStrictMode','optFlagInconsistentSchema','optFlagKeyCollisions'],
+            select: ['rootStyleSelect','indentSelect','extraPolicySelect','aliasStrategySelect',
+                'keyCaseSelect','classCaseSelect','reservedWordSuffix','numericWideningSelect','emptyContainerSelect'],
+            text: ['rootNameInput','envPrefixInput']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            return raw;
+        }
+        function getRawSettingsForPersist() { return getOptions(); }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            api: {
+                rootStyleSelect: 'basemodel', indentSelect: '4', extraPolicySelect: 'ignore', aliasStrategySelect: 'generator',
+                keyCaseSelect: 'snake', classCaseSelect: 'parentkey', reservedWordSuffix: '_field', rootNameInput: 'Root', envPrefixInput: 'APP_',
+                numericWideningSelect: 'float', emptyContainerSelect: 'any',
+                optFrozen: false, optStrictTypes: false, optValidateAssignment: false,
+                optFromAttributes: true, optStrWhitespace: true, optPopulateByName: true,
+                optDeduplicateClasses: true,
+                optDetectEmail: true, optDetectUrl: true, optDetectIp: false, optDetectDecimal: true, optDetectSecret: true, optDetectEnum: false,
+                optInferNumericBounds: false, optInferStringLength: false, optNonEmptyListValidator: false, optMixedArrayUnion: true,
+                optNullOptional: true, optDetectDatetime: true, optDetectUUID: true, optAllFieldsRequired: false,
+                optFieldDescriptions: true, optExamplesInField: true, optClassDocstrings: false, optJsonSchemaComment: true,
+                optAutoImports: true, optFutureAnnotations: true, optTopDownOrder: true, optModuleDocstring: true, optFieldComments: true,
+                optStrictMode: true, optFlagInconsistentSchema: true, optFlagKeyCollisions: true
+            },
+            strict: {
+                rootStyleSelect: 'basemodel', indentSelect: '4', extraPolicySelect: 'forbid', aliasStrategySelect: 'perfield',
+                keyCaseSelect: 'snake', classCaseSelect: 'parentkey', reservedWordSuffix: '_field', rootNameInput: 'Root', envPrefixInput: 'APP_',
+                numericWideningSelect: 'union', emptyContainerSelect: 'object',
+                optFrozen: true, optStrictTypes: true, optValidateAssignment: true,
+                optFromAttributes: false, optStrWhitespace: true, optPopulateByName: true,
+                optDeduplicateClasses: true,
+                optDetectEmail: true, optDetectUrl: true, optDetectIp: true, optDetectDecimal: true, optDetectSecret: true, optDetectEnum: true,
+                optInferNumericBounds: true, optInferStringLength: true, optNonEmptyListValidator: true, optMixedArrayUnion: true,
+                optNullOptional: true, optDetectDatetime: true, optDetectUUID: true, optAllFieldsRequired: false,
+                optFieldDescriptions: true, optExamplesInField: false, optClassDocstrings: true, optJsonSchemaComment: true,
+                optAutoImports: true, optFutureAnnotations: true, optTopDownOrder: true, optModuleDocstring: true, optFieldComments: false,
+                optStrictMode: true, optFlagInconsistentSchema: true, optFlagKeyCollisions: true
+            },
+            orm: {
+                rootStyleSelect: 'basemodel', indentSelect: '4', extraPolicySelect: 'ignore', aliasStrategySelect: 'none',
+                keyCaseSelect: 'snake', classCaseSelect: 'parentkey', reservedWordSuffix: '_field', rootNameInput: 'Root', envPrefixInput: 'APP_',
+                numericWideningSelect: 'float', emptyContainerSelect: 'any',
+                optFrozen: false, optStrictTypes: false, optValidateAssignment: false,
+                optFromAttributes: true, optStrWhitespace: false, optPopulateByName: true,
+                optDeduplicateClasses: true,
+                optDetectEmail: true, optDetectUrl: false, optDetectIp: false, optDetectDecimal: true, optDetectSecret: true, optDetectEnum: false,
+                optInferNumericBounds: false, optInferStringLength: false, optNonEmptyListValidator: false, optMixedArrayUnion: true,
+                optNullOptional: true, optDetectDatetime: true, optDetectUUID: true, optAllFieldsRequired: false,
+                optFieldDescriptions: false, optExamplesInField: false, optClassDocstrings: true, optJsonSchemaComment: false,
+                optAutoImports: true, optFutureAnnotations: true, optTopDownOrder: true, optModuleDocstring: true, optFieldComments: false,
+                optStrictMode: true, optFlagInconsistentSchema: true, optFlagKeyCollisions: true
+            },
+            settings: {
+                rootStyleSelect: 'settings', indentSelect: '4', extraPolicySelect: 'ignore', aliasStrategySelect: 'none',
+                keyCaseSelect: 'snake', classCaseSelect: 'parentkey', reservedWordSuffix: '_field', rootNameInput: 'Settings', envPrefixInput: 'APP_',
+                numericWideningSelect: 'float', emptyContainerSelect: 'any',
+                optFrozen: false, optStrictTypes: false, optValidateAssignment: false,
+                optFromAttributes: false, optStrWhitespace: true, optPopulateByName: true,
+                optDeduplicateClasses: true,
+                optDetectEmail: true, optDetectUrl: true, optDetectIp: false, optDetectDecimal: false, optDetectSecret: true, optDetectEnum: false,
+                optInferNumericBounds: false, optInferStringLength: false, optNonEmptyListValidator: false, optMixedArrayUnion: true,
+                optNullOptional: true, optDetectDatetime: false, optDetectUUID: false, optAllFieldsRequired: true,
+                optFieldDescriptions: true, optExamplesInField: false, optClassDocstrings: false, optJsonSchemaComment: false,
+                optAutoImports: true, optFutureAnnotations: true, optTopDownOrder: true, optModuleDocstring: true, optFieldComments: false,
+                optStrictMode: true, optFlagInconsistentSchema: true, optFlagKeyCollisions: true
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'json2pydanticCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'json-to-pydantic-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // HELPERS: naming
+        // ============================================
+        const PY_RESERVED = new Set(['False','None','True','and','as','assert','async','await','break','class',
+            'continue','def','del','elif','else','except','finally','for','from','global','if','import','in',
+            'is','lambda','nonlocal','not','or','pass','raise','return','try','while','with','yield','self',
+            'list','dict','set','str','int','float','bool','type','object','id']);
+
+        function toSnakeCase(key) {
+            let s = String(key);
+            s = s.replace(/[-\s]+/g, '_');
+            s = s.replace(/([a-z0-9])([A-Z])/g, '$1_$2');
+            s = s.replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2');
+            s = s.replace(/__+/g, '_');
+            s = s.toLowerCase();
+            s = s.replace(/[^a-z0-9_]/g, '_');
+            if (/^[0-9]/.test(s)) s = '_' + s;
+            if (s === '') s = 'field';
+            return s;
+        }
+
+        function sanitizeFieldName(key, opts) {
+            let name = opts.keyCaseSelect === 'snake' ? toSnakeCase(key) : String(key).replace(/[^a-zA-Z0-9_]/g, '_');
+            if (opts.keyCaseSelect === 'preserve') {
+                if (/^[0-9]/.test(name)) name = '_' + name;
+                if (name === '') name = 'field';
+            }
+            if (PY_RESERVED.has(name)) {
+                name = opts.reservedWordSuffix === '_field' ? name + '_' : '_' + name;
+            }
+            return name;
+        }
+
+        function humanizeFieldLabel(origKey) {
+            const snake = toSnakeCase(origKey);
+            const words = snake.split('_').filter(Boolean);
+            if (words.length === 0) return String(origKey);
+            const s = words.join(' ');
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+
+        const SINGULARIZE_INVARIANT = new Set([
+            'status', 'address', 'access', 'process', 'success', 'progress', 'series',
+            'news', 'analysis', 'data', 'metadata', 'bias', 'gas', 'bonus', 'campus',
+            'focus', 'virus', 'radius', 'basis', 'axis', 'crisis', 'this', 'plus', 'minus'
+        ]);
+
+        function singularize(word) {
+            const lower = String(word).toLowerCase();
+            if (SINGULARIZE_INVARIANT.has(lower)) return word;
+            if (/ies$/i.test(word) && word.length > 4) return word.replace(/ies$/i, 'y');
+            if (/(x|ch|sh|ss)es$/i.test(word)) return word.replace(/es$/i, '');
+            if (/s$/i.test(word) && !/ss$/i.test(word) && !/us$/i.test(word) && !/is$/i.test(word) && word.length > 3) {
+                return word.replace(/s$/i, '');
+            }
+            return word;
+        }
+
+        function toPascalCase(key) {
+            const snake = toSnakeCase(String(key));
+            return snake.split('_').filter(Boolean).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('') || 'Item';
+        }
+
+        function className(pathParts, opts) {
+            if (opts.classCaseSelect === 'path') {
+                return pathParts.map(p => toPascalCase(singularize(p))).join('_');
+            }
+            const last = pathParts[pathParts.length - 1] || 'root';
+            let name = toPascalCase(singularize(last));
+            if (/^[0-9]/.test(name)) name = 'C' + name;
+            return name || 'Item';
+        }
+
+        // ============================================
+        // HELPERS: value-level detection (real-world field types)
+        // ============================================
+        const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
+        const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const URL_RE = /^https?:\/\/[^\s]+$/i;
+        const IPV4_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
+        const IPV6_RE = /^[0-9a-f:]+:[0-9a-f:]+$/i;
+        const EMAIL_KEY_RE = /e[-_]?mail/i;
+        const URL_KEY_RE = /url|website|link|homepage/i;
+        const MONEY_KEY_RE = /price|amount|total|cost|balance|fee|salary|payment|revenue|charge|subtotal|tax\b/i;
+        const SENSITIVE_KEY_RE = /password|passwd|secret|token|api[_-]?key|apikey|ssn|social[_-]?security|credit[_-]?card|creditcard|cvv|\bpin\b|auth[_-]?code/i;
+
+        function detectStringSubtype(val, opts) {
+            if (opts.optDetectUUID && UUID_RE.test(val)) return 'uuid';
+            if (opts.optDetectDatetime && ISO_DATETIME_RE.test(val)) return 'datetime';
+            if (opts.optDetectDatetime && ISO_DATE_RE.test(val)) return 'date';
+            if (opts.optDetectEmail && EMAIL_RE.test(val)) return 'email';
+            if (opts.optDetectUrl && URL_RE.test(val)) return 'url';
+            if (opts.optDetectIp && (IPV4_RE.test(val) || IPV6_RE.test(val))) return 'ip';
+            return 'str';
+        }
+
+        // ============================================
+        // SCHEMA INFERENCE
+        // A "schema node" describes the type(s) seen at a given JSON path across
+        // every sample encountered (root value, every array element, or the same
+        // key across every sibling object) — this drives Optional/Union/bound
+        // inference instead of reading a single sample.
+        // ============================================
+        let classRegistry;   // Map<structuralKey, {name, fields, path, count}>
+        let classOrder;      // array of structuralKeys in emission order
+        let enumRegistry;    // Map<fieldPathKey, {name, values}>
+        let currentOpts = null;
+
+        function newSchemaNode() {
+            return {
+                sawNull: false, sawBool: false, sawInt: false, sawFloat: false, sawStr: false,
+                sawObject: false, sawArray: false,
+                strSubtypes: new Set(),
+                strValues: new Set(),
+                strOccurrences: 0,
+                numMin: undefined, numMax: undefined,
+                strLenMin: undefined, strLenMax: undefined,
+                objectFields: null,
+                objectSampleCount: 0,
+                arrayElemNode: null,
+                path: []
+            };
+        }
+
+        function mergeValueIntoNode(node, value, path) {
+            node.path = path;
+            if (value === null || value === undefined) { node.sawNull = true; return; }
+            if (Array.isArray(value)) {
+                node.sawArray = true;
+                if (!node.arrayElemNode) node.arrayElemNode = newSchemaNode();
+                value.forEach(v => mergeValueIntoNode(node.arrayElemNode, v, path.concat('item')));
+                return;
+            }
+            if (typeof value === 'object') {
+                node.sawObject = true;
+                node.objectSampleCount++;
+                if (!node.objectFields) node.objectFields = new Map();
+                Object.keys(value).forEach(k => {
+                    if (!node.objectFields.has(k)) node.objectFields.set(k, newSchemaNode());
+                    mergeValueIntoNode(node.objectFields.get(k), value[k], path.concat(k));
+                });
+                return;
+            }
+            if (typeof value === 'boolean') { node.sawBool = true; return; }
+            if (typeof value === 'number') {
+                if (Number.isInteger(value)) node.sawInt = true; else node.sawFloat = true;
+                if (node.numMin === undefined || value < node.numMin) node.numMin = value;
+                if (node.numMax === undefined || value > node.numMax) node.numMax = value;
+                return;
+            }
+            if (typeof value === 'string') {
+                node.sawStr = true;
+                node.strOccurrences++;
+                node.strSubtypes.add(detectStringSubtype(value, currentOpts));
+                if (node.strValues.size < 25) node.strValues.add(value);
+                const len = value.length;
+                if (node.strLenMin === undefined || len < node.strLenMin) node.strLenMin = len;
+                if (node.strLenMax === undefined || len > node.strLenMax) node.strLenMax = len;
+                return;
+            }
+        }
+
+        // Structural key used for class deduplication: field-name + resolved-type pairs, sorted.
+        function structuralKeyForObjectNode(node, opts) {
+            if (!node.objectFields) return 'empty_object';
+            const parts = [];
+            const sortedKeys = Array.from(node.objectFields.keys()).sort();
+            sortedKeys.forEach(k => {
+                const fieldNode = node.objectFields.get(k);
+                const fname = sanitizeFieldName(k, opts);
+                parts.push(fname + ':' + typeSignature(fieldNode));
+            });
+            return parts.join('|');
+        }
+
+        function typeSignature(node) {
+            const kinds = [];
+            if (node.sawObject) kinds.push('object');
+            if (node.sawArray) kinds.push('array:' + (node.arrayElemNode ? typeSignature(node.arrayElemNode) : 'any'));
+            if (node.sawStr) kinds.push('str');
+            if (node.sawInt) kinds.push('int');
+            if (node.sawFloat) kinds.push('float');
+            if (node.sawBool) kinds.push('bool');
+            if (node.sawNull) kinds.push('null');
+            return kinds.sort().join('+') || 'any';
+        }
+
+        // Resolve a schema node to a Python/Pydantic type string, registering nested models as needed.
+        function resolveType(node, pathParts, opts, notes) {
+            const kindCount = [node.sawObject, node.sawArray, node.sawStr, node.sawInt, node.sawFloat, node.sawBool]
+                .filter(Boolean).length;
+
+            if (kindCount === 0 && node.sawNull) {
+                notes.push({ path: pathParts.join('.'), tag: 'warn', text: `Field "${pathParts.join('.')}" was only ever seen as null — typed as Optional[Any]; provide a non-null sample for a precise type.` });
+                registerImport(opts, 'Any');
+                registerImport(opts, 'Optional');
+                return { type: 'Optional[Any]', isOptional: true, isContainer: false };
+            }
+
+            if (node.sawObject && kindCount === 1) {
+                const structKey = structuralKeyForObjectNode(node, opts);
+                const cls = registerClass(structKey, node, pathParts, opts, notes);
+                let t = cls.name;
+                if (node.sawNull) { t = `Optional[${t}]`; registerImport(opts, 'Optional'); }
+                return { type: t, isOptional: node.sawNull, isContainer: false, classRef: cls.name };
+            }
+
+            if (node.sawArray && kindCount === 1) {
+                let elemType = 'Any';
+                if (node.arrayElemNode) {
+                    const elemKinds = [node.arrayElemNode.sawObject, node.arrayElemNode.sawArray, node.arrayElemNode.sawStr,
+                        node.arrayElemNode.sawInt, node.arrayElemNode.sawFloat, node.arrayElemNode.sawBool].filter(Boolean).length;
+                    if (elemKinds === 0 && !node.arrayElemNode.sawNull) {
+                        elemType = opts.emptyContainerSelect === 'object' ? 'dict' : 'Any';
+                        if (elemType === 'Any') registerImport(opts, 'Any');
+                    } else {
+                        const resolved = resolveType(node.arrayElemNode, pathParts, opts, notes);
+                        elemType = resolved.type;
+                        if (elemKinds > 1 && opts.optFlagInconsistentSchema) {
+                            notes.push({ path: pathParts.join('.'), tag: 'info', text: `Array "${pathParts.join('.')}" mixes element types (${typeSignature(node.arrayElemNode)}) — resolved as ${elemType}.` });
+                        }
+                    }
+                } else {
+                    elemType = opts.emptyContainerSelect === 'object' ? 'dict' : 'Any';
+                    if (elemType === 'Any') registerImport(opts, 'Any');
+                }
+                registerImport(opts, 'List');
+                let t = `List[${elemType}]`;
+                if (node.sawNull) { t = `Optional[${t}]`; registerImport(opts, 'Optional'); }
+                return { type: t, isOptional: node.sawNull, isContainer: true, containerKind: 'list' };
+            }
+
+            // scalar / mixed-scalar resolution
+            const scalarParts = [];
+            let scalarKind = null; // 'numeric' | 'str' | 'bool' | 'mixed'
+            if (node.sawBool) scalarParts.push('bool');
+            if (node.sawInt && node.sawFloat) {
+                if (opts.numericWideningSelect === 'union') { scalarParts.push('int'); scalarParts.push('float'); }
+                else scalarParts.push('float');
+            } else if (node.sawFloat) {
+                scalarParts.push('float');
+            } else if (node.sawInt) {
+                scalarParts.push('int');
+            }
+            if (node.sawStr) {
+                if (node.strSubtypes.has('str') || node.strSubtypes.size === 0) {
+                    scalarParts.push('str');
+                } else {
+                    const subtypes = Array.from(node.strSubtypes);
+                    if (subtypes.length === 1) {
+                        if (subtypes[0] === 'datetime') { scalarParts.push('datetime.datetime'); registerImport(opts, 'datetime'); }
+                        else if (subtypes[0] === 'date') { scalarParts.push('datetime.date'); registerImport(opts, 'datetime'); }
+                        else if (subtypes[0] === 'uuid') { scalarParts.push('uuid.UUID'); registerImport(opts, 'uuid'); }
+                        else if (subtypes[0] === 'email') { scalarParts.push('EmailStr'); registerImport(opts, 'EmailStr'); }
+                        else if (subtypes[0] === 'url') { scalarParts.push('HttpUrl'); registerImport(opts, 'HttpUrl'); }
+                        else if (subtypes[0] === 'ip') { scalarParts.push('IPvAnyAddress'); registerImport(opts, 'IPvAnyAddress'); }
+                        else scalarParts.push('str');
+                    } else {
+                        scalarParts.push('str');
+                        notes.push({ path: pathParts.join('.'), tag: 'info', text: `Field "${pathParts.join('.')}" has inconsistent string formats (${subtypes.join(', ')}) — typed as plain str.` });
+                    }
+                }
+            }
+
+            const enumEligible = node.strOccurrences >= 3 &&
+                node.strValues.size >= 2 && node.strValues.size <= 6 &&
+                node.strOccurrences >= node.strValues.size * 2;
+            if (opts.optDetectEnum && scalarParts.length === 1 && scalarParts[0] === 'str' && enumEligible) {
+                const enumInfo = maybeRegisterEnum(pathParts, node.strValues, opts);
+                if (enumInfo) {
+                    let t = enumInfo.name;
+                    if (node.sawNull) { t = `Optional[${t}]`; registerImport(opts, 'Optional'); }
+                    return { type: t, isOptional: node.sawNull, isContainer: false, enumRef: enumInfo.name };
+                }
+            }
+
+            if (scalarParts.length === 0) {
+                registerImport(opts, 'Any');
+                return { type: 'Any', isOptional: node.sawNull, isContainer: false };
+            }
+
+            let typeStr;
+            if (scalarParts.length === 1) {
+                typeStr = scalarParts[0];
+            } else {
+                if (opts.optMixedArrayUnion) {
+                    registerImport(opts, 'Union');
+                    typeStr = `Union[${scalarParts.join(', ')}]`;
+                    if (opts.optFlagInconsistentSchema) notes.push({ path: pathParts.join('.'), tag: 'info', text: `Field "${pathParts.join('.')}" has mixed scalar types across samples (${scalarParts.join(', ')}) — resolved as Union.` });
+                } else {
+                    registerImport(opts, 'Any');
+                    typeStr = 'Any';
+                    notes.push({ path: pathParts.join('.'), tag: 'manual', text: `Field "${pathParts.join('.')}" has mixed scalar types (${scalarParts.join(', ')}) and Union-mixing is off — typed Any, review manually.` });
+                }
+            }
+            if (node.sawNull) {
+                typeStr = `Optional[${typeStr}]`;
+                registerImport(opts, 'Optional');
+            }
+            return { type: typeStr, isOptional: node.sawNull, isContainer: false };
+        }
+
+        function maybeRegisterEnum(pathParts, values, opts) {
+            const key = pathParts.join('.');
+            if (enumRegistry.has(key)) return enumRegistry.get(key);
+            const name = toPascalCase(singularize(pathParts[pathParts.length - 1] || 'Value')) + 'Enum';
+            const info = { name, values: Array.from(values), path: pathParts.slice() };
+            enumRegistry.set(key, info);
+            return info;
+        }
+
+        function registerClass(structKey, node, pathParts, opts, notes) {
+            if (opts.optDeduplicateClasses && classRegistry.has(structKey)) {
+                const existing = classRegistry.get(structKey);
+                existing.count++;
+                existing.paths.push(pathParts.join('.'));
+                return existing;
+            }
+            let baseName = className(pathParts, opts);
+            let name = baseName;
+            let suffix = 2;
+            const usedNames = new Set(Array.from(classRegistry.values()).map(c => c.name));
+            while (usedNames.has(name)) { name = baseName + suffix; suffix++; }
+
+            const fields = [];
+            const sortedKeys = Array.from(node.objectFields.keys());
+            const seenFieldNames = new Map();
+            sortedKeys.forEach(origKey => {
+                const fieldNode = node.objectFields.get(origKey);
+                const fname = sanitizeFieldName(origKey, opts);
+                if (opts.optFlagKeyCollisions) {
+                    if (seenFieldNames.has(fname) && seenFieldNames.get(fname) !== origKey) {
+                        notes.push({ path: pathParts.concat(origKey).join('.'), tag: 'manual', text: `Key "${origKey}" collides with "${seenFieldNames.get(fname)}" after case conversion (both → "${fname}") in model "${name}" — rename one manually.` });
+                    }
+                    seenFieldNames.set(fname, origKey);
+                }
+                let resolved = resolveType(fieldNode, pathParts.concat(origKey), opts, notes);
+                const isSensitive = opts.optDetectSecret && SENSITIVE_KEY_RE.test(origKey);
+                const isMoney = opts.optDetectDecimal && MONEY_KEY_RE.test(origKey) &&
+                    (resolved.type === 'float' || resolved.type === 'int' || resolved.type === 'Optional[float]' || resolved.type === 'Optional[int]');
+
+                if (isSensitive) {
+                    const wasOptional = resolved.isOptional;
+                    resolved = { type: wasOptional ? 'Optional[SecretStr]' : 'SecretStr', isOptional: wasOptional, isContainer: false, sensitive: true };
+                    registerImport(opts, 'SecretStr');
+                    notes.push({ path: pathParts.concat(origKey).join('.'), tag: 'security', text: `Field "${pathParts.concat(origKey).join('.')}" looks sensitive (matched by key name) — typed as SecretStr so it won't leak into logs/repr(). Call .get_secret_value() when you actually need the raw value, and never persist it unhashed/unencrypted.` });
+                } else if (isMoney) {
+                    const wasOptional = resolved.isOptional;
+                    resolved = { type: wasOptional ? 'Optional[Decimal]' : 'Decimal', isOptional: wasOptional, isContainer: false, money: true };
+                    registerImport(opts, 'Decimal');
+                    notes.push({ path: pathParts.concat(origKey).join('.'), tag: 'info', text: `Field "${pathParts.concat(origKey).join('.')}" looks like a monetary value — typed as Decimal instead of float to avoid binary floating-point rounding errors. Pass amounts as strings (e.g. "19.99") when constructing, not float literals.` });
+                }
+
+                // Constraint inference (only for plain, non-sensitive numeric/string scalars)
+                let ge, le, minLength, maxLength;
+                const bareType = resolved.type.replace('Optional[', '').replace(/\]$/, '');
+                if (!isSensitive && opts.optInferNumericBounds && (bareType === 'int' || bareType === 'float' || bareType === 'Decimal')) {
+                    if (fieldNode.numMin !== undefined && fieldNode.numMax !== undefined && fieldNode.numMin !== fieldNode.numMax) {
+                        ge = fieldNode.numMin; le = fieldNode.numMax;
+                    }
+                }
+                if (!isSensitive && opts.optInferStringLength && bareType === 'str') {
+                    if (fieldNode.strLenMin !== undefined && fieldNode.strLenMax !== undefined) {
+                        minLength = fieldNode.strLenMin; maxLength = fieldNode.strLenMax;
+                    }
+                }
+
+                fields.push({
+                    origKey, fname, resolved,
+                    ge, le, minLength, maxLength,
+                    isSensitive, isMoney,
+                    sampleValue: sampleValueForNode(fieldNode, isSensitive)
+                });
+            });
+
+            const entry = { name, structKey, fields, path: pathParts.slice(), paths: [pathParts.join('.')], count: 1, node };
+            classRegistry.set(structKey, entry);
+            classOrder.push(structKey);
+            return entry;
+        }
+
+        function sampleValueForNode(node, isSensitive) {
+            if (isSensitive) return '"***"';
+            if (node.strValues && node.strValues.size) return JSON.stringify(Array.from(node.strValues)[0]);
+            if (node.sawInt) return '123';
+            if (node.sawFloat) return '1.5';
+            if (node.sawBool) return 'true';
+            if (node.sawObject) return '{...}';
+            if (node.sawArray) return '[...]';
+            if (node.sawNull) return 'null';
+            return null;
+        }
+
+        // ============================================
+        // IMPORTS
+        // ============================================
+        let importsNeeded;
+        function registerImport(opts, symbol) { importsNeeded.add(symbol); }
+
+        function buildImportLines(opts) {
+            const lines = [];
+            const typingSymbols = ['Optional', 'List', 'Union', 'Any', 'Dict'].filter(s => importsNeeded.has(s));
+            if (typingSymbols.length) lines.push(`from typing import ${typingSymbols.join(', ')}`);
+
+            const pydanticCore = ['BaseModel'];
+            if (importsNeeded.has('field') || true) pydanticCore.push('Field');
+            if (importsNeeded.has('ConfigDict')) pydanticCore.push('ConfigDict');
+            if (importsNeeded.has('EmailStr')) pydanticCore.push('EmailStr');
+            if (importsNeeded.has('HttpUrl')) pydanticCore.push('HttpUrl');
+            if (importsNeeded.has('IPvAnyAddress')) pydanticCore.push('IPvAnyAddress');
+            if (importsNeeded.has('SecretStr')) pydanticCore.push('SecretStr');
+            if (importsNeeded.has('field_validator')) pydanticCore.push('field_validator');
+            lines.push(`from pydantic import ${Array.from(new Set(pydanticCore)).join(', ')}`);
+
+            if (opts.aliasStrategySelect === 'generator') {
+                lines.push('from pydantic.alias_generators import to_camel');
+            }
+            if (opts.rootStyleSelect === 'settings') {
+                lines.push('from pydantic_settings import BaseSettings, SettingsConfigDict');
+            }
+            if (importsNeeded.has('datetime')) lines.push('import datetime');
+            if (importsNeeded.has('uuid')) lines.push('import uuid');
+            if (importsNeeded.has('Decimal')) lines.push('from decimal import Decimal');
+            if (importsNeeded.has('Enum')) lines.push('from enum import Enum');
+            return lines;
+        }
+
+        // ============================================
+        // CODE EMISSION
+        // ============================================
+        function indentStr(opts) { return ' '.repeat(parseInt(opts.indentSelect, 10) || 4); }
+
+        function emitEnumClasses(opts) {
+            if (enumRegistry.size === 0) return '';
+            const ind = indentStr(opts);
+            const blocks = [];
+            enumRegistry.forEach(info => {
+                registerImport(opts, 'Enum');
+                const members = info.values.map(v => {
+                    let memberName = toSnakeCase(v).toUpperCase();
+                    if (/^[0-9]/.test(memberName)) memberName = 'V_' + memberName;
+                    if (memberName === '') memberName = 'UNKNOWN';
+                    return `${ind}${memberName} = ${JSON.stringify(v)}`;
+                });
+                blocks.push(`class ${info.name}(str, Enum):\n${members.join('\n')}`);
+            });
+            return blocks.join('\n\n\n');
+        }
+
+        function buildFieldArgs(f, opts, isRootRequired) {
+            const args = [];
+            const isOptionalDefault = !opts.optAllFieldsRequired && (f.resolved.isOptional || f.resolved.isContainer);
+
+            if (isOptionalDefault) {
+                if (f.resolved.isContainer && f.resolved.type.includes('List[')) {
+                    args.push('default_factory=list');
+                } else {
+                    args.push('default=None');
+                }
+            }
+            if (opts.aliasStrategySelect === 'perfield' && f.fname !== f.origKey) {
+                args.push(`alias=${JSON.stringify(f.origKey)}`);
+            }
+            if (f.ge !== undefined) args.push(`ge=${f.ge}`);
+            if (f.le !== undefined) args.push(`le=${f.le}`);
+            if (f.minLength !== undefined) args.push(`min_length=${f.minLength}`);
+            if (f.maxLength !== undefined) args.push(`max_length=${f.maxLength}`);
+            if (opts.optFieldDescriptions) {
+                args.push(`description=${JSON.stringify(humanizeFieldLabel(f.origKey))}`);
+            }
+            if (opts.optExamplesInField && !f.isSensitive && f.sampleValue && f.sampleValue !== 'null') {
+                args.push(`examples=[${f.sampleValue}]`);
+            }
+            return args;
+        }
+
+        function fieldLine(f, opts, ind) {
+            const t = f.resolved.type;
+            const args = buildFieldArgs(f, opts);
+            let out;
+            if (args.length === 0) {
+                out = `${ind}${f.fname}: ${t}`;
+            } else if (args.length === 1 && (args[0] === 'default=None')) {
+                out = `${ind}${f.fname}: ${t} = None`;
+            } else {
+                out = `${ind}${f.fname}: ${t} = Field(${args.join(', ')})`;
+            }
+            if (opts.optFieldComments && f.sampleValue) {
+                out += `  # e.g. ${f.sampleValue}`;
+            }
+            return out;
+        }
+
+        function emitConfigDict(opts, cls, isRoot) {
+            const ind = indentStr(opts);
+            if (isRoot && opts.rootStyleSelect === 'settings') {
+                const args = [`env_prefix=${JSON.stringify(opts.envPrefixInput || '')}`, 'env_file=".env"', 'env_file_encoding="utf-8"'];
+                args.push(`extra=${JSON.stringify(opts.extraPolicySelect)}`);
+                return `${ind}model_config = SettingsConfigDict(${args.join(', ')})`;
+            }
+            registerImport(opts, 'ConfigDict');
+            const args = [];
+            args.push(`extra=${JSON.stringify(opts.extraPolicySelect)}`);
+            if (opts.optFromAttributes) args.push('from_attributes=True');
+            if (opts.optStrWhitespace) args.push('str_strip_whitespace=True');
+            if (opts.optPopulateByName && opts.aliasStrategySelect !== 'none') args.push('populate_by_name=True');
+            if (opts.optFrozen) args.push('frozen=True');
+            if (opts.optStrictTypes) args.push('strict=True');
+            if (opts.optValidateAssignment) args.push('validate_assignment=True');
+            if (opts.aliasStrategySelect === 'generator') args.push('alias_generator=to_camel');
+            return `${ind}model_config = ConfigDict(${args.join(', ')})`;
+        }
+
+        function emitNonEmptyValidators(cls, opts, ind, ind2) {
+            const listFields = cls.fields.filter(f => f.resolved.type.replace('Optional[', '').replace(/\]$/, '').startsWith('List['));
+            if (listFields.length === 0) return '';
+            const names = listFields.map(f => f.fname);
+            const lines = [];
+            lines.push(`${ind}@field_validator(${names.map(n => JSON.stringify(n)).join(', ')})`);
+            lines.push(`${ind}@classmethod`);
+            lines.push(`${ind}def _check_not_empty(cls, v, info):`);
+            lines.push(`${ind2}if v is not None and len(v) == 0:`);
+            lines.push(`${ind2}${indentStr(opts)}raise ValueError(f"{info.field_name} must not be empty")`);
+            lines.push(`${ind2}return v`);
+            registerImport(opts, 'field_validator');
+            return lines.join('\n');
+        }
+
+        function emitClass(cls, opts, notes, isRoot) {
+            const ind = indentStr(opts);
+            const ind2 = ind + ind;
+            const lines = [];
+
+            const baseClass = (isRoot && opts.rootStyleSelect === 'settings') ? 'BaseSettings' : 'BaseModel';
+            lines.push(`class ${cls.name}(${baseClass}):`);
+
+            if (opts.optClassDocstrings) {
+                const p = cls.paths[0] || cls.name;
+                lines.push(`${ind}"""Generated from JSON path: ${p}"""`);
+            }
+
+            lines.push(emitConfigDict(opts, cls, isRoot));
+            lines.push('');
+
+            if (cls.fields.length === 0) {
+                lines.push(`${ind}pass`);
+            } else {
+                let orderedFields = cls.fields;
+                const noDefault = [];
+                const withDefault = [];
+                cls.fields.forEach(f => {
+                    const hasDefault = !opts.optAllFieldsRequired && (f.resolved.isOptional || f.resolved.isContainer);
+                    (hasDefault ? withDefault : noDefault).push(f);
+                });
+                orderedFields = noDefault.concat(withDefault);
+                orderedFields.forEach(f => lines.push(fieldLine(f, opts, ind)));
+            }
+
+            if (opts.optNonEmptyListValidator) {
+                const validatorBlock = emitNonEmptyValidators(cls, opts, ind, ind2);
+                if (validatorBlock) {
+                    lines.push('');
+                    lines.push(validatorBlock);
+                }
+            }
+
+            return lines.join('\n');
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            jsonInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            jsonInputEl.classList.remove('has-error');
+        }
+        function showWarn(msg) { warnBanner.textContent = msg; warnBanner.classList.add('show'); }
+        function clearWarn() { warnBanner.classList.remove('show'); warnBanner.textContent = ''; }
+
+        function parseJsonStrict(src) {
+            try {
+                return { value: JSON.parse(src), error: null };
+            } catch (err) {
+                return { value: null, error: err.message || String(err) };
+            }
+        }
+
+        function convertJsonToPython(rootValue, opts) {
+            currentOpts = opts;
+            classRegistry = new Map();
+            classOrder = [];
+            enumRegistry = new Map();
+            importsNeeded = new Set();
+            const notes = [];
+
+            const rootNode = newSchemaNode();
+            mergeValueIntoNode(rootNode, rootValue, ['root']);
+
+            const rootClassName = (opts.rootNameInput || 'Root').replace(/[^a-zA-Z0-9_]/g, '') || 'Root';
+
+            let rootClassKey = null;
+            if (Array.isArray(rootValue)) {
+                resolveType(rootNode, [rootClassName], opts, notes);
+                notes.push({ path: 'root', tag: 'info', text: `Root JSON value is an array — models were generated for its element(s); wrap with a small envelope model yourself if you need a named root list type.` });
+            } else if (rootValue !== null && typeof rootValue === 'object') {
+                const structKey = structuralKeyForObjectNode(rootNode, opts);
+                const cls = registerClass(structKey, rootNode, [rootClassName], opts, notes);
+                cls.name = rootClassName;
+                rootClassKey = structKey;
+            } else {
+                notes.push({ path: 'root', tag: 'manual', text: `Root JSON value is a scalar — there is no meaningful model to generate; wrap it yourself if needed.` });
+            }
+
+            let orderedKeys;
+            if (!opts.optFutureAnnotations) {
+                orderedKeys = classOrder.slice().reverse();
+                if (opts.optTopDownOrder) {
+                    notes.push({ tag: 'warn', path: 'module', text: `"Emit nested classes before parents" was overridden — forward references require "from __future__ import annotations" to emit parent-first safely.` });
+                }
+            } else if (opts.optTopDownOrder) {
+                orderedKeys = classOrder.slice();
+            } else {
+                orderedKeys = classOrder.slice().reverse();
+            }
+
+            const classBlocks = orderedKeys.map(k => emitClass(classRegistry.get(k), opts, notes, classRegistry.get(k).structKey === rootClassKey));
+            const enumBlock = emitEnumClasses(opts);
+
+            const bodyBlocks = [];
+            if (enumBlock) bodyBlocks.push(enumBlock);
+            bodyBlocks.push(...classBlocks);
+
+            const headerLines = [];
+            if (opts.optModuleDocstring) {
+                const totalFields = Array.from(classRegistry.values()).reduce((a, c) => a + c.fields.length, 0);
+                const secretCount = Array.from(classRegistry.values()).reduce((a, c) => a + c.fields.filter(f => f.isSensitive).length, 0);
+                headerLines.push('"""');
+                headerLines.push('Auto-generated Pydantic v2 models from JSON. Do not edit by hand — regenerate instead.');
+                headerLines.push(`Models: ${classRegistry.size}  |  Fields: ${totalFields}  |  Enums: ${enumRegistry.size}  |  Sensitive fields: ${secretCount}`);
+                if (secretCount > 0) headerLines.push('NOTE: SecretStr fields below hold real-looking secrets from the sample input — never log a raw dict of this model.');
+                headerLines.push('"""');
+                headerLines.push('');
+            }
+            if (opts.optFutureAnnotations) headerLines.push('from __future__ import annotations', '');
+
+            const importLines = buildImportLines(opts);
+
+            const allLines = [];
+            if (headerLines.length) allLines.push(headerLines.join('\n'));
+            if (importLines.length) allLines.push(importLines.join('\n'));
+            allLines.push(bodyBlocks.join('\n\n\n'));
+
+            if (opts.optJsonSchemaComment && rootClassKey) {
+                const rootCls = classRegistry.get(rootClassKey);
+                const usageLines = [
+                    'if __name__ == "__main__":',
+                    `${indentStr(opts)}import json`,
+                    `${indentStr(opts)}print(json.dumps(${rootCls.name}.model_json_schema(), indent=2))`
+                ];
+                allLines.push(usageLines.join('\n'));
+            }
+
+            return {
+                code: allLines.join('\n\n') + '\n',
+                notes,
+                classCount: classRegistry.size,
+                enumCount: enumRegistry.size,
+                classList: orderedKeys.map(k => classRegistry.get(k)),
+                rootClassKey
+            };
+        }
+
+        // ============================================
+        // JSON SCHEMA (draft-2020-12-ish) preview — mirrors the Pydantic model shape
+        // ============================================
+        function schemaTypeForField(f) {
+            const bare = f.resolved.type.replace('Optional[', '').replace(/\]$/, '');
+            if (f.resolved.classRef) return { '$ref': `#/$defs/${f.resolved.classRef}` };
+            if (f.resolved.enumRef) return { '$ref': `#/$defs/${f.resolved.enumRef}` };
+            if (bare.startsWith('List[')) {
+                const inner = bare.slice(5, -1);
+                const cls = Array.from(classRegistry.values()).find(c => c.name === inner);
+                if (cls) return { type: 'array', items: { '$ref': `#/$defs/${cls.name}` } };
+                const enumHit = Array.from(enumRegistry.values()).find(e => e.name === inner);
+                if (enumHit) return { type: 'array', items: { '$ref': `#/$defs/${enumHit.name}` } };
+                return { type: 'array', items: jsonSchemaPrimitive(inner) };
+            }
+            return jsonSchemaPrimitive(bare, f);
+        }
+        function jsonSchemaPrimitive(t, f) {
+            if (t === 'str' || t === 'EmailStr' || t === 'HttpUrl' || t === 'IPvAnyAddress' || t === 'SecretStr') {
+                const s = { type: 'string' };
+                if (f && f.minLength !== undefined) s.minLength = f.minLength;
+                if (f && f.maxLength !== undefined) s.maxLength = f.maxLength;
+                if (t === 'EmailStr') s.format = 'email';
+                if (t === 'HttpUrl') s.format = 'uri';
+                return s;
+            }
+            if (t === 'int') { const s = { type: 'integer' }; if (f && f.ge !== undefined) s.minimum = f.ge; if (f && f.le !== undefined) s.maximum = f.le; return s; }
+            if (t === 'float' || t === 'Decimal') { const s = { type: 'number' }; if (f && f.ge !== undefined) s.minimum = f.ge; if (f && f.le !== undefined) s.maximum = f.le; return s; }
+            if (t === 'bool') return { type: 'boolean' };
+            if (t === 'datetime.datetime') return { type: 'string', format: 'date-time' };
+            if (t === 'datetime.date') return { type: 'string', format: 'date' };
+            if (t === 'uuid.UUID') return { type: 'string', format: 'uuid' };
+            if (t === 'dict') return { type: 'object' };
+            return {};
+        }
+        function buildJsonSchemaPreview(result, opts) {
+            if (!result.rootClassKey) return '';
+            const defs = {};
+            classRegistry.forEach(cls => {
+                const props = {};
+                const required = [];
+                cls.fields.forEach(f => {
+                    props[f.fname] = schemaTypeForField(f);
+                    if (opts.optFieldDescriptions) props[f.fname].description = humanizeFieldLabel(f.origKey);
+                    const hasDefault = !opts.optAllFieldsRequired && (f.resolved.isOptional || f.resolved.isContainer);
+                    if (!hasDefault) required.push(f.fname);
+                });
+                defs[cls.name] = { type: 'object', title: cls.name, properties: props };
+                if (required.length) defs[cls.name].required = required;
+                if (opts.extraPolicySelect === 'forbid') defs[cls.name].additionalProperties = false;
+            });
+            enumRegistry.forEach(info => {
+                defs[info.name] = { type: 'string', enum: info.values, title: info.name };
+            });
+            const rootCls = classRegistry.get(result.rootClassKey);
+            const schema = Object.assign(
+                { '$schema': 'https://json-schema.org/draft/2020-12/schema', title: rootCls.name },
+                defs[rootCls.name],
+                { '$defs': defs }
+            );
+            delete defs[rootCls.name];
+            return JSON.stringify(schema, null, 2);
+        }
+
+        function renderClassMap(classList) {
+            if (!classList || classList.length === 0) {
+                classmapPane.innerHTML = '<p class="notes-empty">Convert valid JSON to see the generated model hierarchy here.</p>';
+                return;
+            }
+            classmapPane.innerHTML = classList.map(cls => {
+                const fieldSummary = cls.fields.map(f => `${f.fname}: ${f.resolved.type}${f.isSensitive ? ' 🔒' : ''}`).join(', ');
+                const dedupNote = cls.count > 1 ? ` <span style="opacity:.5">(reused ${cls.count}×)</span>` : '';
+                return `<div class="classmap-row"><div class="classmap-name">${escapeHtmlStr(cls.name)}${dedupNote}</div><div class="classmap-fields">${escapeHtmlStr(fieldSummary || '(no fields)')}</div></div>`;
+            }).join('');
+        }
+
+        function renderNotes(notes) {
+            if (notes.length === 0) {
+                notesPane.innerHTML = '<p class="notes-empty">No issues flagged — conversion completed cleanly under current settings.</p>';
+                return;
+            }
+            const tagClass = { warn: 'tag-warn', info: 'tag-info', manual: 'tag-manual', security: 'tag-security' };
+            const tagLabel = { warn: 'Warn', info: 'Info', manual: 'Manual', security: 'Security' };
+            notesPane.innerHTML = notes.map(n =>
+                `<div class="notes-row"><span class="notes-line">${escapeHtmlStr(n.path || '')}</span><span class="notes-tag ${tagClass[n.tag]}">${tagLabel[n.tag]}</span>${escapeHtmlStr(n.text)}</div>`
+            ).join('');
+        }
+        function escapeHtmlStr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function jsonMaxDepth(value) {
+            if (value === null || typeof value !== 'object') return 0;
+            const children = Array.isArray(value) ? value : Object.values(value);
+            if (children.length === 0) return 1;
+            return 1 + Math.max(...children.map(jsonMaxDepth));
+        }
+        function jsonUniqueKeys(value, acc) {
+            acc = acc || new Set();
+            if (value === null || typeof value !== 'object') return acc;
+            if (Array.isArray(value)) { value.forEach(v => jsonUniqueKeys(v, acc)); return acc; }
+            Object.keys(value).forEach(k => { acc.add(k); jsonUniqueKeys(value[k], acc); });
+            return acc;
+        }
+
+        function updateInputStats(src) {
+            document.getElementById('jsonLineCount').textContent = (src === '' ? 0 : src.split('\n').length).toLocaleString();
+            document.getElementById('jsonCharCount').textContent = src.length.toLocaleString();
+            const parsed = parseJsonStrict(src);
+            if (parsed.value !== null || (parsed.error === null)) {
+                document.getElementById('jsonDepthCount').textContent = parsed.error ? '—' : jsonMaxDepth(parsed.value).toLocaleString();
+                document.getElementById('jsonKeyCount').textContent = parsed.error ? '—' : jsonUniqueKeys(parsed.value).size.toLocaleString();
+            }
+        }
+        function resetOutputStats(isError) {
+            document.getElementById('pyLineCount').textContent = '0';
+            document.getElementById('pyClassCount').textContent = '0';
+            document.getElementById('pyWarnCount').textContent = '0';
+            document.getElementById('pyManualCount').textContent = '0';
+            const statusEl = document.getElementById('pyStatus');
+            statusEl.textContent = isError ? 'Invalid input' : '—';
+            statusEl.parentElement.classList.toggle('error', !!isError);
+        }
+        function updateOutputStats(pyText, notes, classCount) {
+            document.getElementById('pyLineCount').textContent = pyText.split('\n').length.toLocaleString();
+            document.getElementById('pyClassCount').textContent = classCount.toLocaleString();
+            document.getElementById('pyWarnCount').textContent = notes.filter(n => n.tag === 'warn').length.toLocaleString();
+            document.getElementById('pyManualCount').textContent = notes.filter(n => n.tag === 'manual').length.toLocaleString();
+            const statusEl = document.getElementById('pyStatus');
+            const manualCount = notes.filter(n => n.tag === 'manual').length;
+            statusEl.textContent = manualCount > 0 ? `${manualCount} need review` : 'Converted cleanly';
+            statusEl.parentElement.classList.toggle('error', manualCount > 0);
+        }
+
+        function convert() {
+            const opts = getOptions();
+            clearError();
+            clearWarn();
+
+            const src = jsonInputEl.value;
+            updateInputStats(src);
+
+            if (src.trim() === '') {
+                pyOutput.value = '';
+                schemaOutput.value = '';
+                notesPane.innerHTML = '<p class="notes-empty">Convert valid JSON to see flagged fields, security notes, and manual-review items here.</p>';
+                classmapPane.innerHTML = '<p class="notes-empty">Convert valid JSON to see the generated model hierarchy here.</p>';
+                resetOutputStats();
+                saveDraft();
+                return;
+            }
+
+            const parsed = parseJsonStrict(src);
+            if (parsed.error) {
+                showError((opts.optStrictMode ? 'Strict mode parse error:\n' : 'Parse error:\n') + parsed.error);
+                pyOutput.value = '';
+                schemaOutput.value = '';
+                notesPane.innerHTML = '<p class="notes-empty">Fix the JSON error to see conversion notes.</p>';
+                classmapPane.innerHTML = '<p class="notes-empty">Fix the JSON error to see the model hierarchy.</p>';
+                resetOutputStats(true);
+                saveDraft();
+                return;
+            }
+
+            let result;
+            try {
+                result = convertJsonToPython(parsed.value, opts);
+            } catch (err) {
+                showError('Conversion error: ' + (err && err.message ? err.message : String(err)));
+                saveDraft();
+                return;
+            }
+
+            pyOutput.value = result.code;
+            schemaOutput.value = buildJsonSchemaPreview(result, opts) || '// Root value must be a JSON object to generate a schema.';
+            renderNotes(result.notes);
+            renderClassMap(result.classList);
+            updateOutputStats(result.code, result.notes, result.classCount);
+            const manualCount = result.notes.filter(n => n.tag === 'manual').length;
+            const securityCount = result.notes.filter(n => n.tag === 'security').length;
+            if (manualCount > 0 || securityCount > 0) {
+                const parts = [];
+                if (manualCount > 0) parts.push(`${manualCount} construct(s) need manual review`);
+                if (securityCount > 0) parts.push(`${securityCount} sensitive field(s) flagged`);
+                showWarn(parts.join(' · ') + ' — see the Conversion Notes tab.');
+            }
+            saveDraft();
+        }
+
+        // Live conversion
+        jsonInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = jsonInputEl.value;
+            }
+            activeBatchIndex = index;
+            jsonInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(batchFiles.length - files.length === 0 ? 0 : batchFiles.length - files.length);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = jsonInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    const parsed = parseJsonStrict(f.content);
+                    if (parsed.error) throw new Error(parsed.error);
+                    const nameGuess = (f.name.replace(/\.(json|txt)$/i, '').replace(/[^a-zA-Z0-9_]/g, '_')) || 'Root';
+                    const perFileOpts = Object.assign({}, opts, { rootNameInput: toPascalCase(nameGuess) || opts.rootNameInput });
+                    const result = convertJsonToPython(parsed.value, perFileOpts);
+                    out = result.code;
+                } catch (err) {
+                    out = `# Conversion error: ${err && err.message ? err.message : String(err)}\n`;
+                }
+                const outName = f.name.replace(/\.(json|txt)$/i, '') + '.py';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted-json-pydantic.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            jsonInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            jsonInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                jsonInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(pyOutput.value);
+            } catch (err) {
+                pyOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([pyOutput.value], { type: 'text/x-python' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'models.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'json2pydanticDraft';
+        const DRAFT_SETTINGS_KEY = 'json2pydanticLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, jsonInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') jsonInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
