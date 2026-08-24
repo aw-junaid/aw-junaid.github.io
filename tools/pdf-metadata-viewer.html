@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Metadata Viewer</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF metadata viewer & editor. Inspect Title, Author, Producer, XMP, dates, page sizes, fonts, forms, attachments and encryption for one or many PDFs. Edit, batch-fix, or strip metadata entirely for privacy. Export as JSON or CSV. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-metadata-viewer.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-metadata-viewer.html" />
+<meta property="og:title" content="PDF Metadata Viewer — awjunaid" />
+<meta property="og:description" content="Inspect and edit PDF metadata: info dictionary, XMP, dates, page geometry, fonts, forms, attachments, encryption. Batch-edit or strip metadata for privacy. Export JSON/CSV. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-metadata-viewer.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Metadata Viewer — awjunaid" />
+<meta name="twitter:description" content="Inspect and edit PDF metadata: info dictionary, XMP, dates, page geometry, fonts, forms, attachments, encryption. Batch-edit or strip metadata for privacy. Export JSON/CSV. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-metadata-viewer.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section.hidden-mode { display: none; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-section h4 .mode-flag {
+            font-size: 9px; opacity: 0.8; border: 1px solid var(--border-light); border-radius: 20px; padding: 2px 8px;
+            margin-left: 8px; text-transform: none; letter-spacing: 0; vertical-align: middle;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select, .field-group textarea {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea { resize: vertical; min-height: 70px; font-family: var(--font-mono); font-size: 12px; }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-hint { display: block; font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* Custom key/value metadata rows */
+        .kv-rows { margin-top: 4px; }
+        .kv-row {
+            display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 10px 10px 10px 14px; margin-bottom: 8px; background: var(--code-bg);
+        }
+        .kv-row input[type="text"] {
+            padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-size: 12.5px; font-family: var(--font-mono);
+        }
+        .kv-row .kv-key-input { width: 180px; flex-shrink: 0; }
+        .kv-row .kv-val-input { flex: 1; min-width: 100px; }
+        .kv-row .kv-remove {
+            border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 24px; height: 24px;
+            border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 12px;
+        }
+        .add-kv-btn { margin-top: 2px; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-mini {
+            border: 1px solid var(--border-light); background: transparent; color: var(--text-color);
+            border-radius: 60px; padding: 5px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.4px; cursor: pointer; font-family: var(--font-header); white-space: nowrap;
+        }
+        .btn-mini:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-mini.danger { border-color: var(--danger); color: var(--danger); }
+        .btn-mini.danger:hover { background: var(--danger); color: #fff; }
+
+        /* Source file drop / list */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .file-list-empty { font-size: 12px; opacity: 0.5; padding: 22px 4px; text-align: center; }
+        .source-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            background: var(--input-bg);
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .source-card.active { border-color: var(--text-primary); }
+        .source-card.file-error { border-color: var(--danger); }
+        .source-icon { font-size: 20px; opacity: 0.7; padding-top: 2px; }
+        .source-main { flex: 1; min-width: 0; }
+        .source-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .source-meta { font-size: 10.5px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .source-flags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+        .flag-chip {
+            font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 2px 8px; opacity: 0.75;
+        }
+        .flag-chip.on { border-color: var(--accent); color: var(--accent); opacity: 1; }
+        .flag-chip.warn-chip { border-color: var(--warn); color: var(--warn); opacity: 1; }
+        .remove-file-btn {
+            border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 24px; height: 24px;
+            border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 12px;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 440px; max-height: 440px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+
+        .meta-group-title {
+            font-family: var(--font-header); font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1px; opacity: 0.5; margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light);
+        }
+        .meta-group-title:first-child { margin-top: 0; }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); font-family: var(--font-body); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+        .meta-row.risky span:last-child { color: var(--warn); }
+        .xmp-raw { white-space: pre-wrap; word-break: break-word; font-size: 11px; opacity: 0.85; }
+
+        .page-size-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 11.5px; font-family: var(--font-mono); border-bottom: 1px solid var(--border-light); }
+        .page-size-row:last-child { border-bottom: none; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+            .kv-row { flex-wrap: wrap; }
+            .kv-row .kv-key-input { width: 100%; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Metadata Viewer</h1>
+                <div class="tool-dek">See exactly what a PDF is quietly carrying: title, author, software fingerprints, hidden XMP fields, real creation/modification dates, page geometry, embedded fonts, form fields, attachments, and encryption status. Fix a field, wipe everything before you share a file, or batch-audit a whole folder — then export the findings as JSON or CSV.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="privacyScrub">Privacy Scrub (strip everything)</option>
+                    <option value="brandFix">Brand Fix (set title/author/creator)</option>
+                    <option value="auditOnly">Audit Only (view, never modify)</option>
+                    <option value="datesReset">Dates Reset (stamp to now)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Action Mode</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="actionModeSelect">What should happen to the metadata?</label>
+                            <select id="actionModeSelect">
+                                <option value="view">View only — inspect, don't modify</option>
+                                <option value="edit">Edit — set specific fields, keep the rest</option>
+                                <option value="strip">Strip — remove all metadata (privacy scrub)</option>
+                            </select>
+                            <span class="field-hint">Edit and Strip both produce a new downloadable PDF. View never touches the file.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section" id="modeEdit">
+                    <h4>Standard Fields <span class="mode-flag">Edit mode</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle"><input type="checkbox" id="fldTitleOn"><span><span class="setting-name">Title</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" id="fldAuthorOn"><span><span class="setting-name">Author</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" id="fldSubjectOn"><span><span class="setting-name">Subject</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" id="fldKeywordsOn"><span><span class="setting-name">Keywords</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" id="fldCreatorOn"><span><span class="setting-name">Creator</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" id="fldProducerOn"><span><span class="setting-name">Producer</span></span></label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group"><label for="fldTitle">Title</label><input type="text" id="fldTitle" placeholder="e.g. {basename} — Final"></div>
+                        <div class="field-group"><label for="fldAuthor">Author</label><input type="text" id="fldAuthor" placeholder="e.g. Your name or org"></div>
+                        <div class="field-group"><label for="fldSubject">Subject</label><input type="text" id="fldSubject" placeholder="Optional"></div>
+                        <div class="field-group"><label for="fldKeywords">Keywords</label><input type="text" id="fldKeywords" placeholder="comma, separated"></div>
+                        <div class="field-group"><label for="fldCreator">Creator</label><input type="text" id="fldCreator" placeholder="e.g. Company Name"></div>
+                        <div class="field-group"><label for="fldProducer">Producer</label><input type="text" id="fldProducer" placeholder="e.g. Company Name"></div>
+                    </div>
+                    <div class="field-hint" style="margin-top:10px;">Only checked fields are overwritten. Unchecked fields are copied through unchanged from the source file.</div>
+                </div>
+
+                <div class="settings-section" id="modeCustomKv">
+                    <h4>Custom Info Dictionary Entries <span class="mode-flag">Edit mode</span></h4>
+                    <div class="kv-rows" id="kvRows"></div>
+                    <button class="btn-ghost add-kv-btn" id="addKvBtn" type="button"><i class="fa-solid fa-plus"></i> Add custom field</button>
+                    <div class="field-hint" style="margin-top:8px;">Arbitrary key/value pairs written into the PDF's Info dictionary (e.g. a case number, a client code, a review status).</div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Dates</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="dateMode">Creation / modification date handling</label>
+                            <select id="dateMode">
+                                <option value="keep">Keep original dates</option>
+                                <option value="now">Stamp both to right now</option>
+                                <option value="clear">Clear both (no date recorded)</option>
+                                <option value="custom">Set a specific date</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="customDateInput">Custom date</label>
+                            <input type="date" id="customDateInput">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section" id="modeStrip">
+                    <h4>Strip Options <span class="mode-flag">Strip mode</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripInfoDict" checked>
+                            <span><span class="setting-name">Clear Info dictionary</span><span class="setting-hint">Title, Author, Subject, Keywords, Creator, Producer</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripXmp" checked>
+                            <span><span class="setting-name">Drop XMP metadata packet</span><span class="setting-hint">Often duplicates or exceeds the Info dictionary</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripCustomKeys" checked>
+                            <span><span class="setting-name">Drop custom Info dictionary keys</span><span class="setting-hint">Non-standard keys some editors leave behind</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripProducerRewrite">
+                            <span><span class="setting-name">Rewrite Producer generically</span><span class="setting-hint">Instead of blank, sets Producer to a neutral value</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Prep</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOptimize" checked>
+                            <span><span class="setting-name">Optimize rebuilt PDF</span><span class="setting-hint">Uses object streams for smaller files</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputNamePattern">Output file name pattern</label>
+                            <input type="text" id="outputNamePattern" value="{basename}_meta">
+                            <span class="field-hint">Tokens: {basename} {date} — .pdf is added automatically.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Inspection Depth</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowXmpRaw" checked>
+                            <span><span class="setting-name">Show raw XMP packet</span><span class="setting-hint">Full XML block, if the file has one</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowPageSizes" checked>
+                            <span><span class="setting-name">List every page's size & rotation</span><span class="setting-hint">Catches mixed page sizes or unexpected rotation</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowStructure" checked>
+                            <span><span class="setting-name">Show document structure flags</span><span class="setting-hint">Forms, attachments, bookmarks, JavaScript, encryption</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagRisky" checked>
+                            <span><span class="setting-name">Flag privacy-sensitive fields</span><span class="setting-hint">Highlights Author, Creator, Producer, and GPS-looking XMP text</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source Files</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Add PDF(s)</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear all</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop one or more .pdf files here, or use "Add PDF(s)" above. Click a file below to inspect it.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div id="sourceArea">
+                        <div class="file-list-empty" id="sourceEmpty">No PDFs added yet. Add one or more to start inspecting.</div>
+                    </div>
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalFilesCount">0</strong> file(s) loaded</span>
+                        <span><strong id="totalPagesCount">0</strong> total pages</span>
+                        <span><strong id="flaggedFilesCount">0</strong> with risky fields</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Metadata Inspector</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="applyBtn" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Apply to Selected</button>
+                            <button class="btn-ghost" id="applyAllBtn" type="button"><i class="fa-solid fa-layer-group"></i> Apply to All (batch)</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="info" type="button">Info Dictionary</button>
+                        <button class="output-tab" data-tab="xmp" type="button">XMP</button>
+                        <button class="output-tab" data-tab="pages" type="button">Pages</button>
+                        <button class="output-tab" data-tab="structure" type="button">Structure</button>
+                        <button class="output-tab" data-tab="results" type="button">Results</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-info">
+                        <div class="info-pane" id="infoPane"><p class="info-empty">Add a PDF and select it below to see its Info dictionary here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-xmp">
+                        <div class="info-pane" id="xmpPane"><p class="info-empty">XMP packet, if present, appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-pages">
+                        <div class="info-pane" id="pagesPane"><p class="info-empty">Per-page size and rotation appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-structure">
+                        <div class="info-pane" id="structurePane"><p class="info-empty">Forms, attachments, encryption and other structural flags appear here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-results">
+                        <div class="info-pane" id="resultsPane"><p class="info-empty">Apply an edit or strip to see rebuilt output files here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Activity and warnings will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputFileCount">0</strong> output file(s)</span>
+                        <span><strong id="outputSizeCount">0</strong> total bytes</span>
+                        <span><strong id="outputStatus">Not applied yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What's the difference between the Info dictionary and XMP?</h4>
+                        <p>The Info dictionary is the classic Title/Author/Producer block every PDF viewer reads. XMP is a separate XML packet many editors also embed — it can repeat the same fields, or carry extra ones the Info dictionary doesn't show, including software history and sometimes location data.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why would I strip metadata before sharing a file?</h4>
+                        <p>The Author and Creator fields often leak a real name, a company name, or the exact software (and version) used to make the file — information you may not want attached to a public download, a legal filing, or a leaked draft.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Does editing metadata change how the PDF looks?</h4>
+                        <p>No. Edit and Strip modes only touch the document's metadata and info dictionary — every page, image, and piece of text is copied through untouched into the rebuilt file.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What do the structure flags mean?</h4>
+                        <p>They tell you whether the file has fillable form fields, embedded file attachments, an outline/bookmark tree, or embedded JavaScript — all things that can carry hidden behavior or data beyond the visible pages.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I check many PDFs at once?</h4>
+                        <p>Yes — add several files, then use "Apply to All (batch)" to run the same edit or strip settings across every loaded file. Export the findings for all of them as JSON or CSV from the Results tab.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every file you add is read and processed locally in your browser — nothing is sent anywhere. Reload the page and everything is cleared, except your settings, which are remembered for next time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // PDF METADATA VIEWER — ENTERPRISE EDITION
+        // ============================================
+        const sourceArea = document.getElementById('sourceArea');
+        const sourceEmpty = document.getElementById('sourceEmpty');
+        const errorBanner = document.getElementById('errorBanner');
+        const infoPane = document.getElementById('infoPane');
+        const xmpPane = document.getElementById('xmpPane');
+        const pagesPane = document.getElementById('pagesPane');
+        const structurePane = document.getElementById('structurePane');
+        const resultsPane = document.getElementById('resultsPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const applyBtn = document.getElementById('applyBtn');
+        const applyAllBtn = document.getElementById('applyAllBtn');
+
+        let files = [];      // { id, name, basename, bytes, pageCount, error, meta, activeResultBytes, activeResultName }
+        let activeId = null;
+        let outputs = [];    // { name, bytes }
+        let nextFileId = 1;
+        let nextKvId = 1;
+        let kvRows = [];     // { id, key, val }
+
+        const RISKY_FIELDS = ['Author', 'Creator', 'Producer'];
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['fldTitleOn', 'fldAuthorOn', 'fldSubjectOn', 'fldKeywordsOn', 'fldCreatorOn', 'fldProducerOn',
+                         'stripInfoDict', 'stripXmp', 'stripCustomKeys', 'stripProducerRewrite',
+                         'optOptimize', 'optShowXmpRaw', 'optShowPageSizes', 'optShowStructure', 'optFlagRisky'],
+            text: ['fldTitle', 'fldAuthor', 'fldSubject', 'fldKeywords', 'fldCreator', 'fldProducer', 'outputNamePattern'],
+            select: ['actionModeSelect', 'dateMode'],
+            date: ['customDateInput']
+        };
+
+        function getOptions() {
+            const opts = {};
+            SETTING_IDS.checkboxes.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_IDS.date.forEach(id => opts[id] = document.getElementById(id).value);
+            opts.kv = kvRows.map(r => ({ key: r.key, val: r.val }));
+            return opts;
+        }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.date.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (Array.isArray(settings.kv)) {
+                kvRows = settings.kv.map(r => ({ id: nextKvId++, key: r.key || '', val: r.val || '' }));
+                renderKvRows();
+            }
+            updateModeVisibility();
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            privacyScrub: {
+                actionModeSelect: 'strip', stripInfoDict: true, stripXmp: true, stripCustomKeys: true, stripProducerRewrite: false,
+                dateMode: 'clear', optOptimize: true, outputNamePattern: '{basename}_scrubbed',
+                optShowXmpRaw: true, optShowPageSizes: true, optShowStructure: true, optFlagRisky: true
+            },
+            brandFix: {
+                actionModeSelect: 'edit',
+                fldTitleOn: true, fldAuthorOn: true, fldCreatorOn: true, fldProducerOn: true,
+                fldSubjectOn: false, fldKeywordsOn: false,
+                fldTitle: '{basename}', fldAuthor: '', fldCreator: '', fldProducer: '',
+                dateMode: 'keep', optOptimize: true, outputNamePattern: '{basename}_branded',
+                optShowXmpRaw: true, optShowPageSizes: false, optShowStructure: true, optFlagRisky: true
+            },
+            auditOnly: {
+                actionModeSelect: 'view', dateMode: 'keep',
+                optShowXmpRaw: true, optShowPageSizes: true, optShowStructure: true, optFlagRisky: true
+            },
+            datesReset: {
+                actionModeSelect: 'edit',
+                fldTitleOn: false, fldAuthorOn: false, fldSubjectOn: false, fldKeywordsOn: false, fldCreatorOn: false, fldProducerOn: false,
+                dateMode: 'now', optOptimize: true, outputNamePattern: '{basename}_redated',
+                optShowXmpRaw: true, optShowPageSizes: false, optShowStructure: false, optFlagRisky: true
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfMetaViewerCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            saveSettingsDraft();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+                if (el.id === 'actionModeSelect') updateModeVisibility();
+                saveSettingsDraft();
+            });
+            el.addEventListener('change', () => {
+                document.getElementById('presetSelect').value = 'custom';
+                saveSettingsDraft();
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-metadata-viewer-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // MODE VISIBILITY
+        // ============================================
+        function updateModeVisibility() {
+            const mode = document.getElementById('actionModeSelect').value;
+            document.getElementById('modeEdit').classList.toggle('hidden-mode', mode !== 'edit');
+            document.getElementById('modeCustomKv').classList.toggle('hidden-mode', mode !== 'edit');
+            document.getElementById('modeStrip').classList.toggle('hidden-mode', mode !== 'strip');
+        }
+
+        // ============================================
+        // ERROR / LOG HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Activity and warnings will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function getBasename(filename) {
+            return (filename || 'document').replace(/\.pdf$/i, '');
+        }
+        function todayStamp() {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+        }
+        function fillPattern(pattern, tokens) {
+            let out = pattern || '{basename}_meta';
+            Object.keys(tokens).forEach(key => { out = out.split('{' + key + '}').join(tokens[key]); });
+            return out.replace(/[\\/:*?"<>|]/g, '-').trim() || 'output';
+        }
+        function fmtBytes(n) {
+            if (n < 1024) return n + ' B';
+            if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+            return (n / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        function fmtDate(d) {
+            if (!d) return null;
+            try { return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC'); } catch (e) { return String(d); }
+        }
+
+        // ============================================
+        // CUSTOM KV ROWS (edit mode)
+        // ============================================
+        function addKv(key, val) {
+            kvRows.push({ id: nextKvId++, key: key || '', val: val || '' });
+            renderKvRows();
+        }
+        function renderKvRows() {
+            const container = document.getElementById('kvRows');
+            container.innerHTML = '';
+            kvRows.forEach((r, i) => {
+                const row = document.createElement('div');
+                row.className = 'kv-row';
+                row.innerHTML = `
+                    <input type="text" class="kv-key-input" data-action="key" placeholder="Field name, e.g. CaseNumber" value="${escapeHtmlStr(r.key)}">
+                    <input type="text" class="kv-val-input" data-action="val" placeholder="Value" value="${escapeHtmlStr(r.val)}">
+                    <button type="button" class="kv-remove" data-action="remove" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>
+                `;
+                row.querySelector('[data-action="key"]').addEventListener('input', (e) => { r.key = e.target.value; saveSettingsDraft(); });
+                row.querySelector('[data-action="val"]').addEventListener('input', (e) => { r.val = e.target.value; saveSettingsDraft(); });
+                row.querySelector('[data-action="remove"]').addEventListener('click', () => { kvRows.splice(i, 1); renderKvRows(); saveSettingsDraft(); });
+                container.appendChild(row);
+            });
+        }
+        document.getElementById('addKvBtn').addEventListener('click', () => addKv());
+
+        // ============================================
+        // XMP EXTRACTION (raw byte scan — library-agnostic)
+        // ============================================
+        function extractXmpRaw(bytes) {
+            const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+            const start = text.indexOf('<?xpacket begin=');
+            if (start === -1) return null;
+            const endMarker = '<?xpacket end=';
+            const endStart = text.indexOf(endMarker, start);
+            if (endStart === -1) return null;
+            const endClose = text.indexOf('?>', endStart);
+            if (endClose === -1) return null;
+            return text.slice(start, endClose + 2);
+        }
+        function xmpField(xml, tagPattern) {
+            if (!xml) return null;
+            const m = xml.match(tagPattern);
+            return m ? m[1].trim() : null;
+        }
+        function summarizeXmp(xml) {
+            if (!xml) return {};
+            return {
+                title: xmpField(xml, /<dc:title>[\s\S]*?<rdf:li[^>]*>([\s\S]*?)<\/rdf:li>/),
+                creator: xmpField(xml, /<dc:creator>[\s\S]*?<rdf:li[^>]*>([\s\S]*?)<\/rdf:li>/),
+                creatorTool: xmpField(xml, /<xmp:CreatorTool>([\s\S]*?)<\/xmp:CreatorTool>/),
+                createDate: xmpField(xml, /<xmp:CreateDate>([\s\S]*?)<\/xmp:CreateDate>/),
+                modifyDate: xmpField(xml, /<xmp:ModifyDate>([\s\S]*?)<\/xmp:ModifyDate>/),
+                producer: xmpField(xml, /<pdf:Producer>([\s\S]*?)<\/pdf:Producer>/),
+                docId: xmpField(xml, /<xmpMM:DocumentID>([\s\S]*?)<\/xmpMM:DocumentID>/),
+                hasGpsLikeText: /geo:|GPSLatitude|GPSLongitude/i.test(xml)
+            };
+        }
+
+        // ============================================
+        // DOCUMENT STRUCTURE INSPECTION (pdf-lib low level)
+        // ============================================
+        function inspectStructure(pdfDoc) {
+            const flags = { encrypted: false, hasForm: false, formFieldCount: 0, hasAttachments: false, attachmentCount: 0,
+                             hasBookmarks: false, hasJavaScript: false, pdfVersion: null };
+            try { flags.encrypted = !!pdfDoc.isEncrypted; } catch (e) {}
+            try {
+                const catalog = pdfDoc.catalog;
+                const AcroForm = catalog.get(PDFLib.PDFName.of('AcroForm'));
+                if (AcroForm) {
+                    flags.hasForm = true;
+                    try {
+                        const formDict = pdfDoc.context.lookup(AcroForm);
+                        const fieldsArr = formDict && formDict.get ? formDict.get(PDFLib.PDFName.of('Fields')) : null;
+                        const resolved = fieldsArr ? pdfDoc.context.lookup(fieldsArr) : null;
+                        if (resolved && resolved.size) flags.formFieldCount = resolved.size();
+                    } catch (e) {}
+                }
+                const Names = catalog.get(PDFLib.PDFName.of('Names'));
+                if (Names) {
+                    try {
+                        const namesDict = pdfDoc.context.lookup(Names);
+                        const embeddedFiles = namesDict && namesDict.get ? namesDict.get(PDFLib.PDFName.of('EmbeddedFiles')) : null;
+                        if (embeddedFiles) {
+                            flags.hasAttachments = true;
+                            try {
+                                const efDict = pdfDoc.context.lookup(embeddedFiles);
+                                const namesArr = efDict && efDict.get ? efDict.get(PDFLib.PDFName.of('Names')) : null;
+                                const resolvedNames = namesArr ? pdfDoc.context.lookup(namesArr) : null;
+                                if (resolvedNames && resolvedNames.size) flags.attachmentCount = Math.floor(resolvedNames.size() / 2);
+                            } catch (e) {}
+                        }
+                        const jsNames = namesDict && namesDict.get ? namesDict.get(PDFLib.PDFName.of('JavaScript')) : null;
+                        if (jsNames) flags.hasJavaScript = true;
+                    } catch (e) {}
+                }
+                const Outlines = catalog.get(PDFLib.PDFName.of('Outlines'));
+                if (Outlines) flags.hasBookmarks = true;
+            } catch (e) {}
+            return flags;
+        }
+
+        function detectPdfVersion(bytes) {
+            try {
+                const head = new TextDecoder('ascii', { fatal: false }).decode(bytes.slice(0, 16));
+                const m = head.match(/%PDF-(\d\.\d)/);
+                return m ? m[1] : null;
+            } catch (e) { return null; }
+        }
+
+        // ============================================
+        // BUILD FULL METADATA SNAPSHOT FOR A FILE
+        // ============================================
+        async function buildMetaSnapshot(fileEntry) {
+            const bytes = fileEntry.bytes;
+            let pdfDoc;
+            try {
+                pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+            } catch (err) {
+                throw new Error('Could not parse PDF: ' + (err.message || err));
+            }
+            const info = {
+                title: safeGet(() => pdfDoc.getTitle()),
+                author: safeGet(() => pdfDoc.getAuthor()),
+                subject: safeGet(() => pdfDoc.getSubject()),
+                keywords: safeGet(() => pdfDoc.getKeywords()),
+                creator: safeGet(() => pdfDoc.getCreator()),
+                producer: safeGet(() => pdfDoc.getProducer()),
+                creationDate: safeGet(() => pdfDoc.getCreationDate()),
+                modificationDate: safeGet(() => pdfDoc.getModificationDate())
+            };
+            const pageCount = pdfDoc.getPageCount();
+            const pages = pdfDoc.getPages().map((p, i) => ({
+                index: i + 1,
+                width: Math.round(p.getWidth()),
+                height: Math.round(p.getHeight()),
+                rotation: p.getRotation().angle || 0
+            }));
+            const structure = inspectStructure(pdfDoc);
+            structure.pdfVersion = detectPdfVersion(bytes);
+            const xmpRaw = extractXmpRaw(bytes);
+            const xmpSummary = summarizeXmp(xmpRaw);
+
+            return { info, pageCount, pages, structure, xmpRaw, xmpSummary, fileSize: bytes.length };
+        }
+        function safeGet(fn) { try { return fn() || null; } catch (e) { return null; } }
+
+        // ============================================
+        // SOURCE FILE MANAGEMENT
+        // ============================================
+        async function addFiles(fileList) {
+            clearError();
+            for (const file of fileList) {
+                const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+                if (!isPdf) {
+                    showError(`"${file.name}" is not a PDF file.`);
+                    continue;
+                }
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const entry = { id: nextFileId++, name: file.name, basename: getBasename(file.name), bytes, error: null, meta: null };
+                    try {
+                        entry.meta = await buildMetaSnapshot(entry);
+                        logMsg(`Loaded "${file.name}" (${entry.meta.pageCount} page${entry.meta.pageCount === 1 ? '' : 's'}, ${fmtBytes(bytes.length)}).`, 'success');
+                    } catch (err) {
+                        entry.error = err.message || String(err);
+                        logMsg(`Failed to read "${file.name}": ${entry.error}`, 'error');
+                    }
+                    files.push(entry);
+                    if (activeId === null && !entry.error) activeId = entry.id;
+                } catch (err) {
+                    showError(`Failed to load "${file.name}": ${err.message || err}`);
+                }
+            }
+            renderSourceList();
+            renderActiveMeta();
+            updateInputStats();
+        }
+
+        function renderSourceList() {
+            if (files.length === 0) {
+                sourceArea.innerHTML = '';
+                sourceArea.appendChild(sourceEmpty);
+                return;
+            }
+            sourceArea.innerHTML = '';
+            files.forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'source-card' + (f.error ? ' file-error' : '') + (f.id === activeId ? ' active' : '');
+                let flagsHtml = '';
+                if (f.meta) {
+                    const risky = RISKY_FIELDS.some(k => f.meta.info[k.toLowerCase()]);
+                    if (risky) flagsHtml += '<span class="flag-chip warn-chip">Has author/creator data</span>';
+                    if (f.meta.structure.encrypted) flagsHtml += '<span class="flag-chip warn-chip">Encrypted</span>';
+                    if (f.meta.xmpRaw) flagsHtml += '<span class="flag-chip on">XMP present</span>';
+                    if (f.meta.structure.hasJavaScript) flagsHtml += '<span class="flag-chip warn-chip">JavaScript</span>';
+                    if (f.meta.structure.hasAttachments) flagsHtml += '<span class="flag-chip on">Attachments</span>';
+                }
+                card.innerHTML = `
+                    <div class="source-icon"><i class="fa-solid fa-file-pdf"></i></div>
+                    <div class="source-main">
+                        <div class="source-name" title="${escapeHtmlStr(f.name)}">${escapeHtmlStr(f.name)}</div>
+                        <div class="source-meta">${f.error ? escapeHtmlStr(f.error) : (f.meta.pageCount + ' page' + (f.meta.pageCount === 1 ? '' : 's') + ' · ' + fmtBytes(f.bytes.length))}</div>
+                        <div class="source-flags">${flagsHtml}</div>
+                    </div>
+                    <button type="button" class="remove-file-btn" data-action="remove" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>
+                `;
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('[data-action="remove"]')) return;
+                    activeId = f.id;
+                    renderSourceList();
+                    renderActiveMeta();
+                });
+                card.querySelector('[data-action="remove"]').addEventListener('click', () => removeFile(f.id));
+                sourceArea.appendChild(card);
+            });
+        }
+
+        function removeFile(id) {
+            files = files.filter(f => f.id !== id);
+            if (activeId === id) activeId = files.length ? files[0].id : null;
+            renderSourceList();
+            renderActiveMeta();
+            updateInputStats();
+        }
+
+        function clearAllFiles() {
+            files = [];
+            activeId = null;
+            outputs = [];
+            renderSourceList();
+            renderActiveMeta();
+            updateInputStats();
+            renderResults();
+            clearError();
+        }
+
+        function updateInputStats() {
+            document.getElementById('totalFilesCount').textContent = files.length.toLocaleString();
+            const totalPages = files.reduce((sum, f) => sum + (f.meta ? f.meta.pageCount : 0), 0);
+            document.getElementById('totalPagesCount').textContent = totalPages.toLocaleString();
+            const flagged = files.filter(f => f.meta && RISKY_FIELDS.some(k => f.meta.info[k.toLowerCase()])).length;
+            document.getElementById('flaggedFilesCount').textContent = flagged.toLocaleString();
+        }
+
+        function getActiveFile() { return files.find(f => f.id === activeId) || null; }
+
+        // ============================================
+        // RENDER META PANES FOR ACTIVE FILE
+        // ============================================
+        function renderActiveMeta() {
+            const opts = getOptions();
+            const f = getActiveFile();
+
+            if (!f) {
+                infoPane.innerHTML = '<p class="info-empty">Add a PDF and select it below to see its Info dictionary here.</p>';
+                xmpPane.innerHTML = '<p class="info-empty">XMP packet, if present, appears here.</p>';
+                pagesPane.innerHTML = '<p class="info-empty">Per-page size and rotation appears here.</p>';
+                structurePane.innerHTML = '<p class="info-empty">Forms, attachments, encryption and other structural flags appear here.</p>';
+                return;
+            }
+            if (f.error) {
+                infoPane.innerHTML = `<p class="info-empty">${escapeHtmlStr(f.error)}</p>`;
+                xmpPane.innerHTML = '<p class="info-empty">Unavailable — file could not be parsed.</p>';
+                pagesPane.innerHTML = '<p class="info-empty">Unavailable — file could not be parsed.</p>';
+                structurePane.innerHTML = '<p class="info-empty">Unavailable — file could not be parsed.</p>';
+                return;
+            }
+
+            const m = f.meta;
+            const risky = opts.optFlagRisky ? RISKY_FIELDS.map(k => k.toLowerCase()) : [];
+            const infoRows = [
+                ['Title', m.info.title], ['Author', m.info.author], ['Subject', m.info.subject],
+                ['Keywords', m.info.keywords], ['Creator', m.info.creator], ['Producer', m.info.producer],
+                ['Creation Date', fmtDate(m.info.creationDate)], ['Modification Date', fmtDate(m.info.modificationDate)]
+            ];
+            let infoHtml = '<div class="meta-group-title">Document Info Dictionary</div>';
+            infoHtml += infoRows.map(([k, v]) => {
+                const isRisky = risky.includes(k.toLowerCase()) && v;
+                return `<div class="meta-row${isRisky ? ' risky' : ''}"><span>${escapeHtmlStr(k)}</span><span>${v ? escapeHtmlStr(String(v)) : '(none)'}</span></div>`;
+            }).join('');
+            infoHtml += `<div class="meta-group-title">File</div>
+                <div class="meta-row"><span>File name</span><span>${escapeHtmlStr(f.name)}</span></div>
+                <div class="meta-row"><span>File size</span><span>${fmtBytes(m.fileSize)}</span></div>
+                <div class="meta-row"><span>Page count</span><span>${m.pageCount}</span></div>
+                <div class="meta-row"><span>PDF version</span><span>${m.structure.pdfVersion ? '1.' + (m.structure.pdfVersion.split('.')[1] || m.structure.pdfVersion) : (m.structure.pdfVersion || 'Unknown')}</span></div>`;
+            infoPane.innerHTML = infoHtml;
+
+            if (m.xmpRaw) {
+                let xmpHtml = '<div class="meta-group-title">Parsed XMP Fields</div>';
+                const s = m.xmpSummary;
+                const xmpRows = [
+                    ['dc:title', s.title], ['dc:creator', s.creator], ['xmp:CreatorTool', s.creatorTool],
+                    ['xmp:CreateDate', s.createDate], ['xmp:ModifyDate', s.modifyDate], ['pdf:Producer', s.producer],
+                    ['xmpMM:DocumentID', s.docId]
+                ];
+                xmpHtml += xmpRows.map(([k, v]) => `<div class="meta-row"><span>${escapeHtmlStr(k)}</span><span>${v ? escapeHtmlStr(v) : '(none)'}</span></div>`).join('');
+                if (s.hasGpsLikeText) {
+                    xmpHtml += `<div class="meta-row risky"><span>Location-like text</span><span>Detected — review before sharing</span></div>`;
+                }
+                if (opts.optShowXmpRaw) {
+                    xmpHtml += '<div class="meta-group-title">Raw Packet</div><div class="xmp-raw">' + escapeHtmlStr(m.xmpRaw) + '</div>';
+                }
+                xmpPane.innerHTML = xmpHtml;
+            } else {
+                xmpPane.innerHTML = '<p class="info-empty">No XMP metadata packet found in this file.</p>';
+            }
+
+            if (opts.optShowPageSizes && m.pages.length) {
+                const sizes = new Set(m.pages.map(p => p.width + 'x' + p.height));
+                let pagesHtml = `<div class="meta-group-title">${sizes.size > 1 ? 'Mixed page sizes detected (' + sizes.size + ')' : 'Uniform page size'}</div>`;
+                pagesHtml += m.pages.map(p => `<div class="page-size-row"><span>Page ${p.index}</span><span>${p.width} × ${p.height} pt${p.rotation ? ' · rotated ' + p.rotation + '°' : ''}</span></div>`).join('');
+                pagesPane.innerHTML = pagesHtml;
+            } else if (m.pages.length) {
+                pagesPane.innerHTML = `<p class="info-empty">Page listing hidden — enable "List every page's size & rotation" in Inspection Depth.</p>`;
+            } else {
+                pagesPane.innerHTML = '<p class="info-empty">Per-page size and rotation appears here.</p>';
+            }
+
+            if (opts.optShowStructure) {
+                const st = m.structure;
+                let structHtml = '<div class="meta-group-title">Structure Flags</div>';
+                const structRows = [
+                    ['Encrypted', st.encrypted ? 'Yes' : 'No'],
+                    ['Interactive form (AcroForm)', st.hasForm ? ('Yes — ' + (st.formFieldCount || '?') + ' field(s)') : 'No'],
+                    ['Embedded file attachments', st.hasAttachments ? ('Yes — ' + (st.attachmentCount || '?') + ' file(s)') : 'No'],
+                    ['Bookmarks / outline tree', st.hasBookmarks ? 'Yes' : 'No'],
+                    ['Embedded JavaScript', st.hasJavaScript ? 'Yes — review before trusting this file' : 'No']
+                ];
+                structHtml += structRows.map(([k, v]) => {
+                    const isRisky = (k === 'Embedded JavaScript' && st.hasJavaScript) || (k === 'Encrypted' && st.encrypted);
+                    return `<div class="meta-row${isRisky ? ' risky' : ''}"><span>${escapeHtmlStr(k)}</span><span>${escapeHtmlStr(v)}</span></div>`;
+                }).join('');
+                structurePane.innerHTML = structHtml;
+            } else {
+                structurePane.innerHTML = '<p class="info-empty">Structure flags hidden — enable "Show document structure flags" in Inspection Depth.</p>';
+            }
+        }
+
+        // ============================================
+        // DATE HANDLING
+        // ============================================
+        function resolveDates(opts, originalCreation, originalMod) {
+            if (opts.dateMode === 'now') {
+                const now = new Date();
+                return { creation: now, modification: now, clear: false };
+            }
+            if (opts.dateMode === 'clear') {
+                return { creation: null, modification: null, clear: true };
+            }
+            if (opts.dateMode === 'custom' && opts.customDateInput) {
+                const d = new Date(opts.customDateInput + 'T00:00:00');
+                return { creation: d, modification: d, clear: false };
+            }
+            return { creation: originalCreation, modification: originalMod, clear: false };
+        }
+
+        // ============================================
+        // APPLY (EDIT / STRIP) TO A SINGLE FILE
+        // ============================================
+        async function applyToFile(fileEntry) {
+            const opts = getOptions();
+            const mode = opts.actionModeSelect;
+            if (mode === 'view') {
+                logMsg(`"${fileEntry.name}" — View mode makes no changes; nothing to apply.`, 'warn');
+                return null;
+            }
+            if (fileEntry.error) {
+                logMsg(`Skipped "${fileEntry.name}": ${fileEntry.error}`, 'error');
+                return null;
+            }
+
+            const srcDoc = await PDFLib.PDFDocument.load(fileEntry.bytes, { ignoreEncryption: true });
+            const outDoc = await PDFLib.PDFDocument.create();
+            const indices = srcDoc.getPageIndices();
+            const copied = await outDoc.copyPages(srcDoc, indices);
+            copied.forEach(p => outDoc.addPage(p));
+
+            const dates = resolveDates(opts, fileEntry.meta.info.creationDate, fileEntry.meta.info.modificationDate);
+
+            if (mode === 'strip') {
+                if (opts.stripInfoDict) {
+                    outDoc.setTitle('');
+                    outDoc.setAuthor('');
+                    outDoc.setSubject('');
+                    outDoc.setKeywords([]);
+                    outDoc.setCreator(opts.stripProducerRewrite ? 'PDF Metadata Viewer' : '');
+                    outDoc.setProducer(opts.stripProducerRewrite ? 'PDF Metadata Viewer' : '');
+                } else {
+                    if (fileEntry.meta.info.title) outDoc.setTitle(fileEntry.meta.info.title);
+                    if (fileEntry.meta.info.author) outDoc.setAuthor(fileEntry.meta.info.author);
+                    if (fileEntry.meta.info.subject) outDoc.setSubject(fileEntry.meta.info.subject);
+                    if (fileEntry.meta.info.keywords) outDoc.setKeywords(fileEntry.meta.info.keywords.split(',').map(s => s.trim()).filter(Boolean));
+                    if (fileEntry.meta.info.creator) outDoc.setCreator(fileEntry.meta.info.creator);
+                    if (fileEntry.meta.info.producer) outDoc.setProducer(fileEntry.meta.info.producer);
+                }
+                // opts.stripXmp and opts.stripCustomKeys are inherently satisfied: a fresh PDFDocument
+                // carries no XMP packet and no non-standard Info keys unless we set them ourselves.
+                if (dates.clear) {
+                    // leave unset — pdf-lib will not emit CreationDate/ModDate
+                } else {
+                    if (dates.creation) outDoc.setCreationDate(dates.creation);
+                    if (dates.modification) outDoc.setModificationDate(dates.modification);
+                }
+            } else if (mode === 'edit') {
+                const basename = fileEntry.basename;
+                const tokens = { basename, date: todayStamp() };
+                const setOrCopy = (onFlag, val, setter, original) => {
+                    if (onFlag) setter(fillPattern(val, tokens));
+                    else if (original) setter(original);
+                };
+                setOrCopy(opts.fldTitleOn, opts.fldTitle, v => outDoc.setTitle(v), fileEntry.meta.info.title);
+                setOrCopy(opts.fldAuthorOn, opts.fldAuthor, v => outDoc.setAuthor(v), fileEntry.meta.info.author);
+                setOrCopy(opts.fldSubjectOn, opts.fldSubject, v => outDoc.setSubject(v), fileEntry.meta.info.subject);
+                if (opts.fldKeywordsOn) outDoc.setKeywords(fillPattern(opts.fldKeywords, tokens).split(',').map(s => s.trim()).filter(Boolean));
+                else if (fileEntry.meta.info.keywords) outDoc.setKeywords(fileEntry.meta.info.keywords.split(',').map(s => s.trim()).filter(Boolean));
+                setOrCopy(opts.fldCreatorOn, opts.fldCreator, v => outDoc.setCreator(v), fileEntry.meta.info.creator);
+                setOrCopy(opts.fldProducerOn, opts.fldProducer, v => outDoc.setProducer(v), fileEntry.meta.info.producer);
+
+                if (dates.clear) {
+                    // leave unset
+                } else {
+                    if (dates.creation) outDoc.setCreationDate(dates.creation);
+                    if (dates.modification) outDoc.setModificationDate(dates.modification);
+                }
+
+                // Custom Info dictionary entries via low-level context
+                (opts.kv || []).forEach(kv => {
+                    if (!kv.key) return;
+                    try {
+                        outDoc.context.trailerInfo.Info = outDoc.context.trailerInfo.Info || outDoc.context.obj({});
+                    } catch (e) {}
+                    try {
+                        const infoDict = outDoc.getInfoDict ? outDoc.getInfoDict() : null;
+                        if (infoDict && infoDict.set) {
+                            infoDict.set(PDFLib.PDFName.of(kv.key), PDFLib.PDFString.of(fillPattern(kv.val, tokens)));
+                        }
+                    } catch (e) { logMsg(`Could not write custom field "${kv.key}": ${e.message || e}`, 'warn'); }
+                });
+            }
+
+            outDoc.setProducer(outDoc.getProducer && outDoc.getProducer() ? outDoc.getProducer() : (mode === 'strip' && !opts.stripProducerRewrite ? '' : 'PDF Metadata Viewer'));
+
+            const bytes = await outDoc.save({ useObjectStreams: !!opts.optOptimize });
+            const nameTokens = { basename: fileEntry.basename, date: todayStamp() };
+            let outName = fillPattern(opts.outputNamePattern, nameTokens);
+            if (!/\.pdf$/i.test(outName)) outName += '.pdf';
+            return { name: outName, bytes };
+        }
+
+        async function applySelected() {
+            const f = getActiveFile();
+            if (!f) { showError('Add and select a PDF first.'); return; }
+            const opts = getOptions();
+            if (opts.actionModeSelect === 'view') { showError('Switch Action Mode to Edit or Strip to produce an output file.'); return; }
+            clearError();
+            applyBtn.disabled = true; applyAllBtn.disabled = true;
+            try {
+                const result = await applyToFile(f);
+                if (result) {
+                    outputs = outputs.filter(o => o.sourceId !== f.id);
+                    result.sourceId = f.id;
+                    outputs.push(result);
+                    logMsg(`Applied ${opts.actionModeSelect} to "${f.name}" → "${result.name}".`, 'success');
+                    finishApply();
+                }
+            } catch (err) {
+                showError('Apply failed: ' + (err.message || err));
+                logMsg('Apply failed: ' + (err.message || err), 'error');
+            } finally {
+                applyBtn.disabled = false; applyAllBtn.disabled = false;
+            }
+        }
+
+        async function applyAll() {
+            if (files.length === 0) { showError('Add at least one PDF first.'); return; }
+            const opts = getOptions();
+            if (opts.actionModeSelect === 'view') { showError('Switch Action Mode to Edit or Strip to produce output files.'); return; }
+            clearError();
+            applyBtn.disabled = true; applyAllBtn.disabled = true;
+            outputs = [];
+            let okCount = 0;
+            for (const f of files) {
+                try {
+                    const result = await applyToFile(f);
+                    if (result) {
+                        result.sourceId = f.id;
+                        outputs.push(result);
+                        okCount++;
+                    }
+                } catch (err) {
+                    logMsg(`Failed on "${f.name}": ${err.message || err}`, 'error');
+                }
+            }
+            logMsg(`Batch ${opts.actionModeSelect} complete: ${okCount}/${files.length} file(s) processed.`, okCount === files.length ? 'success' : 'warn');
+            finishApply();
+            applyBtn.disabled = false; applyAllBtn.disabled = false;
+        }
+
+        function finishApply() {
+            renderResults();
+            const totalBytes = outputs.reduce((sum, o) => sum + o.bytes.length, 0);
+            document.getElementById('outputFileCount').textContent = outputs.length.toLocaleString();
+            document.getElementById('outputSizeCount').textContent = totalBytes.toLocaleString();
+            const statusEl = document.getElementById('outputStatus');
+            statusEl.textContent = outputs.length ? 'Ready to download' : 'Not applied yet';
+            statusEl.parentElement.classList.toggle('success', outputs.length > 0);
+            downloadBtn.disabled = outputs.length === 0;
+            downloadBtn.innerHTML = outputs.length > 1
+                ? '<i class="fa-solid fa-download"></i> Download All (ZIP)'
+                : '<i class="fa-solid fa-download"></i> Download';
+            document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+            document.querySelector('.output-tab[data-tab="results"]').classList.add('active');
+            document.getElementById('pane-results').classList.add('active');
+        }
+
+        function renderResults() {
+            if (outputs.length === 0) {
+                resultsPane.innerHTML = '<p class="info-empty">Apply an edit or strip to see rebuilt output files here.</p>';
+                return;
+            }
+            let html = outputs.map((o, i) => `
+                <div class="meta-row">
+                    <span>${i + 1}. ${escapeHtmlStr(o.name)}</span>
+                    <span>${fmtBytes(o.bytes.length)}</span>
+                </div>
+            `).join('');
+            html += `<div class="meta-group-title">Export Findings</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+                    <button type="button" class="btn-mini" id="exportJsonBtn">Export metadata as JSON</button>
+                    <button type="button" class="btn-mini" id="exportCsvBtn">Export metadata as CSV</button>
+                </div>`;
+            resultsPane.innerHTML = html;
+            const jsonBtn = document.getElementById('exportJsonBtn');
+            const csvBtn = document.getElementById('exportCsvBtn');
+            if (jsonBtn) jsonBtn.addEventListener('click', exportMetaJson);
+            if (csvBtn) csvBtn.addEventListener('click', exportMetaCsv);
+        }
+
+        function metaExportRows() {
+            return files.filter(f => f.meta).map(f => ({
+                fileName: f.name,
+                title: f.meta.info.title || '',
+                author: f.meta.info.author || '',
+                subject: f.meta.info.subject || '',
+                keywords: f.meta.info.keywords || '',
+                creator: f.meta.info.creator || '',
+                producer: f.meta.info.producer || '',
+                creationDate: fmtDate(f.meta.info.creationDate) || '',
+                modificationDate: fmtDate(f.meta.info.modificationDate) || '',
+                pageCount: f.meta.pageCount,
+                fileSizeBytes: f.meta.fileSize,
+                hasXmp: !!f.meta.xmpRaw,
+                encrypted: f.meta.structure.encrypted,
+                hasForm: f.meta.structure.hasForm,
+                hasAttachments: f.meta.structure.hasAttachments,
+                hasJavaScript: f.meta.structure.hasJavaScript
+            }));
+        }
+        function exportMetaJson() {
+            const rows = metaExportRows();
+            const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+            triggerDownloadBlob(blob, 'pdf-metadata-export.json');
+            logMsg('Exported metadata as JSON.', 'success');
+        }
+        function exportMetaCsv() {
+            const rows = metaExportRows();
+            if (!rows.length) return;
+            const headers = Object.keys(rows[0]);
+            const csvEsc = v => `"${String(v).replace(/"/g, '""')}"`;
+            const csv = [headers.join(',')].concat(rows.map(r => headers.map(h => csvEsc(r[h])).join(','))).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            triggerDownloadBlob(blob, 'pdf-metadata-export.csv');
+            logMsg('Exported metadata as CSV.', 'success');
+        }
+        function triggerDownloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadSingleOutput(o) {
+            const blob = new Blob([o.bytes], { type: 'application/pdf' });
+            triggerDownloadBlob(blob, o.name);
+        }
+
+        applyBtn.addEventListener('click', applySelected);
+        applyAllBtn.addEventListener('click', applyAll);
+
+        downloadBtn.addEventListener('click', async () => {
+            if (outputs.length === 0) return;
+            if (outputs.length === 1) { downloadSingleOutput(outputs[0]); return; }
+            try {
+                const zip = new JSZip();
+                outputs.forEach(o => zip.file(o.name, o.bytes));
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                triggerDownloadBlob(zipBlob, 'pdf-metadata-outputs.zip');
+                logMsg('Downloaded all outputs as a ZIP.', 'success');
+            } catch (err) {
+                showError('Could not build ZIP: ' + (err.message || err));
+                logMsg('ZIP build failed: ' + (err.message || err), 'error');
+            }
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', clearAllFiles);
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            addFiles(Array.from(e.target.files));
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            addFiles(Array.from(dropped));
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfMetaViewerLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial render
+        updateModeVisibility();
+        if (kvRows.length === 0) { /* start empty, user adds fields as needed */ }
+        renderSourceList();
+        renderActiveMeta();
+        updateInputStats();
+    </script>
+</body>
+</html>
