@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF to Text Converter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF to text extractor with reflowed or layout-preserving output, dehyphenation, repeated header/footer stripping, margin exclusion, OCR fallback for scanned pages, email/URL/phone extraction, and TXT/Markdown/JSON/CSV export. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-to-text.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-to-text.html" />
+<meta property="og:title" content="PDF to Text Converter — awjunaid" />
+<meta property="og:description" content="Turn any PDF into clean text. Reflow paragraphs or preserve layout, strip repeated headers/footers, dehyphenate wrapped words, OCR scanned pages, and pull out emails, URLs and phone numbers. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-to-text.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF to Text Converter — awjunaid" />
+<meta name="twitter:description" content="Turn any PDF into clean text. Reflow paragraphs or preserve layout, strip repeated headers/footers, dehyphenate wrapped words, OCR scanned pages, and pull out emails, URLs and phone numbers. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-to-text.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section.hidden-mode { display: none; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-section h4 .mode-flag {
+            font-size: 9px; opacity: 0.8; border: 1px solid var(--border-light); border-radius: 20px; padding: 2px 8px;
+            margin-left: 8px; text-transform: none; letter-spacing: 0; vertical-align: middle;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-hint { display: block; font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        .range-slider-row { display: flex; align-items: center; gap: 10px; }
+        .range-slider-row input[type="range"] { flex: 1; accent-color: var(--text-primary); }
+        .range-slider-row .range-val { font-family: var(--font-mono); font-size: 12px; width: 42px; text-align: right; flex-shrink: 0; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-mini {
+            border: 1px solid var(--border-light); background: transparent; color: var(--text-color);
+            border-radius: 60px; padding: 5px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.4px; cursor: pointer; font-family: var(--font-header); white-space: nowrap;
+        }
+        .btn-mini:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* Source file drop / card */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .file-list-empty { font-size: 12px; opacity: 0.5; padding: 22px 4px; text-align: center; }
+        .source-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 4px;
+            background: var(--input-bg);
+        }
+        .source-card.file-error { border-color: var(--danger); }
+        .source-icon { font-size: 22px; opacity: 0.7; padding-top: 2px; }
+        .source-main { flex: 1; min-width: 0; }
+        .source-name { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .source-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .remove-file-btn {
+            border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px;
+            border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        .progress-track {
+            display: none;
+            margin-top: 10px;
+            height: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+            background: var(--input-bg);
+        }
+        .progress-track.show { display: block; }
+        .progress-fill { height: 100%; width: 0%; background: var(--text-primary); transition: width 0.2s ease; }
+        .progress-label { font-size: 10.5px; opacity: 0.6; margin-top: 6px; font-family: var(--font-mono); }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane.preview-pane { white-space: pre-wrap; word-break: break-word; line-height: 1.6; font-size: 12px; }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; }
+
+        .data-group { margin-bottom: 16px; }
+        .data-group h5 { font-family: var(--font-header); font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 8px; }
+        .data-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+        .data-chip {
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 4px 10px; font-size: 11px;
+            background: var(--input-bg); word-break: break-all;
+        }
+
+        .output-file-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border-bottom: 1px solid var(--border-light); padding: 9px 0; font-family: var(--font-body);
+        }
+        .output-file-row:last-child { border-bottom: none; }
+        .output-file-info { min-width: 0; }
+        .output-file-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-file-meta { font-size: 10.5px; opacity: 0.55; font-family: var(--font-mono); margin-top: 1px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF → Text</h1>
+                <div class="tool-dek">Pull clean, usable text out of any PDF. Reflow it into readable paragraphs or preserve the original layout, strip repeated headers/footers and page numbers automatically, fix words that got split across a line break, exclude margins, run OCR on scanned pages that have no real text layer, and pull out every email, URL and phone number it finds — then export as TXT, Markdown, JSON or CSV.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="cleanReading">Clean Reading Text</option>
+                    <option value="preserveLayout">Preserve Original Layout</option>
+                    <option value="perPageMarkdown">Per-Page Markdown</option>
+                    <option value="dataExtraction">Extract Emails / URLs / Phones</option>
+                    <option value="scannedOcr">Scanned Document (OCR)</option>
+                    <option value="developerJson">Developer JSON Export</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Extraction Mode</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="extractModeSelect">How should text be reconstructed?</label>
+                            <select id="extractModeSelect">
+                                <option value="reflow">Reflow — merge wrapped lines into natural paragraphs (best for reading)</option>
+                                <option value="layout">Preserve Layout — keep line breaks and spacing close to the original (best for forms, tables, code)</option>
+                                <option value="raw">Raw Stream — every text fragment as pdf.js reports it, no reconstruction</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Page Selection</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="pageRangeInput">Pages to extract</label>
+                            <input type="text" id="pageRangeInput" placeholder="all, or e.g. 1-5,9">
+                            <span class="field-hint">Leave blank (or "all") to extract every page.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Text Cleanup</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDehyphenate" checked>
+                            <span><span class="setting-name">Fix line-wrapped words</span><span class="setting-hint">Joins "informa-" + "tion" into "information" when a line ends in a hyphen and the next starts lowercase</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNormalizeWhitespace" checked>
+                            <span><span class="setting-name">Normalize whitespace</span><span class="setting-hint">Collapses repeated spaces/tabs and trims trailing spaces on every line</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNormalizeLigatures" checked>
+                            <span><span class="setting-name">Expand ligatures & smart punctuation</span><span class="setting-hint">ﬁ → fi, curly quotes → straight quotes, en/em dashes normalized</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCollapseBlankLines" checked>
+                            <span><span class="setting-name">Collapse blank lines</span><span class="setting-hint">Never more than one empty line in a row</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripHeadersFooters">
+                            <span><span class="setting-name">Strip repeated headers/footers</span><span class="setting-hint">Removes lines that repeat near the top or bottom of most pages (running titles, page numbers, doc IDs)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripPageNumberLines">
+                            <span><span class="setting-name">Strip standalone page-number lines</span><span class="setting-hint">Removes a line that is only a number (or "Page N", "N / M")</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Margin Exclusion</h4>
+                    <div class="settings-grid" style="margin-bottom:12px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMarginExclude">
+                            <span><span class="setting-name">Exclude text inside margins</span><span class="setting-hint">Drops any text positioned within the given % of each edge — useful when header/footer stripping by content isn't enough</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="marginTop">Top margin (%)</label>
+                            <div class="range-slider-row"><input type="range" id="marginTop" min="0" max="25" value="0"><span class="range-val" id="marginTopVal">0%</span></div>
+                        </div>
+                        <div class="field-group">
+                            <label for="marginBottom">Bottom margin (%)</label>
+                            <div class="range-slider-row"><input type="range" id="marginBottom" min="0" max="25" value="0"><span class="range-val" id="marginBottomVal">0%</span></div>
+                        </div>
+                        <div class="field-group">
+                            <label for="marginLeft">Left margin (%)</label>
+                            <div class="range-slider-row"><input type="range" id="marginLeft" min="0" max="25" value="0"><span class="range-val" id="marginLeftVal">0%</span></div>
+                        </div>
+                        <div class="field-group">
+                            <label for="marginRight">Right margin (%)</label>
+                            <div class="range-slider-row"><input type="range" id="marginRight" min="0" max="25" value="0"><span class="range-val" id="marginRightVal">0%</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Scanned Pages (OCR)</h4>
+                    <div class="settings-grid" style="margin-bottom:12px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOcrFallback">
+                            <span><span class="setting-name">OCR pages with no text layer</span><span class="setting-hint">If a page yields fewer than the threshold below in real characters, it's rendered as an image and read with on-device OCR — slower, but rescues scanned pages</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="ocrLanguage">OCR language</label>
+                            <select id="ocrLanguage">
+                                <option value="eng">English</option>
+                                <option value="fra">French</option>
+                                <option value="deu">German</option>
+                                <option value="spa">Spanish</option>
+                                <option value="ita">Italian</option>
+                                <option value="por">Portuguese</option>
+                                <option value="ara">Arabic</option>
+                                <option value="chi_sim">Chinese (Simplified)</option>
+                                <option value="rus">Russian</option>
+                                <option value="urd">Urdu</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="ocrThreshold">Trigger OCR below (characters)</label>
+                            <input type="number" id="ocrThreshold" value="20" min="0" max="2000">
+                            <span class="field-hint">Pages with fewer extracted characters than this are treated as image-only.</span>
+                        </div>
+                    </div>
+                    <span class="field-hint" style="display:block;margin-top:10px;">OCR runs fully in your browser (no upload) but downloads a language model on first use and is noticeably slower per page — best kept off unless you know some pages are scanned images.</span>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Extract Structured Data</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optExtractEmails">
+                            <span><span class="setting-name">Emails</span><span class="setting-hint">Collects every email address found in the extracted text</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optExtractUrls">
+                            <span><span class="setting-name">URLs</span><span class="setting-hint">Collects http(s)/www links</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optExtractPhones">
+                            <span><span class="setting-name">Phone numbers</span><span class="setting-hint">Collects number-like sequences of 7+ digits, with common separators</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optExtractDedupe" checked>
+                            <span><span class="setting-name">De-duplicate matches</span><span class="setting-hint">Each unique value listed once, case-insensitive</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Structure</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPageMarkers" checked>
+                            <span><span class="setting-name">Insert page markers</span><span class="setting-hint">Adds a "--- Page N ---" divider (or Markdown heading) between pages</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIncludeDocMeta">
+                            <span><span class="setting-name">Include document info header</span><span class="setting-hint">Prepends title/author/page count read from the PDF's metadata</span></span>
+                        </label>
+                    </div>
+                    <div class="radio-row" style="margin-top:14px;">
+                        <label class="radio-opt"><input type="radio" name="outputGrouping" value="combined" checked> One combined file for all pages</label>
+                        <label class="radio-opt"><input type="radio" name="outputGrouping" value="perPage"> Separate file per page (zipped)</label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Format</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="outputFormatSelect">Format</label>
+                            <select id="outputFormatSelect">
+                                <option value="txt">Plain text (.txt)</option>
+                                <option value="md">Markdown (.md)</option>
+                                <option value="json">JSON — array of page objects (.json)</option>
+                                <option value="csv">CSV — page, text (.csv)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="lineEndingSelect">Line endings</label>
+                            <select id="lineEndingSelect">
+                                <option value="lf">LF (Unix/macOS)</option>
+                                <option value="crlf">CRLF (Windows)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="encodingSelect">Encoding</label>
+                            <select id="encodingSelect">
+                                <option value="utf8">UTF-8</option>
+                                <option value="utf8bom">UTF-8 with BOM</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output File</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputNamePattern">File name pattern</label>
+                            <input type="text" id="outputNamePattern" value="{basename}_extracted">
+                            <span class="field-hint">Tokens: {basename} {date} — extension is added automatically from the output format.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source Document</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Add PDF</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop one .pdf file here, or use "Add PDF" above. Adding a new file replaces the current one.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div id="sourceArea">
+                        <div class="file-list-empty" id="sourceEmpty">No PDF added yet. Add one to configure extraction.</div>
+                    </div>
+                    <div class="progress-track" id="progressTrack">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-label" id="progressLabel" style="display:none;"></div>
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalInputPages">0</strong> source pages</span>
+                        <span><strong id="selectedPageCount">0</strong> pages selected</span>
+                        <span><strong id="totalCharCount">0</strong> characters extracted</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Extract & Download</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="extractBtn" type="button"><i class="fa-solid fa-file-lines"></i> Extract Text</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="preview" type="button">Preview</button>
+                        <button class="output-tab" data-tab="files" type="button">Output File</button>
+                        <button class="output-tab" data-tab="data" type="button">Extracted Data</button>
+                        <button class="output-tab" data-tab="meta" type="button">Document Info</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-preview">
+                        <div class="info-pane preview-pane" id="previewPane"><p class="info-empty">Add a PDF and click "Extract Text" to see a preview here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">Extract the file to get a downloadable output here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-data">
+                        <div class="info-pane" id="dataPane"><p class="info-empty">Turn on email, URL or phone extraction to see matches here after extracting.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-meta">
+                        <div class="info-pane" id="metaPane"><p class="info-empty">Document info appears here once a PDF is loaded.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Extraction activity and warnings will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputFileCount">0</strong> output file(s)</span>
+                        <span><strong id="outputSizeCount">0</strong> total bytes</span>
+                        <span><strong id="outputStatus">Not extracted yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Reflow, Preserve Layout, or Raw Stream — which one?</h4>
+                        <p>Reflow is right for reading a report or article — it rejoins wrapped lines into paragraphs. Preserve Layout keeps line breaks close to the original, which matters for forms, invoices, and tables where position carries meaning. Raw Stream dumps every text fragment pdf.js reports, useful for debugging odd extraction results.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does repeated header/footer stripping work?</h4>
+                        <p>After every page is extracted, the tool looks for lines near the top or bottom of a page that repeat across most other pages — a running title, a document code, a page number — and removes them. It only strips lines that repeat; a one-off heading is left alone.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why would I need OCR if the PDF already has "text" in it?</h4>
+                        <p>Some PDFs are just scanned images with no underlying text layer at all, so normal extraction returns almost nothing. Turning on OCR renders those pages as images and reads the characters visually, in your browser, only for pages that fall below the character threshold you set.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What do the margin sliders actually exclude?</h4>
+                        <p>Each slider is a percentage of the page's height or width measured from that edge. Text positioned inside that band — say the top 8% of every page — is dropped before reflow even runs, which is a more reliable fix than pattern-matching when a header changes wording page to page.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between the export formats?</h4>
+                        <p>Plain text and Markdown are for reading or pasting elsewhere, with Markdown adding page headings. JSON gives you an array of page objects — useful for feeding into another script. CSV gives one row per page with the page number and its text, handy for spreadsheets.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. The file you add is read, parsed and (optionally) OCR'd locally in your browser — nothing is sent anywhere. Reload the page and everything is cleared, except your settings, which are remembered for next time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // ============================================
+        // PDF → TEXT — ENTERPRISE EDITION
+        // ============================================
+        const sourceArea = document.getElementById('sourceArea');
+        const sourceEmpty = document.getElementById('sourceEmpty');
+        const errorBanner = document.getElementById('errorBanner');
+        const previewPane = document.getElementById('previewPane');
+        const filesPane = document.getElementById('filesPane');
+        const dataPane = document.getElementById('dataPane');
+        const metaPane = document.getElementById('metaPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const extractBtn = document.getElementById('extractBtn');
+        const progressTrack = document.getElementById('progressTrack');
+        const progressFill = document.getElementById('progressFill');
+        const progressLabel = document.getElementById('progressLabel');
+
+        let source = null;  // { name, basename, bytes, pageCount, error, docInfo }
+        let pdfDoc = null;  // loaded pdfjsLib document, kept for re-extraction
+        let outputs = [];   // { name, bytes }
+        let lastResult = null; // { pages: [{num, text, charCount}], combinedText, dataMatches }
+        let ocrWorker = null;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optDehyphenate', 'optNormalizeWhitespace', 'optNormalizeLigatures', 'optCollapseBlankLines',
+                         'optStripHeadersFooters', 'optStripPageNumberLines', 'optMarginExclude', 'optOcrFallback',
+                         'optExtractEmails', 'optExtractUrls', 'optExtractPhones', 'optExtractDedupe',
+                         'optPageMarkers', 'optIncludeDocMeta'],
+            text: ['pageRangeInput', 'outputNamePattern'],
+            number: ['marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'ocrThreshold'],
+            select: ['extractModeSelect', 'ocrLanguage', 'outputFormatSelect', 'lineEndingSelect', 'encodingSelect']
+        };
+
+        function getRadioValue(name) {
+            const el = document.querySelector(`input[name="${name}"]:checked`);
+            return el ? el.value : null;
+        }
+        function setRadioValue(name, value) {
+            const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+            if (el) el.checked = true;
+        }
+
+        function getOptions() {
+            const opts = {};
+            SETTING_IDS.checkboxes.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_IDS.number.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => opts[id] = document.getElementById(id).value);
+            opts.outputGrouping = getRadioValue('outputGrouping') || 'combined';
+            return opts;
+        }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.number.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (settings.outputGrouping) setRadioValue('outputGrouping', settings.outputGrouping);
+            updateMarginLabels();
+        }
+
+        function updateMarginLabels() {
+            ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'].forEach(id => {
+                document.getElementById(id + 'Val').textContent = document.getElementById(id).value + '%';
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            cleanReading: {
+                extractModeSelect: 'reflow', pageRangeInput: 'all',
+                optDehyphenate: true, optNormalizeWhitespace: true, optNormalizeLigatures: true, optCollapseBlankLines: true,
+                optStripHeadersFooters: true, optStripPageNumberLines: true,
+                optMarginExclude: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+                optOcrFallback: false, ocrLanguage: 'eng', ocrThreshold: 20,
+                optExtractEmails: false, optExtractUrls: false, optExtractPhones: false, optExtractDedupe: true,
+                optPageMarkers: false, optIncludeDocMeta: false, outputGrouping: 'combined',
+                outputFormatSelect: 'txt', lineEndingSelect: 'lf', encodingSelect: 'utf8',
+                outputNamePattern: '{basename}_clean'
+            },
+            preserveLayout: {
+                extractModeSelect: 'layout', pageRangeInput: 'all',
+                optDehyphenate: false, optNormalizeWhitespace: false, optNormalizeLigatures: true, optCollapseBlankLines: false,
+                optStripHeadersFooters: false, optStripPageNumberLines: false,
+                optMarginExclude: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+                optOcrFallback: false, ocrLanguage: 'eng', ocrThreshold: 20,
+                optExtractEmails: false, optExtractUrls: false, optExtractPhones: false, optExtractDedupe: true,
+                optPageMarkers: true, optIncludeDocMeta: false, outputGrouping: 'combined',
+                outputFormatSelect: 'txt', lineEndingSelect: 'lf', encodingSelect: 'utf8',
+                outputNamePattern: '{basename}_layout'
+            },
+            perPageMarkdown: {
+                extractModeSelect: 'reflow', pageRangeInput: 'all',
+                optDehyphenate: true, optNormalizeWhitespace: true, optNormalizeLigatures: true, optCollapseBlankLines: true,
+                optStripHeadersFooters: true, optStripPageNumberLines: true,
+                optMarginExclude: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+                optOcrFallback: false, ocrLanguage: 'eng', ocrThreshold: 20,
+                optExtractEmails: false, optExtractUrls: false, optExtractPhones: false, optExtractDedupe: true,
+                optPageMarkers: true, optIncludeDocMeta: true, outputGrouping: 'combined',
+                outputFormatSelect: 'md', lineEndingSelect: 'lf', encodingSelect: 'utf8',
+                outputNamePattern: '{basename}_notes'
+            },
+            dataExtraction: {
+                extractModeSelect: 'raw', pageRangeInput: 'all',
+                optDehyphenate: false, optNormalizeWhitespace: true, optNormalizeLigatures: true, optCollapseBlankLines: true,
+                optStripHeadersFooters: false, optStripPageNumberLines: false,
+                optMarginExclude: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+                optOcrFallback: false, ocrLanguage: 'eng', ocrThreshold: 20,
+                optExtractEmails: true, optExtractUrls: true, optExtractPhones: true, optExtractDedupe: true,
+                optPageMarkers: false, optIncludeDocMeta: false, outputGrouping: 'combined',
+                outputFormatSelect: 'txt', lineEndingSelect: 'lf', encodingSelect: 'utf8',
+                outputNamePattern: '{basename}_contacts'
+            },
+            scannedOcr: {
+                extractModeSelect: 'reflow', pageRangeInput: 'all',
+                optDehyphenate: true, optNormalizeWhitespace: true, optNormalizeLigatures: true, optCollapseBlankLines: true,
+                optStripHeadersFooters: false, optStripPageNumberLines: false,
+                optMarginExclude: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+                optOcrFallback: true, ocrLanguage: 'eng', ocrThreshold: 20,
+                optExtractEmails: false, optExtractUrls: false, optExtractPhones: false, optExtractDedupe: true,
+                optPageMarkers: true, optIncludeDocMeta: false, outputGrouping: 'combined',
+                outputFormatSelect: 'txt', lineEndingSelect: 'lf', encodingSelect: 'utf8',
+                outputNamePattern: '{basename}_ocr'
+            },
+            developerJson: {
+                extractModeSelect: 'reflow', pageRangeInput: 'all',
+                optDehyphenate: true, optNormalizeWhitespace: true, optNormalizeLigatures: true, optCollapseBlankLines: true,
+                optStripHeadersFooters: true, optStripPageNumberLines: true,
+                optMarginExclude: false, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+                optOcrFallback: false, ocrLanguage: 'eng', ocrThreshold: 20,
+                optExtractEmails: true, optExtractUrls: true, optExtractPhones: false, optExtractDedupe: true,
+                optPageMarkers: false, optIncludeDocMeta: true, outputGrouping: 'combined',
+                outputFormatSelect: 'json', lineEndingSelect: 'lf', encodingSelect: 'utf8',
+                outputNamePattern: '{basename}_data'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfToTextCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            invalidateExtraction();
+            saveSettingsDraft();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+                updateMarginLabels();
+                invalidateExtraction();
+                saveSettingsDraft();
+            });
+            el.addEventListener('change', () => {
+                document.getElementById('presetSelect').value = 'custom';
+                invalidateExtraction();
+                saveSettingsDraft();
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-to-text-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    invalidateExtraction();
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // ERROR / LOG / PROGRESS HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function clearLog() {
+            logLines = [];
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Extraction activity and warnings will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function setProgress(pct, label) {
+            if (pct === null) {
+                progressTrack.classList.remove('show');
+                progressLabel.style.display = 'none';
+                return;
+            }
+            progressTrack.classList.add('show');
+            progressLabel.style.display = 'block';
+            progressFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+            progressLabel.textContent = label || '';
+        }
+
+        // ============================================
+        // PAGE RANGE PARSING
+        // ============================================
+        function parseRange(rangeStr, pageCount) {
+            const str = (rangeStr || '').trim().toLowerCase();
+            if (str === '' || str === 'all') {
+                return Array.from({ length: pageCount }, (_, i) => i + 1);
+            }
+            const nums = [];
+            str.split(',').forEach(part => {
+                const p = part.trim();
+                if (p === '') return;
+                if (p.includes('-')) {
+                    const bounds = p.split('-').map(s => parseInt(s.trim(), 10));
+                    let start = bounds[0], end = bounds[1];
+                    if (isNaN(start) || isNaN(end)) return;
+                    if (start > end) { const t = start; start = end; end = t; }
+                    start = Math.max(1, start);
+                    end = Math.min(pageCount, end);
+                    for (let n = start; n <= end; n++) nums.push(n);
+                } else {
+                    const n = parseInt(p, 10);
+                    if (!isNaN(n) && n >= 1 && n <= pageCount) nums.push(n);
+                }
+            });
+            return nums;
+        }
+
+        function getBasename(filename) {
+            return (filename || 'document').replace(/\.pdf$/i, '');
+        }
+        function todayStamp() {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+        }
+        function fillPattern(pattern, tokens) {
+            let out = pattern || '{basename}_extracted';
+            Object.keys(tokens).forEach(key => {
+                out = out.split('{' + key + '}').join(tokens[key]);
+            });
+            return out.replace(/[\\/:*?"<>|]/g, '-').trim() || 'output';
+        }
+
+        // ============================================
+        // SOURCE FILE MANAGEMENT
+        // ============================================
+        async function setSourceFile(file) {
+            clearError();
+            const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+            if (!isPdf) {
+                showError(`"${file.name}" is not a PDF file.`);
+                return;
+            }
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                let pageCount = 0;
+                let error = null;
+                let docInfo = {};
+                try {
+                    pdfDoc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+                    pageCount = pdfDoc.numPages;
+                    try {
+                        const meta = await pdfDoc.getMetadata();
+                        docInfo = {
+                            title: (meta.info && meta.info.Title) || '',
+                            author: (meta.info && meta.info.Author) || '',
+                            producer: (meta.info && meta.info.Producer) || '',
+                            creationDate: (meta.info && meta.info.CreationDate) || ''
+                        };
+                    } catch (metaErr) { /* metadata optional */ }
+                } catch (err) {
+                    error = 'Could not be read as a PDF';
+                    logMsg(`Failed to read "${file.name}": ${err.message || err}`, 'error');
+                }
+                source = { name: file.name, basename: getBasename(file.name), bytes, pageCount, error, docInfo };
+                if (!error) {
+                    logMsg(`Loaded "${file.name}" (${pageCount} page${pageCount === 1 ? '' : 's'}).`, 'success');
+                }
+            } catch (err) {
+                showError(`Failed to load "${file.name}": ${err.message || err}`);
+                return;
+            }
+            renderSource();
+            renderDocMeta();
+            invalidateExtraction();
+        }
+
+        function renderSource() {
+            if (!source) {
+                sourceArea.innerHTML = '';
+                sourceArea.appendChild(sourceEmpty);
+                updateInputStats();
+                return;
+            }
+            sourceArea.innerHTML = '';
+            const card = document.createElement('div');
+            card.className = 'source-card' + (source.error ? ' file-error' : '');
+            card.innerHTML = `
+                <div class="source-icon"><i class="fa-solid fa-file-pdf"></i></div>
+                <div class="source-main">
+                    <div class="source-name" title="${escapeHtmlStr(source.name)}">${escapeHtmlStr(source.name)}</div>
+                    <div class="source-meta">${source.error ? escapeHtmlStr(source.error) : source.pageCount + ' page' + (source.pageCount === 1 ? '' : 's')}</div>
+                </div>
+                <button type="button" class="remove-file-btn" data-action="remove" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            card.querySelector('[data-action="remove"]').addEventListener('click', clearSource);
+            sourceArea.appendChild(card);
+            updateInputStats();
+        }
+
+        function renderDocMeta() {
+            if (!source || source.error) {
+                metaPane.innerHTML = '<p class="info-empty">Document info appears here once a PDF is loaded.</p>';
+                return;
+            }
+            const info = source.docInfo || {};
+            const rows = [
+                ['File name', source.name],
+                ['Pages', String(source.pageCount)],
+                ['Title', info.title || '(none)'],
+                ['Author', info.author || '(none)'],
+                ['Producer', info.producer || '(none)'],
+                ['Creation date', info.creationDate || '(unknown)']
+            ];
+            metaPane.innerHTML = rows.map(([k, v]) => `<div class="meta-row"><span>${escapeHtmlStr(k)}</span><span>${escapeHtmlStr(String(v))}</span></div>`).join('');
+        }
+
+        function clearSource() {
+            source = null;
+            pdfDoc = null;
+            renderSource();
+            renderDocMeta();
+            invalidateExtraction();
+            clearError();
+        }
+
+        function updateInputStats() {
+            document.getElementById('totalInputPages').textContent = source ? source.pageCount.toLocaleString() : '0';
+            const opts = getOptions();
+            const selected = source ? parseRange(opts.pageRangeInput, source.pageCount) : [];
+            document.getElementById('selectedPageCount').textContent = selected.length.toLocaleString();
+            document.getElementById('totalCharCount').textContent = lastResult ? lastResult.combinedText.length.toLocaleString() : '0';
+        }
+
+        // ============================================
+        // TEXT RECONSTRUCTION FROM PDF.JS TEXT CONTENT
+        // ============================================
+        function itemInMargins(item, viewport, opts) {
+            if (!opts.optMarginExclude) return false;
+            const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+            const x = tx[4];
+            const y = tx[5];
+            const w = viewport.width, h = viewport.height;
+            const topPx = (parseFloat(opts.marginTop) / 100) * h;
+            const bottomPx = h - (parseFloat(opts.marginBottom) / 100) * h;
+            const leftPx = (parseFloat(opts.marginLeft) / 100) * w;
+            const rightPx = w - (parseFloat(opts.marginRight) / 100) * w;
+            // PDF y-axis points up from bottom in viewport-transformed coords here (viewport already flips for canvas)
+            const fromTop = h - y;
+            if (fromTop < topPx) return true;
+            if (fromTop > bottomPx) return true;
+            if (x < leftPx) return true;
+            if (x > rightPx) return true;
+            return false;
+        }
+
+        async function extractPageRaw(pageNum, viewport, textContent, opts) {
+            const parts = [];
+            textContent.items.forEach(item => {
+                if (itemInMargins(item, viewport, opts)) return;
+                if (item.str !== undefined) parts.push(item.str);
+            });
+            return parts.join(' ');
+        }
+
+        async function extractPageReflowOrLayout(pageNum, viewport, textContent, opts, mode) {
+            const items = textContent.items
+                .filter(item => !itemInMargins(item, viewport, opts))
+                .map(item => {
+                    const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+                    return { str: item.str, x: tx[4], y: tx[5], w: item.width || 0, hasEOL: item.hasEOL };
+                });
+            if (items.length === 0) return '';
+
+            // Group into lines by y position (rounded), preserving original order fallback
+            const lines = [];
+            let current = null;
+            let lastY = null;
+            items.forEach(it => {
+                if (it.str === '' && !it.hasEOL) return;
+                if (lastY === null || Math.abs(it.y - lastY) > 3) {
+                    current = [];
+                    lines.push(current);
+                    lastY = it.y;
+                }
+                current.push(it);
+            });
+
+            const lineStrings = lines.map(line => {
+                line.sort((a, b) => a.x - b.x);
+                if (mode === 'layout') {
+                    // Approximate original spacing using a fixed-width column estimate
+                    let out = '';
+                    let cursorX = null;
+                    line.forEach(it => {
+                        if (cursorX !== null) {
+                            const gap = it.x - cursorX;
+                            const spaces = Math.max(1, Math.round(gap / 5));
+                            out += ' '.repeat(Math.min(spaces, 20));
+                        }
+                        out += it.str;
+                        cursorX = it.x + it.w;
+                    });
+                    return out;
+                }
+                return line.map(it => it.str).join('').replace(/ {2,}/g, ' ');
+            });
+
+            if (mode === 'layout') {
+                return lineStrings.join('\n');
+            }
+
+            // Reflow: merge lines into paragraphs. A line ending mid-sentence (no
+            // terminal punctuation) likely continues on the next line.
+            let text = '';
+            for (let i = 0; i < lineStrings.length; i++) {
+                let line = lineStrings[i].trim();
+                if (line === '') { text += '\n\n'; continue; }
+                const prevEndsHyphen = /[a-z\u00e0-\u017e]-$/.test(line);
+                if (opts.optDehyphenate && prevEndsHyphen && i < lineStrings.length - 1) {
+                    text += line.slice(0, -1);
+                    continue;
+                }
+                const endsSentence = /[.!?:;\u2026]["')\]]?$/.test(line);
+                text += line;
+                if (i < lineStrings.length - 1) {
+                    text += endsSentence ? '\n\n' : ' ';
+                }
+            }
+            return text;
+        }
+
+        function normalizeLigatures(text) {
+            const map = {
+                '\uFB00': 'ff', '\uFB01': 'fi', '\uFB02': 'fl', '\uFB03': 'ffi', '\uFB04': 'ffl',
+                '\u2018': "'", '\u2019': "'", '\u201C': '"', '\u201D': '"',
+                '\u2013': '-', '\u2014': '--', '\u2026': '...'
+            };
+            return text.replace(/[\uFB00-\uFB04\u2018\u2019\u201C\u201D\u2013\u2014\u2026]/g, ch => map[ch] || ch);
+        }
+
+        function cleanupPageText(text, opts) {
+            let out = text;
+            if (opts.optNormalizeLigatures) out = normalizeLigatures(out);
+            if (opts.optNormalizeWhitespace) {
+                out = out.split('\n').map(l => l.replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+$/g, '')).join('\n');
+            }
+            if (opts.optStripPageNumberLines) {
+                out = out.split('\n').filter(l => {
+                    const t = l.trim();
+                    if (t === '') return true;
+                    return !/^(page\s+)?\d{1,4}(\s*[\/of]{1,2}\s*\d{1,4})?$/i.test(t);
+                }).join('\n');
+            }
+            if (opts.optCollapseBlankLines) {
+                out = out.replace(/\n{3,}/g, '\n\n');
+            }
+            return out.trim();
+        }
+
+        function stripRepeatedHeaderFooterLines(pages) {
+            // pages: [{num, lines: [...]}] — looks at first/last 3 lines of each page
+            const edgeCounts = {};
+            pages.forEach(p => {
+                const lines = p.lines;
+                const edge = [...lines.slice(0, 3), ...lines.slice(-3)];
+                const seen = new Set();
+                edge.forEach(l => {
+                    const key = l.trim().toLowerCase().replace(/\d+/g, '#');
+                    if (key === '' || seen.has(key)) return;
+                    seen.add(key);
+                    edgeCounts[key] = (edgeCounts[key] || 0) + 1;
+                });
+            });
+            const threshold = Math.max(2, Math.ceil(pages.length * 0.5));
+            const repeated = new Set(Object.keys(edgeCounts).filter(k => edgeCounts[k] >= threshold));
+            if (repeated.size === 0) return pages.map(p => p.lines.join('\n'));
+            return pages.map(p => {
+                return p.lines.filter(l => {
+                    const key = l.trim().toLowerCase().replace(/\d+/g, '#');
+                    return !repeated.has(key);
+                }).join('\n');
+            });
+        }
+
+        // ============================================
+        // OCR (Tesseract.js) for image-only pages
+        // ============================================
+        async function ocrPage(page, lang) {
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            if (!ocrWorker) {
+                ocrWorker = await Tesseract.createWorker(lang, 1, {
+                    logger: () => {}
+                });
+            }
+            const { data } = await ocrWorker.recognize(canvas);
+            return data.text || '';
+        }
+
+        // ============================================
+        // DATA EXTRACTION (emails / urls / phones)
+        // ============================================
+        function extractStructuredData(text, opts) {
+            const result = { emails: [], urls: [], phones: [] };
+            if (opts.optExtractEmails) {
+                const matches = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+                result.emails = matches;
+            }
+            if (opts.optExtractUrls) {
+                const matches = text.match(/\b(?:https?:\/\/|www\.)[^\s<>"')\]]+/g) || [];
+                result.urls = matches;
+            }
+            if (opts.optExtractPhones) {
+                const matches = text.match(/(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,4}\)[\s.-]?)?\d{2,4}[\s.-]\d{2,4}[\s.-]\d{2,6}(?:[\s.-]\d{2,4})?/g) || [];
+                result.phones = matches.filter(m => m.replace(/\D/g, '').length >= 7);
+            }
+            if (opts.optExtractDedupe) {
+                ['emails', 'urls', 'phones'].forEach(k => {
+                    const seen = new Set();
+                    result[k] = result[k].filter(v => {
+                        const key = v.toLowerCase();
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
+                });
+            }
+            return result;
+        }
+
+        // ============================================
+        // MAIN EXTRACTION PIPELINE
+        // ============================================
+        async function extractText() {
+            if (!source) {
+                showError('Add a PDF before extracting.');
+                return;
+            }
+            if (source.error || !pdfDoc) {
+                showError('The source file could not be read: ' + (source.error || 'unknown error'));
+                return;
+            }
+
+            clearError();
+            clearLog();
+            extractBtn.disabled = true;
+            downloadBtn.disabled = true;
+            outputs = [];
+            lastResult = null;
+            document.getElementById('outputStatus').textContent = 'Extracting…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+
+            const opts = getOptions();
+            const pageNums = parseRange(opts.pageRangeInput, source.pageCount);
+            if (pageNums.length === 0) {
+                showError('No pages match the page selection.');
+                extractBtn.disabled = false;
+                return;
+            }
+
+            try {
+                const rawPages = []; // { num, text }
+                let ocrCount = 0;
+
+                for (let i = 0; i < pageNums.length; i++) {
+                    const num = pageNums[i];
+                    setProgress(((i) / pageNums.length) * 100, `Reading page ${num} (${i + 1}/${pageNums.length})…`);
+                    const page = await pdfDoc.getPage(num);
+                    const viewport = page.getViewport({ scale: 1 });
+                    const textContent = await page.getTextContent();
+
+                    let pageText;
+                    if (opts.extractModeSelect === 'raw') {
+                        pageText = await extractPageRaw(num, viewport, textContent, opts);
+                    } else {
+                        pageText = await extractPageReflowOrLayout(num, viewport, textContent, opts, opts.extractModeSelect);
+                    }
+
+                    if (opts.optOcrFallback && pageText.replace(/\s/g, '').length < (parseInt(opts.ocrThreshold, 10) || 0)) {
+                        setProgress(((i + 0.5) / pageNums.length) * 100, `Running OCR on page ${num}…`);
+                        try {
+                            const ocrText = await ocrPage(page, opts.ocrLanguage);
+                            if (ocrText.trim().length > pageText.trim().length) {
+                                pageText = ocrText;
+                                ocrCount++;
+                                logMsg(`Page ${num}: used OCR (sparse text layer).`, 'warn');
+                            }
+                        } catch (ocrErr) {
+                            logMsg(`Page ${num}: OCR failed — ${ocrErr.message || ocrErr}`, 'error');
+                        }
+                    }
+
+                    rawPages.push({ num, text: pageText });
+                }
+                setProgress(100, 'Cleaning up text…');
+
+                // Header/footer stripping needs cross-page comparison, done on line arrays
+                let finalTexts;
+                if (opts.optStripHeadersFooters) {
+                    const withLines = rawPages.map(p => ({ num: p.num, lines: p.text.split('\n') }));
+                    finalTexts = stripRepeatedHeaderFooterLines(withLines);
+                } else {
+                    finalTexts = rawPages.map(p => p.text);
+                }
+
+                const pages = rawPages.map((p, idx) => {
+                    const cleaned = cleanupPageText(finalTexts[idx], opts);
+                    return { num: p.num, text: cleaned, charCount: cleaned.length };
+                });
+
+                const combinedText = pages.map(p => p.text).join('\n\n');
+                const dataMatches = extractStructuredData(combinedText, opts);
+
+                lastResult = { pages, combinedText, dataMatches, ocrCount };
+                logMsg(`Extracted ${pages.length} page(s), ${combinedText.length.toLocaleString()} characters total.`, 'success');
+                if (ocrCount > 0) logMsg(`${ocrCount} page(s) required OCR.`, 'warn');
+
+                buildOutputs(opts);
+                renderPreview();
+                renderDataPane();
+                updateInputStats();
+
+                const totalBytes = outputs.reduce((sum, o) => sum + o.bytes.length, 0);
+                document.getElementById('outputFileCount').textContent = outputs.length.toLocaleString();
+                document.getElementById('outputSizeCount').textContent = totalBytes.toLocaleString();
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Extraction complete';
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add('success');
+                downloadBtn.disabled = false;
+                renderOutputFiles();
+
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                document.querySelector('.output-tab[data-tab="preview"]').classList.add('active');
+                document.getElementById('pane-preview').classList.add('active');
+            } catch (err) {
+                showError('Extraction failed: ' + (err.message || err));
+                logMsg('Extraction failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Extraction failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                outputs = [];
+                downloadBtn.disabled = true;
+            } finally {
+                extractBtn.disabled = false;
+                setProgress(null);
+            }
+        }
+
+        // ============================================
+        // OUTPUT FILE BUILDING
+        // ============================================
+        function lineEnd(opts) { return opts.lineEndingSelect === 'crlf' ? '\r\n' : '\n'; }
+        function applyLineEndings(text, opts) {
+            const nl = lineEnd(opts);
+            return text.replace(/\r\n|\n/g, '\n').split('\n').join(nl);
+        }
+
+        function bytesForText(text, opts) {
+            const withBom = opts.encodingSelect === 'utf8bom' ? '\uFEFF' + text : text;
+            return new TextEncoder().encode(withBom);
+        }
+
+        function buildPageBlock(page, opts, format) {
+            if (format === 'md') {
+                return (opts.optPageMarkers ? `## Page ${page.num}\n\n` : '') + page.text;
+            }
+            return (opts.optPageMarkers ? `--- Page ${page.num} ---\n` : '') + page.text;
+        }
+
+        function buildDocHeader(opts, format) {
+            if (!opts.optIncludeDocMeta || !source) return '';
+            const info = source.docInfo || {};
+            if (format === 'md') {
+                return `# ${info.title || source.basename}\n\n` +
+                    (info.author ? `**Author:** ${info.author}  \n` : '') +
+                    `**Pages:** ${source.pageCount}  \n**Extracted:** ${new Date().toISOString().slice(0, 10)}\n\n---\n\n`;
+            }
+            return `Title: ${info.title || source.basename}\n` +
+                (info.author ? `Author: ${info.author}\n` : '') +
+                `Pages: ${source.pageCount}\nExtracted: ${new Date().toISOString().slice(0, 10)}\n${'='.repeat(40)}\n\n`;
+        }
+
+        function buildOutputs(opts) {
+            outputs = [];
+            if (!lastResult) return;
+            const format = opts.outputFormatSelect;
+            const nameTokens = { basename: source.basename, date: todayStamp() };
+            const extMap = { txt: '.txt', md: '.md', json: '.json', csv: '.csv' };
+            const ext = extMap[format] || '.txt';
+
+            if (opts.outputGrouping === 'perPage') {
+                if (typeof JSZip === 'undefined') {
+                    // Fallback: zip lib not loaded, produce combined anyway
+                    logMsg('Zip library unavailable — falling back to a combined file.', 'warn');
+                } else {
+                    const zip = new JSZip();
+                    lastResult.pages.forEach(page => {
+                        let content;
+                        if (format === 'json') {
+                            content = JSON.stringify({ page: page.num, text: page.text, characters: page.charCount }, null, 2);
+                        } else if (format === 'csv') {
+                            content = 'page,text\n' + page.num + ',"' + page.text.replace(/"/g, '""').replace(/\n/g, '\\n') + '"';
+                        } else {
+                            content = buildPageBlock(page, opts, format);
+                        }
+                        content = applyLineEndings(content, opts);
+                        zip.file(`page-${String(page.num).padStart(3, '0')}${ext}`, bytesForText(content, opts));
+                    });
+                    zip.generateAsync({ type: 'uint8array' }).then(bytes => {
+                        const filename = fillPattern(opts.outputNamePattern, nameTokens) + '.zip';
+                        outputs = [{ name: filename, bytes }];
+                        renderOutputFiles();
+                        document.getElementById('outputFileCount').textContent = outputs.length.toLocaleString();
+                        document.getElementById('outputSizeCount').textContent = bytes.length.toLocaleString();
+                    });
+                    return;
+                }
+            }
+
+            let content;
+            if (format === 'json') {
+                const payload = {
+                    source: source.name,
+                    pageCount: source.pageCount,
+                    extractedPages: lastResult.pages.length,
+                    docInfo: opts.optIncludeDocMeta ? (source.docInfo || {}) : undefined,
+                    pages: lastResult.pages.map(p => ({ page: p.num, text: p.text, characters: p.charCount })),
+                    data: lastResult.dataMatches
+                };
+                content = JSON.stringify(payload, null, 2);
+            } else if (format === 'csv') {
+                const rows = ['page,text'];
+                lastResult.pages.forEach(p => {
+                    rows.push(p.num + ',"' + p.text.replace(/"/g, '""').replace(/\n/g, '\\n') + '"');
+                });
+                content = rows.join('\n');
+            } else {
+                const header = buildDocHeader(opts, format);
+                const body = lastResult.pages.map(p => buildPageBlock(p, opts, format)).join(format === 'md' ? '\n\n---\n\n' : '\n\n');
+                content = header + body;
+            }
+            content = applyLineEndings(content, opts);
+            const filename = fillPattern(opts.outputNamePattern, nameTokens) + ext;
+            outputs = [{ name: filename, bytes: bytesForText(content, opts) }];
+        }
+
+        function renderOutputFiles() {
+            if (outputs.length === 0) {
+                filesPane.innerHTML = '<p class="info-empty">Extract the file to get a downloadable output here.</p>';
+                return;
+            }
+            filesPane.innerHTML = outputs.map((o, i) => `
+                <div class="output-file-row">
+                    <div class="output-file-info">
+                        <div class="output-file-name">${escapeHtmlStr(o.name)}</div>
+                        <div class="output-file-meta">${o.bytes.length.toLocaleString()} bytes</div>
+                    </div>
+                    <button type="button" class="btn-mini" data-idx="${i}">Download</button>
+                </div>
+            `).join('');
+            filesPane.querySelectorAll('.btn-mini').forEach(btn => {
+                btn.addEventListener('click', () => downloadSingleOutput(parseInt(btn.dataset.idx, 10)));
+            });
+        }
+
+        function downloadSingleOutput(idx) {
+            const o = outputs[idx];
+            if (!o) return;
+            const isZip = /\.zip$/i.test(o.name);
+            const blob = new Blob([o.bytes], { type: isZip ? 'application/zip' : 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = o.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function renderPreview() {
+            if (!lastResult) {
+                previewPane.innerHTML = '<p class="info-empty">Add a PDF and click "Extract Text" to see a preview here.</p>';
+                return;
+            }
+            const preview = lastResult.combinedText.slice(0, 20000);
+            previewPane.textContent = preview + (lastResult.combinedText.length > 20000 ? '\n\n… (preview truncated, full text is in the downloaded file)' : '');
+        }
+
+        function renderDataPane() {
+            if (!lastResult) {
+                dataPane.innerHTML = '<p class="info-empty">Turn on email, URL or phone extraction to see matches here after extracting.</p>';
+                return;
+            }
+            const d = lastResult.dataMatches;
+            const groups = [
+                ['Emails', d.emails],
+                ['URLs', d.urls],
+                ['Phone numbers', d.phones]
+            ].filter(([label, list]) => list && list.length > 0);
+            if (groups.length === 0) {
+                dataPane.innerHTML = '<p class="info-empty">No structured data extraction was enabled, or nothing matched.</p>';
+                return;
+            }
+            dataPane.innerHTML = groups.map(([label, list]) => `
+                <div class="data-group">
+                    <h5>${escapeHtmlStr(label)} (${list.length})</h5>
+                    <div class="data-chip-list">${list.map(v => `<span class="data-chip">${escapeHtmlStr(v)}</span>`).join('')}</div>
+                </div>
+            `).join('');
+        }
+
+        function invalidateExtraction() {
+            updateInputStats();
+            if (outputs.length || lastResult) {
+                outputs = [];
+                lastResult = null;
+                downloadBtn.disabled = true;
+                filesPane.innerHTML = '<p class="info-empty">Extract the file to get a downloadable output here.</p>';
+                previewPane.innerHTML = '<p class="info-empty">Add a PDF and click "Extract Text" to see a preview here.</p>';
+                dataPane.innerHTML = '<p class="info-empty">Turn on email, URL or phone extraction to see matches here after extracting.</p>';
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Settings changed — extract again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                document.getElementById('outputFileCount').textContent = '0';
+                document.getElementById('outputSizeCount').textContent = '0';
+            }
+        }
+
+        extractBtn.addEventListener('click', extractText);
+
+        downloadBtn.addEventListener('click', () => {
+            if (outputs.length === 0) return;
+            downloadSingleOutput(0);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', clearSource);
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            setSourceFile(e.target.files[0]);
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            setSourceFile(dropped[0]);
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfToTextLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial render
+        updateMarginLabels();
+        renderSource();
+        renderDocMeta();
+        updateInputStats();
+    </script>
+</body>
+</html>
