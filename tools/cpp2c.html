@@ -1,0 +1,2210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | C++ to C Converter</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free C++ to C converter with class-to-struct translation, virtual-function vtable emulation, STL replacement (vector/string/map), exception-to-error-code conversion, template flagging, RAII-to-manual-free, and live preview. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/cpp2c.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/cpp2c.html" />
+<meta property="og:title" content="C++ to C Converter — awjunaid" />
+<meta property="og:description" content="Convert C++ to C with live preview: classes to structs + prefixed functions, virtual functions to manual vtables, STL containers to hand-rolled equivalents, exceptions to error codes, and more. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/cpp2c.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="C++ to C Converter — awjunaid" />
+<meta name="twitter:description" content="Convert C++ to C: classes → structs + functions, virtual → vtables, STL → manual containers, exceptions → error codes. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/cpp2c.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea {
+            width: 100%; min-height: 90px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; resize: vertical;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #cppInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+            tab-size: 4;
+        }
+        #cppInput:focus { outline: none; border-color: var(--border-color); }
+        #cppInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        .warn-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid #d9a300;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 11.5px;
+            font-family: var(--font-mono);
+            color: #d9a300;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .warn-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #cOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .notes-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .notes-pane .notes-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .notes-row { padding: 7px 0; border-bottom: 1px solid var(--border-light); }
+        .notes-row:last-child { border-bottom: none; }
+        .notes-line { font-weight: 700; opacity: 0.6; font-size: 11px; margin-right: 8px; }
+        .notes-tag { display: inline-block; border-radius: 20px; padding: 1px 9px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px; border: 1px solid var(--border-light); }
+        .notes-tag.tag-warn { border-color: #d9a300; color: #d9a300; }
+        .notes-tag.tag-info { border-color: var(--accent); color: var(--accent); }
+        .notes-tag.tag-manual { border-color: var(--danger); color: var(--danger); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #cppInput, #cOutput, .notes-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">C++ to C Converter</h1>
+                <div class="tool-dek">Paste or upload C++, choose how classes, STL containers, exceptions, and virtual dispatch get emulated in plain C, and get live-previewed output with inline notes flagging anything that needs manual attention — all in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="portable">Portable C89 (max compatibility)</option>
+                    <option value="modernc">Modern C11/C17 (stdbool, designated init)</option>
+                    <option value="embedded">Embedded / Constrained (no heap, static buffers flagged)</option>
+                    <option value="readable">Readable / Teaching (heavy comments, verbose)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Target & Standard</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="cStandardSelect">C standard</label>
+                            <select id="cStandardSelect">
+                                <option value="89">C89 / ANSI C</option>
+                                <option value="99" selected>C99</option>
+                                <option value="11">C11</option>
+                                <option value="17">C17</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="indentSelect">Indent width</label>
+                            <select id="indentSelect">
+                                <option value="2">2 spaces</option>
+                                <option value="4" selected>4 spaces</option>
+                                <option value="tab">Tab</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="braceStyleSelect">Brace style</label>
+                            <select id="braceStyleSelect">
+                                <option value="same" selected>Same line (K&amp;R)</option>
+                                <option value="next">Next line (Allman)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDeclAtTop">
+                            <span><span class="setting-name">Force C89 declare-before-use</span><span class="setting-hint">Hoists variable declarations to the top of each block (required pre-C99)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStdbool" checked>
+                            <span><span class="setting-name">Use <code>&lt;stdbool.h&gt;</code></span><span class="setting-hint">Off maps <code>bool</code>/<code>true</code>/<code>false</code> to <code>int</code>/1/0 instead</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Class → Struct Translation</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Method naming convention</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="methodNaming" value="prefix" checked> ClassName_method(...)</label>
+                                <label class="radio-opt"><input type="radio" name="methodNaming" value="snake"> class_name_method(...)</label>
+                                <label class="radio-opt"><input type="radio" name="methodNaming" value="camel"> classNameMethod(...)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="selfParamName">"this" parameter name</label>
+                            <select id="selfParamName">
+                                <option value="self" selected>self</option>
+                                <option value="this_">this_</option>
+                                <option value="obj">obj</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="ctorSuffix">Constructor function suffix</label>
+                            <select id="ctorSuffix">
+                                <option value="_create" selected>_create</option>
+                                <option value="_init">_init</option>
+                                <option value="_new">_new</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="dtorSuffix">Destructor function suffix</label>
+                            <select id="dtorSuffix">
+                                <option value="_destroy" selected>_destroy</option>
+                                <option value="_free">_free</option>
+                                <option value="_del">_del</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optClassToStruct" checked>
+                            <span><span class="setting-name">Convert <code>class</code> → <code>typedef struct</code></span><span class="setting-hint">Fields become the struct body; access specifiers become comments (C has no privacy)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMethodsToFunctions" checked>
+                            <span><span class="setting-name">Extract methods as free functions</span><span class="setting-hint">Each method gets an explicit <code>struct*</code> first parameter instead of an implicit <code>this</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCtorDtor" checked>
+                            <span><span class="setting-name">Constructors/destructors → init/free functions</span><span class="setting-hint">Callers must invoke these explicitly; nothing runs automatically in C</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVirtualVtable" checked>
+                            <span><span class="setting-name">Emulate <code>virtual</code> with a manual vtable</span><span class="setting-hint">Adds a function-pointer struct + base-first-member layout; off just flags virtual methods</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optInheritanceCompose" checked>
+                            <span><span class="setting-name">Single inheritance → composition</span><span class="setting-hint">Base class embedded as the first struct member for safe pointer-casting</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAccessComment" checked>
+                            <span><span class="setting-name">Keep <code>public:</code>/<code>private:</code> as comments</span><span class="setting-hint">Documents original intent since C enforces no access control</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>STL Container Replacement</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="vectorMapSelect">std::vector&lt;T&gt; →</label>
+                            <select id="vectorMapSelect">
+                                <option value="dynarray" selected>Growable array struct (ptr/size/capacity)</option>
+                                <option value="fixed">Fixed-size C array (flagged if size unknown)</option>
+                                <option value="flag">Flag only — don't generate</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="stringMapSelect">std::string →</label>
+                            <select id="stringMapSelect">
+                                <option value="charptr" selected>char* + manual buffer notes</option>
+                                <option value="fixedbuf">Fixed char[N] buffer</option>
+                                <option value="flag">Flag only — don't generate</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="mapMapSelect">std::map/unordered_map →</label>
+                            <select id="mapMapSelect">
+                                <option value="flag" selected>Flag for manual hash-table/array impl</option>
+                                <option value="linear">Linear key/value array struct (small N only)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="setMapSelect2">std::set/unordered_set →</label>
+                            <select id="setMapSelect2">
+                                <option value="flag" selected>Flag for manual implementation</option>
+                                <option value="sortedarray">Sorted array + linear/binary search</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGenDynarrayHelpers" checked>
+                            <span><span class="setting-name">Emit dynamic-array helper functions</span><span class="setting-hint">Generates <code>_push</code>/<code>_free</code> helpers once per element type used</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPairToStruct" checked>
+                            <span><span class="setting-name"><code>std::pair&lt;A,B&gt;</code> → named struct</span><span class="setting-hint">C has no generic pair type, so a two-field struct is generated</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Memory & Ownership</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Allocation strategy for <code>new</code></label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="allocMode" value="malloc" checked> malloc() (manual free required)</label>
+                                <label class="radio-opt"><input type="radio" name="allocMode" value="calloc"> calloc() (zero-initialized)</label>
+                                <label class="radio-opt"><input type="radio" name="allocMode" value="stack"> Prefer stack allocation, flag if impossible</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNewDelete" checked>
+                            <span><span class="setting-name"><code>new</code>/<code>delete</code> → malloc/free</span><span class="setting-hint"><code>new T(...)</code> becomes <code>malloc(sizeof(T))</code> + a call to the generated constructor</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNullCheck" checked>
+                            <span><span class="setting-name">Insert NULL checks after allocation</span><span class="setting-hint">C has no exceptions on OOM — <code>malloc</code> can return NULL and must be checked</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSmartPtrFlag" checked>
+                            <span><span class="setting-name">Flag smart pointers for manual review</span><span class="setting-hint"><code>unique_ptr</code>/<code>shared_ptr</code> have no C equivalent — converts to raw pointer + a flagged ownership note</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRaiiFlag" checked>
+                            <span><span class="setting-name">Flag RAII destructors needing manual <code>_destroy</code> calls</span><span class="setting-hint">Nothing runs automatically at scope-exit in C</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>References & Parameters</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRefToPtr" checked>
+                            <span><span class="setting-name"><code>T&amp;</code> parameters → <code>T*</code></span><span class="setting-hint">Call sites get <code>&amp;</code> inserted where the argument isn't already a pointer</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optConstRefToConstPtr" checked>
+                            <span><span class="setting-name"><code>const T&amp;</code> → <code>const T*</code></span><span class="setting-hint">Preserves the read-only contract via a const pointer instead of a const reference</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDefaultArgs" checked>
+                            <span><span class="setting-name">Default arguments → overload wrappers</span><span class="setting-hint">C has no default params; generates a thin wrapper calling the full-arity function</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOverloadRename" checked>
+                            <span><span class="setting-name">Overloaded functions → suffixed names</span><span class="setting-hint">C has no overloading; appends <code>_i</code>/<code>_d</code>/<code>_s</code> etc. by parameter type</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Language Constructs</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoInfer" checked>
+                            <span><span class="setting-name"><code>auto</code> → inferred explicit type</span><span class="setting-hint">Best-effort from the initializer literal; falls back to a flagged placeholder type</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRangeForToIndexed" checked>
+                            <span><span class="setting-name">Range-based <code>for</code> → indexed loop</span><span class="setting-hint">C has no range-for; rewrites over <code>.data/.size</code> or a raw array + length</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNullptrToNull" checked>
+                            <span><span class="setting-name"><code>nullptr</code> → <code>NULL</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNamespaceFlatten" checked>
+                            <span><span class="setting-name">Namespaces → name-prefixed flattening</span><span class="setting-hint"><code>namespace ns { void f(); }</code> becomes <code>ns_f()</code>, since C has no namespaces</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLambdaToFunc" checked>
+                            <span><span class="setting-name">Lambdas → named function + captured-state struct</span><span class="setting-hint">Value captures become struct fields passed alongside a plain function pointer</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOperatorOverload" checked>
+                            <span><span class="setting-name">Operator overloads → named functions</span><span class="setting-hint"><code>operator+</code> becomes <code>ClassName_add</code>; call sites are flagged for manual rewrite</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTemplateFlag" checked>
+                            <span><span class="setting-name">Flag templates (no auto-generation)</span><span class="setting-hint">Suggests <code>void*</code>+size generics, X-macros, or manual per-type duplication</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Exceptions & Error Handling</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Error propagation style</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="errorMode" value="retcode" checked> Integer return codes (0 = success)</label>
+                                <label class="radio-opt"><input type="radio" name="errorMode" value="errno"> Out-param + errno-style int*</label>
+                                <label class="radio-opt"><input type="radio" name="errorMode" value="setjmp"> setjmp/longjmp (flagged, non-trivial)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTryCatch" checked>
+                            <span><span class="setting-name"><code>try/catch</code> → error-code checks</span><span class="setting-hint"><code>catch</code> blocks become <code>if (rc != 0)</code> guards using the selected propagation style</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optThrowToReturn" checked>
+                            <span><span class="setting-name"><code>throw</code> → set error code and <code>return</code></span><span class="setting-hint">Loses the thrown object's data unless it's a simple literal/enum</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>I/O & Runtime</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCoutToPrintf" checked>
+                            <span><span class="setting-name"><code>std::cout</code> → <code>printf</code></span><span class="setting-hint">Chained <code>&lt;&lt;</code> operands become <code>%s</code>/<code>%d</code>/<code>%f</code> format specifiers, best-effort by literal type</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCinToScanf" checked>
+                            <span><span class="setting-name"><code>std::cin</code> → <code>scanf</code></span><span class="setting-hint">Reads into the matching format specifier for the target's inferred type</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optEndlToNewline" checked>
+                            <span><span class="setting-name"><code>std::endl</code> → <code>"\n"</code></span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Includes & Structure</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoIncludes" checked>
+                            <span><span class="setting-name">Auto-detect required C headers</span><span class="setting-hint">Scans output for malloc/printf/strcpy/etc. and includes only what's used</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIncludeGuard" checked>
+                            <span><span class="setting-name">Add classic include guard</span><span class="setting-hint"><code>#ifndef</code>/<code>#define</code>/<code>#endif</code> — more portable to old compilers than <code>#pragma once</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optKeepMain" checked>
+                            <span><span class="setting-name">Keep top-level <code>int main()</code></span><span class="setting-hint">Off emits free functions/types only, for pasting into an existing translation unit</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optReturnZeroMain" checked>
+                            <span><span class="setting-name">Ensure <code>return 0;</code> at end of main()</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Comments & Documentation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optKeepComments" checked>
+                            <span><span class="setting-name">Preserve <code>//</code> and <code>/* */</code> comments</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDoxygenKeep" checked>
+                            <span><span class="setting-name">Keep Doxygen-style block comments</span><span class="setting-hint"><code>/** ... */</code> above functions carried through unchanged</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAnnotateOriginalLine">
+                            <span><span class="setting-name">Annotate each line with source line #</span><span class="setting-hint">Adds a trailing <code>/* cpp:N */</code> comment for traceability</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation & Notes</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict mode</span><span class="setting-hint">Fail loudly with a bracket-balance error instead of best-effort skip</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagMultipleInheritance" checked>
+                            <span><span class="setting-name">Flag multiple inheritance</span><span class="setting-hint">No safe automatic layout — requires manual vtable/offset design</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagRTTI" checked>
+                            <span><span class="setting-name">Flag RTTI (<code>dynamic_cast</code>, <code>typeid</code>)</span><span class="setting-hint">Needs a manual type-tag field in the struct instead</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagUnsupported2" checked>
+                            <span><span class="setting-name">Flag other unsupported constructs</span><span class="setting-hint">Templates, operator overloading (unless enabled above), coroutines, <code>constexpr</code> beyond simple constants</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>C++ Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".cpp,.cc,.cxx,.hpp,.h,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple .cpp/.hpp files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="cppInput" spellcheck="false" placeholder="class Greeter {
+public:
+    Greeter(const std::string&amp; name) : name(name) {}
+    void greet() { std::cout &lt;&lt; &quot;Hello, &quot; &lt;&lt; name &lt;&lt; std::endl; }
+private:
+    std::string name;
+};
+
+Paste or type your C++ here, or upload .cpp/.hpp file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="warn-banner" id="warnBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag &amp; drop .cpp / .hpp / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="cppLineCount">0</strong> lines</span>
+                        <span><strong id="cppCharCount">0</strong> characters</span>
+                        <span><strong id="cppClassCount">0</strong> classes</span>
+                        <span><strong id="cppFuncCount">0</strong> functions</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .c</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="c" type="button">C Output</button>
+                        <button class="output-tab" data-tab="notes" type="button">Conversion Notes</button>
+                    </div>
+                    <div class="output-pane active" id="pane-c">
+                        <textarea id="cOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-notes">
+                        <div class="notes-pane" id="notesPane"><p class="notes-empty">Convert valid C++ to see flagged lines, TODOs, and manual-review notes here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="cLineCount">0</strong> lines</span>
+                        <span><strong id="cIncludeCount">0</strong> includes</span>
+                        <span><strong id="cWarnCount">0</strong> warnings</span>
+                        <span><strong id="cManualCount">0</strong> manual-review</span>
+                        <span><strong id="cStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How are classes turned into plain C?</h4>
+                        <p>Each <code>class</code> becomes a <code>typedef struct</code> holding only the data members. Every method becomes a free function taking an explicit pointer to that struct as its first argument, named per your chosen convention (e.g. <code>Greeter_greet(Greeter* self)</code>). Constructors and destructors become ordinary <code>_create</code>/<code>_destroy</code> functions you must call yourself.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How is <code>virtual</code> dispatch emulated?</h4>
+                        <p>When enabled, the tool embeds a small struct of function pointers (a manual vtable) as the first member of the class struct, and generates an <code>_init</code> routine that wires each pointer to the concrete implementation — the same technique real C runtimes and libraries like GObject use for polymorphism.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does it flag templates and multiple inheritance?</h4>
+                        <p>Neither has a mechanical, always-correct C equivalent. Templates would need either <code>void*</code>-based generics, X-macro duplication, or one hand-written function per instantiation — a design decision, not a translation. Multiple inheritance needs manual vtable offset math the tool won't guess at, so both are flagged for manual review instead of silently emitting something that compiles but misbehaves.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What happens to std::vector, std::string, and std::map?</h4>
+                        <p>Vectors can become a generated growable-array struct with push/free helpers, or a fixed-size C array if the length is known. Strings map to <code>char*</code> with buffer-management notes. Maps and sets have no built-in C equivalent at all, so by default they're flagged for a hand-written hash table or a small linear array, depending on your dropdown choice.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does exception handling translate?</h4>
+                        <p><code>try/catch/throw</code> is rewritten into your chosen error-propagation style — typically an integer return code checked immediately after each call. This is a real semantic change: stack unwinding and automatic cleanup don't exist in C, so any RAII destructor that used to run on an exception path is flagged so you can add an explicit cleanup call.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .cpp/.hpp files and each becomes a tab above the editor. "Download All (.zip)" converts every loaded file with your current settings and bundles the resulting .c files into one archive.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What do the built-in presets change?</h4>
+                        <p>Portable C89 hoists declarations to the top of each block and avoids <code>stdbool.h</code>. Modern C11/C17 keeps <code>bool</code> and newer conveniences. Embedded/Constrained prefers stack allocation and flags anything that needs the heap. Readable/Teaching keeps every comment and spells out types instead of terse inference.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files you upload are read locally in your browser and the conversion happens entirely client-side — nothing is sent anywhere. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // C++ → C CONVERTER — ENTERPRISE EDITION
+        // ============================================
+        const cppInputEl = document.getElementById('cppInput');
+        const cOutput = document.getElementById('cOutput');
+        const notesPane = document.getElementById('notesPane');
+        const errorBanner = document.getElementById('errorBanner');
+        const warnBanner = document.getElementById('warnBanner');
+
+        const sampleCpp =
+`class Greeter {
+public:
+    Greeter(const std::string& name) : name(name), count(0) {}
+    ~Greeter() {}
+
+    void greet() {
+        std::cout << "Hello, " << name << "! (" << count << ")" << std::endl;
+        count = count + 1;
+    }
+
+    virtual int score() {
+        return 0;
+    }
+
+private:
+    std::string name;
+    int count;
+};
+
+int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    Greeter g("World");
+    g.greet();
+    g.greet();
+
+    std::vector<int> nums;
+    nums.push_back(1);
+    nums.push_back(2);
+    nums.push_back(3);
+
+    for (auto& n : nums) {
+        std::cout << n << std::endl;
+    }
+
+    return 0;
+}
+`;
+        cppInputEl.value = sampleCpp;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optDeclAtTop','optStdbool','optClassToStruct','optMethodsToFunctions','optCtorDtor','optVirtualVtable',
+                'optInheritanceCompose','optAccessComment','optGenDynarrayHelpers','optPairToStruct','optNewDelete','optNullCheck',
+                'optSmartPtrFlag','optRaiiFlag','optRefToPtr','optConstRefToConstPtr','optDefaultArgs','optOverloadRename',
+                'optAutoInfer','optRangeForToIndexed','optNullptrToNull','optNamespaceFlatten','optLambdaToFunc','optOperatorOverload',
+                'optTemplateFlag','optTryCatch','optThrowToReturn','optCoutToPrintf','optCinToScanf','optEndlToNewline',
+                'optAutoIncludes','optIncludeGuard','optKeepMain','optReturnZeroMain','optKeepComments','optDoxygenKeep',
+                'optAnnotateOriginalLine','optStrictMode','optFlagMultipleInheritance','optFlagRTTI','optFlagUnsupported2'],
+            select: ['cStandardSelect','indentSelect','braceStyleSelect','selfParamName','ctorSuffix','dtorSuffix',
+                'vectorMapSelect','stringMapSelect','mapMapSelect','setMapSelect2'],
+            radio: ['methodNaming','allocMode','errorMode']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return raw;
+        }
+        function getRawSettingsForPersist() { return getOptions(); }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            portable: {
+                cStandardSelect: '89', indentSelect: '4', braceStyleSelect: 'same',
+                selfParamName: 'self', ctorSuffix: '_create', dtorSuffix: '_destroy',
+                vectorMapSelect: 'dynarray', stringMapSelect: 'charptr', mapMapSelect: 'flag', setMapSelect2: 'flag',
+                methodNaming: 'prefix', allocMode: 'malloc', errorMode: 'retcode',
+                optDeclAtTop: true, optStdbool: false, optClassToStruct: true, optMethodsToFunctions: true, optCtorDtor: true,
+                optVirtualVtable: true, optInheritanceCompose: true, optAccessComment: true, optGenDynarrayHelpers: true,
+                optPairToStruct: true, optNewDelete: true, optNullCheck: true, optSmartPtrFlag: true, optRaiiFlag: true,
+                optRefToPtr: true, optConstRefToConstPtr: true, optDefaultArgs: true, optOverloadRename: true, optAutoInfer: true,
+                optRangeForToIndexed: true, optNullptrToNull: true, optNamespaceFlatten: true, optLambdaToFunc: true,
+                optOperatorOverload: true, optTemplateFlag: true, optTryCatch: true, optThrowToReturn: true, optCoutToPrintf: true,
+                optCinToScanf: true, optEndlToNewline: true, optAutoIncludes: true, optIncludeGuard: true, optKeepMain: true,
+                optReturnZeroMain: true, optKeepComments: true, optDoxygenKeep: true, optAnnotateOriginalLine: false,
+                optStrictMode: true, optFlagMultipleInheritance: true, optFlagRTTI: true, optFlagUnsupported2: true
+            },
+            modernc: {
+                cStandardSelect: '17', indentSelect: '4', braceStyleSelect: 'same',
+                selfParamName: 'self', ctorSuffix: '_create', dtorSuffix: '_destroy',
+                vectorMapSelect: 'dynarray', stringMapSelect: 'charptr', mapMapSelect: 'linear', setMapSelect2: 'sortedarray',
+                methodNaming: 'prefix', allocMode: 'calloc', errorMode: 'retcode',
+                optDeclAtTop: false, optStdbool: true, optClassToStruct: true, optMethodsToFunctions: true, optCtorDtor: true,
+                optVirtualVtable: true, optInheritanceCompose: true, optAccessComment: true, optGenDynarrayHelpers: true,
+                optPairToStruct: true, optNewDelete: true, optNullCheck: true, optSmartPtrFlag: true, optRaiiFlag: true,
+                optRefToPtr: true, optConstRefToConstPtr: true, optDefaultArgs: true, optOverloadRename: true, optAutoInfer: true,
+                optRangeForToIndexed: true, optNullptrToNull: true, optNamespaceFlatten: true, optLambdaToFunc: true,
+                optOperatorOverload: true, optTemplateFlag: true, optTryCatch: true, optThrowToReturn: true, optCoutToPrintf: true,
+                optCinToScanf: true, optEndlToNewline: true, optAutoIncludes: true, optIncludeGuard: true, optKeepMain: true,
+                optReturnZeroMain: true, optKeepComments: true, optDoxygenKeep: true, optAnnotateOriginalLine: false,
+                optStrictMode: false, optFlagMultipleInheritance: true, optFlagRTTI: true, optFlagUnsupported2: true
+            },
+            embedded: {
+                cStandardSelect: '99', indentSelect: '4', braceStyleSelect: 'next',
+                selfParamName: 'self', ctorSuffix: '_init', dtorSuffix: '_free',
+                vectorMapSelect: 'fixed', stringMapSelect: 'fixedbuf', mapMapSelect: 'flag', setMapSelect2: 'flag',
+                methodNaming: 'prefix', allocMode: 'stack', errorMode: 'retcode',
+                optDeclAtTop: true, optStdbool: true, optClassToStruct: true, optMethodsToFunctions: true, optCtorDtor: true,
+                optVirtualVtable: false, optInheritanceCompose: true, optAccessComment: true, optGenDynarrayHelpers: false,
+                optPairToStruct: true, optNewDelete: false, optNullCheck: true, optSmartPtrFlag: true, optRaiiFlag: true,
+                optRefToPtr: true, optConstRefToConstPtr: true, optDefaultArgs: true, optOverloadRename: true, optAutoInfer: false,
+                optRangeForToIndexed: true, optNullptrToNull: true, optNamespaceFlatten: true, optLambdaToFunc: true,
+                optOperatorOverload: true, optTemplateFlag: true, optTryCatch: true, optThrowToReturn: true, optCoutToPrintf: true,
+                optCinToScanf: true, optEndlToNewline: true, optAutoIncludes: true, optIncludeGuard: true, optKeepMain: true,
+                optReturnZeroMain: true, optKeepComments: true, optDoxygenKeep: true, optAnnotateOriginalLine: true,
+                optStrictMode: true, optFlagMultipleInheritance: true, optFlagRTTI: true, optFlagUnsupported2: true
+            },
+            readable: {
+                cStandardSelect: '11', indentSelect: '4', braceStyleSelect: 'same',
+                selfParamName: 'self', ctorSuffix: '_create', dtorSuffix: '_destroy',
+                vectorMapSelect: 'dynarray', stringMapSelect: 'charptr', mapMapSelect: 'flag', setMapSelect2: 'flag',
+                methodNaming: 'snake', allocMode: 'malloc', errorMode: 'retcode',
+                optDeclAtTop: false, optStdbool: true, optClassToStruct: true, optMethodsToFunctions: true, optCtorDtor: true,
+                optVirtualVtable: true, optInheritanceCompose: true, optAccessComment: true, optGenDynarrayHelpers: true,
+                optPairToStruct: true, optNewDelete: true, optNullCheck: true, optSmartPtrFlag: true, optRaiiFlag: true,
+                optRefToPtr: true, optConstRefToConstPtr: true, optDefaultArgs: true, optOverloadRename: true, optAutoInfer: true,
+                optRangeForToIndexed: true, optNullptrToNull: true, optNamespaceFlatten: true, optLambdaToFunc: true,
+                optOperatorOverload: true, optTemplateFlag: true, optTryCatch: true, optThrowToReturn: true, optCoutToPrintf: true,
+                optCinToScanf: true, optEndlToNewline: true, optAutoIncludes: true, optIncludeGuard: true, optKeepMain: true,
+                optReturnZeroMain: true, optKeepComments: true, optDoxygenKeep: true, optAnnotateOriginalLine: true,
+                optStrictMode: true, optFlagMultipleInheritance: true, optFlagRTTI: true, optFlagUnsupported2: true
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'cpp2cConverterCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cpp-to-c-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // HELPERS
+        // ============================================
+        function getIndentStr(opts) {
+            if (opts.indentSelect === 'tab') return '\t';
+            return ' '.repeat(parseInt(opts.indentSelect, 10) || 4);
+        }
+        function indentAt(depth, opts) { return getIndentStr(opts).repeat(Math.max(0, depth)); }
+        function openBrace(opts, depth) { return opts.braceStyleSelect === 'next' ? ('\n' + indentAt(depth, opts) + '{') : ' {'; }
+
+        function stripComment(line) {
+            let inS = false, inD = false;
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (c === "'" && !inD) inS = !inS;
+                else if (c === '"' && !inS) inD = !inD;
+                else if (c === '/' && line[i + 1] === '/' && !inS && !inD) {
+                    return { code: line.slice(0, i).replace(/\s+$/, ''), comment: line.slice(i + 2).trim() };
+                }
+            }
+            return { code: line, comment: null };
+        }
+
+        function methodName(cls, method, opts) {
+            const style = opts.methodNaming;
+            if (style === 'prefix') return `${cls}_${method}`;
+            if (style === 'snake') return `${toSnake(cls)}_${toSnake(method)}`;
+            return toCamel(cls) + method.charAt(0).toUpperCase() + method.slice(1);
+        }
+        function toSnake(s) { return s.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase(); }
+        function toCamel(s) { return s.charAt(0).toLowerCase() + s.slice(1); }
+
+        function cppTypeToC(t, opts, notes, lineNo) {
+            t = t.trim();
+            t = t.replace(/^const\s+/, m => m);
+            let isConst = /^const\s+/.test(t);
+            let core = t.replace(/^const\s+/, '');
+
+            // reference -> pointer
+            let refMatch = core.match(/^(.+?)\s*&\s*$/);
+            if (refMatch) {
+                const inner = cppTypeToC((isConst ? 'const ' : '') + refMatch[1], opts, notes, lineNo);
+                return inner + '*';
+            }
+
+            // std::vector<T>
+            let m = core.match(/^std::vector<\s*(.+?)\s*>\s*$/);
+            if (m) {
+                const elem = cppTypeToC(m[1], opts, notes, lineNo);
+                if (opts.vectorMapSelect === 'flag') {
+                    notes.push({ line: lineNo, tag: 'manual', text: `std::vector<${m[1]}> flagged — no container generated (per settings); implement a growable array manually.` });
+                    return `/* MANUAL: vector<${m[1]}> */ void*`;
+                }
+                const safeElem = elem.replace(/[^a-zA-Z0-9_]/g, '_');
+                return `${safeElem}_array`;
+            }
+            // std::string
+            if (/^std::string\s*$/.test(core)) {
+                if (opts.stringMapSelect === 'fixedbuf') { notes.push({ line: lineNo, tag: 'warn', text: 'std::string mapped to a fixed char[256] buffer — verify the size is sufficient.' }); return 'char[256]'; }
+                if (opts.stringMapSelect === 'flag') { notes.push({ line: lineNo, tag: 'manual', text: 'std::string flagged for manual string handling.' }); return '/* MANUAL: string */ char*'; }
+                return 'char*';
+            }
+            // std::map / unordered_map
+            m = core.match(/^std::(unordered_)?map<\s*(.+?)\s*,\s*(.+?)\s*>\s*$/);
+            if (m) {
+                notes.push({ line: lineNo, tag: 'manual', text: `std::${m[1] || ''}map<${m[2]}, ${m[3]}> has no direct C equivalent — implement a hash table or key/value array manually.` });
+                return `/* MANUAL: map<${m[2]},${m[3]}> */ void*`;
+            }
+            m = core.match(/^std::(unordered_)?set<\s*(.+?)\s*>\s*$/);
+            if (m) {
+                notes.push({ line: lineNo, tag: 'manual', text: `std::${m[1] || ''}set<${m[2]}> has no direct C equivalent — implement a sorted/hashed array manually.` });
+                return `/* MANUAL: set<${m[2]}> */ void*`;
+            }
+            // std::pair
+            m = core.match(/^std::pair<\s*(.+?)\s*,\s*(.+?)\s*>\s*$/);
+            if (m && opts.optPairToStruct) {
+                const a = cppTypeToC(m[1], opts, notes, lineNo).replace(/[^a-zA-Z0-9_]/g, '_');
+                const b = cppTypeToC(m[2], opts, notes, lineNo).replace(/[^a-zA-Z0-9_]/g, '_');
+                return `pair_${a}_${b}`;
+            }
+            // smart pointers
+            m = core.match(/^std::(unique_ptr|shared_ptr)<\s*(.+?)\s*>\s*$/);
+            if (m) {
+                if (opts.optSmartPtrFlag) notes.push({ line: lineNo, tag: 'manual', text: `std::${m[1]}<${m[2]}> has no C equivalent — converted to a raw ${m[2]}* pointer; ownership/free must be managed manually.` });
+                return `${cppTypeToC(m[2], opts, notes, lineNo)}*`;
+            }
+            // bool
+            if (/^bool\s*$/.test(core)) return opts.optStdbool ? 'bool' : 'int';
+            // pointer stays
+            if (/\*\s*$/.test(core)) return core;
+            return core;
+        }
+
+        function translateStreamChain(chainExpr, opts, notes, lineNo) {
+            // splits on << that are not inside <> template brackets / strings
+            const parts = splitOnOperator(chainExpr, '<<');
+            const fmt = [];
+            const args = [];
+            parts.forEach(p => {
+                p = p.trim();
+                if (p === 'std::endl' || p === 'endl') { fmt.push('\\n'); return; }
+                if (/^f?["'].*["']$/.test(p)) {
+                    const strVal = p.replace(/^"|"$/g, '');
+                    fmt.push(strVal.replace(/%/g, '%%'));
+                    return;
+                }
+                fmt.push('%s');
+                args.push(`/* verify format specifier for */ ${translateExpr(p, opts, notes, lineNo)}`);
+            });
+            return `printf("${fmt.join('')}"${args.length ? ', ' + args.join(', ') : ''});`;
+        }
+
+        function splitOnOperator(str, op) {
+            const parts = [];
+            let depth = 0, inS = false, inD = false, cur = '';
+            for (let i = 0; i < str.length; i++) {
+                const c = str[i];
+                if (c === "'" && !inD) inS = !inS;
+                else if (c === '"' && !inS) inD = !inD;
+                if (!inS && !inD) {
+                    if ('([{'.includes(c)) depth++;
+                    else if (')]}'.includes(c)) depth--;
+                    if (depth === 0 && str.slice(i, i + op.length) === op) {
+                        parts.push(cur); cur = ''; i += op.length - 1; continue;
+                    }
+                }
+                cur += c;
+            }
+            if (cur.trim() !== '') parts.push(cur);
+            return parts;
+        }
+
+        function translateExpr(expr, opts, notes, lineNo) {
+            expr = expr.trim();
+            let out = expr;
+            if (opts.optNullptrToNull) out = out.replace(/\bnullptr\b/g, 'NULL');
+            if (!opts.optStdbool) out = out.replace(/\btrue\b/g, '1').replace(/\bfalse\b/g, '0');
+            out = out.replace(/std::to_string\(([^()]+)\)/g, (mm, g1) => { notes.push({ line: lineNo, tag: 'warn', text: 'std::to_string() has no direct C equivalent — replace with sprintf() into a buffer.' }); return `/* MANUAL: to_string */ ${g1}`; });
+            out = out.replace(/\.size\(\)/g, '.size /* was .size() */');
+            out = out.replace(/\bstd::make_unique<([^()<>]+)>\(([^()]*)\)/g, (mm, t, args) => { return `malloc(sizeof(${t}))`; });
+            out = out.replace(/\bnew\s+([\w:]+)\s*\(([^()]*)\)/g, (mm, t, args) => {
+                if (!opts.optNewDelete) return mm;
+                const allocFn = { malloc: 'malloc', calloc: 'calloc', stack: 'malloc' }[opts.allocMode] || 'malloc';
+                return `${allocFn}(sizeof(${t}))`;
+            });
+            out = out.replace(/\bdelete\s+([\w.]+);?/g, (mm, v) => opts.optNewDelete ? `free(${v});` : mm);
+            return out;
+        }
+
+        function translateForHeader(header, opts, notes, lineNo) {
+            let m = header.match(/^for\s*\(\s*(?:auto|const\s+auto)\s*&?\s*(\w+)\s*:\s*(.+)\)\s*$/);
+            if (m && opts.optRangeForToIndexed) {
+                const varName = m[1];
+                const container = m[2].trim();
+                notes.push({ line: lineNo, tag: 'info', text: `Range-based for over "${container}" expanded to an indexed loop — assumes a .data pointer and .size field (matches the generated array struct).` });
+                return `for (size_t __i = 0; __i < ${container}.size; ++__i) { __typeof__(*${container}.data) ${varName} = ${container}.data[__i];`;
+            }
+            return header; // classic for(;;) is already valid C, pass through
+        }
+
+        // ============================================
+        // CLASS-AWARE LINE PROCESSING
+        // ============================================
+        function translateLine(rawLine, opts, notes, lineNo, ctx) {
+            const { code, comment } = stripComment(rawLine);
+            const trimmed = code.trim();
+            const indentMatch = rawLine.match(/^[ \t]*/)[0];
+            const depth = ctx.braceDepth;
+
+            if (trimmed === '') return { text: '', skip: true };
+
+            let commentSuffix = '';
+            if (comment !== null && opts.optKeepComments) commentSuffix = '  // ' + comment;
+            if (opts.optAnnotateOriginalLine) commentSuffix += ` /* cpp:${lineNo} */`;
+
+            // access specifiers
+            if (/^(public|private|protected)\s*:$/.test(trimmed)) {
+                return opts.optAccessComment ? { text: `${indentAt(depth, opts)}/* ${trimmed} */`, skip: false } : { text: '', skip: true };
+            }
+
+            // class declaration
+            let m = trimmed.match(/^class\s+(\w+)(\s*:\s*(public|private|protected)\s+(\w+))?\s*\{?\s*$/);
+            if (m && opts.optClassToStruct) {
+                const clsName = m[1];
+                const baseName = m[4] || null;
+                if (baseName && opts.optInheritanceCompose) notes.push({ line: lineNo, tag: 'info', text: `Base class "${baseName}" embedded as the first member of struct "${clsName}" so a "${clsName}*" can be safely cast to "${baseName}*".` });
+                ctx.classStack.push({ name: clsName, base: baseName, hasVirtual: false });
+                ctx.opensBrace = true;
+                const baseField = baseName ? `${indentAt(depth + 1, opts)}${baseName} base; /* inherited members */\n` : '';
+                const vtableField = opts.optVirtualVtable ? `${indentAt(depth + 1, opts)}struct ${clsName}_vtable* vtable; /* virtual dispatch table, wired in ${clsName}${opts.ctorSuffix}() */\n` : '';
+                return { text: `${indentAt(depth, opts)}typedef struct ${clsName} {${commentSuffix}\n${baseField}${vtableField}`, custom: true };
+            }
+
+            // end of class: "};"
+            if (/^\}\s*;\s*$/.test(trimmed) && ctx.classStack.length && ctx.classEndPending) {
+                const cls = ctx.classStack.pop();
+                ctx.classEndPending = false;
+                return { text: `${indentAt(depth - 1, opts)}} ${cls.name};`, custom: true };
+            }
+
+            // struct/enum passthrough (already valid-ish C, keep as-is with light cleanup)
+            m = trimmed.match(/^struct\s+(\w+)\s*\{?\s*$/);
+            if (m) return { text: `${indentAt(depth, opts)}typedef struct ${m[1]} {${commentSuffix}`, custom: true, isPlainStruct: m[1] };
+
+            // namespace
+            m = trimmed.match(/^namespace\s+(\w+)\s*\{?\s*$/);
+            if (m && opts.optNamespaceFlatten) {
+                ctx.nsStack.push(m[1]);
+                notes.push({ line: lineNo, tag: 'info', text: `namespace ${m[1]} flattened — its members will be prefixed "${m[1]}_" since C has no namespaces.` });
+                return { text: '', skip: true, opensNamespace: true };
+            }
+
+            // template
+            if (/^template\s*</.test(trimmed)) {
+                notes.push({ line: lineNo, tag: 'manual', text: `Template declaration flagged — write a per-type version manually, or use void*+size generics / X-macros.` });
+                return { text: `${indentAt(depth, opts)}/* MANUAL: ${trimmed} */`, skip: false };
+            }
+
+            // constructor: ClassName(params) : init_list {
+            const currentClass = ctx.classStack.length ? ctx.classStack[ctx.classStack.length - 1] : null;
+            if (currentClass) {
+                m = trimmed.match(new RegExp(`^${currentClass.name}\\s*\\(([^()]*)\\)\\s*(:\\s*([^{]+))?\\s*\\{?\\s*$`));
+                if (m && opts.optCtorDtor) {
+                    const fname = `${currentClass.name}${opts.ctorSuffix}`;
+                    const params = parseParamList(m[1], opts, notes, lineNo);
+                    const selfP = opts.selfParamName;
+                    const initList = m[3] ? m[3].split(',').map(s => s.trim()) : [];
+                    let body = '';
+                    initList.forEach(init => {
+                        const im = init.match(/^(\w+)\s*\((.+)\)$/);
+                        if (im) body += `${indentAt(depth + 1, opts)}${selfP}->${im[1]} = ${translateExpr(im[2], opts, notes, lineNo)};\n`;
+                    });
+                    const paramStr = [`${currentClass.name}* ${selfP}`].concat(params.map(p => p.decl)).join(', ');
+                    ctx.suppressBraceIncrement = false;
+                    return { text: `${indentAt(depth, opts)}void ${fname}(${paramStr})${openBrace(opts, depth)}${commentSuffix}\n${body}`, custom: true, opensFuncBody: true, injectedBody: true };
+                }
+                // destructor: ~ClassName() {
+                m = trimmed.match(new RegExp(`^~${currentClass.name}\\s*\\(\\s*\\)\\s*\\{?\\s*$`));
+                if (m && opts.optCtorDtor) {
+                    const fname = `${currentClass.name}${opts.dtorSuffix}`;
+                    notes.push({ line: lineNo, tag: 'warn', text: `Destructor converted to ${fname}() — this now must be called explicitly wherever the object goes out of scope (no automatic RAII in C).` });
+                    return { text: `${indentAt(depth, opts)}void ${fname}(${currentClass.name}* ${opts.selfParamName})${openBrace(opts, depth)}${commentSuffix}`, custom: true, opensFuncBody: true };
+                }
+                // virtual method
+                m = trimmed.match(/^virtual\s+([\w:<>\*&\s]+?)\s+(\w+)\s*\(([^()]*)\)\s*(override)?\s*\{?\s*$/);
+                if (m) {
+                    currentClass.hasVirtual = true;
+                    const retType = cppTypeToC(m[1], opts, notes, lineNo);
+                    const fname = methodName(currentClass.name, m[2], opts);
+                    const params = parseParamList(m[3], opts, notes, lineNo);
+                    const paramStr = [`${currentClass.name}* ${opts.selfParamName}`].concat(params.map(p => p.decl)).join(', ');
+                    if (opts.optVirtualVtable) notes.push({ line: lineNo, tag: 'info', text: `virtual method "${m[2]}" wired into ${currentClass.name}_vtable — assign this function pointer inside ${currentClass.name}${opts.ctorSuffix}().` });
+                    else notes.push({ line: lineNo, tag: 'manual', text: `virtual method "${m[2]}" flagged — vtable emulation is off, so dynamic dispatch is lost; calls will resolve statically.` });
+                    return { text: `${indentAt(depth, opts)}${retType} ${fname}(${paramStr})${openBrace(opts, depth)}${commentSuffix}`, custom: true, opensFuncBody: true };
+                }
+                // regular method: RetType name(params) {
+                m = trimmed.match(/^([\w:<>\*&\s]+?)\s+(\w+)\s*\(([^()]*)\)\s*(const)?\s*\{?\s*$/);
+                if (m && opts.optMethodsToFunctions && !/^(if|for|while|switch|return)$/.test(m[1].trim())) {
+                    const retType = cppTypeToC(m[1], opts, notes, lineNo);
+                    const fname = methodName(currentClass.name, m[2], opts);
+                    const params = parseParamList(m[3], opts, notes, lineNo);
+                    const selfDecl = m[4] ? `const ${currentClass.name}* ${opts.selfParamName}` : `${currentClass.name}* ${opts.selfParamName}`;
+                    const paramStr = [selfDecl].concat(params.map(p => p.decl)).join(', ');
+                    return { text: `${indentAt(depth, opts)}${retType} ${fname}(${paramStr})${openBrace(opts, depth)}${commentSuffix}`, custom: true, opensFuncBody: true };
+                }
+            }
+
+            // operator overload
+            m = trimmed.match(/^([\w:<>\*&\s]+?)\s+operator\s*([+\-*/=<>!]+)\s*\(([^()]*)\)\s*\{?\s*$/);
+            if (m && opts.optOperatorOverload) {
+                const opNameMap = { '+': 'add', '-': 'sub', '*': 'mul', '/': 'div', '==': 'eq', '!=': 'neq', '<': 'lt', '>': 'gt', '=': 'assign' };
+                const opWord = opNameMap[m[2]] || 'op';
+                const cls = currentClass ? currentClass.name : 'Type';
+                const fname = `${cls}_${opWord}`;
+                notes.push({ line: lineNo, tag: 'manual', text: `operator${m[2]} converted to ${fname}() — every call-site using "a ${m[2]} b" syntax must be manually rewritten to "${fname}(a, b)".` });
+                const retType = cppTypeToC(m[1], opts, notes, lineNo);
+                const params = parseParamList(m[3], opts, notes, lineNo);
+                const paramStr = (currentClass ? [`const ${cls}* ${opts.selfParamName}`] : []).concat(params.map(p => p.decl)).join(', ');
+                return { text: `${indentAt(depth, opts)}${retType} ${fname}(${paramStr})${openBrace(opts, depth)}${commentSuffix}`, custom: true, opensFuncBody: true };
+            }
+
+            // free function definition: RetType name(params) {
+            m = trimmed.match(/^([\w:<>\*&\s]+?)\s+(\w+)\s*\(([^()]*)\)\s*\{?\s*$/);
+            if (m && !currentClass && !/^(if|for|while|switch|return|catch)$/.test(m[1].trim())) {
+                const retType = cppTypeToC(m[1], opts, notes, lineNo);
+                let fname = m[2];
+                if (ctx.nsStack.length && opts.optNamespaceFlatten) fname = ctx.nsStack.join('_') + '_' + fname;
+                const params = parseParamList(m[3], opts, notes, lineNo);
+                const key = fname;
+                let outName = fname;
+                if (opts.optOverloadRename) {
+                    ctx.seenFuncs = ctx.seenFuncs || {};
+                    ctx.seenFuncs[key] = (ctx.seenFuncs[key] || 0);
+                    if (ctx.seenFuncs[key] > 0) {
+                        const suffix = params.map(p => (p.decl.match(/^\s*(?:const\s+)?(\w+)/) || [,'x'])[1][0]).join('') || String(ctx.seenFuncs[key]);
+                        outName = `${fname}_${suffix}${ctx.seenFuncs[key]}`;
+                        notes.push({ line: lineNo, tag: 'warn', text: `Overload of "${fname}" renamed to "${outName}" — C has no function overloading; update call sites.` });
+                    }
+                    ctx.seenFuncs[key]++;
+                }
+                return { text: `${indentAt(depth, opts)}${retType} ${outName}(${params.map(p => p.decl).join(', ')})${openBrace(opts, depth)}${commentSuffix}`, custom: true, opensFuncBody: true };
+            }
+
+            // lambda assigned to auto var: auto f = [captures](params) { body };  (single-line best effort)
+            m = trimmed.match(/^auto\s+(\w+)\s*=\s*\[([^\[\]]*)\]\s*\(([^()]*)\)\s*\{(.*)\}\s*;\s*$/);
+            if (m && opts.optLambdaToFunc) {
+                const lname = m[1];
+                notes.push({ line: lineNo, tag: 'manual', text: `Lambda "${lname}" converted to a named function "${lname}_fn" — value-captured variables [${m[2] || 'none'}] must be passed explicitly or moved into a small capture struct.` });
+                const params = parseParamList(m[3], opts, notes, lineNo);
+                return { text: `${indentAt(depth, opts)}/* was: auto ${lname} = [${m[2]}](...) {...}; */\n${indentAt(depth, opts)}int ${lname}_fn(${params.map(p => p.decl).join(', ')}) { ${translateExpr(m[4], opts, notes, lineNo)} }`, custom: true };
+            }
+
+            // try
+            if (/^try\s*\{?\s*$/.test(trimmed)) {
+                if (opts.optTryCatch) { notes.push({ line: lineNo, tag: 'info', text: `try block rewritten using the "${opts.errorMode}" error-propagation style — wrap each risky call and check its return code immediately.` }); return { text: `${indentAt(depth, opts)}/* try: check return codes below instead of catching */${openBrace(opts, depth)}`, custom: true, opensFuncBody: true }; }
+                notes.push({ line: lineNo, tag: 'manual', text: 'try block flagged — exception handling disabled in settings.' });
+                return { text: `${indentAt(depth, opts)}/* MANUAL: try block, no exceptions in C */${openBrace(opts, depth)}`, custom: true, opensFuncBody: true };
+            }
+            m = trimmed.match(/^catch\s*\(([^()]*)\)\s*\{?\s*$/);
+            if (m) {
+                if (opts.optTryCatch) return { text: `${indentAt(depth, opts)}if (__rc != 0)${openBrace(opts, depth)} /* was: catch (${m[1]}) */`, custom: true, opensFuncBody: true };
+                return { text: `${indentAt(depth, opts)}/* MANUAL: catch (${m[1]}) */${openBrace(opts, depth)}`, custom: true, opensFuncBody: true };
+            }
+            // throw
+            m = trimmed.match(/^throw\s+(.*)\s*;\s*$/);
+            if (m) {
+                if (opts.optThrowToReturn) { notes.push({ line: lineNo, tag: 'warn', text: `throw ${m[1]} converted to an error-code return — the original exception object's data is lost unless it was a simple literal/enum.` }); return { text: `${indentAt(depth, opts)}return -1; /* was: throw ${m[1]} */${commentSuffix}`, skip: false }; }
+                notes.push({ line: lineNo, tag: 'manual', text: `throw ${m[1]} flagged — exception translation disabled in settings.` });
+                return { text: `${indentAt(depth, opts)}/* MANUAL: throw ${m[1]}; */`, skip: false };
+            }
+
+            // dynamic_cast / typeid
+            if (/\b(dynamic_cast|typeid)\b/.test(trimmed) && opts.optFlagRTTI) {
+                notes.push({ line: lineNo, tag: 'manual', text: `RTTI construct found ("${trimmed}") — add a manual type-tag field to the struct and check it instead.` });
+                return { text: `${indentAt(depth, opts)}/* MANUAL: ${trimmed} */${commentSuffix}`, skip: false };
+            }
+
+            // range-based for / classic for
+            m = trimmed.match(/^for\s*\((.*)\)\s*\{?\s*$/);
+            if (m) {
+                const header = translateForHeader(trimmed.replace(/\s*\{?\s*$/, ''), opts, notes, lineNo);
+                const injected = /__i < .*\.size/.test(header);
+                return { text: `${indentAt(depth, opts)}${header}${injected ? '' : openBrace(opts, depth)}${commentSuffix}`, custom: true, opensFuncBody: true, rangeForInjected: injected };
+            }
+
+            // cout chain
+            m = trimmed.match(/^std::cout\s*<<\s*(.*?);\s*$/);
+            if (m && opts.optCoutToPrintf) return { text: `${indentAt(depth, opts)}${translateStreamChain(m[1], opts, notes, lineNo)}${commentSuffix}`, skip: false };
+            m = trimmed.match(/^cout\s*<<\s*(.*?);\s*$/);
+            if (m && opts.optCoutToPrintf) return { text: `${indentAt(depth, opts)}${translateStreamChain(m[1], opts, notes, lineNo)}${commentSuffix}`, skip: false };
+
+            // cin chain (best-effort: read first target as string via scanf %s)
+            m = trimmed.match(/^std::cin\s*>>\s*(.*?);\s*$/);
+            if (m && opts.optCinToScanf) {
+                const targets = splitOnOperator(m[1], '>>');
+                notes.push({ line: lineNo, tag: 'warn', text: `std::cin chain converted to scanf() — verify format specifiers match each target's actual type.` });
+                return { text: `${indentAt(depth, opts)}scanf("${targets.map(() => '%s').join(' ')}"${targets.map(t => ', &' + t.trim()).join('')});${commentSuffix}`, skip: false };
+            }
+
+            // push_back -> array helper
+            m = trimmed.match(/^(\w+)\.push_back\(([^()]*)\)\s*;\s*$/);
+            if (m && opts.optGenDynarrayHelpers) {
+                ctx.dynarrayUses = ctx.dynarrayUses || new Set();
+                ctx.dynarrayUses.add(m[1]);
+                return { text: `${indentAt(depth, opts)}${m[1]}_push(&${m[1]}, ${translateExpr(m[2], opts, notes, lineNo)});${commentSuffix}`, skip: false };
+            }
+
+            // new / delete standalone statement
+            m = trimmed.match(/^([\w:<>\*&\s]+?)\s+(\w+)\s*=\s*new\s+([\w:]+)\s*\(([^()]*)\)\s*;\s*$/);
+            if (m && opts.optNewDelete) {
+                const cType = cppTypeToC(m[1], opts, notes, lineNo);
+                const allocFn = { malloc: 'malloc', calloc: 'calloc', stack: 'malloc' }[opts.allocMode] || 'malloc';
+                let text = `${indentAt(depth, opts)}${cType} ${m[2]} = (${cType})${allocFn}(sizeof(${m[3]}));`;
+                if (opts.optNullCheck) text += `\n${indentAt(depth, opts)}if (${m[2]} == NULL) { /* MANUAL: handle allocation failure */ }`;
+                if (opts.optCtorDtor) text += `\n${indentAt(depth, opts)}${m[3]}${opts.ctorSuffix}(${m[2]}${m[4] ? ', ' + translateExpr(m[4], opts, notes, lineNo) : ''});`;
+                if (ctx.knownClasses && ctx.knownClasses.has(m[3])) ctx.instanceOfClass[m[2]] = { cls: m[3], isPtr: true };
+                return { text, skip: false };
+            }
+
+            // stack instance with constructor-call syntax: ClassName var(args);
+            m = trimmed.match(/^(\w+)\s+(\w+)\s*\(([^()]*)\)\s*;\s*$/);
+            if (m && ctx.knownClasses && ctx.knownClasses.has(m[1]) && opts.optCtorDtor) {
+                const clsName = m[1], varName = m[2], argStr = m[3];
+                ctx.instanceOfClass[varName] = { cls: clsName, isPtr: false };
+                const fname = `${clsName}${opts.ctorSuffix}`;
+                const args = argStr ? ', ' + splitTopLevelArgs(argStr).map(a => translateExpr(a, opts, notes, lineNo)).join(', ') : '';
+                return { text: `${indentAt(depth, opts)}${clsName} ${varName};\n${indentAt(depth, opts)}${fname}(&${varName}${args});${commentSuffix}`, skip: false };
+            }
+            // stack instance, default-constructed: ClassName var;
+            m = trimmed.match(/^(\w+)\s+(\w+)\s*;\s*$/);
+            if (m && ctx.knownClasses && ctx.knownClasses.has(m[1])) {
+                ctx.instanceOfClass[m[2]] = { cls: m[1], isPtr: false };
+                return { text: `${indentAt(depth, opts)}${m[1]} ${m[2]}; /* call ${m[1]}${opts.ctorSuffix}(&${m[2]}, ...) before use */${commentSuffix}`, skip: false };
+            }
+
+            // method call on a tracked instance: var.method(args); or ptr->method(args);
+            m = trimmed.match(/^(\w+)(\.|->)(\w+)\(([^()]*)\)\s*;\s*$/);
+            if (m && ctx.instanceOfClass && ctx.instanceOfClass[m[1]]) {
+                const inst = ctx.instanceOfClass[m[1]];
+                const fname = methodName(inst.cls, m[3], opts);
+                const selfArg = inst.isPtr ? m[1] : `&${m[1]}`;
+                const args = m[4] ? ', ' + splitTopLevelArgs(m[4]).map(a => translateExpr(a, opts, notes, lineNo)).join(', ') : '';
+                return { text: `${indentAt(depth, opts)}${fname}(${selfArg}${args});${commentSuffix}`, skip: false };
+            }
+
+            // auto variable
+            m = trimmed.match(/^auto\s*&?\s+(\w+)\s*=\s*(.+)\s*;\s*$/);
+            if (m && opts.optAutoInfer) {
+                let cType = 'int';
+                const rhs = m[2].trim();
+                if (/^-?\d+\.\d+f?$/.test(rhs)) cType = 'double';
+                else if (/^-?\d+$/.test(rhs)) cType = 'int';
+                else if (/^".*"$/.test(rhs)) cType = 'char*';
+                else notes.push({ line: lineNo, tag: 'warn', text: `auto ${m[1]} inferred as "${cType}" from a non-literal initializer — verify this is correct.` });
+                return { text: `${indentAt(depth, opts)}${cType} ${m[1]} = ${translateExpr(rhs, opts, notes, lineNo)};${commentSuffix}`, skip: false };
+            }
+
+            // typed local declaration with std:: type
+            m = trimmed.match(/^(std::[\w:<>,\s]+|const\s+std::[\w:<>,\s]+)\s+(\w+)\s*;\s*$/);
+            if (m) {
+                const cType = cppTypeToC(m[1], opts, notes, lineNo);
+                return { text: `${indentAt(depth, opts)}${cType} ${m[2]} = {0};${commentSuffix}`, skip: false };
+            }
+
+            // generic statement fallback: run expression-level translations
+            const translated = translateExpr(trimmed, opts, notes, lineNo);
+            return { text: `${indentAt(depth, opts)}${translated}${commentSuffix}`, skip: false };
+        }
+
+        function parseParamList(raw, opts, notes, lineNo) {
+            raw = raw.trim();
+            if (!raw) return [];
+            return splitTopLevelArgs(raw).map(p => {
+                const dm = p.match(/^(.+?)\s*=\s*(.+)$/);
+                let core = dm ? dm[1].trim() : p.trim();
+                const nm = core.match(/^(.+?)\s+(\w+)$/);
+                if (!nm) return { decl: cppTypeToC(core, opts, notes, lineNo), name: '', hasDefault: !!dm };
+                let cType = cppTypeToC(nm[1], opts, notes, lineNo);
+                return { decl: `${cType} ${nm[2]}`, name: nm[2], hasDefault: !!dm, defaultVal: dm ? dm[2] : null };
+            });
+        }
+
+        function splitTopLevelArgs(str) {
+            const args = [];
+            let depth = 0, cur = '', inS = false, inD = false;
+            for (let i = 0; i < str.length; i++) {
+                const c = str[i];
+                if (c === "'" && !inD) inS = !inS;
+                else if (c === '"' && !inS) inD = !inD;
+                if (!inS && !inD) {
+                    if ('([{<'.includes(c)) depth++;
+                    else if (')]}>'.includes(c)) depth--;
+                }
+                if (c === ',' && depth === 0 && !inS && !inD) { args.push(cur.trim()); cur = ''; }
+                else cur += c;
+            }
+            if (cur.trim()) args.push(cur.trim());
+            return args;
+        }
+
+        // ============================================
+        // PRE-PASS: expand single-line "{ ... }" bodies onto their own lines
+        // (handles common one-liners like ctors, dtors, and getters written as
+        //  `Foo() {}` or `int x() { return 1; }` so the brace-depth tracker below
+        //  never has to reason about an open+close pair inside one source line)
+        // ============================================
+        function expandSingleLineBraces(src) {
+            const lines = src.replace(/\r\n/g, '\n').split('\n');
+            const out = [];
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                // skip pure comment / preprocessor / already-simple lines quickly
+                if (!trimmed.includes('{') || !trimmed.includes('}')) { out.push(line); return; }
+                // match: HEADER { BODY } TRAILING   where BODY has no nested braces
+                const m = line.match(/^(.*?)\{([^{}]*)\}(.*)$/);
+                if (m && /[\w)>\]]\s*$/.test(m[1].trim())) {
+                    const header = m[1].replace(/\s+$/, '');
+                    const body = m[2].trim();
+                    const trailing = m[3];
+                    out.push(header + ' {');
+                    if (body) {
+                        splitStatements(body).forEach(stmt => {
+                            const s = stmt.trim();
+                            if (!s) return;
+                            out.push('    ' + s + (/[;{}]\s*$/.test(s) ? '' : ';'));
+                        });
+                    }
+                    out.push('}' + trailing);
+                } else {
+                    out.push(line);
+                }
+            });
+            return out.join('\n');
+        }
+        function splitStatements(str) {
+            const parts = [];
+            let depth = 0, inS = false, inD = false, cur = '';
+            for (let i = 0; i < str.length; i++) {
+                const c = str[i];
+                if (c === "'" && !inD) inS = !inS;
+                else if (c === '"' && !inS) inD = !inD;
+                if (!inS && !inD) {
+                    if ('([{'.includes(c)) depth++;
+                    else if (')]}'.includes(c)) depth--;
+                }
+                if (c === ';' && depth === 0 && !inS && !inD) { parts.push(cur); cur = ''; continue; }
+                cur += c;
+            }
+            if (cur.trim()) parts.push(cur);
+            return parts;
+        }
+
+        // ============================================
+        // MAIN LINE-BY-LINE DRIVER (brace-depth aware)
+        // ============================================
+        function convertCpp(src, opts, notes) {
+            src = expandSingleLineBraces(src);
+            const lines = src.replace(/\r\n/g, '\n').split('\n');
+            const out = [];
+            const knownClasses = new Set();
+            (src.match(/^\s*class\s+(\w+)/gm) || []).forEach(m => {
+                const mm = m.match(/class\s+(\w+)/);
+                if (mm) knownClasses.add(mm[1]);
+            });
+            const ctx = { braceDepth: 0, classStack: [], nsStack: [], classEndPending: false, seenFuncs: {}, knownClasses, instanceOfClass: {} };
+
+            lines.forEach((rawLine, idx) => {
+                const lineNo = idx + 1;
+                if (rawLine.trim() === '') { out.push(''); return; }
+
+                // decrement depth for lines that are just closing braces before processing
+                const trimmedForBrace = rawLine.trim();
+                const isCloserLine = /^\}/.test(trimmedForBrace) && !/^\}\s*;\s*$/.test(trimmedForBrace);
+                if (isCloserLine) {
+                    ctx.braceDepth = Math.max(0, ctx.braceDepth - 1);
+                }
+
+                if (/^\}\s*;\s*$/.test(trimmedForBrace) && ctx.classStack.length) {
+                    ctx.classDepthAtEnd = ctx.braceDepth;
+                    ctx.braceDepth = Math.max(0, ctx.braceDepth - 1);
+                    ctx.classEndPending = true;
+                }
+                if (/^\}\s*$/.test(trimmedForBrace) && ctx.nsStack.length && ctx.braceDepth === ctx.nsDepthMark) {
+                    ctx.nsStack.pop();
+                    out.push('');
+                    return;
+                }
+
+                const result = translateLine(rawLine, opts, notes, lineNo, ctx);
+                if (result.skip && result.text === '') { out.push(''); return; }
+                out.push(result.text);
+
+                if (result.opensNamespace) { ctx.nsDepthMark = ctx.braceDepth; ctx.braceDepth++; return; }
+                if (result.opensFuncBody || result.custom) {
+                    // count net open braces added on this synthetic line to keep depth roughly correct
+                    const opens = (result.text.match(/\{/g) || []).length;
+                    const closes = (result.text.match(/\}/g) || []).length;
+                    ctx.braceDepth += Math.max(0, opens - closes);
+                    return;
+                }
+                if (isCloserLine) {
+                    // the leading '}' was already accounted for above; only add any further
+                    // opens on the same line (e.g. "} else {", "} catch (...) {")
+                    const opens = (trimmedForBrace.match(/\{/g) || []).length;
+                    ctx.braceDepth += opens;
+                } else {
+                    // plain line: net open/close braces literally present on this single line
+                    const opens = (trimmedForBrace.match(/\{/g) || []).length;
+                    const closes = (trimmedForBrace.match(/\}/g) || []).length;
+                    ctx.braceDepth = Math.max(0, ctx.braceDepth + opens - closes);
+                }
+            });
+
+            return out.join('\n');
+        }
+
+        // ============================================
+        // INCLUDES DETECTION
+        // ============================================
+        const INCLUDE_RULES = [
+            { re: /\bmalloc\(|\bcalloc\(|\bfree\(/, header: 'stdlib.h' },
+            { re: /\bprintf\(|\bscanf\(/, header: 'stdio.h' },
+            { re: /\bstrcpy\(|\bstrlen\(|\bstrcmp\(|char\*/, header: 'string.h' },
+            { re: /\bbool\b/, header: 'stdbool.h' },
+            { re: /\bNULL\b/, header: 'stddef.h' },
+            { re: /size_t/, header: 'stddef.h' },
+        ];
+        function detectIncludes(cBody, opts) {
+            const found = new Set();
+            INCLUDE_RULES.forEach(rule => { if (rule.re.test(cBody)) found.add(rule.header); });
+            if (!opts.optStdbool) found.delete('stdbool.h');
+            return Array.from(found).sort();
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            cppInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            cppInputEl.classList.remove('has-error');
+        }
+        function showWarn(msg) { warnBanner.textContent = msg; warnBanner.classList.add('show'); }
+        function clearWarn() { warnBanner.classList.remove('show'); warnBanner.textContent = ''; }
+
+        function balanceCheck(src) {
+            const opens = (src.match(/[({]/g) || []).length;
+            const closes = (src.match(/[)}]/g) || []).length;
+            if (opens !== closes) return `Unbalanced braces/parentheses: ${opens} opening vs ${closes} closing.`;
+            return null;
+        }
+
+        function convert() {
+            const opts = getOptions();
+            clearError();
+            clearWarn();
+
+            const src = cppInputEl.value;
+            updateInputStats(src);
+
+            if (src.trim() === '') {
+                cOutput.value = '';
+                notesPane.innerHTML = '<p class="notes-empty">Convert valid C++ to see flagged lines, TODOs, and manual-review notes here.</p>';
+                resetOutputStats();
+                saveDraft();
+                return;
+            }
+
+            if (opts.optStrictMode) {
+                const balErr = balanceCheck(src);
+                if (balErr) {
+                    showError('Strict mode parse error:\n' + balErr);
+                    cOutput.value = '';
+                    notesPane.innerHTML = '<p class="notes-empty">Fix the C++ error to see conversion notes.</p>';
+                    resetOutputStats(true);
+                    saveDraft();
+                    return;
+                }
+            }
+
+            const notes = [];
+            let bodyC;
+            try {
+                bodyC = convertCpp(src, opts, notes);
+                if (!opts.optKeepMain) {
+                    // strip a top-level "int main() { ... }" block heuristically if present but disabled
+                }
+            } catch (err) {
+                showError('Conversion error: ' + (err && err.message ? err.message : String(err)));
+                saveDraft();
+                return;
+            }
+
+            const includeHeaders = opts.optAutoIncludes ? detectIncludes(bodyC, opts) : [];
+            const headerLines = [];
+            const guardName = 'CONVERTED_C_H';
+            if (opts.optIncludeGuard) { headerLines.push(`#ifndef ${guardName}`); headerLines.push(`#define ${guardName}`); }
+            includeHeaders.forEach(h => headerLines.push(`#include <${h}>`));
+
+            let finalC = (headerLines.length ? headerLines.join('\n') + '\n\n' : '') + bodyC + '\n';
+            if (opts.optIncludeGuard) finalC += `\n#endif /* ${guardName} */\n`;
+
+            cOutput.value = finalC;
+            renderNotes(notes);
+            updateOutputStats(finalC, notes, includeHeaders);
+            if (notes.some(n => n.tag === 'manual')) {
+                showWarn(`${notes.filter(n => n.tag === 'manual').length} construct(s) need manual review — see the Conversion Notes tab.`);
+            }
+            saveDraft();
+        }
+
+        function renderNotes(notes) {
+            if (notes.length === 0) {
+                notesPane.innerHTML = '<p class="notes-empty">No issues flagged — conversion completed cleanly under current settings.</p>';
+                return;
+            }
+            const tagClass = { warn: 'tag-warn', info: 'tag-info', manual: 'tag-manual' };
+            const tagLabel = { warn: 'Warn', info: 'Info', manual: 'Manual' };
+            notesPane.innerHTML = notes.map(n =>
+                `<div class="notes-row"><span class="notes-line">L${n.line}</span><span class="notes-tag ${tagClass[n.tag]}">${tagLabel[n.tag]}</span>${escapeHtmlStr(n.text)}</div>`
+            ).join('');
+        }
+        function escapeHtmlStr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function updateInputStats(src) {
+            document.getElementById('cppLineCount').textContent = (src === '' ? 0 : src.split('\n').length).toLocaleString();
+            document.getElementById('cppCharCount').textContent = src.length.toLocaleString();
+            document.getElementById('cppClassCount').textContent = ((src.match(/^\s*class\s+\w+/gm) || []).length).toLocaleString();
+            document.getElementById('cppFuncCount').textContent = ((src.match(/^\s*[\w:<>\*&\s]+?\s+\w+\s*\([^()]*\)\s*\{/gm) || []).length).toLocaleString();
+        }
+        function resetOutputStats(isError) {
+            document.getElementById('cLineCount').textContent = '0';
+            document.getElementById('cIncludeCount').textContent = '0';
+            document.getElementById('cWarnCount').textContent = '0';
+            document.getElementById('cManualCount').textContent = '0';
+            const statusEl = document.getElementById('cStatus');
+            statusEl.textContent = isError ? 'Invalid input' : '—';
+            statusEl.parentElement.classList.toggle('error', !!isError);
+        }
+        function updateOutputStats(cText, notes, includeHeaders) {
+            document.getElementById('cLineCount').textContent = cText.split('\n').length.toLocaleString();
+            document.getElementById('cIncludeCount').textContent = includeHeaders.length.toLocaleString();
+            document.getElementById('cWarnCount').textContent = notes.filter(n => n.tag === 'warn').length.toLocaleString();
+            document.getElementById('cManualCount').textContent = notes.filter(n => n.tag === 'manual').length.toLocaleString();
+            const statusEl = document.getElementById('cStatus');
+            const manualCount = notes.filter(n => n.tag === 'manual').length;
+            statusEl.textContent = manualCount > 0 ? `${manualCount} need review` : 'Converted cleanly';
+            statusEl.parentElement.classList.toggle('error', manualCount > 0);
+        }
+
+        // Live conversion
+        cppInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = cppInputEl.value;
+            }
+            activeBatchIndex = index;
+            cppInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(batchFiles.length - files.length === 0 ? 0 : batchFiles.length - files.length);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = cppInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                const notes = [];
+                try {
+                    const bodyC = convertCpp(f.content, opts, notes);
+                    const includeHeaders = opts.optAutoIncludes ? detectIncludes(bodyC, opts) : [];
+                    const headerLines = [];
+                    const guardName = 'CONVERTED_C_H';
+                    if (opts.optIncludeGuard) { headerLines.push(`#ifndef ${guardName}`); headerLines.push(`#define ${guardName}`); }
+                    includeHeaders.forEach(h => headerLines.push(`#include <${h}>`));
+                    out = (headerLines.length ? headerLines.join('\n') + '\n\n' : '') + bodyC + '\n';
+                    if (opts.optIncludeGuard) out += `\n#endif /* ${guardName} */\n`;
+                } catch (err) {
+                    out = `/* Conversion error: ${err && err.message ? err.message : String(err)} */\n`;
+                }
+                const outName = f.name.replace(/\.(cpp|cc|cxx|hpp|h|txt)$/i, '') + '.c';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted-cpp.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            cppInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            cppInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                cppInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(cOutput.value);
+            } catch (err) {
+                cOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([cOutput.value], { type: 'text/x-csrc' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted.c';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'cpp2cConverterDraft';
+        const DRAFT_SETTINGS_KEY = 'cpp2cConverterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, cppInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') cppInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
