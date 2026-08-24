@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | CSS Minifier</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free CSS minifier with comment stripping, whitespace collapsing, hex/rgb color shortening, zero-unit optimization, duplicate selector merging, declaration de-duping, quote normalization, and batch conversion. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/css-minifier.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/css-minifier.html" />
+<meta property="og:title" content="CSS Minifier — awjunaid" />
+<meta property="og:description" content="Shrink stylesheets with comment removal, whitespace collapsing, color/zero/unit optimization, duplicate selector merging, and batch export. 100% client-side — nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/css-minifier.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="CSS Minifier — awjunaid" />
+<meta name="twitter:description" content="Minify CSS with live preview, an optimization report, rule tree, and batch export. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/css-minifier.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .setting-hint.warn { color: var(--danger); opacity: 0.85; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #cssInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #cssInput:focus { outline: none; border-color: var(--border-color); }
+        #cssInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #cssOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .tree-pane, .report-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .tree-pane .tree-empty, .report-pane .report-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+        .tree-node { margin-left: 16px; }
+        .tree-row { padding: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tree-key { font-weight: 700; }
+        .tree-type { opacity: 0.5; font-size: 11px; margin-left: 6px; }
+        .tree-val { opacity: 0.85; }
+
+        .report-pane { font-family: var(--font-body); }
+        .report-metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .report-metric { border: 1px solid var(--border-light); border-radius: 14px; padding: 14px 16px; }
+        .report-metric .num { font-family: var(--font-inter); font-size: 1.6rem; font-weight: 900; line-height: 1; }
+        .report-metric .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-top: 6px; font-weight: 700; }
+        .report-metric.savings .num { color: var(--accent); }
+        .report-bar-track { height: 10px; border-radius: 20px; background: var(--border-light); overflow: hidden; margin: 6px 0 18px; }
+        .report-bar-fill { height: 100%; background: var(--accent); border-radius: 20px; transition: width 0.3s; }
+        .report-list { list-style: none; font-size: 12.5px; }
+        .report-list li { padding: 6px 0; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; gap: 10px; }
+        .report-list li:last-child { border-bottom: none; }
+        .report-list li .rk { opacity: 0.7; }
+        .report-list li .rv { font-weight: 700; font-family: var(--font-mono); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #cssInput, #cssOutput, .tree-pane, .report-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">CSS Minifier</h1>
+                <div class="tool-dek">Paste or upload CSS, control comment/whitespace stripping, color and zero-value optimization, duplicate selector merging and declaration de-duping, then preview live as minified CSS, a rule tree, or a full optimization report — all in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="production">Production (Max Compression)</option>
+                    <option value="legacySafe">Legacy-Safe (Conservative)</option>
+                    <option value="debugFriendly">Debug-Friendly (One Rule / Line)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Comments</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveComments" checked>
+                            <span><span class="setting-name">Remove comments</span><span class="setting-hint">Strips /* ... */ blocks — these are pure dead weight in production CSS</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPreserveBangComments" checked>
+                            <span><span class="setting-name">Preserve /*! license */ comments</span><span class="setting-hint">Keeps top-level comments starting with /*! intact — common convention for license/attribution banners</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Whitespace & Layout</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCollapseWhitespace" checked>
+                            <span><span class="setting-name">Collapse whitespace</span><span class="setting-hint">Reduces every run of spaces, tabs, and newlines inside selectors and values to a single space</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCollapseCombinatorSpacing" checked>
+                            <span><span class="setting-name">Tighten combinator spacing</span><span class="setting-hint">"div > p" becomes "div>p" — safe for child/sibling/adjacent combinators</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Output layout</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="outputStyle" value="singleLine" checked> Single line (max compression)</label>
+                                <label class="radio-opt"><input type="radio" name="outputStyle" value="oneRulePerLine"> One rule per line (easier diffs)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Colors</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShortenHex" checked>
+                            <span><span class="setting-name">Shorten hex colors</span><span class="setting-hint">#ffffff → #fff, and 8-digit alpha hex is shortened the same way when pairs match</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLowercaseHex" checked>
+                            <span><span class="setting-name">Lowercase hex colors</span><span class="setting-hint">#FFF → #fff — purely cosmetic, but keeps output consistent and gzips slightly better</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRgbToHex" checked>
+                            <span><span class="setting-name">Convert opaque rgb()/rgba() to hex</span><span class="setting-hint">rgb(255,255,255) → #fff — only applied when alpha is absent or exactly 1 (fully opaque)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNamedColorToHex">
+                            <span><span class="setting-name">Shorten named colors</span><span class="setting-hint">Replaces "white", "black", "yellow", "fuchsia"/"magenta" with their shorter hex form</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Values & Units</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripZeroUnits" checked>
+                            <span><span class="setting-name">Strip units from zero values</span><span class="setting-hint">0px, 0em, 0% → 0 — a unit on zero never changes the rendered value</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLeadingZero" checked>
+                            <span><span class="setting-name">Remove leading zero</span><span class="setting-hint">0.5s → .5s</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrimTrailingZeros" checked>
+                            <span><span class="setting-name">Trim trailing decimal zeros</span><span class="setting-hint">1.500 → 1.5, and 2.0 → 2</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLowercaseUnits" checked>
+                            <span><span class="setting-name">Lowercase units</span><span class="setting-hint">1200PX → 1200px — units are case-insensitive in CSS, lowercase keeps output consistent</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Selectors & Rules</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveEmptyRules" checked>
+                            <span><span class="setting-name">Remove empty rules</span><span class="setting-hint">Drops selectors and @-rules that end up with no declarations left inside</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMergeDuplicateSelectors" checked>
+                            <span><span class="setting-name">Merge adjacent duplicate selectors</span><span class="setting-hint">Two back-to-back blocks sharing the exact same selector are combined into one</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDedupeDeclarations">
+                            <span><span class="setting-name">De-dupe repeated declarations</span><span class="setting-hint">Within one rule, if the same property is set twice, only the last (winning) value is kept</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSortDeclarations">
+                            <span><span class="setting-name">Sort declarations alphabetically</span><span class="setting-hint warn">Off by default: reordering shorthand vs. longhand pairs (e.g. background then background-color) can change the result</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLowercaseProps" checked>
+                            <span><span class="setting-name">Lowercase property names</span><span class="setting-hint">Standard properties only — custom properties (--my-var) are always left case-sensitive</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Strings</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Quote style</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="quoteStyle" value="keep" checked> Keep as written</label>
+                                <label class="radio-opt"><input type="radio" name="quoteStyle" value="single"> Prefer single quotes</label>
+                                <label class="radio-opt"><input type="radio" name="quoteStyle" value="double"> Prefer double quotes</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Formatting</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optHeaderComment">
+                            <span><span class="setting-name">Add header comment</span><span class="setting-hint">Prepends a /*! ... */ comment line, preserved even with comment stripping on</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrailingNewline" checked>
+                            <span><span class="setting-name">Trailing newline</span><span class="setting-hint">Adds a final newline to downloaded/copied output</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="headerCommentInput">Header comment text</label>
+                            <input type="text" id="headerCommentInput" value="Generated by CSS Minifier">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict mode</span><span class="setting-hint">Fail loudly on unbalanced braces instead of silently guessing at broken CSS</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowReport" checked>
+                            <span><span class="setting-name">Show optimization report</span><span class="setting-hint">Populates the Report tab with size savings and a breakdown of what changed</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>CSS Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".css,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="cssInput" spellcheck="false" placeholder="/* Paste or type your CSS here, or upload .css file(s)... */"></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag & drop .css / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="cssLineCount">0</strong> lines</span>
+                        <span><strong id="cssCharCount">0</strong> characters</span>
+                        <span><strong id="cssRuleCount">0</strong> rules</span>
+                        <span><strong id="cssAtRuleCount">0</strong> at-rules</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .min.css</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="css" type="button">Minified CSS</button>
+                        <button class="output-tab" data-tab="tree" type="button">Rule Tree</button>
+                        <button class="output-tab" data-tab="report" type="button">Optimization Report</button>
+                    </div>
+                    <div class="output-pane active" id="pane-css">
+                        <textarea id="cssOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-tree">
+                        <div class="tree-pane" id="treePane"><p class="tree-empty">Parse valid CSS to see the rule tree here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-report">
+                        <div class="report-pane" id="reportPane"><p class="report-empty">Enable "Show optimization report" and parse valid CSS to see savings here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="cssSizeCount">0</strong> bytes</span>
+                        <span><strong id="cssReduction">0%</strong> smaller</span>
+                        <span><strong id="cssRulesOut">0</strong> rules out</span>
+                        <span><strong id="cssStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Why keep /*! ... */ comments even with "remove comments" on?</h4>
+                        <p>Many libraries rely on a license or attribution banner surviving minification — bundlers and other minifiers (like Terser and cssnano) honor the "bang comment" convention for exactly this reason. Turn "Preserve /*! license */ comments" off if you want every single comment gone.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is it safe to convert rgb()/rgba() to hex?</h4>
+                        <p>Only when the color is fully opaque — no alpha channel, or an alpha of exactly 1. A translucent rgba() color can't be represented as a plain 6-digit hex without changing what renders, so those are left untouched.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why is "Sort declarations alphabetically" off by default?</h4>
+                        <p>CSS lets you override a shorthand with a more specific longhand as long as it comes later, e.g. <code>background: red; background-color: blue;</code>. Alphabetical sorting can silently reverse pairs like this. De-duping same-named properties is always safe; reordering different ones occasionally isn't.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What counts as a "duplicate selector" merge?</h4>
+                        <p>Only rule blocks that are directly adjacent with an identical selector list are combined — e.g. two back-to-back <code>.btn { ... } .btn { ... }</code> blocks. Selectors separated by other rules are left alone, since merging them could change which rule wins for properties with equal specificity.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Does this touch @media, @supports, @keyframes, and @font-face?</h4>
+                        <p>Yes. Nested at-rules like <code>@media</code> and <code>@supports</code> are minified recursively, empty ones are dropped once their contents optimize away, and declaration-only at-rules like <code>@font-face</code>, <code>@page</code>, and <code>@viewport</code> get the same declaration-level optimizations as a normal rule.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is the Rule Tree for?</h4>
+                        <p>Before trusting a large minified stylesheet, it helps to see its shape at a glance. The Rule Tree lists every selector and at-rule from your input in order, with a declaration count, so you can quickly confirm nothing important got dropped.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the Optimization Report show?</h4>
+                        <p>A before/after byte count and percentage reduction, plus a breakdown of what the pass actually did — comments removed, empty rules dropped, duplicate selectors merged, and duplicate declarations de-duped — so the savings aren't a black box.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple stylesheets at once?</h4>
+                        <p>Yes — upload or drag in several .css files and each becomes a tab above the editor. "Download All (.zip)" minifies every loaded file with your current settings and bundles the resulting .min.css files into one archive. Nothing is uploaded to a server; everything runs locally in your browser.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // CSS MINIFIER — ENTERPRISE EDITION
+        // ============================================
+        const cssInputEl = document.getElementById('cssInput');
+        const cssOutput = document.getElementById('cssOutput');
+        const treePane = document.getElementById('treePane');
+        const reportPane = document.getElementById('reportPane');
+        const errorBanner = document.getElementById('errorBanner');
+
+        const sampleCss = [
+            '/*!',
+            ' * demo-service styles',
+            ' * keep this banner even when minifying',
+            ' */',
+            '',
+            '/* layout */',
+            '.container {',
+            '    margin: 0px auto;',
+            '    padding: 0.500em  1.000em;',
+            '    max-width: 1200PX;',
+            '}',
+            '',
+            '.btn {',
+            '    background-color: #FFFFFF;',
+            '    color: rgb(0, 0, 0);',
+            '    border: 1px solid #cccccc;',
+            '}',
+            '.btn {',
+            '    border-radius: 6px;',
+            '    color: rgb(0, 0, 0);',
+            '}',
+            '',
+            '.card   >   .card-title {',
+            '    color: white;',
+            '    font-weight: 700;',
+            '}',
+            '',
+            '.unused-empty-rule {',
+            '}',
+            '',
+            '@media (max-width: 600px) {',
+            '    .container {',
+            '        padding: 0px;',
+            '    }',
+            '}',
+            '',
+            '@font-face {',
+            '    font-family: "Demo Sans";',
+            '    src: url(\'/fonts/demo-sans.woff2\') format(\'woff2\');',
+            '}'
+        ].join('\n');
+        cssInputEl.value = sampleCss;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optRemoveComments','optPreserveBangComments','optCollapseWhitespace','optCollapseCombinatorSpacing','optShortenHex','optLowercaseHex','optRgbToHex','optNamedColorToHex','optStripZeroUnits','optLeadingZero','optTrimTrailingZeros','optLowercaseUnits','optRemoveEmptyRules','optMergeDuplicateSelectors','optDedupeDeclarations','optSortDeclarations','optLowercaseProps','optHeaderComment','optTrailingNewline','optStrictMode','optShowReport'],
+            text: ['headerCommentInput'],
+            radio: ['outputStyle','quoteStyle']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            const opts = Object.assign({}, raw);
+            opts.headerComment = raw.optHeaderComment ? (raw.headerCommentInput || '') : '';
+            opts._raw = raw;
+            return opts;
+        }
+
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            production: {
+                optRemoveComments: true, optPreserveBangComments: true, optCollapseWhitespace: true, optCollapseCombinatorSpacing: true,
+                outputStyle: 'singleLine', optShortenHex: true, optLowercaseHex: true, optRgbToHex: true, optNamedColorToHex: true,
+                optStripZeroUnits: true, optLeadingZero: true, optTrimTrailingZeros: true, optLowercaseUnits: true, optRemoveEmptyRules: true,
+                optMergeDuplicateSelectors: true, optDedupeDeclarations: true, optSortDeclarations: false, optLowercaseProps: true,
+                quoteStyle: 'single', optHeaderComment: false, headerCommentInput: 'Generated by CSS Minifier',
+                optTrailingNewline: false, optStrictMode: true, optShowReport: true
+            },
+            legacySafe: {
+                optRemoveComments: true, optPreserveBangComments: true, optCollapseWhitespace: true, optCollapseCombinatorSpacing: false,
+                outputStyle: 'oneRulePerLine', optShortenHex: false, optLowercaseHex: false, optRgbToHex: false, optNamedColorToHex: false,
+                optStripZeroUnits: false, optLeadingZero: false, optTrimTrailingZeros: false, optLowercaseUnits: false, optRemoveEmptyRules: false,
+                optMergeDuplicateSelectors: false, optDedupeDeclarations: false, optSortDeclarations: false, optLowercaseProps: false,
+                quoteStyle: 'keep', optHeaderComment: true, headerCommentInput: 'Generated by CSS Minifier',
+                optTrailingNewline: true, optStrictMode: true, optShowReport: true
+            },
+            debugFriendly: {
+                optRemoveComments: true, optPreserveBangComments: true, optCollapseWhitespace: true, optCollapseCombinatorSpacing: true,
+                outputStyle: 'oneRulePerLine', optShortenHex: true, optLowercaseHex: true, optRgbToHex: false, optNamedColorToHex: false,
+                optStripZeroUnits: true, optLeadingZero: true, optTrimTrailingZeros: true, optLowercaseUnits: true, optRemoveEmptyRules: true,
+                optMergeDuplicateSelectors: false, optDedupeDeclarations: false, optSortDeclarations: false, optLowercaseProps: true,
+                quoteStyle: 'keep', optHeaderComment: false, headerCommentInput: 'Generated by CSS Minifier',
+                optTrailingNewline: true, optStrictMode: true, optShowReport: true
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'cssMinifierCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'css-minifier-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // CSS PARSER (comments/strings protected, then a
+        // small recursive-descent block parser)
+        // ============================================
+        const DECL_AT_RULES = ['@font-face', '@page', '@viewport', '@counter-style', '@font-feature-values', '@property'];
+
+        function isDeclAtRule(prelude) {
+            const name = prelude.split(/[\s({]/)[0].toLowerCase();
+            return DECL_AT_RULES.includes(name);
+        }
+
+        function protectCss(css, preserveBang) {
+            const strings = [];
+            const comments = [];
+            let out = '';
+            let i = 0;
+            const len = css.length;
+            while (i < len) {
+                const ch = css[i];
+                if (ch === '"' || ch === "'") {
+                    let j = i + 1;
+                    let buf = ch;
+                    while (j < len) {
+                        if (css[j] === '\\') { buf += css[j] + (css[j+1] || ''); j += 2; continue; }
+                        if (css[j] === ch) { buf += css[j]; j++; break; }
+                        buf += css[j]; j++;
+                    }
+                    strings.push(buf);
+                    out += '\u0001S' + (strings.length - 1) + '\u0001';
+                    i = j;
+                    continue;
+                }
+                if (ch === '/' && css[i+1] === '*') {
+                    let j = i + 2;
+                    while (j < len && !(css[j] === '*' && css[j+1] === '/')) j++;
+                    j += 2;
+                    const raw = css.slice(i, Math.min(j, len));
+                    if (preserveBang && raw.indexOf('/*!') === 0) {
+                        comments.push(raw);
+                        out += '\u0001C' + (comments.length - 1) + '\u0001';
+                    } else {
+                        out += ' ';
+                    }
+                    i = j;
+                    continue;
+                }
+                out += ch;
+                i++;
+            }
+            return { protectedCss: out, strings, comments };
+        }
+
+        function splitTopLevel(str, sep) {
+            const parts = [];
+            let depth = 0, cur = '';
+            for (let i = 0; i < str.length; i++) {
+                const c = str[i];
+                if (c === '(') depth++;
+                else if (c === ')') depth--;
+                if (c === sep && depth === 0) { parts.push(cur); cur = ''; continue; }
+                cur += c;
+            }
+            parts.push(cur);
+            return parts;
+        }
+
+        function indexOfTopLevel(str, ch) {
+            let depth = 0;
+            for (let i = 0; i < str.length; i++) {
+                const c = str[i];
+                if (c === '(') depth++;
+                else if (c === ')') depth--;
+                else if (c === ch && depth === 0) return i;
+            }
+            return -1;
+        }
+
+        function parseDeclarations(text) {
+            const decls = [];
+            splitTopLevel(text, ';').forEach(part => {
+                const trimmed = part.trim();
+                if (!trimmed) return;
+                if (/^\u0001C\d+\u0001$/.test(trimmed)) return;
+                const colonIdx = indexOfTopLevel(trimmed, ':');
+                if (colonIdx === -1) return;
+                const prop = trimmed.slice(0, colonIdx).trim();
+                const value = trimmed.slice(colonIdx + 1).trim();
+                if (!prop || !value) return;
+                decls.push({ prop, value });
+            });
+            return decls;
+        }
+
+        function parseBlockBody(text) {
+            const nodes = [];
+            let i = 0;
+            const len = text.length;
+            let unbalanced = false;
+            while (i < len) {
+                while (i < len && /\s/.test(text[i])) i++;
+                if (i >= len) break;
+                const cmtMatch = /^\u0001C(\d+)\u0001/.exec(text.slice(i, i + 20));
+                if (cmtMatch) {
+                    nodes.push({ type: 'comment', ref: parseInt(cmtMatch[1], 10) });
+                    i += cmtMatch[0].length;
+                    continue;
+                }
+                let depth = 0, prelude = '', j = i;
+                while (j < len) {
+                    const c = text[j];
+                    if (c === '(') depth++;
+                    else if (c === ')') depth--;
+                    if (depth === 0 && (c === '{' || c === ';')) break;
+                    prelude += c;
+                    j++;
+                }
+                if (j >= len) { i = j; break; }
+                if (text[j] === ';') {
+                    const trimmed = prelude.trim();
+                    if (trimmed) nodes.push({ type: 'atstatement', prelude: trimmed });
+                    i = j + 1;
+                    continue;
+                }
+                let bd = 1, k = j + 1;
+                while (k < len && bd > 0) {
+                    if (text[k] === '{') bd++;
+                    else if (text[k] === '}') bd--;
+                    if (bd === 0) break;
+                    k++;
+                }
+                if (bd !== 0) unbalanced = true;
+                const inner = text.slice(j + 1, k);
+                const trimmedPrelude = prelude.trim();
+                if (trimmedPrelude.indexOf('@') === 0) {
+                    if (isDeclAtRule(trimmedPrelude)) {
+                        nodes.push({ type: 'atrule-decl', name: trimmedPrelude, declarations: parseDeclarations(inner) });
+                    } else {
+                        const sub = parseBlockBody(inner);
+                        if (sub.unbalanced) unbalanced = true;
+                        nodes.push({ type: 'atrule-block', name: trimmedPrelude, body: sub.nodes });
+                    }
+                } else if (trimmedPrelude) {
+                    nodes.push({ type: 'rule', selector: trimmedPrelude, declarations: parseDeclarations(inner) });
+                }
+                i = k + 1;
+            }
+            return { nodes, unbalanced };
+        }
+
+        // ============================================
+        // VALUE / SELECTOR TRANSFORMS
+        // ============================================
+        function collapseWs(str) { return str.replace(/\s+/g, ' ').trim(); }
+
+        function normalizeImportant(str) { return str.replace(/!\s*important/gi, '!important'); }
+
+        const NAMED_TO_HEX = { white: '#fff', black: '#000', yellow: '#ff0', fuchsia: '#f0f', magenta: '#f0f' };
+
+        function shortenAndLowercaseHex(str, opts, counters) {
+            return str.replace(/#([0-9a-fA-F]{3,8})\b/g, (m, hex) => {
+                let h = hex;
+                if (opts.optLowercaseHex) h = h.toLowerCase();
+                if (opts.optShortenHex) {
+                    if (h.length === 6 && h[0] === h[1] && h[2] === h[3] && h[4] === h[5]) { h = h[0] + h[2] + h[4]; counters.hexShortened++; }
+                    else if (h.length === 8 && h[0] === h[1] && h[2] === h[3] && h[4] === h[5] && h[6] === h[7]) { h = h[0] + h[2] + h[4] + h[6]; counters.hexShortened++; }
+                }
+                return '#' + h;
+            });
+        }
+
+        function rgbToHex(str, opts, counters) {
+            if (!opts.optRgbToHex) return str;
+            return str.replace(/rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(1|1\.0+|0*1)\s*)?\)/gi, (m, r, g, b) => {
+                const nums = [r, g, b].map(n => Math.max(0, Math.min(255, parseInt(n, 10))));
+                let hex = nums.map(n => n.toString(16).padStart(2, '0')).join('');
+                if (hex[0] === hex[1] && hex[2] === hex[3] && hex[4] === hex[5] && opts.optShortenHex) hex = hex[0] + hex[2] + hex[4];
+                counters.rgbConverted++;
+                return '#' + (opts.optLowercaseHex === false ? hex.toUpperCase() : hex.toLowerCase());
+            });
+        }
+
+        function namedColorToHex(str, opts, counters) {
+            if (!opts.optNamedColorToHex) return str;
+            return str.replace(/\b(white|black|yellow|fuchsia|magenta)\b/gi, (m) => {
+                const hex = NAMED_TO_HEX[m.toLowerCase()];
+                if (hex) counters.namedColorsConverted++;
+                return hex || m;
+            });
+        }
+
+        const ZERO_UNIT_RE = /(^|[\s,(])0(?:px|em|rem|%|pt|pc|in|cm|mm|ex|ch|vw|vh|vmin|vmax|fr|deg|rad|grad|turn|s|ms|q)\b/gi;
+        function stripZeroUnits(str, opts, counters) {
+            if (!opts.optStripZeroUnits) return str;
+            return str.replace(ZERO_UNIT_RE, (m, pre) => { counters.zeroUnitsStripped++; return pre + '0'; });
+        }
+
+        function trimTrailingZeros(str, opts) {
+            if (!opts.optTrimTrailingZeros) return str;
+            return str.replace(/(\d*\.\d*?)0+(?=\D|$)/g, (m, p1) => {
+                let r = p1;
+                if (r.endsWith('.')) r = r.slice(0, -1);
+                return r === '' ? '0' : r;
+            });
+        }
+
+        function removeLeadingZero(str, opts) {
+            if (!opts.optLeadingZero) return str;
+            return str.replace(/(^|[\s:,(])0\.(\d)/g, '$1.$2');
+        }
+
+        const UNIT_LOWERCASE_RE = /(\d)(px|em|rem|pt|pc|in|cm|mm|ex|ch|vmin|vmax|vw|vh|fr|deg|rad|grad|turn|ms|s|q)\b/gi;
+        function lowercaseUnits(str, opts) {
+            if (!opts.optLowercaseUnits) return str;
+            return str.replace(UNIT_LOWERCASE_RE, (m, digit, unit) => digit + unit.toLowerCase());
+        }
+
+        function processValue(value, opts, counters) {
+            let v = opts.optCollapseWhitespace ? collapseWs(value) : value.trim();
+            v = normalizeImportant(v);
+            v = shortenAndLowercaseHex(v, opts, counters);
+            v = rgbToHex(v, opts, counters);
+            v = namedColorToHex(v, opts, counters);
+            v = stripZeroUnits(v, opts, counters);
+            v = trimTrailingZeros(v, opts);
+            v = removeLeadingZero(v, opts);
+            v = lowercaseUnits(v, opts);
+            v = v.replace(/\s*,\s*/g, ',');
+            return v;
+        }
+
+        function processSelector(selector, opts) {
+            let parts = splitTopLevel(selector, ',').map(p => opts.optCollapseWhitespace ? collapseWs(p) : p.trim());
+            parts = parts.map(p => opts.optCollapseCombinatorSpacing ? p.replace(/\s*([>+~])\s*/g, '$1') : p);
+            return parts.join(',');
+        }
+
+        function renderDeclarations(decls, opts, counters) {
+            let list = decls.slice();
+            if (opts.optDedupeDeclarations) {
+                const lastIdx = new Map();
+                list.forEach((d, idx) => lastIdx.set(d.prop.toLowerCase(), idx));
+                const before = list.length;
+                list = list.filter((d, idx) => lastIdx.get(d.prop.toLowerCase()) === idx);
+                counters.declsDeduped += (before - list.length);
+            }
+            if (opts.optSortDeclarations) list = list.slice().sort((a, b) => a.prop.localeCompare(b.prop));
+            return list.map(d => {
+                const propOut = (opts.optLowercaseProps && d.prop.indexOf('--') !== 0) ? d.prop.toLowerCase() : d.prop;
+                return propOut + ':' + processValue(d.value, opts, counters);
+            }).join(';');
+        }
+
+        function renderNodes(nodes, opts, comments, counters) {
+            const processed = [];
+            nodes.forEach(node => {
+                if (node.type === 'rule') node._sel = processSelector(node.selector, opts);
+                if (node.type === 'rule' && opts.optMergeDuplicateSelectors && processed.length) {
+                    const prev = processed[processed.length - 1];
+                    if (prev.type === 'rule' && prev._sel === node._sel) {
+                        prev.declarations = prev.declarations.concat(node.declarations);
+                        counters.selectorsMerged++;
+                        return;
+                    }
+                }
+                processed.push(node);
+            });
+
+            const pieces = [];
+            processed.forEach(node => {
+                if (node.type === 'comment') {
+                    pieces.push({ text: comments[node.ref] || '', standalone: true });
+                    return;
+                }
+                if (node.type === 'atstatement') {
+                    pieces.push({ text: (opts.optCollapseWhitespace ? collapseWs(node.prelude) : node.prelude.trim()) + ';' });
+                    return;
+                }
+                if (node.type === 'rule') {
+                    counters.rulesSeen++;
+                    const declText = renderDeclarations(node.declarations, opts, counters);
+                    if (!declText) { if (opts.optRemoveEmptyRules) counters.emptyRulesRemoved++; if (opts.optRemoveEmptyRules) return; }
+                    if (!declText && opts.optRemoveEmptyRules) return;
+                    pieces.push({ text: node._sel + '{' + declText + '}' });
+                    return;
+                }
+                if (node.type === 'atrule-decl') {
+                    counters.atRulesSeen++;
+                    const declText = renderDeclarations(node.declarations, opts, counters);
+                    if (!declText && opts.optRemoveEmptyRules) { counters.emptyRulesRemoved++; return; }
+                    const nameOut = opts.optCollapseWhitespace ? collapseWs(node.name) : node.name.trim();
+                    pieces.push({ text: nameOut + '{' + declText + '}' });
+                    return;
+                }
+                if (node.type === 'atrule-block') {
+                    counters.atRulesSeen++;
+                    const innerText = renderNodes(node.body, opts, comments, counters);
+                    if (!innerText && opts.optRemoveEmptyRules) { counters.emptyRulesRemoved++; return; }
+                    const nameOut = opts.optCollapseWhitespace ? collapseWs(node.name) : node.name.trim();
+                    pieces.push({ text: nameOut + '{' + innerText + '}' });
+                    return;
+                }
+            });
+
+            const sep = opts.outputStyle === 'oneRulePerLine' ? '\n' : '';
+            return pieces.map((p, idx) => p.standalone ? p.text + '\n' : p.text).join(sep);
+        }
+
+        function countNodesRecursive(nodes, acc) {
+            nodes.forEach(node => {
+                if (node.type === 'rule') acc.rules++;
+                else if (node.type === 'atrule-decl') acc.atRules++;
+                else if (node.type === 'atrule-block') { acc.atRules++; countNodesRecursive(node.body, acc); }
+            });
+            return acc;
+        }
+
+        function buildTreeHtml(nodes, comments, depth) {
+            let html = '';
+            nodes.forEach(node => {
+                if (node.type === 'comment') {
+                    html += `<div class="tree-row"><span class="tree-type">comment</span></div>`;
+                    return;
+                }
+                if (node.type === 'atstatement') {
+                    html += `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(node.prelude.slice(0, 60))}</span><span class="tree-type">at-statement</span></div>`;
+                    return;
+                }
+                if (node.type === 'rule') {
+                    html += `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(node.selector.replace(/\s+/g, ' ').trim().slice(0, 70))}</span><span class="tree-type">rule</span><span class="tree-val">{${node.declarations.length}}</span></div>`;
+                    return;
+                }
+                if (node.type === 'atrule-decl') {
+                    html += `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(node.name)}</span><span class="tree-type">at-rule</span><span class="tree-val">{${node.declarations.length}}</span></div>`;
+                    return;
+                }
+                if (node.type === 'atrule-block') {
+                    html += `<div class="tree-row"><span class="tree-key">${escapeHtmlStr(node.name)}</span><span class="tree-type">at-rule block</span><span class="tree-val">[${node.body.length}]</span></div>`;
+                    html += `<div class="tree-node">${buildTreeHtml(node.body, comments, depth + 1)}</div>`;
+                }
+            });
+            return html;
+        }
+
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function restoreString(raw, quotePref) {
+            if (quotePref === 'keep' || !quotePref) return raw;
+            const currentQuote = raw[0];
+            const target = quotePref === 'single' ? "'" : '"';
+            if (currentQuote === target) return raw;
+            const inner = raw.slice(1, -1);
+            for (let i = 0; i < inner.length; i++) {
+                if (inner[i] === target && inner[i-1] !== '\\') return raw;
+            }
+            return target + inner + target;
+        }
+
+        // ============================================
+        // MAIN MINIFY
+        // ============================================
+        function minifyCss(cssText, opts) {
+            const counters = { rulesSeen: 0, atRulesSeen: 0, emptyRulesRemoved: 0, selectorsMerged: 0, declsDeduped: 0, hexShortened: 0, rgbConverted: 0, namedColorsConverted: 0, zeroUnitsStripped: 0 };
+            const { protectedCss, strings, comments } = protectCss(cssText, opts.optRemoveComments ? opts.optPreserveBangComments : true);
+            const parsed = parseBlockBody(protectedCss);
+            if (opts.optStrictMode && parsed.unbalanced) {
+                throw new Error('Unbalanced braces — the CSS has more "{" than matching "}" (or vice versa).');
+            }
+            let out = renderNodes(parsed.nodes, opts, comments, counters);
+            out = out.replace(/\u0001S(\d+)\u0001/g, (m, idx) => restoreString(strings[parseInt(idx, 10)], opts.quoteStyle));
+
+            let finalText = '';
+            if (opts.headerComment && opts.headerComment.trim()) {
+                finalText += '/*! ' + opts.headerComment.trim() + ' */';
+                finalText += opts.outputStyle === 'oneRulePerLine' ? '\n' : '\n';
+            }
+            finalText += out;
+            if (opts.optTrailingNewline) finalText += '\n';
+
+            const totals = countNodesRecursive(parsed.nodes, { rules: 0, atRules: 0 });
+            const rulesOutCount = (finalText.match(/\{/g) || []).length;
+
+            return { text: finalText, nodes: parsed.nodes, comments, counters, totals, rulesOutCount };
+        }
+
+        // ============================================
+        // ERROR HANDLING
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            cssInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            cssInputEl.classList.remove('has-error');
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function convert() {
+            const opts = getOptions();
+            clearError();
+
+            const text = cssInputEl.value;
+            if (text.trim() === '') {
+                cssOutput.value = '';
+                treePane.innerHTML = '<p class="tree-empty">Parse valid CSS to see the rule tree here.</p>';
+                reportPane.innerHTML = '<p class="report-empty">Enable "Show optimization report" and parse valid CSS to see savings here.</p>';
+                updateInputStats(undefined);
+                resetOutputStats();
+                saveDraft();
+                return;
+            }
+
+            let result;
+            try {
+                result = minifyCss(text, opts);
+            } catch (err) {
+                showError(err && err.message ? err.message : String(err));
+                cssOutput.value = '';
+                treePane.innerHTML = '<p class="tree-empty">Fix the CSS error to see the rule tree.</p>';
+                reportPane.innerHTML = '<p class="report-empty">Fix the CSS error to see the optimization report.</p>';
+                updateInputStats(undefined);
+                resetOutputStats(true);
+                saveDraft();
+                return;
+            }
+
+            cssOutput.value = result.text;
+            treePane.innerHTML = buildTreeHtml(result.nodes, result.comments, 0) || '<p class="tree-empty">Empty stylesheet.</p>';
+            updateReport(text, result, opts);
+            updateInputStats(result);
+            updateOutputStats(text, result);
+            saveDraft();
+        }
+
+        function updateInputStats(result) {
+            const text = cssInputEl.value;
+            document.getElementById('cssLineCount').textContent = (text === '' ? 0 : text.split('\n').length).toLocaleString();
+            document.getElementById('cssCharCount').textContent = text.length.toLocaleString();
+            if (result) {
+                document.getElementById('cssRuleCount').textContent = result.totals.rules.toLocaleString();
+                document.getElementById('cssAtRuleCount').textContent = result.totals.atRules.toLocaleString();
+            } else {
+                document.getElementById('cssRuleCount').textContent = '0';
+                document.getElementById('cssAtRuleCount').textContent = '0';
+            }
+        }
+
+        function updateOutputStats(originalText, result) {
+            const originalBytes = new Blob([originalText]).size;
+            const minBytes = new Blob([result.text]).size;
+            const reduction = originalBytes > 0 ? Math.max(0, Math.round((1 - minBytes / originalBytes) * 1000) / 10) : 0;
+            document.getElementById('cssSizeCount').textContent = minBytes.toLocaleString();
+            document.getElementById('cssReduction').textContent = reduction + '%';
+            document.getElementById('cssRulesOut').textContent = result.rulesOutCount.toLocaleString();
+            const statusEl = document.getElementById('cssStatus');
+            statusEl.textContent = 'Minified';
+            statusEl.parentElement.classList.remove('error');
+        }
+
+        function resetOutputStats(isError) {
+            document.getElementById('cssSizeCount').textContent = '0';
+            document.getElementById('cssReduction').textContent = '0%';
+            document.getElementById('cssRulesOut').textContent = '0';
+            const statusEl = document.getElementById('cssStatus');
+            statusEl.textContent = isError ? 'Invalid CSS' : '—';
+            statusEl.parentElement.classList.toggle('error', !!isError);
+        }
+
+        function updateReport(originalText, result, opts) {
+            if (!opts.optShowReport) {
+                reportPane.innerHTML = '<p class="report-empty">Enable "Show optimization report" to see savings here.</p>';
+                return;
+            }
+            const originalBytes = new Blob([originalText]).size;
+            const minBytes = new Blob([result.text]).size;
+            const saved = Math.max(0, originalBytes - minBytes);
+            const pct = originalBytes > 0 ? Math.max(0, Math.round((saved / originalBytes) * 1000) / 10) : 0;
+            const c = result.counters;
+
+            reportPane.innerHTML = `
+                <div class="report-metric-grid">
+                    <div class="report-metric"><div class="num">${originalBytes.toLocaleString()}</div><div class="lbl">Original bytes</div></div>
+                    <div class="report-metric"><div class="num">${minBytes.toLocaleString()}</div><div class="lbl">Minified bytes</div></div>
+                    <div class="report-metric savings"><div class="num">${saved.toLocaleString()}</div><div class="lbl">Bytes saved</div></div>
+                    <div class="report-metric savings"><div class="num">${pct}%</div><div class="lbl">Reduction</div></div>
+                </div>
+                <div class="report-bar-track"><div class="report-bar-fill" style="width:${Math.min(100, pct)}%"></div></div>
+                <ul class="report-list">
+                    <li><span class="rk">Rules seen</span><span class="rv">${c.rulesSeen}</span></li>
+                    <li><span class="rk">At-rules seen</span><span class="rv">${c.atRulesSeen}</span></li>
+                    <li><span class="rk">Empty rules removed</span><span class="rv">${c.emptyRulesRemoved}</span></li>
+                    <li><span class="rk">Duplicate selectors merged</span><span class="rv">${c.selectorsMerged}</span></li>
+                    <li><span class="rk">Duplicate declarations de-duped</span><span class="rv">${c.declsDeduped}</span></li>
+                    <li><span class="rk">Hex colors shortened</span><span class="rv">${c.hexShortened}</span></li>
+                    <li><span class="rk">rgb()/rgba() converted to hex</span><span class="rv">${c.rgbConverted}</span></li>
+                    <li><span class="rk">Named colors shortened</span><span class="rv">${c.namedColorsConverted}</span></li>
+                    <li><span class="rk">Zero-value units stripped</span><span class="rv">${c.zeroUnitsStripped}</span></li>
+                </ul>
+            `;
+        }
+
+        // Live conversion
+        cssInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = cssInputEl.value;
+            }
+            activeBatchIndex = index;
+            cssInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = cssInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    out = minifyCss(f.content, opts).text;
+                } catch (err) {
+                    out = '/* Error minifying this file: ' + (err && err.message ? err.message : String(err)) + ' */\n';
+                }
+                const outName = f.name.replace(/\.(css|txt)$/i, '') + '.min.css';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'minified-css.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            cssInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            cssInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                cssInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(cssOutput.value);
+            } catch (err) {
+                cssOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([cssOutput.value], { type: 'text/css' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted.min.css';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'cssMinifierDraft';
+        const DRAFT_SETTINGS_KEY = 'cssMinifierLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, cssInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') cssInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
