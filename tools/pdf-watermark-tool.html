@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Watermark Tool</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF watermark tool: stamp text or logo watermarks — single, diagonal, or tiled — across some or all pages, control opacity, rotation, color and scale, add page numbers and date stamps, batch-process multiple contracts or drafts at once, then preview before you download. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-watermark-tool.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-watermark-tool.html" />
+<meta property="og:title" content="PDF Watermark Tool — awjunaid" />
+<meta property="og:description" content="Stamp text or logo watermarks onto PDFs — tiled, diagonal, or single-position — with full control over opacity, rotation, color, and page range. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-watermark-tool.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Watermark Tool — awjunaid" />
+<meta name="twitter:description" content="Stamp text or logo watermarks onto PDFs — tiled, diagonal, or single-position — with full control over opacity, rotation, color, and page range. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-watermark-tool.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           INFO BANNER (why this matters)
+           ============================================ */
+        .info-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--accent); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--accent) 8%, transparent);
+        }
+        .info-banner i { font-size: 18px; color: var(--accent); margin-top: 2px; flex-shrink: 0; }
+        .info-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .info-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section.disabled-section { opacity: 0.4; pointer-events: none; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 label.section-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; letter-spacing: 0; font-size: 12px; opacity: 1; }
+        .settings-section h4 label.section-toggle input { accent-color: var(--text-primary); cursor: pointer; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group input[type="color"] {
+            width: 100%; height: 40px; padding: 3px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); cursor: pointer;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        /* Range sliders w/ live value */
+        .range-group label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .range-group label .range-val { opacity: 1; font-family: var(--font-mono); font-weight: 700; }
+        .range-group input[type="range"] { width: 100%; accent-color: var(--text-primary); cursor: pointer; }
+
+        /* Radio pill group */
+        .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .pill-option {
+            border: 1px solid var(--border-light); border-radius: 60px; padding: 8px 16px; font-size: 12px;
+            cursor: pointer; display: flex; align-items: center; gap: 7px; font-weight: 600;
+        }
+        .pill-option input { accent-color: var(--text-primary); cursor: pointer; }
+        .pill-option.checked { border-color: var(--text-color); background: color-mix(in srgb, var(--text-color) 6%, transparent); }
+
+        /* Position grid picker */
+        .pos-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 220px;
+        }
+        .pos-cell {
+            border: 1px solid var(--border-light); border-radius: 8px; aspect-ratio: 1;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; opacity: 0.6;
+        }
+        .pos-cell.selected { border-color: var(--text-color); background: var(--text-primary); color: var(--bg-primary); opacity: 1; }
+        .pos-cell.tiled-cell { grid-column: 1/-1; aspect-ratio: auto; padding: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Logo upload */
+        .logo-drop {
+            border: 1px dashed var(--border-light); border-radius: 12px; padding: 16px; font-size: 12px; opacity: 0.65;
+            text-align: center; cursor: pointer; margin-bottom: 10px;
+        }
+        .logo-preview-card {
+            display: none; align-items: center; gap: 12px; border: 1px solid var(--border-light); border-radius: 14px;
+            padding: 10px 14px; margin-bottom: 10px; background: var(--input-bg);
+        }
+        .logo-preview-card.show { display: flex; }
+        .logo-preview-card img { width: 42px; height: 42px; object-fit: contain; border-radius: 6px; background: var(--code-bg); }
+        .logo-preview-card .lp-main { flex: 1; min-width: 0; }
+        .logo-preview-card .lp-name { font-weight: 700; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .logo-preview-card .lp-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .file-list-item {
+            display: flex; align-items: center; gap: 10px; border: 1px solid var(--border-light); border-radius: 12px;
+            padding: 8px 12px; font-size: 11.5px;
+        }
+        .file-list-item .fli-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+        .file-list-item .fli-pages { opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .file-list-item .fli-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 22px; height: 22px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 10px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane.preview-pane { display: flex; align-items: center; justify-content: center; padding: 12px; }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        #previewCanvas { max-width: 100%; max-height: 396px; border: 1px solid var(--border-light); border-radius: 8px; background: #fff; }
+        .preview-hint { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; font-size: 10px; opacity: 0.5; font-family: var(--font-body); }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Watermark Tool</h1>
+                <div class="tool-dek">Stamp text or a logo across a contract draft, a leaked-in-progress design deck, or a batch of exported reports — tiled, diagonal, or pinned to a corner. Full control over opacity, rotation, color, page range, and page numbering, with a live preview before you export a single file or a whole batch as a ZIP.</div>
+            </div>
+
+            <div class="info-banner">
+                <i class="fa-solid fa-stamp"></i>
+                <div>
+                    <strong>Why watermark before you send it</strong>
+                    <p>A draft that leaves your hands unmarked is indistinguishable from a final. Watermarking every page — not just the cover — with "Draft", "Confidential", or a client name discourages redistribution, proves provenance if a copy leaks, and is standard practice before sharing contracts, pricing sheets, screenplays, or pre-release designs with anyone outside your organization.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="draft">Draft</option>
+                    <option value="confidential">Confidential</option>
+                    <option value="sample">Sample</option>
+                    <option value="copy">Copy — Do Not Distribute</option>
+                    <option value="brand">Logo Branding (tiled)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+
+                <div class="settings-section">
+                    <h4>Text Watermark
+                        <label class="section-toggle"><input type="checkbox" id="enableText" checked> Enabled</label>
+                    </h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="wmText">Watermark text</label>
+                            <input type="text" id="wmText" value="DRAFT" placeholder="e.g. CONFIDENTIAL, Client Name, Do Not Copy">
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="wmFont">Font</label>
+                            <select id="wmFont">
+                                <option value="HelveticaBold">Helvetica Bold</option>
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="TimesRomanBold">Times Bold</option>
+                                <option value="TimesRoman">Times Roman</option>
+                                <option value="CourierBold">Courier Bold</option>
+                                <option value="Courier">Courier</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="wmFontSize">Font size (pt)</label>
+                            <input type="number" id="wmFontSize" value="48" min="6" max="300">
+                        </div>
+                        <div class="field-group">
+                            <label for="wmColor">Color</label>
+                            <input type="color" id="wmColor" value="#ff0000">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <div class="range-group">
+                            <label>Opacity <span class="range-val" id="wmOpacityVal">35%</span></label>
+                            <input type="range" id="wmOpacity" min="5" max="100" value="35">
+                        </div>
+                        <div class="range-group">
+                            <label>Rotation <span class="range-val" id="wmRotationVal">45°</span></label>
+                            <input type="range" id="wmRotation" min="-180" max="180" value="45">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Logo / Image Watermark
+                        <label class="section-toggle"><input type="checkbox" id="enableImage"> Enabled</label>
+                    </h4>
+                    <div class="logo-drop" id="logoDrop">Click or drop a PNG/JPG logo here</div>
+                    <input type="file" id="logoInput" accept="image/png,image/jpeg" style="display:none;">
+                    <div class="logo-preview-card" id="logoPreviewCard">
+                        <img id="logoPreviewImg" alt="logo preview">
+                        <div class="lp-main">
+                            <div class="lp-name" id="logoPreviewName"></div>
+                        </div>
+                        <button class="lp-remove" id="logoRemoveBtn" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="range-group">
+                            <label>Logo opacity <span class="range-val" id="logoOpacityVal">50%</span></label>
+                            <input type="range" id="logoOpacity" min="5" max="100" value="50">
+                        </div>
+                        <div class="range-group">
+                            <label>Logo scale (% of page width) <span class="range-val" id="logoScaleVal">25%</span></label>
+                            <input type="range" id="logoScale" min="5" max="100" value="25">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Position & Repetition</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label>Layout</label>
+                            <div class="pos-grid" id="posGrid">
+                                <div class="pos-cell" data-pos="top-left" title="Top left"><i class="fa-solid fa-arrow-up-left-from-circle"></i></div>
+                                <div class="pos-cell" data-pos="top-center" title="Top center"><i class="fa-solid fa-arrow-up"></i></div>
+                                <div class="pos-cell" data-pos="top-right" title="Top right"><i class="fa-solid fa-arrow-up-right-from-circle"></i></div>
+                                <div class="pos-cell" data-pos="middle-left" title="Middle left"><i class="fa-solid fa-arrow-left"></i></div>
+                                <div class="pos-cell selected" data-pos="center" title="Center"><i class="fa-solid fa-crosshairs"></i></div>
+                                <div class="pos-cell" data-pos="middle-right" title="Middle right"><i class="fa-solid fa-arrow-right"></i></div>
+                                <div class="pos-cell" data-pos="bottom-left" title="Bottom left"><i class="fa-solid fa-arrow-down-left"></i></div>
+                                <div class="pos-cell" data-pos="bottom-center" title="Bottom center"><i class="fa-solid fa-arrow-down"></i></div>
+                                <div class="pos-cell" data-pos="bottom-right" title="Bottom right"><i class="fa-solid fa-arrow-down-right"></i></div>
+                                <div class="pos-cell tiled-cell" data-pos="tiled" title="Tiled across page">⠿ Tiled across full page</div>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="tileSpacingX">Tile spacing — horizontal (pt)</label>
+                            <input type="number" id="tileSpacingX" value="220" min="60" max="800">
+                        </div>
+                        <div class="field-group">
+                            <label for="tileSpacingY">Tile spacing — vertical (pt)</label>
+                            <input type="number" id="tileSpacingY" value="180" min="60" max="800">
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="offsetX">Fine-tune offset X (pt)</label>
+                            <input type="number" id="offsetX" value="0" min="-500" max="500">
+                        </div>
+                        <div class="field-group">
+                            <label for="offsetY">Fine-tune offset Y (pt)</label>
+                            <input type="number" id="offsetY" value="0" min="-500" max="500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Page Selection</h4>
+                    <div class="pill-group" id="pageModeGroup">
+                        <label class="pill-option checked"><input type="radio" name="pageMode" value="all" checked> All pages</label>
+                        <label class="pill-option"><input type="radio" name="pageMode" value="range"> Custom range</label>
+                        <label class="pill-option"><input type="radio" name="pageMode" value="odd"> Odd pages</label>
+                        <label class="pill-option"><input type="radio" name="pageMode" value="even"> Even pages</label>
+                        <label class="pill-option"><input type="radio" name="pageMode" value="first"> First page only</label>
+                        <label class="pill-option"><input type="radio" name="pageMode" value="exclude-first"> All except first</label>
+                    </div>
+                    <div class="field-row" id="pageRangeRow" style="margin-top:12px; display:none;">
+                        <div class="field-group full-width">
+                            <label for="pageRangeInput">Page range</label>
+                            <input type="text" id="pageRangeInput" placeholder="e.g. 1-3,5,8-10">
+                            <div class="field-note">Comma-separated pages and ranges. Page numbers start at 1.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Additional Stamps</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="enablePageNum">
+                            <span><span class="setting-name">Page number stamp</span><span class="setting-hint">Adds "Page X of Y" to the bottom of every stamped page</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="enableDateStamp">
+                            <span><span class="setting-name">Date stamp</span><span class="setting-hint">Adds today's date to the bottom corner of every stamped page</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="pageNumPos">Page number position</label>
+                            <select id="pageNumPos">
+                                <option value="bottom-center">Bottom center</option>
+                                <option value="bottom-right">Bottom right</option>
+                                <option value="bottom-left">Bottom left</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="pageNumFormat">Page number format</label>
+                            <select id="pageNumFormat">
+                                <option value="page-of">Page X of Y</option>
+                                <option value="x-slash-y">X / Y</option>
+                                <option value="num-only">X</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOptimize" checked>
+                            <span><span class="setting-name">Optimize output</span><span class="setting-hint">Uses object streams for smaller files</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchZip" checked>
+                            <span><span class="setting-name">Bundle batch output as ZIP</span><span class="setting-hint">Applies when watermarking multiple files at once</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="watermarked.pdf">
+                            <div class="field-note">Applied to a single file. Batch mode appends "-watermarked" to each original name.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source PDF</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Choose PDF(s)</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop one or more .pdf files here, or use "Choose PDF(s)" above.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="file-list" id="fileList"></div>
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalPagesFound">0</strong> total page(s)</span>
+                        <span><strong id="totalFilesLoaded">0</strong> file(s) loaded</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Preview & Apply</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="applyBtn" type="button"><i class="fa-solid fa-stamp"></i> Apply Watermark</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Settings Summary</button>
+                        <button class="output-tab" data-tab="preview" type="button">Preview</button>
+                        <button class="output-tab" data-tab="files" type="button">Output Files</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Load a PDF and adjust settings — a summary of what will be stamped appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-preview">
+                        <div class="info-pane preview-pane" id="previewPane" style="position:relative;"><p class="info-empty">Load a PDF to see a live preview of page 1 with your watermark applied.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">Watermarked files will be listed here after processing.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Watermarking activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputPagesStamped">0</strong> pages stamped</span>
+                        <span><strong id="outputStatus">Not applied yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Text watermark or logo — can I use both?</h4>
+                        <p>Yes. Turn on both the Text Watermark and Logo/Image Watermark sections and each is stamped independently using its own position, opacity, and page-range rules — useful for combining a "Confidential" label with a company logo.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "Tiled" layout actually do?</h4>
+                        <p>Instead of one watermark per page, the text or logo repeats in a grid across the entire page at your chosen horizontal and vertical spacing, so cropping or covering one instance still leaves the mark elsewhere on the page — the standard approach for anti-leak document stamping.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I watermark only specific pages?</h4>
+                        <p>Page Selection supports all pages, a custom range like "1-3,5,8-10", odd/even pages only, the first page only, or every page except the first — handy for skipping a cover page or only marking an exhibit section of a contract.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why add page numbers here instead of separately?</h4>
+                        <p>Watermarking and pagination are usually done together before a document goes out for review — stamping "Page X of Y" alongside your watermark in one pass avoids running the file through two separate tools and re-uploading it.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Does the preview match the final output exactly?</h4>
+                        <p>The preview renders page 1 of the actual watermarked PDF bytes, not a mock-up, so opacity, rotation, color, and position are exactly what you'll get — check it before applying to a full batch of files.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every PDF you load is watermarked entirely in your browser using pdf-lib — nothing is sent anywhere, which matters when the files are unreleased contracts, drafts, or pricing documents. Reload the page and everything is cleared except your settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // ============================================
+        // PDF WATERMARK TOOL — ENTERPRISE EDITION
+        // ============================================
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const previewPane = document.getElementById('previewPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const applyBtn = document.getElementById('applyBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const fileListEl = document.getElementById('fileList');
+
+        let loadedFiles = []; // { name, bytes, pageCount }
+        let logoImage = null; // { name, bytes, mime, dataUrl }
+        let outputs = []; // { name, blob, size }
+        let selectedPosition = 'center';
+        let previewDebounce;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_CHECKBOXES = ['enableText','enableImage','enablePageNum','enableDateStamp','optOptimize','optBatchZip'];
+        const SETTING_TEXT = ['wmText','wmFontSize','wmColor','wmOpacity','wmRotation','logoOpacity','logoScale','tileSpacingX','tileSpacingY','offsetX','offsetY','pageRangeInput','outputFilename'];
+        const SETTING_SELECT = ['wmFont','pageNumPos','pageNumFormat'];
+
+        function getOptions() {
+            const opts = {};
+            SETTING_CHECKBOXES.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_TEXT.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_SELECT.forEach(id => opts[id] = document.getElementById(id).value);
+            opts.position = selectedPosition;
+            opts.pageMode = document.querySelector('input[name="pageMode"]:checked').value;
+            return opts;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_CHECKBOXES.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_TEXT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_SELECT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (settings.position) selectPosition(settings.position);
+            if (settings.pageMode) {
+                const radio = document.querySelector(`input[name="pageMode"][value="${settings.pageMode}"]`);
+                if (radio) radio.checked = true;
+            }
+            refreshRangeVisibility();
+            refreshPillStates();
+            refreshRangeLabels();
+            refreshSectionEnabled();
+        }
+
+        // ============================================
+        // UI: sliders, pills, position grid
+        // ============================================
+        function refreshRangeLabels() {
+            document.getElementById('wmOpacityVal').textContent = document.getElementById('wmOpacity').value + '%';
+            document.getElementById('wmRotationVal').textContent = document.getElementById('wmRotation').value + '°';
+            document.getElementById('logoOpacityVal').textContent = document.getElementById('logoOpacity').value + '%';
+            document.getElementById('logoScaleVal').textContent = document.getElementById('logoScale').value + '%';
+        }
+        ['wmOpacity','wmRotation','logoOpacity','logoScale'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => { refreshRangeLabels(); markCustomAndSave(); });
+        });
+
+        function refreshSectionEnabled() {
+            document.querySelectorAll('.settings-section')[0].classList.toggle('disabled-section', false);
+        }
+
+        document.getElementById('posGrid').addEventListener('click', (e) => {
+            const cell = e.target.closest('.pos-cell');
+            if (!cell) return;
+            selectPosition(cell.dataset.pos);
+            markCustomAndSave();
+        });
+        function selectPosition(pos) {
+            selectedPosition = pos;
+            document.querySelectorAll('.pos-cell').forEach(c => c.classList.toggle('selected', c.dataset.pos === pos));
+        }
+
+        document.querySelectorAll('input[name="pageMode"]').forEach(radio => {
+            radio.addEventListener('change', () => { refreshRangeVisibility(); refreshPillStates(); markCustomAndSave(); });
+        });
+        function refreshRangeVisibility() {
+            document.getElementById('pageRangeRow').style.display = document.querySelector('input[name="pageMode"]:checked').value === 'range' ? 'grid' : 'none';
+        }
+        function refreshPillStates() {
+            document.querySelectorAll('.pill-option').forEach(p => p.classList.toggle('checked', p.querySelector('input').checked));
+        }
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', markCustomAndSave);
+        });
+
+        function markCustomAndSave() {
+            document.getElementById('presetSelect').value = 'custom';
+            invalidateApply();
+            if (loadedFiles.length) { renderPlan(); schedulePreview(); }
+            saveSettingsDraft();
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            draft: {
+                enableText: true, enableImage: false, enablePageNum: false, enableDateStamp: false,
+                wmText: 'DRAFT', wmFont: 'HelveticaBold', wmFontSize: '60', wmColor: '#999999',
+                wmOpacity: '30', wmRotation: '45', position: 'center', pageMode: 'all',
+                optOptimize: true, optBatchZip: true, outputFilename: 'draft-watermarked.pdf'
+            },
+            confidential: {
+                enableText: true, enableImage: false, enablePageNum: true, enableDateStamp: true,
+                wmText: 'CONFIDENTIAL', wmFont: 'HelveticaBold', wmFontSize: '46', wmColor: '#cc0000',
+                wmOpacity: '35', wmRotation: '45', position: 'center', pageMode: 'all',
+                pageNumPos: 'bottom-right', pageNumFormat: 'page-of',
+                optOptimize: true, optBatchZip: true, outputFilename: 'confidential-watermarked.pdf'
+            },
+            sample: {
+                enableText: true, enableImage: false, enablePageNum: false, enableDateStamp: false,
+                wmText: 'SAMPLE', wmFont: 'HelveticaBold', wmFontSize: '70', wmColor: '#1a73e8',
+                wmOpacity: '25', wmRotation: '0', position: 'tiled', pageMode: 'all',
+                tileSpacingX: '260', tileSpacingY: '200',
+                optOptimize: true, optBatchZip: true, outputFilename: 'sample-watermarked.pdf'
+            },
+            copy: {
+                enableText: true, enableImage: false, enablePageNum: true, enableDateStamp: false,
+                wmText: 'COPY — DO NOT DISTRIBUTE', wmFont: 'HelveticaBold', wmFontSize: '28', wmColor: '#ef4444',
+                wmOpacity: '40', wmRotation: '0', position: 'bottom-center', pageMode: 'all',
+                pageNumPos: 'bottom-left', pageNumFormat: 'x-slash-y',
+                optOptimize: true, optBatchZip: true, outputFilename: 'copy-watermarked.pdf'
+            },
+            brand: {
+                enableText: false, enableImage: true, enablePageNum: false, enableDateStamp: false,
+                logoOpacity: '18', logoScale: '20', position: 'tiled', pageMode: 'all',
+                tileSpacingX: '260', tileSpacingY: '220',
+                optOptimize: true, optBatchZip: true, outputFilename: 'branded-watermarked.pdf'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfWatermarkToolCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            invalidateApply();
+            if (loadedFiles.length) { renderPlan(); schedulePreview(); }
+            saveSettingsDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-watermark-tool-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    invalidateApply();
+                    if (loadedFiles.length) { renderPlan(); schedulePreview(); }
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // ERROR / LOG HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function clearLog() {
+            logLines = [];
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Watermarking activity will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ============================================
+        // FILE LOADING
+        // ============================================
+        async function loadFiles(fileList) {
+            clearError();
+            clearLog();
+            const files = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+            if (files.length === 0) {
+                showError('No valid PDF files selected.');
+                return;
+            }
+            loadedFiles = [];
+            for (const file of files) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+                    const pageCount = doc.getPageCount();
+                    loadedFiles.push({ name: file.name, bytes, pageCount });
+                    logMsg(`Loaded "${file.name}" — ${pageCount} page(s).`, 'success');
+                } catch (err) {
+                    logMsg(`Failed to load "${file.name}": ${err.message || err}`, 'error');
+                }
+            }
+            if (loadedFiles.length === 0) {
+                showError('None of the selected files could be read as PDFs.');
+                return;
+            }
+
+            const first = loadedFiles[0];
+            document.getElementById('lfName').textContent = loadedFiles.length === 1 ? first.name : `${first.name} + ${loadedFiles.length - 1} more`;
+            document.getElementById('lfMeta').textContent = loadedFiles.length === 1
+                ? `${first.pageCount} page(s)`
+                : `${loadedFiles.length} files loaded — batch mode`;
+            loadedFileCard.classList.add('show');
+
+            renderFileList();
+            const totalPages = loadedFiles.reduce((sum, f) => sum + f.pageCount, 0);
+            document.getElementById('totalPagesFound').textContent = totalPages;
+            document.getElementById('totalFilesLoaded').textContent = loadedFiles.length;
+
+            const base = first.name.replace(/\.pdf$/i, '');
+            document.getElementById('outputFilename').value = base + '-watermarked.pdf';
+
+            invalidateApply();
+            renderPlan();
+            schedulePreview();
+        }
+
+        function renderFileList() {
+            if (loadedFiles.length <= 1) { fileListEl.innerHTML = ''; return; }
+            fileListEl.innerHTML = loadedFiles.map((f, i) => `
+                <div class="file-list-item">
+                    <span class="fli-name" title="${escapeHtmlStr(f.name)}">${escapeHtmlStr(f.name)}</span>
+                    <span class="fli-pages">${f.pageCount}p</span>
+                    <button class="fli-remove" data-idx="${i}" type="button"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `).join('');
+            fileListEl.querySelectorAll('.fli-remove').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    loadedFiles.splice(Number(btn.dataset.idx), 1);
+                    if (loadedFiles.length === 0) {
+                        loadedFileCard.classList.remove('show');
+                    } else {
+                        const first = loadedFiles[0];
+                        document.getElementById('lfName').textContent = loadedFiles.length === 1 ? first.name : `${first.name} + ${loadedFiles.length - 1} more`;
+                        document.getElementById('lfMeta').textContent = loadedFiles.length === 1 ? `${first.pageCount} page(s)` : `${loadedFiles.length} files loaded — batch mode`;
+                    }
+                    document.getElementById('totalFilesLoaded').textContent = loadedFiles.length;
+                    document.getElementById('totalPagesFound').textContent = loadedFiles.reduce((s, f) => s + f.pageCount, 0);
+                    renderFileList();
+                    invalidateApply();
+                    renderPlan();
+                    schedulePreview();
+                });
+            });
+        }
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            loadedFiles = [];
+            loadedFileCard.classList.remove('show');
+            fileListEl.innerHTML = '';
+            document.getElementById('totalFilesLoaded').textContent = '0';
+            document.getElementById('totalPagesFound').textContent = '0';
+            invalidateApply();
+            planPane.innerHTML = '<p class="info-empty">Load a PDF and adjust settings — a summary of what will be stamped appears here.</p>';
+            previewPane.innerHTML = '<p class="info-empty">Load a PDF to see a live preview of page 1 with your watermark applied.</p>';
+        });
+
+        // ============================================
+        // LOGO UPLOAD
+        // ============================================
+        const logoInput = document.getElementById('logoInput');
+        document.getElementById('logoDrop').addEventListener('click', () => logoInput.click());
+        logoInput.addEventListener('change', (e) => { if (e.target.files[0]) handleLogoFile(e.target.files[0]); logoInput.value = ''; });
+        function handleLogoFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const bytes = new Uint8Array(ev.target.result);
+                logoImage = { name: file.name, bytes, mime: file.type };
+                document.getElementById('logoPreviewImg').src = URL.createObjectURL(new Blob([bytes], { type: file.type }));
+                document.getElementById('logoPreviewName').textContent = file.name;
+                document.getElementById('logoPreviewCard').classList.add('show');
+                document.getElementById('enableImage').checked = true;
+                markCustomAndSave();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        document.getElementById('logoRemoveBtn').addEventListener('click', () => {
+            logoImage = null;
+            document.getElementById('logoPreviewCard').classList.remove('show');
+            markCustomAndSave();
+        });
+
+        // ============================================
+        // PAGE RANGE PARSING
+        // ============================================
+        function resolvePageIndices(pageMode, rangeStr, totalPages) {
+            const all = Array.from({ length: totalPages }, (_, i) => i);
+            if (pageMode === 'all') return all;
+            if (pageMode === 'odd') return all.filter(i => (i + 1) % 2 === 1);
+            if (pageMode === 'even') return all.filter(i => (i + 1) % 2 === 0);
+            if (pageMode === 'first') return totalPages ? [0] : [];
+            if (pageMode === 'exclude-first') return all.filter(i => i !== 0);
+            if (pageMode === 'range') {
+                const set = new Set();
+                (rangeStr || '').split(',').map(s => s.trim()).filter(Boolean).forEach(part => {
+                    const m = part.match(/^(\d+)\s*-\s*(\d+)$/);
+                    if (m) {
+                        let a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+                        if (a > b) [a, b] = [b, a];
+                        for (let n = a; n <= b; n++) if (n >= 1 && n <= totalPages) set.add(n - 1);
+                    } else {
+                        const n = parseInt(part, 10);
+                        if (!isNaN(n) && n >= 1 && n <= totalPages) set.add(n - 1);
+                    }
+                });
+                return Array.from(set).sort((a, b) => a - b);
+            }
+            return all;
+        }
+
+        // ============================================
+        // POSITION MATH
+        // ============================================
+        function anchorForPosition(pos, pageW, pageH, boxW, boxH, margin) {
+            switch (pos) {
+                case 'top-left': return { x: margin, y: pageH - margin - boxH };
+                case 'top-center': return { x: (pageW - boxW) / 2, y: pageH - margin - boxH };
+                case 'top-right': return { x: pageW - margin - boxW, y: pageH - margin - boxH };
+                case 'middle-left': return { x: margin, y: (pageH - boxH) / 2 };
+                case 'middle-right': return { x: pageW - margin - boxW, y: (pageH - boxH) / 2 };
+                case 'bottom-left': return { x: margin, y: margin };
+                case 'bottom-center': return { x: (pageW - boxW) / 2, y: margin };
+                case 'bottom-right': return { x: pageW - margin - boxW, y: margin };
+                case 'center':
+                default: return { x: (pageW - boxW) / 2, y: (pageH - boxH) / 2 };
+            }
+        }
+
+        function tilePositions(pageW, pageH, spacingX, spacingY) {
+            const points = [];
+            const cols = Math.ceil(pageW / spacingX) + 2;
+            const rows = Math.ceil(pageH / spacingY) + 2;
+            const startX = -spacingX;
+            const startY = -spacingY;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    points.push({ x: startX + c * spacingX, y: startY + r * spacingY });
+                }
+            }
+            return points;
+        }
+
+        // ============================================
+        // CORE STAMPING ENGINE (shared by preview + full apply)
+        // ============================================
+        const FONT_MAP = {
+            Helvetica: 'Helvetica', HelveticaBold: 'HelveticaBold',
+            TimesRoman: 'TimesRoman', TimesRomanBold: 'TimesRomanBold',
+            Courier: 'Courier', CourierBold: 'CourierBold'
+        };
+
+        function hexToRgb01(hex) {
+            const h = hex.replace('#', '');
+            const r = parseInt(h.substring(0, 2), 16) / 255;
+            const g = parseInt(h.substring(2, 4), 16) / 255;
+            const b = parseInt(h.substring(4, 6), 16) / 255;
+            return { r, g, b };
+        }
+
+        function formatPageNumber(format, current, total) {
+            if (format === 'x-slash-y') return `${current} / ${total}`;
+            if (format === 'num-only') return `${current}`;
+            return `Page ${current} of ${total}`;
+        }
+
+        async function stampDocument(bytes, opts, onlyFirstPagePreview) {
+            const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+            const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+            const totalPages = doc.getPageCount();
+            const pages = doc.getPages();
+
+            const textFont = opts.enableText ? await doc.embedFont(StandardFonts[FONT_MAP[opts.wmFont] || 'HelveticaBold']) : null;
+            const stampFont = await doc.embedFont(StandardFonts.Helvetica);
+
+            let embeddedLogo = null;
+            let logoDims = null;
+            if (opts.enableImage && logoImage) {
+                try {
+                    embeddedLogo = logoImage.mime === 'image/png' ? await doc.embedPng(logoImage.bytes) : await doc.embedJpg(logoImage.bytes);
+                } catch (e) {
+                    embeddedLogo = null;
+                }
+            }
+
+            const targetIndices = onlyFirstPagePreview
+                ? [0]
+                : resolvePageIndices(opts.pageMode, opts.pageRangeInput, totalPages).filter(i => i >= 0 && i < totalPages);
+
+            const color = hexToRgb01(opts.wmColor);
+            const textOpacity = Number(opts.wmOpacity) / 100;
+            const rotationDeg = Number(opts.wmRotation);
+            const fontSize = Number(opts.wmFontSize);
+            const logoOpacity = Number(opts.logoOpacity) / 100;
+            const logoScalePct = Number(opts.logoScale) / 100;
+            const offX = Number(opts.offsetX) || 0;
+            const offY = Number(opts.offsetY) || 0;
+            const spacingX = Math.max(60, Number(opts.tileSpacingX) || 220);
+            const spacingY = Math.max(60, Number(opts.tileSpacingY) || 180);
+
+            let stampedCount = 0;
+
+            targetIndices.forEach(idx => {
+                const page = pages[idx];
+                if (!page) return;
+                const { width: pageW, height: pageH } = page.getSize();
+                let didStamp = false;
+
+                if (opts.enableText && textFont && opts.wmText) {
+                    const textW = textFont.widthOfTextAtSize(opts.wmText, fontSize);
+                    const textH = fontSize;
+                    if (opts.position === 'tiled') {
+                        tilePositions(pageW, pageH, spacingX, spacingY).forEach(pt => {
+                            page.drawText(opts.wmText, {
+                                x: pt.x + offX, y: pt.y + offY, size: fontSize, font: textFont,
+                                color: rgb(color.r, color.g, color.b), opacity: textOpacity,
+                                rotate: degrees(rotationDeg)
+                            });
+                        });
+                    } else {
+                        const anchor = anchorForPosition(opts.position, pageW, pageH, textW, textH, 36);
+                        page.drawText(opts.wmText, {
+                            x: anchor.x + offX, y: anchor.y + offY, size: fontSize, font: textFont,
+                            color: rgb(color.r, color.g, color.b), opacity: textOpacity,
+                            rotate: degrees(rotationDeg)
+                        });
+                    }
+                    didStamp = true;
+                }
+
+                if (opts.enableImage && embeddedLogo) {
+                    const scaledW = pageW * logoScalePct;
+                    const ratio = embeddedLogo.height / embeddedLogo.width;
+                    const scaledH = scaledW * ratio;
+                    if (opts.position === 'tiled') {
+                        tilePositions(pageW, pageH, spacingX, spacingY).forEach(pt => {
+                            page.drawImage(embeddedLogo, { x: pt.x + offX, y: pt.y + offY, width: scaledW, height: scaledH, opacity: logoOpacity });
+                        });
+                    } else {
+                        const anchor = anchorForPosition(opts.position, pageW, pageH, scaledW, scaledH, 30);
+                        page.drawImage(embeddedLogo, { x: anchor.x + offX, y: anchor.y + offY, width: scaledW, height: scaledH, opacity: logoOpacity });
+                    }
+                    didStamp = true;
+                }
+
+                if (opts.enablePageNum) {
+                    const label = formatPageNumber(opts.pageNumFormat, idx + 1, totalPages);
+                    const w = stampFont.widthOfTextAtSize(label, 9);
+                    const anchor = anchorForPosition(opts.pageNumPos, pageW, pageH, w, 9, 18);
+                    page.drawText(label, { x: anchor.x, y: anchor.y, size: 9, font: stampFont, color: rgb(0.3, 0.3, 0.3), opacity: 0.85 });
+                }
+                if (opts.enableDateStamp) {
+                    const dateLabel = new Date().toLocaleDateString();
+                    const w = stampFont.widthOfTextAtSize(dateLabel, 9);
+                    const pos = opts.pageNumPos === 'bottom-right' ? 'bottom-left' : 'bottom-right';
+                    const anchor = anchorForPosition(pos, pageW, pageH, w, 9, 18);
+                    page.drawText(dateLabel, { x: anchor.x, y: anchor.y, size: 9, font: stampFont, color: rgb(0.3, 0.3, 0.3), opacity: 0.85 });
+                }
+
+                if (didStamp || opts.enablePageNum || opts.enableDateStamp) stampedCount++;
+            });
+
+            const outBytes = await doc.save({ useObjectStreams: !!opts.optOptimize });
+            return { bytes: outBytes, stampedCount, totalPages, targetCount: targetIndices.length };
+        }
+
+        // ============================================
+        // SETTINGS SUMMARY
+        // ============================================
+        function renderPlan() {
+            if (loadedFiles.length === 0) {
+                planPane.innerHTML = '<p class="info-empty">Load a PDF and adjust settings — a summary of what will be stamped appears here.</p>';
+                return;
+            }
+            const opts = getOptions();
+            const totalPages = loadedFiles.reduce((s, f) => s + f.pageCount, 0);
+            const targetCount = loadedFiles.reduce((s, f) => s + resolvePageIndices(opts.pageMode, opts.pageRangeInput, f.pageCount).length, 0);
+            let html = `<div class="meta-row"><span>Files queued</span><span>${loadedFiles.length}</span></div>`;
+            html += `<div class="meta-row"><span>Total pages / to be stamped</span><span>${totalPages} / ${targetCount}</span></div>`;
+            html += `<div class="meta-row"><span>Text watermark</span><span>${opts.enableText ? '"' + escapeHtmlStr(opts.wmText || '') + '"' : 'Disabled'}</span></div>`;
+            if (opts.enableText) {
+                html += `<div class="meta-row"><span>Font / size / opacity / rotation</span><span>${opts.wmFont}, ${opts.wmFontSize}pt, ${opts.wmOpacity}%, ${opts.wmRotation}°</span></div>`;
+            }
+            html += `<div class="meta-row"><span>Logo watermark</span><span>${opts.enableImage ? (logoImage ? escapeHtmlStr(logoImage.name) : 'Enabled — no logo uploaded') : 'Disabled'}</span></div>`;
+            html += `<div class="meta-row"><span>Layout</span><span>${labelForPosition(opts.position)}</span></div>`;
+            if (opts.position === 'tiled') html += `<div class="meta-row"><span>Tile spacing</span><span>${opts.tileSpacingX}pt × ${opts.tileSpacingY}pt</span></div>`;
+            html += `<div class="meta-row"><span>Page selection</span><span>${labelForPageMode(opts.pageMode)}${opts.pageMode === 'range' ? ' — ' + escapeHtmlStr(opts.pageRangeInput || '(none)') : ''}</span></div>`;
+            html += `<div class="meta-row"><span>Page number stamp</span><span>${opts.enablePageNum ? labelForFormat(opts.pageNumFormat) + ' at ' + opts.pageNumPos : 'Off'}</span></div>`;
+            html += `<div class="meta-row"><span>Date stamp</span><span>${opts.enableDateStamp ? 'On' : 'Off'}</span></div>`;
+            planPane.innerHTML = html;
+        }
+        function labelForPosition(pos) {
+            const map = { 'top-left':'Top left','top-center':'Top center','top-right':'Top right','middle-left':'Middle left','center':'Center','middle-right':'Middle right','bottom-left':'Bottom left','bottom-center':'Bottom center','bottom-right':'Bottom right','tiled':'Tiled across page' };
+            return map[pos] || pos;
+        }
+        function labelForPageMode(mode) {
+            const map = { all: 'All pages', range: 'Custom range', odd: 'Odd pages', even: 'Even pages', first: 'First page only', 'exclude-first': 'All except first' };
+            return map[mode] || mode;
+        }
+        function labelForFormat(f) {
+            const map = { 'page-of': 'Page X of Y', 'x-slash-y': 'X / Y', 'num-only': 'X' };
+            return map[f] || f;
+        }
+
+        // ============================================
+        // LIVE PREVIEW (renders page 1 of the actual stamped bytes via pdf.js)
+        // ============================================
+        function schedulePreview() {
+            clearTimeout(previewDebounce);
+            previewDebounce = setTimeout(renderPreview, 450);
+        }
+        async function renderPreview() {
+            if (loadedFiles.length === 0 || !window.pdfjsLib) return;
+            const opts = getOptions();
+            if (!opts.enableText && !(opts.enableImage && logoImage) && !opts.enablePageNum && !opts.enableDateStamp) {
+                previewPane.innerHTML = '<p class="info-empty">Enable a text or logo watermark to see a preview.</p>';
+                return;
+            }
+            try {
+                const { bytes } = await stampDocument(loadedFiles[0].bytes, opts, true);
+                const loadingTask = pdfjsLib.getDocument({ data: bytes });
+                const pdf = await loadingTask.promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 1 });
+                const scale = Math.min(560 / viewport.width, 380 / viewport.height);
+                const scaledViewport = page.getViewport({ scale });
+                previewPane.innerHTML = '<canvas id="previewCanvas"></canvas><div class="preview-hint">Preview of page 1 — actual watermarked output</div>';
+                const canvas = document.getElementById('previewCanvas');
+                canvas.width = scaledViewport.width;
+                canvas.height = scaledViewport.height;
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+            } catch (err) {
+                previewPane.innerHTML = `<p class="info-empty">Preview unavailable: ${escapeHtmlStr(err.message || err)}</p>`;
+            }
+        }
+
+        // ============================================
+        // APPLY / DOWNLOAD
+        // ============================================
+        async function applyWatermark() {
+            if (loadedFiles.length === 0) {
+                showError('Load a PDF before applying a watermark.');
+                return;
+            }
+            const opts = getOptions();
+            if (!opts.enableText && !(opts.enableImage && logoImage)) {
+                showError('Enable a text watermark, or upload a logo and enable the logo watermark, before applying.');
+                return;
+            }
+            clearError();
+            clearLog();
+            applyBtn.disabled = true;
+            downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Applying…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+            outputs = [];
+
+            let stampedTotal = 0;
+
+            try {
+                for (let i = 0; i < loadedFiles.length; i++) {
+                    const entry = loadedFiles[i];
+                    const { bytes, stampedCount, targetCount } = await stampDocument(entry.bytes, opts, false);
+
+                    let filename;
+                    if (loadedFiles.length === 1) {
+                        filename = (opts.outputFilename || 'watermarked.pdf').replace(/\.pdf$/i, '') + '.pdf';
+                    } else {
+                        filename = entry.name.replace(/\.pdf$/i, '') + '-watermarked.pdf';
+                    }
+                    outputs.push({ name: filename, blob: new Blob([bytes], { type: 'application/pdf' }), size: bytes.length });
+                    stampedTotal += stampedCount;
+                    logMsg(`Watermarked "${entry.name}" → "${filename}" — ${stampedCount}/${targetCount} target page(s) stamped (${bytes.length.toLocaleString()} bytes).`, 'success');
+                }
+
+                document.getElementById('outputPagesStamped').textContent = stampedTotal;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = outputs.length > 1 ? `Watermarked ${outputs.length} files` : 'Watermarked';
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add('success');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                logMsg(`Watermarking complete: ${outputs.length} file(s) processed, ${stampedTotal} page(s) stamped in total.`, 'success');
+            } catch (err) {
+                showError('Watermarking failed: ' + (err.message || err));
+                logMsg('Watermarking failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Watermarking failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                outputs = [];
+                downloadBtn.disabled = true;
+            } finally {
+                applyBtn.disabled = false;
+            }
+        }
+
+        function renderFilesPane() {
+            if (outputs.length === 0) {
+                filesPane.innerHTML = '<p class="info-empty">Watermarked files will be listed here after processing.</p>';
+                return;
+            }
+            filesPane.innerHTML = '';
+            outputs.forEach((o, i) => {
+                const row = document.createElement('div');
+                row.className = 'output-list-item';
+                row.innerHTML = `
+                    <span class="oli-name" title="${escapeHtmlStr(o.name)}">${escapeHtmlStr(o.name)}</span>
+                    <span class="oli-meta">${o.size.toLocaleString()}b</span>
+                    <button class="oli-dl" type="button" data-idx="${i}">Save</button>
+                `;
+                row.querySelector('.oli-dl').addEventListener('click', () => downloadSingle(i));
+                filesPane.appendChild(row);
+            });
+        }
+
+        function downloadSingle(idx) {
+            const o = outputs[idx];
+            if (!o) return;
+            const url = URL.createObjectURL(o.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = o.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAll() {
+            if (outputs.length === 0) return;
+            if (outputs.length === 1) {
+                downloadSingle(0);
+                return;
+            }
+            const opts = getOptions();
+            if (!opts.optBatchZip || !window['JSZip']) {
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+                return;
+            }
+            try {
+                const zip = new JSZip();
+                for (const o of outputs) {
+                    const buf = await o.blob.arrayBuffer();
+                    zip.file(o.name, buf);
+                }
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'watermarked-pdfs.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logMsg(`Downloaded ZIP bundle with ${outputs.length} file(s).`, 'success');
+            } catch (err) {
+                logMsg(`ZIP bundling failed, falling back to individual downloads: ${err.message || err}`, 'warn');
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+            }
+        }
+
+        function invalidateApply() {
+            if (outputs.length > 0) {
+                outputs = [];
+                downloadBtn.disabled = true;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Settings changed — apply again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                filesPane.innerHTML = '<p class="info-empty">Watermarked files will be listed here after processing.</p>';
+            }
+        }
+
+        applyBtn.addEventListener('click', applyWatermark);
+        downloadBtn.addEventListener('click', downloadAll);
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            loadFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            loadFiles(dropped);
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfWatermarkToolLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial render
+        refreshRangeLabels();
+        refreshRangeVisibility();
+        refreshPillStates();
+    </script>
+</body>
+</html>
