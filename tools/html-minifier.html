@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | HTML Minifier</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free HTML minifier with whitespace collapsing, comment stripping, attribute optimization, boolean-attribute collapsing, inline CSS/JS minification, void-element cleanup, live preview, gzip size estimate, and batch conversion. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/html-minifier.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/html-minifier.html" />
+<meta property="og:title" content="HTML Minifier — awjunaid" />
+<meta property="og:description" content="Minify HTML with live preview, gzip size estimate, safe comment/whitespace/attribute stripping, inline CSS & JS minification, and batch export. 100% client-side — nothing uploaded to a server." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/html-minifier.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="HTML Minifier — awjunaid" />
+<meta name="twitter:description" content="Minify HTML with live preview, gzip size estimate, attribute/whitespace control, and batch export. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/html-minifier.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #htmlInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #htmlInput:focus { outline: none; border-color: var(--border-color); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #htmlOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .preview-frame-wrap {
+            border: 1px solid var(--border-light); border-radius: 16px; overflow: hidden;
+            min-height: 420px; height: 420px; background: #fff;
+        }
+        .preview-frame-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
+        .preview-note { font-size: 11px; opacity: 0.55; margin-top: 10px; }
+
+        .savings-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 18px 20px; min-height: 420px; max-height: 420px; overflow-y: auto;
+        }
+        .savings-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 12.5px; }
+        .savings-row:last-child { border-bottom: none; }
+        .savings-row .s-label { font-weight: 700; }
+        .savings-row .s-value { font-family: var(--font-mono); opacity: 0.85; }
+        .savings-row .s-value.big { font-size: 1.4rem; font-weight: 800; opacity: 1; font-family: var(--font-inter); }
+        .savings-empty { font-size: 12px; opacity: 0.5; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #htmlInput, #htmlOutput, .savings-pane { min-height: 320px; }
+            .preview-frame-wrap { min-height: 320px; height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">HTML Minifier</h1>
+                <div class="tool-dek">Paste or upload HTML, fine-tune whitespace, comment, attribute, and inline CSS/JS handling, then preview the minified markup live, check a real gzip-size estimate, and compare byte savings — all in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="maximum">Maximum Compression</option>
+                    <option value="safe">Safe / Conservative</option>
+                    <option value="templates">Template-safe (preserve embedded templates)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Whitespace & Structure</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCollapseWhitespace" checked>
+                            <span><span class="setting-name">Collapse whitespace</span><span class="setting-hint">Reduces runs of spaces, tabs and line breaks between tags and in text</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrimLines" checked>
+                            <span><span class="setting-name">Trim line edges</span><span class="setting-hint">Removes leading/trailing whitespace on every line and drops blank lines</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveEmptyElements">
+                            <span><span class="setting-name">Remove empty elements</span><span class="setting-hint">Drops attribute-less &lt;p&gt;, &lt;span&gt;, &lt;div&gt;, etc. with no content</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Whitespace collapse mode</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="collapseMode" value="aggressive" checked> Aggressive — strip all whitespace between tags</label>
+                                <label class="radio-opt"><input type="radio" name="collapseMode" value="conservative"> Conservative — collapse runs to a single space</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Comments</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveComments" checked>
+                            <span><span class="setting-name">Remove HTML comments</span><span class="setting-hint">Strips &lt;!-- ... --&gt; blocks entirely</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPreserveConditionalComments" checked>
+                            <span><span class="setting-name">Preserve IE conditional comments</span><span class="setting-hint">Keeps &lt;!--[if ... ]&gt; ... &lt;![endif]--&gt; blocks even when comments are removed</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Tags & Attributes</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLowercaseTags" checked>
+                            <span><span class="setting-name">Lowercase tag & attribute names</span><span class="setting-hint">Normalizes &lt;DIV Class="x"&gt; to &lt;div class="x"&gt;</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveAttrQuotes">
+                            <span><span class="setting-name">Drop quotes on safe attribute values</span><span class="setting-hint">Only when the value has no spaces or special characters</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCollapseBooleanAttrs" checked>
+                            <span><span class="setting-name">Collapse boolean attributes</span><span class="setting-hint">checked="checked" becomes checked</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveEmptyAttrs" checked>
+                            <span><span class="setting-name">Remove empty attributes</span><span class="setting-hint">Drops class="" but keeps meaningful empty values like alt=""</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveRedundantAttrs" checked>
+                            <span><span class="setting-name">Remove redundant attributes</span><span class="setting-hint">type="text/javascript", type="text/css", method="get"</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSortAttributes">
+                            <span><span class="setting-name">Sort attributes alphabetically</span><span class="setting-hint">More repetitive byte patterns, can help gzip slightly</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveTrailingSlash" checked>
+                            <span><span class="setting-name">Remove trailing slash on void elements</span><span class="setting-hint">&lt;br/&gt; becomes &lt;br&gt;</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShortDoctype" checked>
+                            <span><span class="setting-name">Use short doctype</span><span class="setting-hint">Normalizes any DOCTYPE to &lt;!doctype html&gt;</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Inline CSS & JS</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMinifyInlineCSS" checked>
+                            <span><span class="setting-name">Minify style="" attributes</span><span class="setting-hint">Strips comments and collapses whitespace in inline styles</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMinifyStyleBlocks" checked>
+                            <span><span class="setting-name">Minify &lt;style&gt; blocks</span><span class="setting-hint">Regex-based CSS minifier — comments and whitespace only</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMinifyScriptBlocks">
+                            <span><span class="setting-name">Minify &lt;script&gt; blocks (safe mode)</span><span class="setting-hint">Strips // and /* */ comments only, string/template literals are left untouched — logic is never altered</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="preserveTagsInput">Preserve content of these tags verbatim (comma-separated)</label>
+                            <input type="text" id="preserveTagsInput" placeholder="e.g. template, pre, textarea" value="">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrailingNewline">
+                            <span><span class="setting-name">Trailing newline</span><span class="setting-hint">Adds a final newline to downloaded/copied output</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>HTML Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".html,.htm,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple files to batch-minify them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="htmlInput" spellcheck="false" placeholder="Paste or type your HTML here, or upload .html file(s)..."></textarea>
+                    <div class="file-drop" id="dropZone">Drag & drop .html / .htm file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="htmlLineCount">0</strong> lines</span>
+                        <span><strong id="htmlCharCount">0</strong> characters</span>
+                        <span><strong id="htmlTagCount">0</strong> tags</span>
+                        <span><strong id="htmlOrigSize">0</strong> bytes</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .html</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="html" type="button">Minified HTML</button>
+                        <button class="output-tab" data-tab="preview" type="button">Live Preview</button>
+                        <button class="output-tab" data-tab="savings" type="button">Size Report</button>
+                    </div>
+                    <div class="output-pane active" id="pane-html">
+                        <textarea id="htmlOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-preview">
+                        <div class="preview-frame-wrap"><iframe id="previewFrame" sandbox="allow-scripts allow-forms allow-popups" title="Minified output preview"></iframe></div>
+                        <div class="preview-note">Rendered in a sandboxed frame from the minified markup — same-origin resources may not load.</div>
+                    </div>
+                    <div class="output-pane" id="pane-savings">
+                        <div class="savings-pane" id="savingsPane"><p class="savings-empty">Paste valid HTML to see the size report here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="minSize">0</strong> bytes minified</span>
+                        <span><strong id="savedPct">0%</strong> smaller</span>
+                        <span><strong id="gzipEstimate">—</strong> gzip est.</span>
+                        <span><strong id="minTagCount">0</strong> tags remaining</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Is this a full HTML parser?</h4>
+                        <p>No. This minifier is regex-based, not a full DOM/tree parser like html-minifier-terser. It's tuned to be safe on typical hand-written markup, but it won't handle every malformed-HTML edge case perfectly. Always diff-check output on critical production pages.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "Aggressive" whitespace mode do that "Conservative" doesn't?</h4>
+                        <p>Aggressive removes all whitespace sitting directly between two tags (e.g. between &lt;/li&gt; and &lt;li&gt;), which can visually change inline-element spacing in rare layouts. Conservative only collapses whitespace runs down to a single space, which is safer around inline elements like &lt;span&gt; and &lt;a&gt;.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does &lt;pre&gt; and &lt;textarea&gt; content stay untouched?</h4>
+                        <p>Whitespace inside those elements is meaningful to the browser, so their content — and the content of any tags you list under "Preserve content of these tags" — is protected before any collapsing, comment-stripping, or attribute processing runs, then restored byte-for-byte at the end.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How safe is the &lt;script&gt; minification?</h4>
+                        <p>It only strips // and block comments while tracking string, template-literal, and regex boundaries so it never touches code inside quotes or backticks. It does not rename variables, remove whitespace, or restructure code, so behavior is preserved — for maximum JS compression, run a real minifier like Terser separately.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is the gzip estimate based on?</h4>
+                        <p>When your browser supports the CompressionStream API, the tool actually gzips the minified output in-memory and reports the real compressed byte size — the same algorithm most web servers use for gzip transfer-encoding — rather than a rough approximation.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Which attributes get removed as "redundant"?</h4>
+                        <p>Currently type="text/javascript" and type="application/javascript" on &lt;script&gt;, type="text/css" on &lt;style&gt;/&lt;link&gt;, and method="get" on &lt;form&gt; — all defaults that browsers already assume, so writing them out costs bytes for nothing.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .html files and each becomes a tab above the editor. "Download All (.zip)" minifies every loaded file with your current settings and bundles the results into one archive.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Files you upload are read locally in your browser and minification happens entirely client-side — nothing is sent anywhere. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // HTML MINIFIER — ENTERPRISE EDITION
+        // ============================================
+        const htmlInputEl = document.getElementById('htmlInput');
+        const htmlOutput = document.getElementById('htmlOutput');
+        const savingsPane = document.getElementById('savingsPane');
+        const previewFrame = document.getElementById('previewFrame');
+
+        const sampleHtml =
+`<!DOCTYPE html>
+<html>
+  <head>
+    <title>  Sample Page  </title>
+    <!-- primary stylesheet -->
+    <style type="text/css">
+      body {
+        margin: 0;   /* reset */
+        color:  #222 ;
+      }
+    </style>
+  </head>
+  <body>
+    <!--[if IE]><p>Upgrade your browser.</p><![endif]-->
+    <div class="">
+      <h1 id = 'title'>Hello   World</h1>
+      <p></p>
+      <input type="text" disabled="disabled" readonly required="required">
+      <img src="logo.png" alt="" border="0" />
+      <script type="text/javascript">
+        // greet the user
+        function greet(name) {
+          console.log("Hi, " + name);   // log it
+        }
+      <\/script>
+    </div>
+  </body>
+</html>`;
+        htmlInputEl.value = sampleHtml;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optCollapseWhitespace','optTrimLines','optRemoveEmptyElements','optRemoveComments','optPreserveConditionalComments','optLowercaseTags','optRemoveAttrQuotes','optCollapseBooleanAttrs','optRemoveEmptyAttrs','optRemoveRedundantAttrs','optSortAttributes','optRemoveTrailingSlash','optShortDoctype','optMinifyInlineCSS','optMinifyStyleBlocks','optMinifyScriptBlocks','optTrailingNewline'],
+            text: ['preserveTagsInput'],
+            select: [],
+            radio: ['collapseMode']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return {
+                collapseWhitespace: raw.optCollapseWhitespace,
+                trimLines: raw.optTrimLines,
+                removeEmptyElements: raw.optRemoveEmptyElements,
+                removeComments: raw.optRemoveComments,
+                preserveConditionalComments: raw.optPreserveConditionalComments,
+                lowercaseTags: raw.optLowercaseTags,
+                removeAttrQuotes: raw.optRemoveAttrQuotes,
+                collapseBooleanAttrs: raw.optCollapseBooleanAttrs,
+                removeEmptyAttrs: raw.optRemoveEmptyAttrs,
+                removeRedundantAttrs: raw.optRemoveRedundantAttrs,
+                sortAttributes: raw.optSortAttributes,
+                removeTrailingSlash: raw.optRemoveTrailingSlash,
+                shortDoctype: raw.optShortDoctype,
+                minifyInlineCSS: raw.optMinifyInlineCSS,
+                minifyStyleBlocks: raw.optMinifyStyleBlocks,
+                minifyScriptBlocks: raw.optMinifyScriptBlocks,
+                trailingNewline: raw.optTrailingNewline,
+                preserveTags: (raw.preserveTagsInput || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
+                collapseMode: raw.collapseMode,
+                _raw: raw
+            };
+        }
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            maximum: {
+                optCollapseWhitespace: true, optTrimLines: true, optRemoveEmptyElements: true,
+                optRemoveComments: true, optPreserveConditionalComments: true,
+                optLowercaseTags: true, optRemoveAttrQuotes: true, optCollapseBooleanAttrs: true,
+                optRemoveEmptyAttrs: true, optRemoveRedundantAttrs: true, optSortAttributes: true,
+                optRemoveTrailingSlash: true, optShortDoctype: true,
+                optMinifyInlineCSS: true, optMinifyStyleBlocks: true, optMinifyScriptBlocks: true,
+                optTrailingNewline: false, preserveTagsInput: '', collapseMode: 'aggressive'
+            },
+            safe: {
+                optCollapseWhitespace: true, optTrimLines: true, optRemoveEmptyElements: false,
+                optRemoveComments: false, optPreserveConditionalComments: true,
+                optLowercaseTags: false, optRemoveAttrQuotes: false, optCollapseBooleanAttrs: false,
+                optRemoveEmptyAttrs: false, optRemoveRedundantAttrs: false, optSortAttributes: false,
+                optRemoveTrailingSlash: false, optShortDoctype: false,
+                optMinifyInlineCSS: false, optMinifyStyleBlocks: false, optMinifyScriptBlocks: false,
+                optTrailingNewline: true, preserveTagsInput: '', collapseMode: 'conservative'
+            },
+            templates: {
+                optCollapseWhitespace: true, optTrimLines: true, optRemoveEmptyElements: false,
+                optRemoveComments: true, optPreserveConditionalComments: true,
+                optLowercaseTags: true, optRemoveAttrQuotes: false, optCollapseBooleanAttrs: true,
+                optRemoveEmptyAttrs: true, optRemoveRedundantAttrs: true, optSortAttributes: false,
+                optRemoveTrailingSlash: true, optShortDoctype: true,
+                optMinifyInlineCSS: true, optMinifyStyleBlocks: true, optMinifyScriptBlocks: false,
+                optTrailingNewline: false, preserveTagsInput: 'template, pre, textarea', collapseMode: 'conservative'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'htmlMinifierCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'html-minifier-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // CSS MINIFIER (regex-based, comments + whitespace)
+        // ============================================
+        function minifyCSS(css) {
+            return css
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/\s*([{}:;,])\s*/g, '$1')
+                .replace(/;}/g, '}')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // ============================================
+        // JS MINIFIER (safe mode: comments only, string/template/regex-safe)
+        // ============================================
+        function minifyJS(js) {
+            let out = '';
+            let i = 0;
+            const n = js.length;
+            let state = 'code';
+            let strChar = '';
+            while (i < n) {
+                const c = js[i];
+                const c2 = i + 1 < n ? js[i + 1] : '';
+                if (state === 'code') {
+                    if (c === '/' && c2 === '/') { state = 'linecomment'; i += 2; continue; }
+                    if (c === '/' && c2 === '*') { state = 'blockcomment'; i += 2; continue; }
+                    if (c === '"' || c === "'") { state = 'string'; strChar = c; out += c; i++; continue; }
+                    if (c === '`') { state = 'template'; out += c; i++; continue; }
+                    out += c; i++; continue;
+                } else if (state === 'linecomment') {
+                    if (c === '\n') { state = 'code'; out += c; }
+                    i++; continue;
+                } else if (state === 'blockcomment') {
+                    if (c === '*' && c2 === '/') { state = 'code'; i += 2; continue; }
+                    i++; continue;
+                } else if (state === 'string') {
+                    out += c;
+                    if (c === '\\') { out += (i + 1 < n ? js[i + 1] : ''); i += 2; continue; }
+                    if (c === strChar) { state = 'code'; }
+                    i++; continue;
+                } else if (state === 'template') {
+                    out += c;
+                    if (c === '\\') { out += (i + 1 < n ? js[i + 1] : ''); i += 2; continue; }
+                    if (c === '`') { state = 'code'; }
+                    i++; continue;
+                }
+            }
+            out = out.split('\n').map(l => l.replace(/[ \t]+$/, '')).join('\n');
+            out = out.replace(/\n{3,}/g, '\n\n');
+            return out.trim();
+        }
+
+        // ============================================
+        // HTML MINIFIER CORE
+        // ============================================
+        const VOID_ELEMENTS = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+        const BOOLEAN_ATTRS = new Set(['checked','disabled','selected','readonly','multiple','ismap','defer','async','autofocus','autoplay','controls','hidden','loop','open','required','reversed','scoped','default','nomodule','playsinline','allowfullscreen','novalidate','formnovalidate','itemscope','truespeed']);
+        const KEEP_EMPTY_ATTR_OK = new Set(['alt','value','content','title','placeholder']);
+        const SAFE_EMPTY_TAGS = ['p','span','div','em','strong','i','b','small','a','li','td','th','h1','h2','h3','h4','h5','h6'];
+
+        function parseAttrString(attrStr) {
+            const attrs = [];
+            const re = /([^\s"'=<>`\/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+            let m;
+            while ((m = re.exec(attrStr)) !== null) {
+                if (!m[1]) continue;
+                let value = null;
+                if (m[2] !== undefined) value = m[2];
+                else if (m[3] !== undefined) value = m[3];
+                else if (m[4] !== undefined) value = m[4];
+                attrs.push({ name: m[1], value: value });
+            }
+            return attrs;
+        }
+
+        function rebuildAttrs(attrs, tagLower, opts) {
+            let list = attrs.slice();
+
+            if (opts.removeRedundantAttrs) {
+                list = list.filter(a => {
+                    const n = a.name.toLowerCase();
+                    const v = (a.value || '').toLowerCase();
+                    if (tagLower === 'script' && n === 'type' && (v === 'text/javascript' || v === 'application/javascript')) return false;
+                    if ((tagLower === 'style' || tagLower === 'link') && n === 'type' && v === 'text/css') return false;
+                    if (tagLower === 'form' && n === 'method' && v === 'get') return false;
+                    return true;
+                });
+            }
+            if (opts.removeEmptyAttrs) {
+                list = list.filter(a => !(a.value === '' && !KEEP_EMPTY_ATTR_OK.has(a.name.toLowerCase())));
+            }
+            if (opts.minifyInlineCSS) {
+                list = list.map(a => a.name.toLowerCase() === 'style' && a.value ? { name: a.name, value: minifyCSS(a.value) } : a);
+            }
+            if (opts.lowercaseTags) {
+                list = list.map(a => ({ name: a.name.toLowerCase(), value: a.value }));
+            }
+            if (opts.sortAttributes) {
+                list.sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            const parts = list.map(a => {
+                const nameLower = a.name.toLowerCase();
+                if (opts.collapseBooleanAttrs && BOOLEAN_ATTRS.has(nameLower) && (a.value === null || a.value === '' || a.value.toLowerCase() === nameLower)) {
+                    return a.name;
+                }
+                if (a.value === null) return a.name;
+                if (opts.removeAttrQuotes && a.value !== '' && /^[^\s"'=<>`]+$/.test(a.value)) {
+                    return `${a.name}=${a.value}`;
+                }
+                return `${a.name}="${a.value.replace(/"/g, '&quot;')}"`;
+            });
+
+            return parts.length ? ' ' + parts.join(' ') : '';
+        }
+
+        function minifyHTML(input, opts) {
+            let html = input;
+            const placeholders = [];
+            function protect(str) {
+                const token = `\u0000PH${placeholders.length}\u0000`;
+                placeholders.push(str);
+                return token;
+            }
+
+            const stats = { comments: 0, scripts: 0, styles: 0, preserved: 0 };
+
+            // 1. Preserve user-specified tags verbatim (e.g. <template>)
+            opts.preserveTags.forEach(tag => {
+                if (!tag || tag === 'script' || tag === 'style') return; // handled separately below
+                const re = new RegExp(`<${tag}[^>]*>[\\s\\S]*?<\\/${tag}>`, 'gi');
+                html = html.replace(re, m => { stats.preserved++; return protect(m); });
+            });
+
+            // 2. Preserve <pre> and <textarea> verbatim
+            html = html.replace(/<pre[^>]*>[\s\S]*?<\/pre>/gi, m => protect(m));
+            html = html.replace(/<textarea[^>]*>[\s\S]*?<\/textarea>/gi, m => protect(m));
+
+            // 3. Preserve IE conditional comments
+            html = html.replace(/<!--\[if[\s\S]*?<!\[endif\]-->/gi, m => protect(m));
+
+            // 4. Comments
+            if (opts.removeComments) {
+                html = html.replace(/<!--[\s\S]*?-->/g, m => { stats.comments += new Blob([m]).size; return ''; });
+            } else {
+                html = html.replace(/<!--[\s\S]*?-->/g, m => protect(m));
+            }
+
+            // 5. <script> blocks
+            const scriptPreserved = opts.preserveTags.includes('script');
+            html = html.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi, (full, attrsRaw, content) => {
+                if (scriptPreserved) { stats.preserved++; return protect(full); }
+                let attrsOut = attrsRaw;
+                if (opts.removeRedundantAttrs) {
+                    attrsOut = attrsOut.replace(/\s+type\s*=\s*(["'])(text\/javascript|application\/javascript)\1/i, '');
+                }
+                const typeMatch = attrsRaw.match(/type\s*=\s*["']?([^"'\s>]+)/i);
+                const type = typeMatch ? typeMatch[1].toLowerCase() : 'text/javascript';
+                const isJsType = !typeMatch || /javascript|module/.test(type);
+                let newContent = content;
+                if (opts.minifyScriptBlocks && isJsType && content.trim() !== '') {
+                    try { newContent = minifyJS(content); stats.scripts++; } catch (e) { newContent = content; }
+                }
+                return protect(`<script${attrsOut}>${newContent}<\/script>`);
+            });
+
+            // 6. <style> blocks
+            const stylePreserved = opts.preserveTags.includes('style');
+            html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (full, attrsRaw, content) => {
+                if (stylePreserved) { stats.preserved++; return protect(full); }
+                let attrsOut = attrsRaw;
+                if (opts.removeRedundantAttrs) {
+                    attrsOut = attrsOut.replace(/\s+type\s*=\s*(["'])text\/css\1/i, '');
+                }
+                let newContent = content;
+                if (opts.minifyStyleBlocks && content.trim() !== '') {
+                    newContent = minifyCSS(content);
+                    stats.styles++;
+                }
+                return protect(`<style${attrsOut}>${newContent}<\/style>`);
+            });
+
+            // 7. Rebuild tags: lowercase, attribute cleanup, void-element slashes
+            const TAG_RE = /<(\/?)([a-zA-Z][a-zA-Z0-9:\-]*)((?:"[^"]*"|'[^']*'|[^"'>])*)(\/?)\s*>/g;
+            html = html.replace(TAG_RE, (full, closingSlash, tagName, attrStr, selfClose) => {
+                const tagLower = tagName.toLowerCase();
+                const outTagName = opts.lowercaseTags ? tagLower : tagName;
+                if (closingSlash) return `</${outTagName}>`;
+                const cleanAttrStr = attrStr.replace(/\/\s*$/, '');
+                const attrs = parseAttrString(cleanAttrStr);
+                const attrOut = rebuildAttrs(attrs, tagLower, opts);
+                const isVoid = VOID_ELEMENTS.has(tagLower);
+                let closeSlashOut = '';
+                if (isVoid) {
+                    closeSlashOut = (selfClose && !opts.removeTrailingSlash) ? '/' : '';
+                } else if (selfClose) {
+                    closeSlashOut = '/';
+                }
+                return `<${outTagName}${attrOut}${closeSlashOut}>`;
+            });
+
+            // 8. Whitespace collapsing
+            if (opts.collapseWhitespace) {
+                if (opts.collapseMode === 'aggressive') {
+                    html = html.replace(/>\s+</g, '><');
+                    html = html.replace(/[ \t\r\n]{2,}/g, ' ');
+                } else {
+                    html = html.replace(/[ \t\r\n]+/g, ' ');
+                }
+                html = html.trim();
+            }
+            if (opts.trimLines) {
+                html = html.split('\n').map(l => l.trim()).filter(l => l !== '').join('\n');
+            }
+
+            // 9. Remove empty elements (attribute-less only, safe list)
+            if (opts.removeEmptyElements) {
+                const pattern = new RegExp(`<(${SAFE_EMPTY_TAGS.join('|')})>\\s*<\\/\\1>`, 'gi');
+                let prev;
+                do { prev = html; html = html.replace(pattern, ''); } while (html !== prev);
+            }
+
+            // 10. Short doctype
+            if (opts.shortDoctype) {
+                html = html.replace(/<!DOCTYPE\s+[^>]*>/i, '<!doctype html>');
+            }
+
+            // 11. Restore protected regions
+            for (let i = 0; i < placeholders.length; i++) {
+                html = html.split(`\u0000PH${i}\u0000`).join(placeholders[i]);
+            }
+
+            if (opts.trailingNewline) html += '\n';
+
+            return { html, stats };
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function countTags(text) {
+            const m = text.match(/<[a-zA-Z][a-zA-Z0-9:\-]*(\s[^<>]*)?\/?>/g);
+            return m ? m.length : 0;
+        }
+
+        async function estimateGzipSize(text) {
+            if (!('CompressionStream' in window) || text === '') return null;
+            try {
+                const cs = new CompressionStream('gzip');
+                const writer = cs.writable.getWriter();
+                writer.write(new TextEncoder().encode(text));
+                writer.close();
+                const reader = cs.readable.getReader();
+                let total = 0;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    total += value.length;
+                }
+                return total;
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function renderSavings(originalBytes, minifiedBytes, stats) {
+            const saved = Math.max(0, originalBytes - minifiedBytes);
+            const pct = originalBytes > 0 ? ((saved / originalBytes) * 100).toFixed(1) : '0.0';
+            savingsPane.innerHTML = `
+                <div class="savings-row"><span class="s-label">Reduction</span><span class="s-value big">${pct}%</span></div>
+                <div class="savings-row"><span class="s-label">Original size</span><span class="s-value">${originalBytes.toLocaleString()} bytes</span></div>
+                <div class="savings-row"><span class="s-label">Minified size</span><span class="s-value">${minifiedBytes.toLocaleString()} bytes</span></div>
+                <div class="savings-row"><span class="s-label">Bytes saved</span><span class="s-value">${saved.toLocaleString()} bytes</span></div>
+                <div class="savings-row"><span class="s-label">Comment bytes stripped</span><span class="s-value">${stats.comments.toLocaleString()} bytes</span></div>
+                <div class="savings-row"><span class="s-label">&lt;script&gt; blocks minified</span><span class="s-value">${stats.scripts}</span></div>
+                <div class="savings-row"><span class="s-label">&lt;style&gt; blocks minified</span><span class="s-value">${stats.styles}</span></div>
+                <div class="savings-row"><span class="s-label">Regions preserved verbatim</span><span class="s-value">${stats.preserved}</span></div>
+            `;
+        }
+
+        function convert() {
+            const opts = getOptions();
+            const inputText = htmlInputEl.value;
+            const originalBytes = new Blob([inputText]).size;
+
+            document.getElementById('htmlLineCount').textContent = (inputText === '' ? 0 : inputText.split('\n').length).toLocaleString();
+            document.getElementById('htmlCharCount').textContent = inputText.length.toLocaleString();
+            document.getElementById('htmlTagCount').textContent = countTags(inputText).toLocaleString();
+            document.getElementById('htmlOrigSize').textContent = originalBytes.toLocaleString();
+
+            if (inputText.trim() === '') {
+                htmlOutput.value = '';
+                savingsPane.innerHTML = '<p class="savings-empty">Paste valid HTML to see the size report here.</p>';
+                document.getElementById('minSize').textContent = '0';
+                document.getElementById('savedPct').textContent = '0%';
+                document.getElementById('gzipEstimate').textContent = '—';
+                document.getElementById('minTagCount').textContent = '0';
+                previewFrame.srcdoc = '';
+                saveDraft();
+                return;
+            }
+
+            const { html: minified, stats } = minifyHTML(inputText, opts);
+            const minifiedBytes = new Blob([minified]).size;
+
+            htmlOutput.value = minified;
+            previewFrame.srcdoc = minified;
+
+            document.getElementById('minSize').textContent = minifiedBytes.toLocaleString();
+            const pct = originalBytes > 0 ? (((originalBytes - minifiedBytes) / originalBytes) * 100).toFixed(1) : '0.0';
+            document.getElementById('savedPct').textContent = pct + '%';
+            document.getElementById('minTagCount').textContent = countTags(minified).toLocaleString();
+            document.getElementById('gzipEstimate').textContent = 'calculating…';
+
+            renderSavings(originalBytes, minifiedBytes, stats);
+
+            estimateGzipSize(minified).then(size => {
+                document.getElementById('gzipEstimate').textContent = size === null ? 'unsupported' : (size.toLocaleString() + ' bytes');
+            });
+
+            saveDraft();
+        }
+
+        // Live conversion
+        htmlInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = [];
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = htmlInputEl.value;
+            }
+            activeBatchIndex = index;
+            htmlInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) activeBatchIndex = -1;
+            else if (activeBatchIndex > index) activeBatchIndex--;
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = htmlInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    out = minifyHTML(f.content, opts).html;
+                } catch (err) {
+                    out = f.content;
+                }
+                const outName = f.name.replace(/\.(html|htm|txt)$/i, '') + '.min.html';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'minified-html.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            htmlInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            htmlInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                htmlInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(htmlOutput.value);
+            } catch (err) {
+                htmlOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([htmlOutput.value], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'minified.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'htmlMinifierDraft';
+        const DRAFT_SETTINGS_KEY = 'htmlMinifierLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, htmlInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') htmlInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
