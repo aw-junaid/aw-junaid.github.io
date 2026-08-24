@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | SQL Minifier</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free SQL minifier and cleanup tool with dialect-aware comment stripping, optimizer-hint preservation, whitespace collapsing, keyword case normalization, safe line wrapping, statement mapping, and batch conversion. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/sql-minifier.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/sql-minifier.html" />
+<meta property="og:title" content="SQL Minifier — awjunaid" />
+<meta property="og:description" content="Minify and clean up SQL with dialect-aware comment stripping, hint preservation, whitespace collapsing, keyword casing, safe line wrapping, and a statement map. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/sql-minifier.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="SQL Minifier — awjunaid" />
+<meta name="twitter:description" content="Minify SQL with comment stripping, hint preservation, keyword casing, safe line wrapping and a statement map. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/sql-minifier.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea {
+            width: 100%; min-height: 90px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; resize: vertical;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Batch file chips */
+        .batch-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .batch-chip {
+            display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 6px 8px 6px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; max-width: 220px;
+        }
+        .batch-chip span.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .batch-chip .chip-close {
+            border: none; background: rgba(128,128,128,0.25); color: inherit; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 10px; line-height: 1; cursor: pointer; flex-shrink: 0;
+        }
+        .batch-empty-note { font-size: 11px; opacity: 0.5; }
+
+        #sqlInput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #sqlInput:focus { outline: none; border-color: var(--border-color); }
+        #sqlInput.has-error { border-color: var(--danger); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        #minifiedOutput {
+            width: 100%;
+            min-height: 420px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .stmt-pane, .comments-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .stmt-pane .stmt-empty, .comments-pane .comments-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); white-space: normal; }
+
+        .stmt-row { padding: 8px 0; border-bottom: 1px solid var(--border-light); }
+        .stmt-row:last-child { border-bottom: none; }
+        .stmt-idx { opacity: 0.5; margin-right: 8px; }
+        .stmt-type { font-weight: 700; }
+        .stmt-hint-flag { margin-left: 8px; font-size: 10px; text-transform: uppercase; opacity: 0.6; font-family: var(--font-body); letter-spacing: 0.5px; }
+        .stmt-meta { display: block; font-size: 11px; opacity: 0.55; margin-top: 3px; font-family: var(--font-body); }
+
+        .comment-row { padding: 8px 0; border-bottom: 1px solid var(--border-light); white-space: pre-wrap; word-break: break-word; }
+        .comment-row:last-child { border-bottom: none; }
+        .comment-type { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.55; font-family: var(--font-body); display: block; margin-bottom: 4px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #sqlInput, #minifiedOutput, .stmt-pane, .comments-pane { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">SQL Minifier</h1>
+                <div class="tool-dek">Strip comments, collapse whitespace, normalize keyword case and safely re-wrap long lines — dialect-aware, with optimizer-hint preservation and a statement map so you can trust what shipped. All conversion happens in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="aggressive">Aggressive (single line, max compression)</option>
+                    <option value="readable">Readable Deploy (one statement per line)</option>
+                    <option value="hintSafe">Hint-Safe (preserve optimizer hints)</option>
+                    <option value="cleanupOnly">Cleanup Only (strip comments, keep structure)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Dialect</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="dialectSelect">SQL dialect</label>
+                            <select id="dialectSelect">
+                                <option value="generic">Generic / ANSI (recognize all quoting styles)</option>
+                                <option value="mysql">MySQL / MariaDB</option>
+                                <option value="postgres">PostgreSQL</option>
+                                <option value="mssql">SQL Server (T-SQL)</option>
+                                <option value="oracle">Oracle</option>
+                                <option value="sqlite">SQLite</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripHashComments">
+                            <span><span class="setting-name">Strip <code>#</code> comments</span><span class="setting-hint">MySQL-style hash comments — only recognized when the dialect is Generic or MySQL</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Comments</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripLineComments" checked>
+                            <span><span class="setting-name">Strip <code>--</code> line comments</span><span class="setting-hint">Removes everything from -- to the end of the line</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripBlockComments" checked>
+                            <span><span class="setting-name">Strip <code>/* */</code> block comments</span><span class="setting-hint">Removes multi-line block comments, including ones spanning several statements</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPreserveHints" checked>
+                            <span><span class="setting-name">Preserve optimizer hints</span><span class="setting-hint">Keeps /*+ ... */ hint comments (Oracle, MySQL) intact even when block comments are stripped — changing these can change the query plan</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Whitespace</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCollapseWhitespace" checked>
+                            <span><span class="setting-name">Collapse whitespace &amp; newlines</span><span class="setting-hint">Runs of spaces, tabs and line breaks outside strings/identifiers become a single space</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveSpaceAroundPunct" checked>
+                            <span><span class="setting-name">Remove space around punctuation</span><span class="setting-hint">Drops the space before , ) ; . and after ( . — never touches spacing inside a string literal</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Statements</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOneStatementPerLine">
+                            <span><span class="setting-name">One statement per line</span><span class="setting-hint">Splits on top-level semicolons and puts each statement on its own line instead of one continuous stream</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripTrailingSemicolons">
+                            <span><span class="setting-name">Drop final trailing semicolon</span><span class="setting-hint">Removes a semicolon after the very last statement if the file ends with one</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Keyword Case</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Normalize keyword casing</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="keywordCase" value="none" checked> Leave as-is</label>
+                                <label class="radio-opt"><input type="radio" name="keywordCase" value="upper"> UPPERCASE keywords</label>
+                                <label class="radio-opt"><input type="radio" name="keywordCase" value="lower"> lowercase keywords</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Line Wrapping</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optWrapEnabled">
+                            <span><span class="setting-name">Wrap long lines</span><span class="setting-hint">Some log viewers, diff tools and ticket systems choke on one giant line — wraps at safe token boundaries, never inside a string</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="wrapWidthInput">Wrap width (characters)</label>
+                            <input type="number" id="wrapWidthInput" min="40" max="500" value="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictMode" checked>
+                            <span><span class="setting-name">Strict mode</span><span class="setting-hint">Fail loudly on an unterminated string, identifier or block comment instead of guessing where it ends</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowStatementMap" checked>
+                            <span><span class="setting-name">Show statement map</span><span class="setting-hint">Populates the Statement Map tab with each detected top-level statement and its type</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>SQL Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".sql,.txt" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="batch-row" id="batchRow">
+                        <span class="batch-empty-note" id="batchEmptyNote">Upload multiple .sql files to batch-convert them — each appears here as a tab.</span>
+                    </div>
+                    <textarea id="sqlInput" spellcheck="false" placeholder="-- Paste or type your SQL here, or upload .sql file(s)..."></textarea>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="file-drop" id="dropZone">Drag &amp; drop .sql / .txt file(s) here, or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="sqlLineCount">0</strong> lines</span>
+                        <span><strong id="sqlCharCount">0</strong> characters</span>
+                        <span><strong id="sqlStmtCount">0</strong> statements detected</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download .sql</button>
+                            <button class="btn-solid" id="downloadZipBtn" type="button" disabled><i class="fa-solid fa-file-zipper"></i> Download All (.zip)</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="sql" type="button">Minified SQL</button>
+                        <button class="output-tab" data-tab="stmt" type="button">Statement Map</button>
+                        <button class="output-tab" data-tab="comments" type="button">Removed Comments</button>
+                    </div>
+                    <div class="output-pane active" id="pane-sql">
+                        <textarea id="minifiedOutput" readonly></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-stmt">
+                        <div class="stmt-pane" id="stmtPane"><p class="stmt-empty">Enter SQL to see each detected statement here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-comments">
+                        <div class="comments-pane" id="commentsPane"><p class="comments-empty">Stripped comments will be listed here so you can confirm nothing important was dropped.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="origSizeCount">0</strong> bytes in</span>
+                        <span><strong id="minSizeCount">0</strong> bytes out</span>
+                        <span><strong id="reductionPct">0%</strong> smaller</span>
+                        <span><strong id="commentsRemovedCount">0</strong> comments removed</span>
+                        <span><strong id="sqlStatus">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Will this ever change what my query does?</h4>
+                        <p>The minifier only touches comments and whitespace outside of string literals and quoted identifiers — the content of every <code>'...'</code> string and <code>"..."</code> / <code>`...`</code> / <code>[...]</code> identifier is copied through byte-for-byte. Keyword casing is optional and cosmetic only.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is "Preserve optimizer hints" for?</h4>
+                        <p>Comments like <code>/*+ INDEX(orders idx_status) */</code> in Oracle or MySQL are query hints, not documentation — stripping them can silently change the execution plan. This setting keeps any <code>/*+ ... */</code> block intact even when regular block comments are removed.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does the dialect setting matter?</h4>
+                        <p>Comment and identifier-quoting styles aren't universal: <code>#</code> comments and backtick identifiers are MySQL-specific, and bracket identifiers like <code>[Order Date]</code> are SQL Server-specific. Picking the right dialect (or Generic to accept all of them) stops the tokenizer from misreading ordinary SQL as a comment or identifier.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why would I want long lines wrapped instead of one giant line?</h4>
+                        <p>A fully minified statement can end up as one very long line, which some log viewers, code-review diffs, and ticketing systems truncate or handle poorly. "Wrap long lines" re-introduces line breaks at safe points — after a comma, never inside a string or identifier — so the output stays a single logical statement but is easier to scan and paste.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is the Statement Map for?</h4>
+                        <p>Before trusting a large minified migration or deploy script, it helps to confirm the shape survived intact. The Statement Map lists every top-level statement in order with its detected type (SELECT, INSERT, CREATE TABLE, and so on) and length, so you can spot a statement that got merged or dropped unexpectedly.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What happens to comments that get removed?</h4>
+                        <p>Every stripped <code>--</code>, <code>#</code> and <code>/* */</code> comment is listed in the Removed Comments tab so you can double-check nothing load-bearing — a licensing header, a TODO with context, a warning to the next engineer — got thrown away silently.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I convert multiple files at once?</h4>
+                        <p>Yes — upload or drag in several .sql files and each becomes a tab above the editor. "Download All (.zip)" minifies every loaded file with your current settings and bundles the results into one archive. Nothing is uploaded to a server; everything runs locally in your browser.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does Strict Mode catch?</h4>
+                        <p>An unterminated string, quoted identifier, or block comment usually means a stray quote or a truncated paste rather than valid SQL. Strict mode stops and reports where the unterminated token starts instead of guessing where it should have ended, which could otherwise swallow the rest of the script.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // SQL MINIFIER — ENTERPRISE EDITION
+        // ============================================
+        const sqlInputEl = document.getElementById('sqlInput');
+        const minifiedOutput = document.getElementById('minifiedOutput');
+        const stmtPane = document.getElementById('stmtPane');
+        const commentsPane = document.getElementById('commentsPane');
+        const errorBanner = document.getElementById('errorBanner');
+
+        const sampleSql = [
+            "-- Nightly reconciliation job (owner: data-platform)",
+            "/*+ INDEX(o idx_orders_status) */",
+            "SELECT   o.id, o.customer_id, o.status, o.total_amount,",
+            "         c.\"email address\", c.signup_date   -- pulled for the mailer",
+            "FROM     orders   AS o",
+            "JOIN     customers AS c ON c.id = o.customer_id",
+            "WHERE    o.status IN ('pending', 'processing')",
+            "  AND    o.created_at >= '2026-08-01'",
+            "ORDER BY o.created_at DESC;",
+            "",
+            "# quick cleanup of stale drafts",
+            "DELETE FROM carts WHERE updated_at < '2026-01-01' AND status = 'draft';"
+        ].join('\n');
+        sqlInputEl.value = sampleSql;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optStripHashComments','optStripLineComments','optStripBlockComments','optPreserveHints','optCollapseWhitespace','optRemoveSpaceAroundPunct','optOneStatementPerLine','optStripTrailingSemicolons','optWrapEnabled','optStrictMode','optShowStatementMap'],
+            select: ['dialectSelect'],
+            number: ['wrapWidthInput'],
+            radio: ['keywordCase']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.number.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return {
+                dialect: raw.dialectSelect,
+                stripHashComments: raw.optStripHashComments,
+                stripLineComments: raw.optStripLineComments,
+                stripBlockComments: raw.optStripBlockComments,
+                preserveHints: raw.optPreserveHints,
+                collapseWhitespace: raw.optCollapseWhitespace,
+                removeSpaceAroundPunct: raw.optRemoveSpaceAroundPunct,
+                oneStatementPerLine: raw.optOneStatementPerLine,
+                stripTrailingSemicolons: raw.optStripTrailingSemicolons,
+                wrapEnabled: raw.optWrapEnabled,
+                wrapWidth: parseInt(raw.wrapWidthInput, 10) || 100,
+                keywordCase: raw.keywordCase || 'none',
+                strictMode: raw.optStrictMode,
+                showStatementMap: raw.optShowStatementMap,
+                _raw: raw
+            };
+        }
+
+        function getRawSettingsForPersist() { return getOptions()._raw; }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.number.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            aggressive: {
+                dialectSelect: 'generic', optStripHashComments: true, optStripLineComments: true, optStripBlockComments: true,
+                optPreserveHints: false, optCollapseWhitespace: true, optRemoveSpaceAroundPunct: true,
+                optOneStatementPerLine: false, optStripTrailingSemicolons: true, optWrapEnabled: false, wrapWidthInput: 100,
+                keywordCase: 'none', optStrictMode: true, optShowStatementMap: true
+            },
+            readable: {
+                dialectSelect: 'generic', optStripHashComments: true, optStripLineComments: true, optStripBlockComments: true,
+                optPreserveHints: true, optCollapseWhitespace: true, optRemoveSpaceAroundPunct: true,
+                optOneStatementPerLine: true, optStripTrailingSemicolons: false, optWrapEnabled: true, wrapWidthInput: 100,
+                keywordCase: 'upper', optStrictMode: true, optShowStatementMap: true
+            },
+            hintSafe: {
+                dialectSelect: 'oracle', optStripHashComments: false, optStripLineComments: true, optStripBlockComments: true,
+                optPreserveHints: true, optCollapseWhitespace: true, optRemoveSpaceAroundPunct: true,
+                optOneStatementPerLine: true, optStripTrailingSemicolons: false, optWrapEnabled: true, wrapWidthInput: 120,
+                keywordCase: 'none', optStrictMode: true, optShowStatementMap: true
+            },
+            cleanupOnly: {
+                dialectSelect: 'generic', optStripHashComments: true, optStripLineComments: true, optStripBlockComments: true,
+                optPreserveHints: true, optCollapseWhitespace: false, optRemoveSpaceAroundPunct: false,
+                optOneStatementPerLine: false, optStripTrailingSemicolons: false, optWrapEnabled: false, wrapWidthInput: 100,
+                keywordCase: 'none', optStrictMode: true, optShowStatementMap: true
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'sqlMinifierCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            convert();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sql-minifier-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // KEYWORD LIST (for optional case normalization)
+        // ============================================
+        const SQL_KEYWORDS = new Set([
+            'select','from','where','insert','into','values','update','set','delete','create','table','alter','drop',
+            'join','inner','left','right','full','outer','cross','on','using','group','by','order','having','limit',
+            'offset','union','all','distinct','as','and','or','not','null','is','in','exists','between','like','ilike',
+            'case','when','then','else','end','primary','key','foreign','references','default','constraint','unique',
+            'check','index','view','trigger','procedure','function','begin','commit','rollback','transaction','with',
+            'recursive','over','partition','window','cast','convert','count','sum','avg','min','max','asc','desc',
+            'if','else if','while','declare','returns','return','grant','revoke','truncate','database','schema',
+            'column','add','rename','to','cascade','restrict','temporary','temp','replace','ignore','duplicate',
+            'for','lock','share','of','fetch','next','row','rows','only','top','without','with','date','datetime',
+            'timestamp','interval','extract','coalesce','nullif','any','some','array','true','false','unknown'
+        ]);
+
+        function isKeyword(word) {
+            if (word.indexOf('.') !== -1) return false;
+            return SQL_KEYWORDS.has(word.toLowerCase());
+        }
+
+        // ============================================
+        // TOKENIZER
+        // ============================================
+        function tokenize(sql, dialect) {
+            const tokens = [];
+            const errors = [];
+            let i = 0;
+            const n = sql.length;
+            const allowHash = dialect === 'mysql' || dialect === 'generic';
+            const allowBacktick = dialect === 'mysql' || dialect === 'generic';
+            const allowBracket = dialect === 'mssql' || dialect === 'generic';
+
+            function lineColAt(pos) {
+                const before = sql.slice(0, pos);
+                const line = (before.match(/\n/g) || []).length + 1;
+                const col = pos - before.lastIndexOf('\n');
+                return { line, col };
+            }
+
+            while (i < n) {
+                const c = sql[i];
+
+                if (/\s/.test(c)) {
+                    let j = i + 1;
+                    while (j < n && /\s/.test(sql[j])) j++;
+                    tokens.push({ type: 'ws', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                if (c === '-' && sql[i + 1] === '-') {
+                    let j = i + 2;
+                    while (j < n && sql[j] !== '\n') j++;
+                    tokens.push({ type: 'linecomment', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                if (c === '#' && allowHash) {
+                    let j = i + 1;
+                    while (j < n && sql[j] !== '\n') j++;
+                    tokens.push({ type: 'hashcomment', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                if (c === '/' && sql[i + 1] === '*') {
+                    const isHint = sql[i + 2] === '+';
+                    let j = i + 2;
+                    let closed = false;
+                    while (j < n) {
+                        if (sql[j] === '*' && sql[j + 1] === '/') { closed = true; break; }
+                        j++;
+                    }
+                    if (!closed) { errors.push('Unterminated block comment starting at line ' + lineColAt(i).line); j = n; }
+                    else j += 2;
+                    tokens.push({ type: isHint ? 'hintcomment' : 'blockcomment', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                if (c === "'") {
+                    let j = i + 1, closed = false;
+                    while (j < n) {
+                        if (sql[j] === "'") {
+                            if (sql[j + 1] === "'") { j += 2; continue; }
+                            closed = true; j++; break;
+                        }
+                        if (sql[j] === '\\' && j + 1 < n) { j += 2; continue; }
+                        j++;
+                    }
+                    if (!closed) errors.push("Unterminated string literal starting at line " + lineColAt(i).line);
+                    tokens.push({ type: 'string', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                if (c === '"') {
+                    let j = i + 1, closed = false;
+                    while (j < n) {
+                        if (sql[j] === '"') { if (sql[j + 1] === '"') { j += 2; continue; } closed = true; j++; break; }
+                        j++;
+                    }
+                    if (!closed) errors.push('Unterminated quoted identifier starting at line ' + lineColAt(i).line);
+                    tokens.push({ type: 'ident', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                if (c === '`' && allowBacktick) {
+                    let j = i + 1, closed = false;
+                    while (j < n) {
+                        if (sql[j] === '`') { if (sql[j + 1] === '`') { j += 2; continue; } closed = true; j++; break; }
+                        j++;
+                    }
+                    if (!closed) errors.push('Unterminated backtick identifier starting at line ' + lineColAt(i).line);
+                    tokens.push({ type: 'ident', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                if (c === '[' && allowBracket) {
+                    let j = i + 1, closed = false;
+                    while (j < n) {
+                        if (sql[j] === ']') { if (sql[j + 1] === ']') { j += 2; continue; } closed = true; j++; break; }
+                        j++;
+                    }
+                    if (!closed) errors.push('Unterminated bracket identifier starting at line ' + lineColAt(i).line);
+                    tokens.push({ type: 'ident', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                if (/[A-Za-z_$#@]/.test(c) || /[0-9]/.test(c)) {
+                    let j = i + 1;
+                    while (j < n && /[A-Za-z0-9_$#@.]/.test(sql[j])) j++;
+                    tokens.push({ type: 'word', text: sql.slice(i, j) });
+                    i = j; continue;
+                }
+
+                const two = sql.slice(i, i + 2);
+                if (['<=', '>=', '<>', '!=', '||', '::', '->', '=>'].includes(two)) {
+                    tokens.push({ type: 'op', text: two }); i += 2; continue;
+                }
+
+                tokens.push({ type: 'punct', text: c });
+                i++;
+            }
+            return { tokens, errors };
+        }
+
+        // ============================================
+        // FILTER (comments / keyword case) + STATEMENT SPLIT
+        // ============================================
+        function filterTokens(tokens, opts, comments) {
+            const out = [];
+            tokens.forEach(t => {
+                if (t.type === 'linecomment') {
+                    if (opts.stripLineComments) { comments.push(t); return; }
+                    out.push(t); return;
+                }
+                if (t.type === 'hashcomment') {
+                    if (opts.stripHashComments) { comments.push(t); return; }
+                    out.push(t); return;
+                }
+                if (t.type === 'blockcomment') {
+                    if (opts.stripBlockComments) { comments.push(t); return; }
+                    out.push(t); return;
+                }
+                if (t.type === 'hintcomment') {
+                    if (opts.preserveHints) { out.push(t); return; }
+                    if (opts.stripBlockComments) { comments.push(t); return; }
+                    out.push(t); return;
+                }
+                if (t.type === 'word') {
+                    let text = t.text;
+                    if (opts.keywordCase !== 'none' && isKeyword(text)) {
+                        text = opts.keywordCase === 'upper' ? text.toUpperCase() : text.toLowerCase();
+                    }
+                    out.push({ type: 'word', text });
+                    return;
+                }
+                if (t.type === 'ws' && opts.collapseWhitespace) {
+                    out.push({ type: 'ws', text: ' ' });
+                    return;
+                }
+                out.push(t);
+            });
+            return out;
+        }
+
+        function splitStatements(tokens) {
+            const statements = [];
+            let current = [];
+            tokens.forEach(t => {
+                current.push(t);
+                if (t.type === 'punct' && t.text === ';') {
+                    statements.push(current);
+                    current = [];
+                }
+            });
+            if (current.some(t => t.type !== 'ws')) statements.push(current);
+            return statements.filter(stmt => stmt.some(t => t.type !== 'ws'));
+        }
+
+        function firstStatementKeyword(stmt) {
+            for (const t of stmt) {
+                if (t.type === 'word') return t.text.toUpperCase();
+            }
+            return '(unrecognized)';
+        }
+
+        // ============================================
+        // RENDER (spacing + optional wrap)
+        // ============================================
+        function renderStatement(tokens, opts) {
+            const trimmed = tokens.slice();
+            while (trimmed.length && trimmed[0].type === 'ws') trimmed.shift();
+            while (trimmed.length && trimmed[trimmed.length - 1].type === 'ws') trimmed.pop();
+
+            let line = '';
+            let lineLen = 0;
+            const indent = '  ';
+
+            for (let idx = 0; idx < trimmed.length; idx++) {
+                const t = trimmed[idx];
+                if (t.type === 'ws') {
+                    const prev = trimmed[idx - 1];
+                    const next = trimmed[idx + 1];
+                    if (!prev || !next) continue;
+                    if (opts.removeSpaceAroundPunct) {
+                        const prevDropsSpace = prev.type === 'punct' && (prev.text === '(' || prev.text === '.');
+                        const nextDropsSpace = next.type === 'punct' && (next.text === ')' || next.text === ',' || next.text === ';' || next.text === '.');
+                        if (prevDropsSpace || nextDropsSpace) continue;
+                    }
+                    const sep = t.text.indexOf('\n') !== -1 && !opts.collapseWhitespace ? t.text : ' ';
+                    if (opts.wrapEnabled && lineLen + 1 >= opts.wrapWidth && next) {
+                        line += '\n' + indent;
+                        lineLen = indent.length;
+                    } else {
+                        line += sep;
+                        lineLen = sep.indexOf('\n') !== -1 ? (sep.length - sep.lastIndexOf('\n') - 1) : lineLen + sep.length;
+                    }
+                    continue;
+                }
+                line += t.text;
+                lineLen += t.text.length;
+            }
+            return line;
+        }
+
+        // ============================================
+        // MAIN BUILD
+        // ============================================
+        function buildMinified(sql, opts) {
+            const { tokens, errors } = tokenize(sql, opts.dialect);
+            if (errors.length && opts.strictMode) {
+                const err = new Error(errors[0]);
+                err.isValidation = true;
+                throw err;
+            }
+
+            const comments = [];
+            const filtered = filterTokens(tokens, opts, comments);
+            const statements = splitStatements(filtered);
+
+            const renderedStatements = statements.map(stmt => renderStatement(stmt, opts));
+
+            let text;
+            if (opts.oneStatementPerLine) {
+                text = renderedStatements.join('\n');
+            } else {
+                text = renderedStatements.join(opts.collapseWhitespace ? ' ' : '\n');
+            }
+
+            if (opts.stripTrailingSemicolons) {
+                text = text.replace(/;\s*$/, '');
+            }
+
+            const statementMeta = statements.map((stmt, i) => {
+                const rendered = renderedStatements[i];
+                const hasHint = stmt.some(t => t.type === 'hintcomment');
+                return {
+                    index: i + 1,
+                    keyword: firstStatementKeyword(stmt),
+                    length: rendered.length,
+                    hasHint
+                };
+            });
+
+            return { text, comments, statementMeta, warnings: errors };
+        }
+
+        // ============================================
+        // JSON/RAW ESCAPE HELPERS
+        // ============================================
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ============================================
+        // STATEMENT MAP VIEW
+        // ============================================
+        function updateStatementMap(meta, opts) {
+            if (!opts.showStatementMap) {
+                stmtPane.innerHTML = '<p class="stmt-empty">Enable "Show statement map" to see detected statements here.</p>';
+                return;
+            }
+            if (!meta || meta.length === 0) {
+                stmtPane.innerHTML = '<p class="stmt-empty">No statements detected yet.</p>';
+                return;
+            }
+            stmtPane.innerHTML = meta.map(m => {
+                const hintFlag = m.hasHint ? '<span class="stmt-hint-flag">hint preserved</span>' : '';
+                return `<div class="stmt-row"><span class="stmt-idx">#${m.index}</span><span class="stmt-type">${escapeHtmlStr(m.keyword)}</span>${hintFlag}<span class="stmt-meta">${m.length.toLocaleString()} characters</span></div>`;
+            }).join('');
+        }
+
+        // ============================================
+        // REMOVED COMMENTS VIEW
+        // ============================================
+        const COMMENT_LABELS = { linecomment: '-- line comment', hashcomment: '# comment', blockcomment: '/* block comment */', hintcomment: '/*+ hint (removed) */' };
+        function updateCommentsPane(comments) {
+            if (!comments || comments.length === 0) {
+                commentsPane.innerHTML = '<p class="comments-empty">No comments were stripped from this input.</p>';
+                return;
+            }
+            commentsPane.innerHTML = comments.map(c => {
+                const label = COMMENT_LABELS[c.type] || 'comment';
+                return `<div class="comment-row"><span class="comment-type">${escapeHtmlStr(label)}</span>${escapeHtmlStr(c.text)}</div>`;
+            }).join('');
+        }
+
+        // ============================================
+        // ERROR HANDLING
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+            sqlInputEl.classList.add('has-error');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+            sqlInputEl.classList.remove('has-error');
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        function convert() {
+            const opts = getOptions();
+            clearError();
+
+            const text = sqlInputEl.value;
+            updateInputStats(text);
+
+            if (text.trim() === '') {
+                minifiedOutput.value = '';
+                updateStatementMap([], opts);
+                updateCommentsPane([]);
+                resetOutputStats();
+                saveDraft();
+                return;
+            }
+
+            let result;
+            try {
+                result = buildMinified(text, opts);
+            } catch (err) {
+                showError(err && err.message ? err.message : String(err));
+                minifiedOutput.value = '';
+                stmtPane.innerHTML = '<p class="stmt-empty">Fix the SQL error to see the statement map.</p>';
+                commentsPane.innerHTML = '<p class="comments-empty">Fix the SQL error to see removed comments.</p>';
+                resetOutputStats(true);
+                saveDraft();
+                return;
+            }
+
+            if (result.warnings && result.warnings.length && !opts.strictMode) {
+                showError('Heads up: ' + result.warnings.join('; ') + ' — continuing in best-effort mode (Strict mode is off).');
+            }
+
+            minifiedOutput.value = result.text;
+            updateStatementMap(result.statementMeta, opts);
+            updateCommentsPane(result.comments);
+            updateOutputStats(text, result);
+            saveDraft();
+        }
+
+        function updateInputStats(text) {
+            document.getElementById('sqlLineCount').textContent = (text === '' ? 0 : text.split('\n').length).toLocaleString();
+            document.getElementById('sqlCharCount').textContent = text.length.toLocaleString();
+            let stmtCount = 0;
+            if (text.trim() !== '') {
+                try {
+                    const { tokens } = tokenize(text, getOptions().dialect);
+                    stmtCount = splitStatements(tokens).length;
+                } catch (err) { stmtCount = 0; }
+            }
+            document.getElementById('sqlStmtCount').textContent = stmtCount.toLocaleString();
+        }
+
+        function updateOutputStats(originalText, result) {
+            const origBytes = new Blob([originalText]).size;
+            const minBytes = new Blob([result.text]).size;
+            const pct = origBytes > 0 ? Math.round((1 - (minBytes / origBytes)) * 100) : 0;
+            document.getElementById('origSizeCount').textContent = origBytes.toLocaleString();
+            document.getElementById('minSizeCount').textContent = minBytes.toLocaleString();
+            document.getElementById('reductionPct').textContent = pct + '%';
+            document.getElementById('commentsRemovedCount').textContent = result.comments.length.toLocaleString();
+            const statusEl = document.getElementById('sqlStatus');
+            statusEl.textContent = 'Minified';
+            statusEl.parentElement.classList.remove('error');
+        }
+
+        function resetOutputStats(isError) {
+            document.getElementById('origSizeCount').textContent = '0';
+            document.getElementById('minSizeCount').textContent = '0';
+            document.getElementById('reductionPct').textContent = '0%';
+            document.getElementById('commentsRemovedCount').textContent = '0';
+            const statusEl = document.getElementById('sqlStatus');
+            statusEl.textContent = isError ? 'Invalid SQL' : '—';
+            statusEl.parentElement.classList.toggle('error', !!isError);
+        }
+
+        // Live conversion
+        sqlInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', convert);
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // BATCH FILE MANAGEMENT
+        // ============================================
+        let batchFiles = []; // { name, content }
+        let activeBatchIndex = -1;
+
+        function renderBatchChips() {
+            const row = document.getElementById('batchRow');
+            const emptyNote = document.getElementById('batchEmptyNote');
+            const zipBtn = document.getElementById('downloadZipBtn');
+
+            row.innerHTML = '';
+            if (batchFiles.length === 0) {
+                row.appendChild(emptyNote);
+                zipBtn.disabled = true;
+                return;
+            }
+            zipBtn.disabled = false;
+
+            batchFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'batch-chip' + (i === activeBatchIndex ? ' active' : '');
+                chip.innerHTML = `<span class="chip-label" title="${f.name}">${f.name}</span><button class="chip-close" type="button" aria-label="Remove ${f.name}">&times;</button>`;
+                chip.querySelector('.chip-label').addEventListener('click', () => switchBatchFile(i));
+                chip.querySelector('.chip-close').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatchFile(i);
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function switchBatchFile(index) {
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) {
+                batchFiles[activeBatchIndex].content = sqlInputEl.value;
+            }
+            activeBatchIndex = index;
+            sqlInputEl.value = batchFiles[index].content;
+            convert();
+            renderBatchChips();
+        }
+
+        function removeBatchFile(index) {
+            batchFiles.splice(index, 1);
+            if (activeBatchIndex === index) {
+                activeBatchIndex = -1;
+            } else if (activeBatchIndex > index) {
+                activeBatchIndex--;
+            }
+            renderBatchChips();
+        }
+
+        function addFilesToBatch(fileList) {
+            const files = Array.from(fileList);
+            let remaining = files.length;
+            if (remaining === 0) return;
+            const startCount = batchFiles.length;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    batchFiles.push({ name: file.name, content: e.target.result });
+                    remaining--;
+                    if (remaining === 0) {
+                        if (activeBatchIndex === -1) switchBatchFile(startCount);
+                        renderBatchChips();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        document.getElementById('downloadZipBtn').addEventListener('click', async () => {
+            if (!window.JSZip || batchFiles.length === 0) return;
+            if (activeBatchIndex >= 0) batchFiles[activeBatchIndex].content = sqlInputEl.value;
+
+            const zip = new JSZip();
+            const opts = getOptions();
+            batchFiles.forEach(f => {
+                let out;
+                try {
+                    const result = buildMinified(f.content, opts);
+                    out = result.text;
+                } catch (err) {
+                    out = '-- Error converting this file: ' + (err && err.message ? err.message : String(err)) + '\n';
+                }
+                const outName = f.name.replace(/\.(sql|txt)$/i, '') + '.min.sql';
+                zip.file(outName, out);
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'minified-sql.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            sqlInputEl.value = '';
+            if (activeBatchIndex >= 0 && batchFiles[activeBatchIndex]) batchFiles[activeBatchIndex].content = '';
+            convert();
+            sqlInputEl.focus();
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            if (e.target.files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(e.target.files[0]);
+            } else {
+                addFilesToBatch(e.target.files);
+            }
+            fileInput.value = '';
+        });
+
+        function readSingleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                sqlInputEl.value = e.target.result;
+                convert();
+            };
+            reader.readAsText(file);
+        }
+
+        // Drag & drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (!files.length) return;
+            if (files.length === 1 && batchFiles.length === 0) {
+                readSingleFile(files[0]);
+            } else {
+                addFilesToBatch(files);
+            }
+        });
+
+        // Copy
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(minifiedOutput.value);
+            } catch (err) {
+                minifiedOutput.select();
+                document.execCommand('copy');
+            }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([minifiedOutput.value], { type: 'application/sql' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'minified.sql';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'sqlMinifierDraft';
+        const DRAFT_SETTINGS_KEY = 'sqlMinifierLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, sqlInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') sqlInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
