@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Cropper</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF cropper: trim scan margins, cut watermark strips, auto-detect content edges, split two-up book scans, or drag a crop box by eye — page by page or across a whole batch. Soft (CropBox) or hard (MediaBox) crop, 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-cropper.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-cropper.html" />
+<meta property="og:title" content="PDF Cropper — awjunaid" />
+<meta property="og:description" content="Trim margins, cut watermark strips, auto-detect content edges, split two-up scans, or drag a crop box by eye. Soft or hard crop, free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-cropper.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Cropper — awjunaid" />
+<meta name="twitter:description" content="Trim margins, cut watermark strips, auto-detect content edges, split two-up scans, or drag a crop box by eye. Soft or hard crop, free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-cropper.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           RISK / INFO BANNER
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--border-color); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+        }
+        .risk-banner i { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .risk-tag.low { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group input[type="range"] { width: 100%; accent-color: var(--text-primary); }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        .mode-panel { display: none; padding-top: 6px; }
+        .mode-panel.active { display: block; }
+
+        .radio-pill-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .radio-pill { position: relative; }
+        .radio-pill input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+        .radio-pill span {
+            display: inline-block; padding: 9px 16px; border-radius: 60px; border: 1px solid var(--border-light);
+            font-size: 12px; font-weight: 600; transition: all 0.2s;
+        }
+        .radio-pill input:checked + span { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 6px 12px; font-size: 9.5px; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Page nav + crop canvas */
+        .page-nav-wrap { display: none; }
+        .page-nav-wrap.show { display: block; }
+        .page-nav-bar {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+        }
+        .page-nav-bar .pn-jump { width: 60px; text-align: center; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; }
+        .page-nav-bar .pn-of { font-size: 11.5px; opacity: 0.6; font-family: var(--font-mono); }
+        .page-nav-bar .spacer { flex: 1; }
+        .canvas-stage {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 14px;
+            display: flex; align-items: center; justify-content: center; background: var(--input-bg);
+            min-height: 260px; max-height: 460px; overflow: auto; position: relative;
+        }
+        .canvas-stage canvas { max-width: 100%; cursor: crosshair; box-shadow: 0 0 0 1px var(--border-light); }
+        .canvas-hint { font-size: 10.5px; opacity: 0.5; margin-top: 8px; text-align: center; }
+        .canvas-loading { font-size: 12px; opacity: 0.6; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        .plan-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+        .plan-table th { text-align: left; opacity: 0.55; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; padding: 6px 8px; border-bottom: 1px solid var(--border-light); }
+        .plan-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+        .plan-table tr:last-child td { border-bottom: none; }
+
+        .before-after { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+        .ba-col { flex: 1; min-width: 180px; text-align: center; }
+        .ba-col span { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.55; margin-bottom: 8px; }
+        .ba-col canvas { max-width: 100%; border: 1px solid var(--border-light); }
+        .ba-col.after canvas { border-color: var(--accent); }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Cropper</h1>
+                <div class="tool-dek">Scanned books ship with crooked margins, exports carry a stray watermark strip, and print files need a hairline trimmed for bleed. Set exact margins, auto-detect the real content box, drag a crop by eye, or split a two-page book scan into singles — page-range aware, batch-ready, and previewed before you commit.</div>
+            </div>
+
+            <div class="risk-banner">
+                <i class="fa-solid fa-crop-simple"></i>
+                <div>
+                    <strong>Soft crop vs hard crop — know which one you need</strong>
+                    <p>A "soft" crop only changes the PDF's CropBox — the visible window — and is fully reversible, but some older viewers and print pipelines ignore CropBox and show the full page anyway. A "hard" crop also rewrites the MediaBox, physically discarding whatever falls outside it — permanent, but guaranteed to render cropped everywhere, including for removing a watermark strip you actually want gone.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="scanMargins">Remove Scan Margins</option>
+                    <option value="autoTrim">Auto-Trim Whitespace</option>
+                    <option value="watermarkStrip">Remove Watermark Strip</option>
+                    <option value="a4ToLetter">A4 → US Letter</option>
+                    <option value="squareCrop">Square Crop (Social)</option>
+                    <option value="bookSplit">Split Two-Up (Book Scan)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Crop Mode</h4>
+                    <div class="radio-pill-row" id="cropModeRow">
+                        <label class="radio-pill"><input type="radio" name="cropMode" value="uniform" checked><span>Uniform Margins</span></label>
+                        <label class="radio-pill"><input type="radio" name="cropMode" value="percent"><span>Percent Margins</span></label>
+                        <label class="radio-pill"><input type="radio" name="cropMode" value="visual"><span>Drag on Preview</span></label>
+                        <label class="radio-pill"><input type="radio" name="cropMode" value="auto"><span>Auto-Detect Content</span></label>
+                        <label class="radio-pill"><input type="radio" name="cropMode" value="ratio"><span>Fixed Aspect Ratio</span></label>
+                        <label class="radio-pill"><input type="radio" name="cropMode" value="splitTwoUp"><span>Split Two-Up</span></label>
+                    </div>
+
+                    <!-- Uniform margins -->
+                    <div class="mode-panel active" id="mode-uniform">
+                        <div class="field-row">
+                            <div class="field-group"><label for="marginTop">Top</label><input type="number" id="marginTop" value="20" min="0" step="0.5"></div>
+                            <div class="field-group"><label for="marginRight">Right</label><input type="number" id="marginRight" value="15" min="0" step="0.5"></div>
+                            <div class="field-group"><label for="marginBottom">Bottom</label><input type="number" id="marginBottom" value="20" min="0" step="0.5"></div>
+                            <div class="field-group"><label for="marginLeft">Left</label><input type="number" id="marginLeft" value="15" min="0" step="0.5"></div>
+                            <div class="field-group"><label for="marginUnit">Unit</label>
+                                <select id="marginUnit">
+                                    <option value="pt">Points (pt)</option>
+                                    <option value="in">Inches (in)</option>
+                                    <option value="mm">Millimeters (mm)</option>
+                                    <option value="px">Pixels @96dpi (px)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Percent margins -->
+                    <div class="mode-panel" id="mode-percent">
+                        <div class="field-row">
+                            <div class="field-group"><label for="pctTop">Top %</label><input type="number" id="pctTop" value="8" min="0" max="49" step="0.5"></div>
+                            <div class="field-group"><label for="pctRight">Right %</label><input type="number" id="pctRight" value="6" min="0" max="49" step="0.5"></div>
+                            <div class="field-group"><label for="pctBottom">Bottom %</label><input type="number" id="pctBottom" value="8" min="0" max="49" step="0.5"></div>
+                            <div class="field-group"><label for="pctLeft">Left %</label><input type="number" id="pctLeft" value="6" min="0" max="49" step="0.5"></div>
+                        </div>
+                        <div class="field-group full-width"><div class="field-note">Percentages are computed against each page's own width/height, so mixed page sizes crop proportionally rather than by a fixed amount.</div></div>
+                    </div>
+
+                    <!-- Visual -->
+                    <div class="mode-panel" id="mode-visual">
+                        <div class="field-group full-width">
+                            <div class="field-note">Drag directly on the page preview below to draw a crop box. It's captured as a fraction of that page's size, then applied to every page in the selected range — reopen the preview any time to redraw it. <span class="mini-link" id="clearVisualBtn" style="cursor:pointer;text-decoration:underline;">Clear selection</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Auto detect -->
+                    <div class="mode-panel" id="mode-auto">
+                        <div class="field-row">
+                            <div class="field-group">
+                                <label for="autoThreshold">Whiteness Threshold (<span id="autoThresholdVal">248</span>/255)</label>
+                                <input type="range" id="autoThreshold" min="200" max="254" value="248" step="1">
+                            </div>
+                            <div class="field-group"><label for="autoPadding">Padding</label><input type="number" id="autoPadding" value="6" min="0" step="0.5"></div>
+                            <div class="field-group"><label for="autoPaddingUnit">Padding Unit</label>
+                                <select id="autoPaddingUnit">
+                                    <option value="pt">Points (pt)</option>
+                                    <option value="in">Inches (in)</option>
+                                    <option value="mm">Millimeters (mm)</option>
+                                    <option value="px">Pixels @96dpi (px)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field-group full-width"><div class="field-note">Renders each page and finds the bounding box of pixels darker than the threshold (i.e. not blank page). Higher threshold catches faint content but risks including scanner noise; padding adds breathing room back around the detected box.</div></div>
+                    </div>
+
+                    <!-- Ratio -->
+                    <div class="mode-panel" id="mode-ratio">
+                        <div class="field-row">
+                            <div class="field-group">
+                                <label for="ratioPreset">Target Ratio</label>
+                                <select id="ratioPreset">
+                                    <option value="square">Square (1:1)</option>
+                                    <option value="portrait45">Portrait (4:5)</option>
+                                    <option value="widescreen169">Widescreen (16:9)</option>
+                                    <option value="a4">A4 Page (1:1.414)</option>
+                                    <option value="letter">US Letter (1:1.294)</option>
+                                    <option value="custom">Custom W:H</option>
+                                </select>
+                            </div>
+                            <div class="field-group"><label for="ratioAnchor">Anchor</label>
+                                <select id="ratioAnchor">
+                                    <option value="center">Center</option>
+                                    <option value="top">Top</option>
+                                    <option value="bottom">Bottom</option>
+                                    <option value="left">Left</option>
+                                    <option value="right">Right</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field-row" id="ratioCustomRow" style="display:none;">
+                            <div class="field-group"><label for="ratioCustomW">Width part</label><input type="number" id="ratioCustomW" value="3" min="0.1" step="0.1"></div>
+                            <div class="field-group"><label for="ratioCustomH">Height part</label><input type="number" id="ratioCustomH" value="2" min="0.1" step="0.1"></div>
+                        </div>
+                    </div>
+
+                    <!-- Split two-up -->
+                    <div class="mode-panel" id="mode-splitTwoUp">
+                        <div class="field-row">
+                            <div class="field-group"><label for="splitOrientation">Split Direction</label>
+                                <select id="splitOrientation">
+                                    <option value="vertical">Vertical — left page / right page</option>
+                                    <option value="horizontal">Horizontal — top page / bottom page</option>
+                                </select>
+                            </div>
+                            <div class="field-group"><label for="splitGutter">Trim Near Spine/Fold</label><input type="number" id="splitGutter" value="6" min="0" step="0.5"></div>
+                            <div class="field-group"><label for="splitGutterUnit">Unit</label>
+                                <select id="splitGutterUnit">
+                                    <option value="pt">Points (pt)</option>
+                                    <option value="in">Inches (in)</option>
+                                    <option value="mm">Millimeters (mm)</option>
+                                    <option value="px">Pixels @96dpi (px)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field-group full-width"><div class="field-note">Each source page becomes two output pages. Always a hard crop (both halves get their own MediaBox), since this restructures the document rather than just changing the viewing window.</div></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Page Range</h4>
+                    <div class="field-row">
+                        <div class="field-group"><label for="pageRangeMode">Apply To</label>
+                            <select id="pageRangeMode">
+                                <option value="all">All pages</option>
+                                <option value="range">Custom range</option>
+                                <option value="odd">Odd pages only</option>
+                                <option value="even">Even pages only</option>
+                            </select>
+                        </div>
+                        <div class="field-group" id="pageRangeCustomGroup" style="display:none;">
+                            <label for="pageRangeCustom">Pages</label>
+                            <input type="text" id="pageRangeCustom" placeholder="e.g. 1-3,5,8-10">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="mirrorEven">
+                            <span><span class="setting-name">Mirror margins on even pages</span><span class="setting-hint">Swaps left/right for even pages — for scanned books where the binding margin alternates sides (uniform / percent modes only)</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Box Target</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="hardCrop">
+                            <span><span class="setting-name">Hard crop <span class="risk-tag high">Irreversible</span></span><span class="setting-hint">Also rewrites the MediaBox, permanently discarding content outside the crop. Leave unchecked for a reversible CropBox-only crop.</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="updateAuxBoxes">
+                            <span><span class="setting-name">Sync TrimBox &amp; BleedBox <span class="risk-tag med">Print</span></span><span class="setting-hint">Matches TrimBox and BleedBox to the new crop — useful when the output is headed to a print pipeline that reads those boxes</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOptimize" checked>
+                            <span><span class="setting-name">Optimize output</span><span class="setting-hint">Uses object streams for smaller files</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchZip" checked>
+                            <span><span class="setting-name">Bundle batch output as ZIP</span><span class="setting-hint">Applies when cropping multiple files at once</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="cropped.pdf">
+                            <div class="field-note">Applied to a single file. Batch mode appends "-cropped" to each original name.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source PDF</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Choose PDF(s)</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop one or more .pdf files here, or use "Choose PDF(s)" above.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="page-nav-wrap" id="pageNavWrap">
+                        <div class="page-nav-bar">
+                            <button class="btn-ghost small" id="prevPageBtn" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+                            <input type="number" class="pn-jump" id="pageJump" value="1" min="1">
+                            <span class="pn-of">of <span id="pageCount">1</span></span>
+                            <button class="btn-ghost small" id="nextPageBtn" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+                            <div class="spacer"></div>
+                            <button class="btn-ghost small" id="detectBtn" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Detect this page</button>
+                        </div>
+                        <div class="canvas-stage" id="canvasStage">
+                            <canvas id="previewCanvas" width="500" height="640"></canvas>
+                        </div>
+                        <div class="canvas-hint" id="canvasHint">Dashed box shows the crop that will be applied to this page.</div>
+                    </div>
+
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalFilesLoaded">0</strong> file(s) loaded</span>
+                        <span><strong id="totalPagesLoaded">0</strong> total page(s)</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Crop & Verify</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="cropBtn" type="button"><i class="fa-solid fa-crop-simple"></i> Crop PDF</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Crop Plan</button>
+                        <button class="output-tab" data-tab="preview" type="button">Before / After</button>
+                        <button class="output-tab" data-tab="files" type="button">Output Files</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Load a PDF to see the computed crop box for each affected page.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-preview">
+                        <div class="info-pane" id="previewPane"><p class="info-empty">Run "Crop PDF" to compare the original and cropped page currently shown on the left.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">Cropped files will be listed here after processing.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Scan and crop activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputPagesCropped">0</strong> pages cropped</span>
+                        <span><strong id="outputAvgReduction">0%</strong> avg. area reduction</span>
+                        <span><strong id="outputStatus">Not cropped yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What's the difference between CropBox and MediaBox?</h4>
+                        <p>MediaBox is the full physical page; CropBox is the window a viewer shows by default. Setting only CropBox is non-destructive — the original content is still there, just outside the visible window. "Hard crop" also shrinks MediaBox, which permanently discards anything outside it and guarantees consistent behavior across viewers and print pipelines that ignore CropBox.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does auto-detect find the content box?</h4>
+                        <p>Each page renders to an offscreen canvas, then the tool scans rows and columns for the first and last pixel darker than your whiteness threshold — that bounding box, plus your padding, becomes the crop. It's a per-page best-effort scan, not OCR, so a faint watermark or a stray scanner speck near the edge can throw it off; check the preview before committing.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why drag on the preview instead of typing numbers?</h4>
+                        <p>Scan margins and watermark placement are rarely uniform enough to guess in points or millimeters on the first try. Drawing directly on the rendered page captures the box as a fraction of that page's size, so it's easy to eyeball correctly and it still scales sensibly if pages in the batch are different sizes.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does Split Two-Up actually produce?</h4>
+                        <p>Each source page — typically a two-page book spread scanned as one image — is duplicated into two output pages, one showing only the left/top half and one showing only the right/bottom half, each with its own tightened MediaBox. The gutter trim shaves a small strip near the fold where binding shadow usually falls.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I apply different margins to a subset of pages?</h4>
+                        <p>Yes — Page Range restricts the crop to all pages, a custom list like <code>1-3,5,8-10</code>, or odd/even only, and "Mirror margins on even pages" swaps left/right specifically for even pages, which matches how binding margins alternate in a scanned book.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every PDF you load is rendered, analyzed, and cropped locally in your browser using pdf.js and pdf-lib — nothing is sent anywhere, which matters most for exactly the sensitive or unpublished documents this tool tends to get used on.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // PDF CROPPER — ENTERPRISE EDITION
+        // ============================================
+        if (window['pdfjsLib']) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const previewPane = document.getElementById('previewPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const cropBtn = document.getElementById('cropBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const pageNavWrap = document.getElementById('pageNavWrap');
+        const canvasStage = document.getElementById('canvasStage');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const canvasCtx = previewCanvas.getContext('2d');
+
+        let loadedFiles = []; // { name, bytes, pdfjsDoc, numPages }
+        let outputs = []; // { name, blob, size }
+        let currentFileIdx = 0;
+        let currentPage = 1; // 1-based, within currentFileIdx
+        let visualBoxNormalized = null; // { left, right, top, bottom } fractions 0..1
+        let autoBoxCache = {}; // "fileIdx:page" -> { x, y, width, height } in PDF pt (bottom-left origin)
+        let currentViewport = null; // last rendered viewport for the preview canvas
+        let renderTicket = 0;
+        let croppedPreviewCache = null; // { fileIdx, page, bytes } of last full crop run, for before/after
+
+        // Dragging state for visual mode
+        let dragState = null; // { startX, startY, curX, curY, active }
+
+        // ============================================
+        // UNIT HELPERS
+        // ============================================
+        function toPt(value, unit) {
+            const v = parseFloat(value) || 0;
+            if (unit === 'in') return v * 72;
+            if (unit === 'mm') return v * (72 / 25.4);
+            if (unit === 'px') return v * 0.75; // 96dpi assumption
+            return v; // pt
+        }
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_CHECKBOXES = ['mirrorEven', 'hardCrop', 'updateAuxBoxes', 'optOptimize', 'optBatchZip'];
+        const SETTING_TEXT = ['marginTop','marginRight','marginBottom','marginLeft','pctTop','pctRight','pctBottom','pctLeft',
+            'autoThreshold','autoPadding','ratioCustomW','ratioCustomH','splitGutter','pageRangeCustom','outputFilename'];
+        const SETTING_SELECT = ['marginUnit','autoPaddingUnit','ratioPreset','ratioAnchor','splitOrientation','splitGutterUnit','pageRangeMode'];
+
+        function getCropMode() {
+            const el = document.querySelector('input[name="cropMode"]:checked');
+            return el ? el.value : 'uniform';
+        }
+        function setCropMode(mode) {
+            const el = document.querySelector(`input[name="cropMode"][value="${mode}"]`);
+            if (el) el.checked = true;
+            updateModeVisibility();
+        }
+
+        function getOptions() {
+            const opts = { cropMode: getCropMode() };
+            SETTING_CHECKBOXES.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_TEXT.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_SELECT.forEach(id => opts[id] = document.getElementById(id).value);
+            opts.visualBoxNormalized = visualBoxNormalized;
+            return opts;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            if (settings.cropMode) setCropMode(settings.cropMode);
+            SETTING_CHECKBOXES.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_TEXT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_SELECT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (settings.visualBoxNormalized) visualBoxNormalized = settings.visualBoxNormalized;
+            updateModeVisibility();
+            toggleRangeCustomField();
+            toggleRatioCustomFields();
+        }
+
+        function updateModeVisibility() {
+            const mode = getCropMode();
+            document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById('mode-' + mode);
+            if (target) target.classList.add('active');
+            document.getElementById('autoThresholdVal').textContent = document.getElementById('autoThreshold').value;
+            document.getElementById('detectBtn').style.display = mode === 'auto' ? 'inline-flex' : 'none';
+            renderCurrentPage();
+        }
+
+        document.getElementById('cropModeRow').addEventListener('change', () => { markCustomAndSave(); updateModeVisibility(); });
+        document.getElementById('autoThreshold').addEventListener('input', () => {
+            document.getElementById('autoThresholdVal').textContent = document.getElementById('autoThreshold').value;
+        });
+
+        document.getElementById('ratioPreset').addEventListener('change', toggleRatioCustomFields);
+        function toggleRatioCustomFields() {
+            document.getElementById('ratioCustomRow').style.display = document.getElementById('ratioPreset').value === 'custom' ? 'grid' : 'none';
+        }
+
+        document.getElementById('pageRangeMode').addEventListener('change', toggleRangeCustomField);
+        function toggleRangeCustomField() {
+            document.getElementById('pageRangeCustomGroup').style.display = document.getElementById('pageRangeMode').value === 'range' ? 'block' : 'none';
+        }
+
+        document.getElementById('clearVisualBtn').addEventListener('click', () => {
+            visualBoxNormalized = null;
+            markCustomAndSave();
+            renderCurrentPage();
+        });
+
+        function markCustomAndSave() {
+            document.getElementById('presetSelect').value = 'custom';
+            invalidateCrop();
+            renderPlan();
+            saveSettingsDraft();
+        }
+        document.querySelectorAll('.settings-card input[type="checkbox"], .settings-card input[type="text"], .settings-card input[type="number"], .settings-card select, .settings-card input[type="range"]').forEach(el => {
+            el.addEventListener('input', () => { markCustomAndSave(); if (['auto','ratio','uniform','percent'].includes(getCropMode())) renderCurrentPage(); });
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            scanMargins: {
+                cropMode: 'uniform', marginTop: 20, marginRight: 15, marginBottom: 20, marginLeft: 15, marginUnit: 'pt',
+                mirrorEven: true, hardCrop: false, updateAuxBoxes: false, pageRangeMode: 'all',
+                optOptimize: true, optBatchZip: true, outputFilename: 'cropped.pdf'
+            },
+            autoTrim: {
+                cropMode: 'auto', autoThreshold: 248, autoPadding: 6, autoPaddingUnit: 'pt',
+                mirrorEven: false, hardCrop: false, updateAuxBoxes: false, pageRangeMode: 'all',
+                optOptimize: true, optBatchZip: true, outputFilename: 'cropped.pdf'
+            },
+            watermarkStrip: {
+                cropMode: 'uniform', marginTop: 0, marginRight: 0, marginBottom: 42, marginLeft: 0, marginUnit: 'pt',
+                mirrorEven: false, hardCrop: true, updateAuxBoxes: false, pageRangeMode: 'all',
+                optOptimize: true, optBatchZip: true, outputFilename: 'cropped.pdf'
+            },
+            a4ToLetter: {
+                cropMode: 'ratio', ratioPreset: 'letter', ratioAnchor: 'center',
+                mirrorEven: false, hardCrop: true, updateAuxBoxes: true, pageRangeMode: 'all',
+                optOptimize: true, optBatchZip: true, outputFilename: 'cropped.pdf'
+            },
+            squareCrop: {
+                cropMode: 'ratio', ratioPreset: 'square', ratioAnchor: 'center',
+                mirrorEven: false, hardCrop: true, updateAuxBoxes: false, pageRangeMode: 'all',
+                optOptimize: true, optBatchZip: true, outputFilename: 'cropped.pdf'
+            },
+            bookSplit: {
+                cropMode: 'splitTwoUp', splitOrientation: 'vertical', splitGutter: 6, splitGutterUnit: 'pt',
+                mirrorEven: false, hardCrop: true, updateAuxBoxes: false, pageRangeMode: 'all',
+                optOptimize: true, optBatchZip: true, outputFilename: 'cropped.pdf'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfCropperCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            invalidateCrop();
+            renderPlan();
+            renderCurrentPage();
+            saveSettingsDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-cropper-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    invalidateCrop();
+                    renderPlan();
+                    renderCurrentPage();
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // ERROR / LOG HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function clearLog() {
+            logLines = [];
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Scan and crop activity will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ============================================
+        // PAGE RANGE PARSING
+        // ============================================
+        function parsePageRange(opts, numPages) {
+            const mode = opts.pageRangeMode;
+            const all = [];
+            for (let i = 1; i <= numPages; i++) all.push(i);
+            if (mode === 'all') return all;
+            if (mode === 'odd') return all.filter(n => n % 2 === 1);
+            if (mode === 'even') return all.filter(n => n % 2 === 0);
+            if (mode === 'range') {
+                const str = (opts.pageRangeCustom || '').trim();
+                if (!str) return all;
+                const out = new Set();
+                str.split(',').forEach(part => {
+                    part = part.trim();
+                    if (!part) return;
+                    const m = part.match(/^(\d+)\s*-\s*(\d+)$/);
+                    if (m) {
+                        const a = Math.max(1, parseInt(m[1], 10)), b = Math.min(numPages, parseInt(m[2], 10));
+                        for (let i = Math.min(a, b); i <= Math.max(a, b); i++) out.add(i);
+                    } else {
+                        const n = parseInt(part, 10);
+                        if (!isNaN(n) && n >= 1 && n <= numPages) out.add(n);
+                    }
+                });
+                return out.size ? [...out].sort((a, b) => a - b) : all;
+            }
+            return all;
+        }
+
+        // ============================================
+        // RATIO HELPERS
+        // ============================================
+        function getTargetRatio(opts) {
+            const preset = opts.ratioPreset;
+            if (preset === 'square') return 1;
+            if (preset === 'portrait45') return 4 / 5;
+            if (preset === 'widescreen169') return 16 / 9;
+            if (preset === 'a4') return 1 / 1.41421356;
+            if (preset === 'letter') return 612 / 792;
+            const w = parseFloat(opts.ratioCustomW) || 1;
+            const h = parseFloat(opts.ratioCustomH) || 1;
+            return w / h;
+        }
+
+        // ============================================
+        // CROP BOX COMPUTATION (bottom-left PDF-space origin)
+        // ============================================
+        function computeCropBoxForPage(pageWidthPt, pageHeightPt, pageNumber, opts, fileIdx) {
+            const mode = opts.cropMode;
+            let x = 0, y = 0, w = pageWidthPt, h = pageHeightPt;
+
+            if (mode === 'uniform') {
+                let top = toPt(opts.marginTop, opts.marginUnit);
+                let right = toPt(opts.marginRight, opts.marginUnit);
+                let bottom = toPt(opts.marginBottom, opts.marginUnit);
+                let left = toPt(opts.marginLeft, opts.marginUnit);
+                if (opts.mirrorEven && pageNumber % 2 === 0) { const t = left; left = right; right = t; }
+                x = left; y = bottom; w = pageWidthPt - left - right; h = pageHeightPt - top - bottom;
+            } else if (mode === 'percent') {
+                let top = parseFloat(opts.pctTop) || 0, right = parseFloat(opts.pctRight) || 0;
+                let bottom = parseFloat(opts.pctBottom) || 0, left = parseFloat(opts.pctLeft) || 0;
+                if (opts.mirrorEven && pageNumber % 2 === 0) { const t = left; left = right; right = t; }
+                const leftPt = pageWidthPt * left / 100, rightPt = pageWidthPt * right / 100;
+                const topPt = pageHeightPt * top / 100, bottomPt = pageHeightPt * bottom / 100;
+                x = leftPt; y = bottomPt; w = pageWidthPt - leftPt - rightPt; h = pageHeightPt - topPt - bottomPt;
+            } else if (mode === 'visual') {
+                if (visualBoxNormalized) {
+                    const b = visualBoxNormalized;
+                    x = b.left * pageWidthPt; y = b.bottom * pageHeightPt;
+                    w = pageWidthPt - (b.left + b.right) * pageWidthPt;
+                    h = pageHeightPt - (b.top + b.bottom) * pageHeightPt;
+                }
+            } else if (mode === 'auto') {
+                const key = fileIdx + ':' + pageNumber;
+                const cached = autoBoxCache[key];
+                if (cached) { x = cached.x; y = cached.y; w = cached.width; h = cached.height; }
+            } else if (mode === 'ratio') {
+                const targetRatio = getTargetRatio(opts);
+                const pageRatio = pageWidthPt / pageHeightPt;
+                let newW, newH;
+                if (pageRatio > targetRatio) { newH = pageHeightPt; newW = newH * targetRatio; }
+                else { newW = pageWidthPt; newH = newW / targetRatio; }
+                const anchor = opts.ratioAnchor;
+                if (anchor === 'top') { x = (pageWidthPt - newW) / 2; y = pageHeightPt - newH; }
+                else if (anchor === 'bottom') { x = (pageWidthPt - newW) / 2; y = 0; }
+                else if (anchor === 'left') { x = 0; y = (pageHeightPt - newH) / 2; }
+                else if (anchor === 'right') { x = pageWidthPt - newW; y = (pageHeightPt - newH) / 2; }
+                else { x = (pageWidthPt - newW) / 2; y = (pageHeightPt - newH) / 2; }
+                w = newW; h = newH;
+            }
+
+            // Clamp to sane bounds
+            x = Math.max(0, Math.min(x, pageWidthPt - 2));
+            y = Math.max(0, Math.min(y, pageHeightPt - 2));
+            w = Math.max(2, Math.min(w, pageWidthPt - x));
+            h = Math.max(2, Math.min(h, pageHeightPt - y));
+            return { x, y, width: w, height: h };
+        }
+
+        // ============================================
+        // FILE LOADING
+        // ============================================
+        async function loadFiles(fileList) {
+            clearError();
+            clearLog();
+            const files = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+            if (files.length === 0) {
+                showError('No valid PDF files selected.');
+                return;
+            }
+            loadedFiles = [];
+            autoBoxCache = {};
+            visualBoxNormalized = null;
+            let totalPages = 0;
+            for (const file of files) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const loadingTask = pdfjsLib.getDocument({ data: bytes.slice() });
+                    const pdfjsDoc = await loadingTask.promise;
+                    loadedFiles.push({ name: file.name, bytes, pdfjsDoc, numPages: pdfjsDoc.numPages });
+                    totalPages += pdfjsDoc.numPages;
+                    logMsg(`Loaded "${file.name}" — ${pdfjsDoc.numPages} page(s).`, 'success');
+                } catch (err) {
+                    logMsg(`Failed to load "${file.name}": ${err.message || err}`, 'error');
+                }
+            }
+            if (loadedFiles.length === 0) {
+                showError('None of the selected files could be read as PDFs.');
+                return;
+            }
+
+            const first = loadedFiles[0];
+            document.getElementById('lfName').textContent = loadedFiles.length === 1 ? first.name : `${first.name} + ${loadedFiles.length - 1} more`;
+            document.getElementById('lfMeta').textContent = loadedFiles.length === 1
+                ? `${first.numPages} page(s)`
+                : `${loadedFiles.length} files loaded — batch mode`;
+            loadedFileCard.classList.add('show');
+            document.getElementById('totalFilesLoaded').textContent = loadedFiles.length;
+            document.getElementById('totalPagesLoaded').textContent = totalPages;
+
+            const base = first.name.replace(/\.pdf$/i, '');
+            document.getElementById('outputFilename').value = base + '-cropped.pdf';
+
+            currentFileIdx = 0;
+            currentPage = 1;
+            document.getElementById('pageJump').value = 1;
+            document.getElementById('pageJump').max = first.numPages;
+            document.getElementById('pageCount').textContent = first.numPages;
+            pageNavWrap.classList.add('show');
+
+            invalidateCrop();
+            renderPlan();
+            renderCurrentPage();
+        }
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            loadedFiles = [];
+            loadedFileCard.classList.remove('show');
+            pageNavWrap.classList.remove('show');
+            document.getElementById('totalFilesLoaded').textContent = '0';
+            document.getElementById('totalPagesLoaded').textContent = '0';
+            invalidateCrop();
+            planPane.innerHTML = '<p class="info-empty">Load a PDF to see the computed crop box for each affected page.</p>';
+        });
+
+        // ============================================
+        // PAGE NAVIGATION
+        // ============================================
+        function currentFile() { return loadedFiles[currentFileIdx] || null; }
+
+        document.getElementById('prevPageBtn').addEventListener('click', () => { gotoPage(currentPage - 1); });
+        document.getElementById('nextPageBtn').addEventListener('click', () => { gotoPage(currentPage + 1); });
+        document.getElementById('pageJump').addEventListener('change', (e) => { gotoPage(parseInt(e.target.value, 10) || 1); });
+        function gotoPage(n) {
+            const file = currentFile();
+            if (!file) return;
+            currentPage = Math.max(1, Math.min(file.numPages, n));
+            document.getElementById('pageJump').value = currentPage;
+            renderCurrentPage();
+        }
+
+        // ============================================
+        // CANVAS PREVIEW + CROP OVERLAY
+        // ============================================
+        async function renderCurrentPage() {
+            const file = currentFile();
+            if (!file) return;
+            const ticket = ++renderTicket;
+            try {
+                const page = await file.pdfjsDoc.getPage(currentPage);
+                const baseViewport = page.getViewport({ scale: 1 });
+                const maxDim = 640;
+                const scale = Math.min(maxDim / baseViewport.width, maxDim / baseViewport.height, 2);
+                const viewport = page.getViewport({ scale: Math.max(scale, 0.2) });
+                if (ticket !== renderTicket) return;
+                previewCanvas.width = viewport.width;
+                previewCanvas.height = viewport.height;
+                await page.render({ canvasContext: canvasCtx, viewport }).promise;
+                if (ticket !== renderTicket) return;
+                currentViewport = viewport;
+                drawCropOverlay();
+            } catch (err) {
+                logMsg(`Could not render preview for page ${currentPage}: ${err.message || err}`, 'warn');
+            }
+        }
+
+        function drawCropOverlay() {
+            if (!currentViewport) return;
+            const opts = getOptions();
+            const pageWidthPt = currentViewport.width / currentViewport.scale;
+            const pageHeightPt = currentViewport.height / currentViewport.scale;
+            const box = computeCropBoxForPage(pageWidthPt, pageHeightPt, currentPage, opts, currentFileIdx);
+
+            // Convert PDF-space (bottom-left origin) box to canvas-space (top-left origin) px
+            const scale = currentViewport.scale;
+            const cx = box.x * scale;
+            const cy = (pageHeightPt - box.y - box.height) * scale;
+            const cw = box.width * scale;
+            const ch = box.height * scale;
+
+            canvasCtx.save();
+            canvasCtx.strokeStyle = '#10b981';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.setLineDash([6, 4]);
+            canvasCtx.strokeRect(cx, cy, cw, ch);
+            canvasCtx.setLineDash([]);
+            canvasCtx.fillStyle = 'rgba(0,0,0,0.35)';
+            // dim the discarded regions
+            canvasCtx.fillRect(0, 0, previewCanvas.width, cy);
+            canvasCtx.fillRect(0, cy + ch, previewCanvas.width, previewCanvas.height - (cy + ch));
+            canvasCtx.fillRect(0, cy, cx, ch);
+            canvasCtx.fillRect(cx + cw, cy, previewCanvas.width - (cx + cw), ch);
+            canvasCtx.restore();
+        }
+
+        // Visual drag-select (only meaningfully used in "visual" mode, but works regardless)
+        previewCanvas.addEventListener('mousedown', (e) => {
+            if (getCropMode() !== 'visual') return;
+            const rect = previewCanvas.getBoundingClientRect();
+            const scaleX = previewCanvas.width / rect.width;
+            const scaleY = previewCanvas.height / rect.height;
+            dragState = {
+                startX: (e.clientX - rect.left) * scaleX,
+                startY: (e.clientY - rect.top) * scaleY,
+                curX: (e.clientX - rect.left) * scaleX,
+                curY: (e.clientY - rect.top) * scaleY,
+                active: true
+            };
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragState || !dragState.active) return;
+            const rect = previewCanvas.getBoundingClientRect();
+            const scaleX = previewCanvas.width / rect.width;
+            const scaleY = previewCanvas.height / rect.height;
+            dragState.curX = Math.max(0, Math.min(previewCanvas.width, (e.clientX - rect.left) * scaleX));
+            dragState.curY = Math.max(0, Math.min(previewCanvas.height, (e.clientY - rect.top) * scaleY));
+            redrawDragPreview();
+        });
+        window.addEventListener('mouseup', () => {
+            if (!dragState || !dragState.active) return;
+            dragState.active = false;
+            commitDragSelection();
+        });
+
+        function redrawDragPreview() {
+            if (!dragState) return;
+            renderCurrentPage().then(() => {
+                if (!dragState) return;
+                const x = Math.min(dragState.startX, dragState.curX);
+                const y = Math.min(dragState.startY, dragState.curY);
+                const w = Math.abs(dragState.curX - dragState.startX);
+                const h = Math.abs(dragState.curY - dragState.startY);
+                canvasCtx.save();
+                canvasCtx.strokeStyle = '#ef4444';
+                canvasCtx.lineWidth = 2;
+                canvasCtx.strokeRect(x, y, w, h);
+                canvasCtx.restore();
+            });
+        }
+
+        function commitDragSelection() {
+            if (!dragState || !currentViewport) { dragState = null; return; }
+            const x0 = Math.min(dragState.startX, dragState.curX);
+            const y0 = Math.min(dragState.startY, dragState.curY);
+            const x1 = Math.max(dragState.startX, dragState.curX);
+            const y1 = Math.max(dragState.startY, dragState.curY);
+            dragState = null;
+            if (x1 - x0 < 8 || y1 - y0 < 8) { renderCurrentPage(); return; } // too small, ignore
+
+            const cw = previewCanvas.width, ch = previewCanvas.height;
+            visualBoxNormalized = {
+                left: x0 / cw,
+                right: (cw - x1) / cw,
+                top: y0 / ch,
+                bottom: (ch - y1) / ch
+            };
+            markCustomAndSave();
+            renderCurrentPage();
+        }
+
+        // ============================================
+        // AUTO-DETECT CONTENT BOX
+        // ============================================
+        async function detectContentBox(file, pageNumber, threshold, paddingPt) {
+            const page = await file.pdfjsDoc.getPage(pageNumber);
+            const baseViewport = page.getViewport({ scale: 1 });
+            const scale = Math.min(1000 / baseViewport.width, 1400 / baseViewport.height, 2.5);
+            const viewport = page.getViewport({ scale: Math.max(scale, 0.3) });
+            const off = document.createElement('canvas');
+            off.width = Math.ceil(viewport.width);
+            off.height = Math.ceil(viewport.height);
+            const ctx = off.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, off.width, off.height);
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const img = ctx.getImageData(0, 0, off.width, off.height);
+            const data = img.data;
+            const w = off.width, h = off.height;
+            let minX = w, minY = h, maxX = -1, maxY = -1;
+            const step = 2; // sample every other pixel for speed
+            for (let yy = 0; yy < h; yy += step) {
+                for (let xx = 0; xx < w; xx += step) {
+                    const idx = (yy * w + xx) * 4;
+                    const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                    if (lum < threshold) {
+                        if (xx < minX) minX = xx;
+                        if (xx > maxX) maxX = xx;
+                        if (yy < minY) minY = yy;
+                        if (yy > maxY) maxY = yy;
+                    }
+                }
+            }
+            if (maxX < 0) {
+                // Nothing found — treat whole page as content
+                return { x: 0, y: 0, width: baseViewport.width, height: baseViewport.height };
+            }
+            const s = viewport.scale;
+            // Convert canvas px (top-left origin) to PDF pt (bottom-left origin)
+            let x = minX / s - paddingPt;
+            let widthPt = (maxX - minX) / s + paddingPt * 2;
+            let yTopPt = minY / s - paddingPt;
+            let heightPt = (maxY - minY) / s + paddingPt * 2;
+            let y = baseViewport.height - yTopPt - heightPt;
+            x = Math.max(0, x);
+            y = Math.max(0, y);
+            widthPt = Math.min(widthPt, baseViewport.width - x);
+            heightPt = Math.min(heightPt, baseViewport.height - y);
+            return { x, y, width: widthPt, height: heightPt };
+        }
+
+        document.getElementById('detectBtn').addEventListener('click', async () => {
+            const file = currentFile();
+            if (!file) return;
+            const opts = getOptions();
+            const threshold = parseInt(opts.autoThreshold, 10) || 248;
+            const paddingPt = toPt(opts.autoPadding, opts.autoPaddingUnit);
+            document.getElementById('detectBtn').disabled = true;
+            try {
+                const box = await detectContentBox(file, currentPage, threshold, paddingPt);
+                autoBoxCache[currentFileIdx + ':' + currentPage] = box;
+                logMsg(`Detected content box on page ${currentPage}: ${box.width.toFixed(0)}×${box.height.toFixed(0)}pt.`, 'success');
+                renderPlan();
+                renderCurrentPage();
+            } catch (err) {
+                logMsg(`Auto-detect failed on page ${currentPage}: ${err.message || err}`, 'error');
+            } finally {
+                document.getElementById('detectBtn').disabled = false;
+            }
+        });
+
+        async function detectPagesAutoBoxes(file, fileIdx, pageNumbers, threshold, paddingPt) {
+            for (const pn of pageNumbers) {
+                const key = fileIdx + ':' + pn;
+                if (autoBoxCache[key]) continue;
+                try {
+                    autoBoxCache[key] = await detectContentBox(file, pn, threshold, paddingPt);
+                } catch (err) {
+                    logMsg(`Auto-detect failed on "${file.name}" page ${pn}: ${err.message || err}`, 'warn');
+                }
+            }
+        }
+
+        // ============================================
+        // CROP PLAN PREVIEW
+        // ============================================
+        async function renderPlan() {
+            if (loadedFiles.length === 0) {
+                planPane.innerHTML = '<p class="info-empty">Load a PDF to see the computed crop box for each affected page.</p>';
+                return;
+            }
+            const opts = getOptions();
+            const file = currentFile();
+            const pages = parsePageRange(opts, file.numPages);
+            const previewPages = pages.slice(0, 12);
+
+            let rowsHtml = '';
+            for (const pn of previewPages) {
+                let widthPt = null, heightPt = null;
+                try {
+                    const page = await file.pdfjsDoc.getPage(pn);
+                    const vp = page.getViewport({ scale: 1 });
+                    widthPt = vp.width; heightPt = vp.height;
+                } catch (e) { continue; }
+                const box = computeCropBoxForPage(widthPt, heightPt, pn, opts, currentFileIdx);
+                const reduction = 100 - (box.width * box.height) / (widthPt * heightPt) * 100;
+                rowsHtml += `<tr>
+                    <td>${pn}</td>
+                    <td>${Math.round(widthPt)}×${Math.round(heightPt)}pt</td>
+                    <td>${Math.round(box.width)}×${Math.round(box.height)}pt</td>
+                    <td>${reduction.toFixed(0)}%</td>
+                </tr>`;
+            }
+
+            let html = `<div class="meta-row"><span>Files queued</span><span>${loadedFiles.length}</span></div>`;
+            html += `<div class="meta-row"><span>Pages in range (this file)</span><span>${pages.length} of ${file.numPages}</span></div>`;
+            html += `<div class="meta-row"><span>Crop mode</span><span>${labelForMode(opts.cropMode)}</span></div>`;
+            html += `<div class="meta-row"><span>Box target</span><span>${opts.hardCrop ? 'Hard crop (CropBox + MediaBox)' : 'Soft crop (CropBox only)'}</span></div>`;
+            if (opts.cropMode === 'splitTwoUp') {
+                html += `<div class="meta-row"><span>Output page count</span><span>${pages.length * 2} (from ${pages.length})</span></div>`;
+            }
+            html += `<table class="plan-table"><thead><tr><th>Page</th><th>Original</th><th>Cropped</th><th>Reduction</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+            if (pages.length > previewPages.length) html += `<div class="meta-row"><span>+ ${pages.length - previewPages.length} more page(s) not shown</span><span></span></div>`;
+            planPane.innerHTML = html;
+        }
+        function labelForMode(mode) {
+            return {
+                uniform: 'Uniform margins', percent: 'Percent margins', visual: 'Drag on preview',
+                auto: 'Auto-detect content', ratio: 'Fixed aspect ratio', splitTwoUp: 'Split two-up'
+            }[mode] || mode;
+        }
+
+        // ============================================
+        // CROPPING ENGINE (pdf-lib)
+        // ============================================
+        function applyBoxesToPage(page, box, opts) {
+            page.setCropBox(box.x, box.y, box.width, box.height);
+            if (opts.hardCrop) page.setMediaBox(box.x, box.y, box.width, box.height);
+            if (opts.updateAuxBoxes) {
+                if (page.setTrimBox) page.setTrimBox(box.x, box.y, box.width, box.height);
+                if (page.setBleedBox) page.setBleedBox(box.x, box.y, box.width, box.height);
+            }
+        }
+
+        async function cropStandardFile(entry, fileIdx, opts) {
+            const doc = await PDFLib.PDFDocument.load(entry.bytes, { ignoreEncryption: true });
+            const pages = doc.getPages();
+            const targetPages = parsePageRange(opts, pages.length);
+
+            if (opts.cropMode === 'auto') {
+                await detectPagesAutoBoxes(entry, fileIdx, targetPages, parseInt(opts.autoThreshold, 10) || 248, toPt(opts.autoPadding, opts.autoPaddingUnit));
+            }
+
+            let cropped = 0;
+            let reductionSum = 0;
+            targetPages.forEach(pn => {
+                const page = pages[pn - 1];
+                const w = page.getWidth(), h = page.getHeight();
+                const box = computeCropBoxForPage(w, h, pn, opts, fileIdx);
+                applyBoxesToPage(page, box, opts);
+                cropped++;
+                reductionSum += 100 - (box.width * box.height) / (w * h) * 100;
+            });
+
+            const bytes = await doc.save({ useObjectStreams: !!opts.optOptimize });
+            return { bytes, cropped, avgReduction: cropped ? reductionSum / cropped : 0 };
+        }
+
+        async function cropSplitTwoUpFile(entry, fileIdx, opts) {
+            const srcDoc = await PDFLib.PDFDocument.load(entry.bytes, { ignoreEncryption: true });
+            const outDoc = await PDFLib.PDFDocument.create();
+            const totalPages = srcDoc.getPageCount();
+            const targetPages = parsePageRange(opts, totalPages);
+            const gutterPt = toPt(opts.splitGutter, opts.splitGutterUnit);
+            const orientation = opts.splitOrientation;
+
+            let cropped = 0;
+            let reductionSum = 0;
+
+            for (const pn of targetPages) {
+                const idx = pn - 1;
+                const srcPage = srcDoc.getPage(idx);
+                const w = srcPage.getWidth(), h = srcPage.getHeight();
+
+                const [copyA] = await outDoc.copyPages(srcDoc, [idx]);
+                const [copyB] = await outDoc.copyPages(srcDoc, [idx]);
+                outDoc.addPage(copyA);
+                outDoc.addPage(copyB);
+
+                let boxA, boxB;
+                if (orientation === 'vertical') {
+                    const half = w / 2;
+                    boxA = { x: 0, y: 0, width: half - gutterPt / 2, height: h };
+                    boxB = { x: half + gutterPt / 2, y: 0, width: half - gutterPt / 2, height: h };
+                } else {
+                    const half = h / 2;
+                    boxA = { x: 0, y: half + gutterPt / 2, width: w, height: half - gutterPt / 2 };
+                    boxB = { x: 0, y: 0, width: w, height: half - gutterPt / 2 };
+                }
+                boxA.width = Math.max(2, boxA.width); boxA.height = Math.max(2, boxA.height);
+                boxB.width = Math.max(2, boxB.width); boxB.height = Math.max(2, boxB.height);
+
+                applyBoxesToPage(copyA, boxA, { hardCrop: true, updateAuxBoxes: opts.updateAuxBoxes });
+                applyBoxesToPage(copyB, boxB, { hardCrop: true, updateAuxBoxes: opts.updateAuxBoxes });
+
+                cropped += 2;
+                reductionSum += (100 - (boxA.width * boxA.height) / (w * h) * 100);
+                reductionSum += (100 - (boxB.width * boxB.height) / (w * h) * 100);
+            }
+
+            const bytes = await outDoc.save({ useObjectStreams: !!opts.optOptimize });
+            return { bytes, cropped, avgReduction: cropped ? reductionSum / cropped : 0 };
+        }
+
+        async function cropOneFile(entry, fileIdx, opts) {
+            if (opts.cropMode === 'splitTwoUp') return cropSplitTwoUpFile(entry, fileIdx, opts);
+            return cropStandardFile(entry, fileIdx, opts);
+        }
+
+        async function cropFiles() {
+            if (loadedFiles.length === 0) {
+                showError('Load a PDF before cropping.');
+                return;
+            }
+            clearError();
+            clearLog();
+            cropBtn.disabled = true;
+            downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Cropping…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+            outputs = [];
+
+            const opts = getOptions();
+            let totalCropped = 0;
+            let reductionAccum = 0;
+            let filesReduced = 0;
+
+            try {
+                for (let i = 0; i < loadedFiles.length; i++) {
+                    const entry = loadedFiles[i];
+                    const { bytes, cropped, avgReduction } = await cropOneFile(entry, i, opts);
+
+                    let filename;
+                    if (loadedFiles.length === 1) {
+                        filename = (opts.outputFilename || 'cropped.pdf').replace(/\.pdf$/i, '') + '.pdf';
+                    } else {
+                        filename = entry.name.replace(/\.pdf$/i, '') + '-cropped.pdf';
+                    }
+                    outputs.push({ name: filename, blob: new Blob([bytes], { type: 'application/pdf' }), size: bytes.length });
+                    logMsg(`Cropped "${entry.name}" → "${filename}" (${cropped} page(s), ${avgReduction.toFixed(0)}% avg. area reduction).`, 'success');
+                    totalCropped += cropped;
+                    reductionAccum += avgReduction;
+                    filesReduced++;
+
+                    if (i === currentFileIdx) {
+                        croppedPreviewCache = { fileIdx: i, bytes };
+                    }
+                }
+
+                document.getElementById('outputPagesCropped').textContent = totalCropped;
+                document.getElementById('outputAvgReduction').textContent = (filesReduced ? (reductionAccum / filesReduced) : 0).toFixed(0) + '%';
+
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = outputs.length > 1 ? `Cropped ${outputs.length} files` : 'Cropped';
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add('success');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                await renderBeforeAfter();
+                logMsg(`Crop complete: ${outputs.length} file(s) processed, ${totalCropped} page(s) cropped.`, 'success');
+            } catch (err) {
+                showError('Cropping failed: ' + (err.message || err));
+                logMsg('Cropping failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Cropping failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                outputs = [];
+                downloadBtn.disabled = true;
+            } finally {
+                cropBtn.disabled = false;
+            }
+        }
+
+        // ============================================
+        // BEFORE / AFTER PREVIEW
+        // ============================================
+        async function renderBeforeAfter() {
+            if (!croppedPreviewCache || croppedPreviewCache.fileIdx !== currentFileIdx) {
+                previewPane.innerHTML = '<p class="info-empty">Crop the file currently shown on the left to see a before/after comparison here.</p>';
+                return;
+            }
+            try {
+                const origFile = currentFile();
+                const origPage = await origFile.pdfjsDoc.getPage(Math.min(currentPage, origFile.numPages));
+                const origVp = origPage.getViewport({ scale: Math.min(280 / origPage.getViewport({ scale: 1 }).width, 2) });
+
+                const croppedDoc = await pdfjsLib.getDocument({ data: croppedPreviewCache.bytes.slice() }).promise;
+                const afterPageNum = Math.min(currentPage, croppedDoc.numPages);
+                const afterPage = await croppedDoc.getPage(afterPageNum);
+                const afterVp = afterPage.getViewport({ scale: Math.min(280 / afterPage.getViewport({ scale: 1 }).width, 2) });
+
+                previewPane.innerHTML = `<div class="before-after">
+                    <div class="ba-col before"><span>Before — page ${currentPage}</span><canvas id="baBefore"></canvas></div>
+                    <div class="ba-col after"><span>After — page ${afterPageNum}</span><canvas id="baAfter"></canvas></div>
+                </div>`;
+
+                const beforeCanvas = document.getElementById('baBefore');
+                beforeCanvas.width = origVp.width; beforeCanvas.height = origVp.height;
+                await origPage.render({ canvasContext: beforeCanvas.getContext('2d'), viewport: origVp }).promise;
+
+                const afterCanvas = document.getElementById('baAfter');
+                afterCanvas.width = afterVp.width; afterCanvas.height = afterVp.height;
+                await afterPage.render({ canvasContext: afterCanvas.getContext('2d'), viewport: afterVp }).promise;
+            } catch (err) {
+                previewPane.innerHTML = `<p class="info-empty">Could not render before/after preview: ${escapeHtmlStr(err.message || err)}</p>`;
+            }
+        }
+
+        function renderFilesPane() {
+            if (outputs.length === 0) {
+                filesPane.innerHTML = '<p class="info-empty">Cropped files will be listed here after processing.</p>';
+                return;
+            }
+            filesPane.innerHTML = '';
+            outputs.forEach((o, i) => {
+                const row = document.createElement('div');
+                row.className = 'output-list-item';
+                row.innerHTML = `
+                    <span class="oli-name" title="${escapeHtmlStr(o.name)}">${escapeHtmlStr(o.name)}</span>
+                    <span class="oli-meta">${o.size.toLocaleString()}b</span>
+                    <button class="oli-dl" type="button" data-idx="${i}">Save</button>
+                `;
+                row.querySelector('.oli-dl').addEventListener('click', () => downloadSingle(i));
+                filesPane.appendChild(row);
+            });
+        }
+
+        function downloadSingle(idx) {
+            const o = outputs[idx];
+            if (!o) return;
+            const url = URL.createObjectURL(o.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = o.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAll() {
+            if (outputs.length === 0) return;
+            if (outputs.length === 1) {
+                downloadSingle(0);
+                return;
+            }
+            const opts = getOptions();
+            if (!opts.optBatchZip || !window['JSZip']) {
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+                return;
+            }
+            try {
+                const zip = new JSZip();
+                for (const o of outputs) {
+                    const buf = await o.blob.arrayBuffer();
+                    zip.file(o.name, buf);
+                }
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'cropped-pdfs.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logMsg(`Downloaded ZIP bundle with ${outputs.length} file(s).`, 'success');
+            } catch (err) {
+                logMsg(`ZIP bundling failed, falling back to individual downloads: ${err.message || err}`, 'warn');
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+            }
+        }
+
+        function invalidateCrop() {
+            if (outputs.length > 0) {
+                outputs = [];
+                downloadBtn.disabled = true;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Settings changed — crop again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                filesPane.innerHTML = '<p class="info-empty">Cropped files will be listed here after processing.</p>';
+                previewPane.innerHTML = '<p class="info-empty">Run "Crop PDF" to compare the original and cropped page currently shown on the left.</p>';
+            }
+            croppedPreviewCache = null;
+        }
+
+        cropBtn.addEventListener('click', cropFiles);
+        downloadBtn.addEventListener('click', downloadAll);
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            loadFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            loadFiles(dropped);
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfCropperLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial render
+        updateModeVisibility();
+        toggleRangeCustomField();
+        toggleRatioCustomFields();
+    </script>
+</body>
+</html>
