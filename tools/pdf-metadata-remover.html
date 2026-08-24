@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Metadata Remover</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF metadata remover: inspect every field a PDF is carrying — author, GPS/location XMP, software fingerprints, dates, custom properties — strip it clean, optionally rewrite your own values, then verify the output. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-metadata-remover.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-metadata-remover.html" />
+<meta property="og:title" content="PDF Metadata Remover — awjunaid" />
+<meta property="og:description" content="Inspect, strip, and verify PDF metadata — author, GPS/XMP location, software fingerprints, timestamps, custom properties. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-metadata-remover.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Metadata Remover — awjunaid" />
+<meta name="twitter:description" content="Inspect, strip, and verify PDF metadata — author, GPS/XMP location, software fingerprints, timestamps, custom properties. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-metadata-remover.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           RISK BANNER (what this tool is protecting against)
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--danger); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--danger) 8%, transparent);
+        }
+        .risk-banner i { font-size: 18px; color: var(--danger); margin-top: 2px; flex-shrink: 0; }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        /* Custom XMP/Info key-value rows */
+        .kv-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .kv-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; }
+        .kv-row input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; }
+        .kv-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+        .kv-add-btn { align-self: flex-start; margin-top: 4px; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Risk score strip on the source panel */
+        .risk-score-strip {
+            display: none;
+            align-items: center; gap: 14px;
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 14px 18px; margin-bottom: 14px;
+        }
+        .risk-score-strip.show { display: flex; }
+        .risk-score-ring {
+            width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-header); font-weight: 800; font-size: 15px;
+            border: 3px solid var(--border-light);
+        }
+        .risk-score-ring.high { border-color: var(--danger); color: var(--danger); }
+        .risk-score-ring.med { border-color: var(--warn); color: var(--warn); }
+        .risk-score-ring.low { border-color: var(--accent); color: var(--accent); }
+        .risk-score-text strong { display: block; font-size: 13px; }
+        .risk-score-text span { font-size: 11px; opacity: 0.65; }
+
+        /* Field inspector list */
+        .field-inspector-wrap { display: none; }
+        .field-inspector-wrap.show { display: block; }
+        .field-inspector-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .field-inspector-toolbar button { font-size: 10px; padding: 7px 12px; }
+        .field-inspector {
+            border: 1px solid var(--border-light); border-radius: 16px;
+            max-height: 380px; overflow-y: auto;
+        }
+        .fi-group { border-bottom: 1px solid var(--border-light); }
+        .fi-group:last-child { border-bottom: none; }
+        .fi-group-head {
+            font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+            opacity: 0.5; padding: 10px 16px 6px; font-family: var(--font-header);
+        }
+        .fi-row {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 9px 16px; border-top: 1px solid var(--border-light);
+        }
+        .fi-row:first-of-type { border-top: none; }
+        .fi-row input[type="checkbox"] { margin-top: 3px; accent-color: var(--text-primary); cursor: pointer; flex-shrink: 0; }
+        .fi-row .fi-main { flex: 1; min-width: 0; }
+        .fi-row .fi-key { font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; }
+        .fi-row .fi-val { font-family: var(--font-mono); font-size: 11px; opacity: 0.65; word-break: break-word; margin-top: 2px; }
+        .fi-row .fi-val.empty { opacity: 0.35; font-style: italic; }
+        .fi-badge {
+            font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; flex-shrink: 0; margin-top: 1px;
+        }
+        .fi-badge.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .fi-badge.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .fi-badge.low { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        .verify-row {
+            display: grid; grid-template-columns: 1fr auto 1fr auto; align-items: center; gap: 10px;
+            padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 11.5px;
+        }
+        .verify-row:last-child { border-bottom: none; }
+        .verify-row .v-before { opacity: 0.55; word-break: break-word; }
+        .verify-row .v-after { word-break: break-word; }
+        .verify-row .v-arrow { opacity: 0.4; }
+        .verify-row .v-status { font-size: 9px; font-weight: 800; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; text-align: center; }
+        .verify-row .v-status.removed { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .verify-row .v-status.changed { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .verify-row .v-status.kept { background: color-mix(in srgb, var(--border-light) 60%, transparent); opacity: 0.7; }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .verify-row { grid-template-columns: 1fr; gap: 3px; }
+            .verify-row .v-arrow { display: none; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+            .kv-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Metadata Remover</h1>
+                <div class="tool-dek">Every PDF you export carries a paper trail — your name, your employer, the software that made it, GPS coordinates from a scan, even a full edit history in hidden XMP. Inspect exactly what a file is leaking, strip it clean field by field, optionally overwrite it with your own values, then verify the output before you share it.</div>
+            </div>
+
+            <div class="risk-banner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <strong>Why this matters</strong>
+                    <p>Document Info fields (Author, Producer, Company) and embedded XMP data (GPS coordinates, editing software, revision history, custom tracking IDs) routinely survive "Save As" and get shipped in reports, resumes, leaked documents, and public filings — deanonymizing whistleblowers, journalists, and pentesters alike. This tool finds every one of those fields before you hit send.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="fullWipe">Full Wipe (max privacy)</option>
+                    <option value="opsec">OPSEC Safe (strip + rebrand)</option>
+                    <option value="corporate">Corporate Clean (keep title only)</option>
+                    <option value="inspectOnly">Inspect Only (no changes)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Document Info Dictionary <span class="mini-link" id="fiSelectInfo">select all fields below</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripAuthor" checked>
+                            <span><span class="setting-name">Author <span class="risk-tag high">Identity</span></span><span class="setting-hint">Name of the person who created the document</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripProducer" checked>
+                            <span><span class="setting-name">Producer <span class="risk-tag med">Fingerprint</span></span><span class="setting-hint">Software that generated the PDF (version-fingerprintable)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripCreatorApp" checked>
+                            <span><span class="setting-name">Creator App <span class="risk-tag med">Fingerprint</span></span><span class="setting-hint">Originating application (e.g. Word, InDesign, LibreOffice)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripTitle">
+                            <span><span class="setting-name">Title</span><span class="setting-hint">Document title field — often safe to keep</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripSubject" checked>
+                            <span><span class="setting-name">Subject</span><span class="setting-hint">Free-text subject/description field</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripKeywords" checked>
+                            <span><span class="setting-name">Keywords <span class="risk-tag med">Fingerprint</span></span><span class="setting-hint">Often auto-filled with internal project codes or tags</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripCreationDate" checked>
+                            <span><span class="setting-name">Creation Date <span class="risk-tag med">Timeline</span></span><span class="setting-hint">Original creation timestamp</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripModDate" checked>
+                            <span><span class="setting-name">Modification Date <span class="risk-tag med">Timeline</span></span><span class="setting-hint">Last-edited timestamp</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripCustomInfo" checked>
+                            <span><span class="setting-name">Custom Info Entries <span class="risk-tag high">Identity</span></span><span class="setting-hint">Non-standard keys apps stash here: usernames, machine IDs, tracking GUIDs</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>XMP & Embedded Metadata</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripXmp" checked>
+                            <span><span class="setting-name">Strip entire XMP packet <span class="risk-tag high">Identity</span></span><span class="setting-hint">Removes Dublin Core, XMP Basic, and PDF namespace blocks in full</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripGps" checked>
+                            <span><span class="setting-name">Strip GPS / geolocation <span class="risk-tag high">Location</span></span><span class="setting-hint">Removes any exif:GPS* coordinates embedded from scans or photos</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripEditHistory" checked>
+                            <span><span class="setting-name">Strip edit/revision history <span class="risk-tag high">Timeline</span></span><span class="setting-hint">Removes xmpMM history entries showing every save event</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripEmbeddedFiles">
+                            <span><span class="setting-name">Flag embedded/attached files <span class="risk-tag med">Leak</span></span><span class="setting-hint">Report any files or attachments embedded inside the PDF</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripJavascript">
+                            <span><span class="setting-name">Flag embedded JavaScript <span class="risk-tag high">Security</span></span><span class="setting-hint">Report any /JavaScript or /JS actions found in the document</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="stripAnnotAuthors" checked>
+                            <span><span class="setting-name">Strip comment/annotation authors <span class="risk-tag med">Identity</span></span><span class="setting-hint">Removes reviewer names attached to comments and track-changes</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Rewrite Values (applied after stripping)</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="rewriteTitle">Title</label>
+                            <input type="text" id="rewriteTitle" placeholder="Leave blank for none">
+                        </div>
+                        <div class="field-group">
+                            <label for="rewriteAuthor">Author</label>
+                            <input type="text" id="rewriteAuthor" placeholder="Leave blank for none">
+                        </div>
+                        <div class="field-group">
+                            <label for="rewriteSubject">Subject</label>
+                            <input type="text" id="rewriteSubject" placeholder="Leave blank for none">
+                        </div>
+                        <div class="field-group">
+                            <label for="rewriteProducer">Producer</label>
+                            <input type="text" id="rewriteProducer" placeholder="e.g. generic value to blend in">
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="rewriteDateMode">Timestamp handling</label>
+                            <select id="rewriteDateMode">
+                                <option value="remove">Remove dates entirely</option>
+                                <option value="now">Stamp with current date/time</option>
+                                <option value="fixed">Set fixed custom date</option>
+                                <option value="keep">Keep original dates</option>
+                            </select>
+                        </div>
+                        <div class="field-group" id="fixedDateGroup" style="display:none;">
+                            <label for="rewriteFixedDate">Fixed date</label>
+                            <input type="text" id="rewriteFixedDate" placeholder="YYYY-MM-DD">
+                        </div>
+                    </div>
+                    <div class="field-group full-width" style="margin-top:14px;">
+                        <label>Custom Info dictionary entries to add</label>
+                        <div class="kv-rows" id="customKvRows"></div>
+                        <button class="btn-ghost kv-add-btn" id="addKvRowBtn" type="button"><i class="fa-solid fa-plus"></i> Add field</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOptimize" checked>
+                            <span><span class="setting-name">Optimize output</span><span class="setting-hint">Uses object streams for smaller files</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVerifyAfter" checked>
+                            <span><span class="setting-name">Re-scan output after cleaning</span><span class="setting-hint">Re-inspects the cleaned file so you can confirm nothing leaked through</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchZip" checked>
+                            <span><span class="setting-name">Bundle batch output as ZIP</span><span class="setting-hint">Applies when cleaning multiple files at once</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="cleaned.pdf">
+                            <div class="field-note">Applied to a single file. Batch mode appends "-cleaned" to each original name.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source PDF</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Choose PDF(s)</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop one or more .pdf files here, or use "Choose PDF(s)" above.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="risk-score-strip" id="riskScoreStrip">
+                        <div class="risk-score-ring" id="riskScoreRing">0</div>
+                        <div class="risk-score-text">
+                            <strong id="riskScoreLabel">No exposure detected</strong>
+                            <span id="riskScoreSub">0 identifying fields found</span>
+                        </div>
+                    </div>
+
+                    <div class="field-inspector-wrap" id="fieldInspectorWrap">
+                        <div class="field-inspector-toolbar">
+                            <button class="btn-ghost" id="fiSelectAllBtn" type="button">Select all found</button>
+                            <button class="btn-ghost" id="fiSelectNoneBtn" type="button">Clear selection</button>
+                        </div>
+                        <div class="field-inspector" id="fieldInspector"></div>
+                    </div>
+
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalFieldsFound">0</strong> fields found</span>
+                        <span><strong id="totalFilesLoaded">0</strong> file(s) loaded</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Clean & Verify</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="cleanBtn" type="button"><i class="fa-solid fa-broom"></i> Strip Metadata</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Removal Plan</button>
+                        <button class="output-tab" data-tab="verify" type="button">Verify</button>
+                        <button class="output-tab" data-tab="files" type="button">Output Files</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Load a PDF and it'll be scanned automatically — the removal plan appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-verify">
+                        <div class="info-pane" id="verifyPane"><p class="info-empty">Run "Strip Metadata" to see a before/after comparison confirming what was actually removed.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">Cleaned files will be listed here after processing.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Scan and cleaning activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputRemovedCount">0</strong> fields removed</span>
+                        <span><strong id="outputLeakCount">0</strong> still present</span>
+                        <span><strong id="outputStatus">Not cleaned yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What's actually hiding inside a PDF?</h4>
+                        <p>Two separate metadata stores: the legacy Document Info dictionary (Author, Producer, dates, arbitrary custom keys apps like Word or Acrobat write silently) and the newer XMP packet, an XML block that can carry GPS coordinates, full edit/revision history, and software fingerprints — often duplicating or outliving what "Remove Personal Information" tools clear.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why is there a risk score?</h4>
+                        <p>Not every field is equally sensitive — a Title is usually harmless, but Author, GPS coordinates, and custom tracking IDs can deanonymize you. The score weighs what was actually found by severity so you know at a glance whether a file is safe to send as-is.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why verify after cleaning?</h4>
+                        <p>Some producers duplicate a field across both the Info dictionary and XMP — clearing only one leaves the other intact. Re-scanning the cleaned output and diffing it against the original confirms nothing survived, rather than just trusting the strip operation ran.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I rewrite fields instead of just deleting them?</h4>
+                        <p>Yes — after stripping, you can set your own Title, Author, Subject, and Producer values, add custom Info dictionary entries, or stamp a fixed/blank date. Useful for corporate templates that need a consistent Producer string rather than an empty one.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "Flag embedded JavaScript" do?</h4>
+                        <p>It doesn't strip anything by default — it inspects the file for /JavaScript and /JS actions and reports them, since embedded scripts are a code-execution risk that a metadata scrub alone won't catch. Treat a flagged file as needing manual review.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every PDF you load is scanned and cleaned locally in your browser — nothing is sent anywhere, which matters most for exactly the sensitive documents this tool is built for. Reload the page and everything is cleared except your settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // PDF METADATA REMOVER — ENTERPRISE EDITION
+        // ============================================
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const verifyPane = document.getElementById('verifyPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const cleanBtn = document.getElementById('cleanBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const fieldInspectorWrap = document.getElementById('fieldInspectorWrap');
+        const fieldInspector = document.getElementById('fieldInspector');
+        const riskScoreStrip = document.getElementById('riskScoreStrip');
+
+        let loadedFiles = []; // { name, bytes, scan }
+        let outputs = []; // { name, blob, size }
+        let fieldSelection = {}; // key -> bool, shared across files by field key
+        let kvRowCount = 0;
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_CHECKBOXES = [
+            'stripAuthor','stripProducer','stripCreatorApp','stripTitle','stripSubject','stripKeywords',
+            'stripCreationDate','stripModDate','stripCustomInfo',
+            'stripXmp','stripGps','stripEditHistory','stripEmbeddedFiles','stripJavascript','stripAnnotAuthors',
+            'optOptimize','optVerifyAfter','optBatchZip'
+        ];
+        const SETTING_TEXT = ['rewriteTitle','rewriteAuthor','rewriteSubject','rewriteProducer','rewriteFixedDate','outputFilename'];
+        const SETTING_SELECT = ['rewriteDateMode'];
+
+        function getOptions() {
+            const opts = {};
+            SETTING_CHECKBOXES.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_TEXT.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_SELECT.forEach(id => opts[id] = document.getElementById(id).value);
+            opts.customKv = getCustomKvPairs();
+            return opts;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_CHECKBOXES.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_TEXT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_SELECT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (settings.customKv) {
+                document.getElementById('customKvRows').innerHTML = '';
+                kvRowCount = 0;
+                settings.customKv.forEach(([k, v]) => addKvRow(k, v));
+            }
+            toggleFixedDateField();
+        }
+
+        document.getElementById('rewriteDateMode').addEventListener('change', () => { toggleFixedDateField(); markCustomAndSave(); });
+        function toggleFixedDateField() {
+            document.getElementById('fixedDateGroup').style.display = document.getElementById('rewriteDateMode').value === 'fixed' ? 'grid' : 'none';
+        }
+
+        // ============================================
+        // CUSTOM KV ROWS
+        // ============================================
+        function addKvRow(key, val) {
+            kvRowCount++;
+            const id = 'kv' + kvRowCount;
+            const row = document.createElement('div');
+            row.className = 'kv-row';
+            row.dataset.rowid = id;
+            row.innerHTML = `
+                <input type="text" placeholder="Field name (e.g. Department)" class="kv-key" value="${escapeHtmlAttr(key || '')}">
+                <input type="text" placeholder="Value" class="kv-val" value="${escapeHtmlAttr(val || '')}">
+                <button class="kv-remove" type="button"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            row.querySelector('.kv-remove').addEventListener('click', () => { row.remove(); markCustomAndSave(); });
+            row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', markCustomAndSave));
+            document.getElementById('customKvRows').appendChild(row);
+        }
+        document.getElementById('addKvRowBtn').addEventListener('click', () => { addKvRow('', ''); markCustomAndSave(); });
+        function getCustomKvPairs() {
+            const rows = document.querySelectorAll('#customKvRows .kv-row');
+            const pairs = [];
+            rows.forEach(r => {
+                const k = r.querySelector('.kv-key').value.trim();
+                const v = r.querySelector('.kv-val').value;
+                if (k) pairs.push([k, v]);
+            });
+            return pairs;
+        }
+        function escapeHtmlAttr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function markCustomAndSave() {
+            document.getElementById('presetSelect').value = 'custom';
+            invalidateClean();
+            if (loadedFiles.length) renderPlan();
+            saveSettingsDraft();
+        }
+        document.querySelectorAll('.settings-card input[type="checkbox"], .settings-card input[type="text"], .settings-card select').forEach(el => {
+            el.addEventListener('input', markCustomAndSave);
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            fullWipe: {
+                stripAuthor: true, stripProducer: true, stripCreatorApp: true, stripTitle: true, stripSubject: true,
+                stripKeywords: true, stripCreationDate: true, stripModDate: true, stripCustomInfo: true,
+                stripXmp: true, stripGps: true, stripEditHistory: true, stripEmbeddedFiles: true, stripJavascript: true, stripAnnotAuthors: true,
+                rewriteTitle: '', rewriteAuthor: '', rewriteSubject: '', rewriteProducer: '', rewriteDateMode: 'remove', rewriteFixedDate: '',
+                optOptimize: true, optVerifyAfter: true, optBatchZip: true, outputFilename: 'cleaned.pdf', customKv: []
+            },
+            opsec: {
+                stripAuthor: true, stripProducer: true, stripCreatorApp: true, stripTitle: false, stripSubject: true,
+                stripKeywords: true, stripCreationDate: true, stripModDate: true, stripCustomInfo: true,
+                stripXmp: true, stripGps: true, stripEditHistory: true, stripEmbeddedFiles: true, stripJavascript: true, stripAnnotAuthors: true,
+                rewriteTitle: '', rewriteAuthor: '', rewriteSubject: '', rewriteProducer: 'Generic PDF Writer', rewriteDateMode: 'remove', rewriteFixedDate: '',
+                optOptimize: true, optVerifyAfter: true, optBatchZip: true, outputFilename: 'cleaned.pdf', customKv: []
+            },
+            corporate: {
+                stripAuthor: true, stripProducer: false, stripCreatorApp: false, stripTitle: false, stripSubject: false,
+                stripKeywords: true, stripCreationDate: false, stripModDate: true, stripCustomInfo: true,
+                stripXmp: false, stripGps: true, stripEditHistory: true, stripEmbeddedFiles: false, stripJavascript: false, stripAnnotAuthors: true,
+                rewriteTitle: '', rewriteAuthor: '', rewriteSubject: '', rewriteProducer: '', rewriteDateMode: 'keep', rewriteFixedDate: '',
+                optOptimize: true, optVerifyAfter: true, optBatchZip: true, outputFilename: 'cleaned.pdf', customKv: []
+            },
+            inspectOnly: {
+                stripAuthor: false, stripProducer: false, stripCreatorApp: false, stripTitle: false, stripSubject: false,
+                stripKeywords: false, stripCreationDate: false, stripModDate: false, stripCustomInfo: false,
+                stripXmp: false, stripGps: false, stripEditHistory: false, stripEmbeddedFiles: true, stripJavascript: true, stripAnnotAuthors: false,
+                rewriteTitle: '', rewriteAuthor: '', rewriteSubject: '', rewriteProducer: '', rewriteDateMode: 'keep', rewriteFixedDate: '',
+                optOptimize: true, optVerifyAfter: false, optBatchZip: true, outputFilename: 'cleaned.pdf', customKv: []
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfMetaRemoverCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            invalidateClean();
+            if (loadedFiles.length) renderPlan();
+            saveSettingsDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-metadata-remover-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    invalidateClean();
+                    if (loadedFiles.length) renderPlan();
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        document.getElementById('fiSelectInfo').addEventListener('click', () => {
+            SETTING_CHECKBOXES.slice(0, 9).forEach(id => document.getElementById(id).checked = true);
+            markCustomAndSave();
+        });
+
+        // ============================================
+        // ERROR / LOG HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function clearLog() {
+            logLines = [];
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Scan and cleaning activity will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function truncate(str, n) {
+            str = String(str);
+            return str.length > n ? str.slice(0, n) + '…' : str;
+        }
+
+        // ============================================
+        // SCANNING: extract every metadata field we can find
+        // Each field: { key, group, label, value, severity, checkboxId }
+        // ============================================
+        const FIELD_DEFS = [
+            { key: 'Author', group: 'Document Info', label: 'Author', severity: 'high', checkboxId: 'stripAuthor' },
+            { key: 'Producer', group: 'Document Info', label: 'Producer', severity: 'med', checkboxId: 'stripProducer' },
+            { key: 'Creator', group: 'Document Info', label: 'Creator App', severity: 'med', checkboxId: 'stripCreatorApp' },
+            { key: 'Title', group: 'Document Info', label: 'Title', severity: 'low', checkboxId: 'stripTitle' },
+            { key: 'Subject', group: 'Document Info', label: 'Subject', severity: 'low', checkboxId: 'stripSubject' },
+            { key: 'Keywords', group: 'Document Info', label: 'Keywords', severity: 'med', checkboxId: 'stripKeywords' },
+            { key: 'CreationDate', group: 'Document Info', label: 'Creation Date', severity: 'med', checkboxId: 'stripCreationDate' },
+            { key: 'ModDate', group: 'Document Info', label: 'Modification Date', severity: 'med', checkboxId: 'stripModDate' }
+        ];
+
+        async function scanFile(bytes) {
+            const scan = { fields: [], customInfo: [], gpsFound: false, editHistoryFound: false, embeddedFiles: [], jsFound: false, annotAuthors: [] };
+            let doc;
+            try {
+                doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+            } catch (err) {
+                throw new Error('Could not parse PDF: ' + (err.message || err));
+            }
+
+            FIELD_DEFS.forEach(def => {
+                let val = '';
+                try {
+                    if (def.key === 'Author') val = doc.getAuthor && doc.getAuthor();
+                    else if (def.key === 'Producer') val = doc.getProducer && doc.getProducer();
+                    else if (def.key === 'Creator') val = doc.getCreator && doc.getCreator();
+                    else if (def.key === 'Title') val = doc.getTitle && doc.getTitle();
+                    else if (def.key === 'Subject') val = doc.getSubject && doc.getSubject();
+                    else if (def.key === 'Keywords') { const kw = doc.getKeywords && doc.getKeywords(); val = kw || ''; }
+                    else if (def.key === 'CreationDate') { const d = doc.getCreationDate && doc.getCreationDate(); val = d ? d.toISOString() : ''; }
+                    else if (def.key === 'ModDate') { const d = doc.getModificationDate && doc.getModificationDate(); val = d ? d.toISOString() : ''; }
+                } catch (e) { val = ''; }
+                scan.fields.push({ ...def, value: val || '' });
+            });
+
+            // Custom (non-standard) Info dictionary entries
+            try {
+                const infoDict = doc.getInfoDict ? doc.getInfoDict() : (doc.context && doc.context.trailerInfo && doc.context.lookup(doc.context.trailerInfo.Info));
+                const standardKeys = new Set(['Title','Author','Subject','Keywords','Creator','Producer','CreationDate','ModDate','Trapped']);
+                if (infoDict && infoDict.entries) {
+                    for (const [k, v] of infoDict.entries()) {
+                        const keyName = k.encodedName ? k.encodedName().replace(/^\//, '') : String(k);
+                        if (!standardKeys.has(keyName)) {
+                            let vs = '';
+                            try { vs = v.asString ? v.asString() : String(v); } catch (e) { vs = String(v); }
+                            scan.customInfo.push({ key: keyName, value: vs });
+                        }
+                    }
+                }
+            } catch (e) { /* ignore — pdf-lib internals vary by version */ }
+
+            // Raw text scan for XMP GPS, edit history, JS, embedded files (regex over raw bytes — best-effort, client-side only)
+            try {
+                const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+                if (/exif:GPS|GPSLatitude|GPSLongitude/i.test(text)) scan.gpsFound = true;
+                if (/xmpMM:History|<rdf:li[^>]*stEvt:/i.test(text)) scan.editHistoryFound = true;
+                if (/\/JavaScript|\/JS\b/.test(text)) scan.jsFound = true;
+                if (/\/EmbeddedFile/.test(text)) scan.embeddedFiles.push('embedded file stream detected');
+                const authorMatches = text.match(/\/T\s*\(([^)]{1,60})\)/g);
+                if (authorMatches) {
+                    scan.annotAuthors = [...new Set(authorMatches.slice(0, 8).map(m => m.replace(/^\/T\s*\(/, '').replace(/\)$/, '')))];
+                }
+                scan.hasXmp = /<x:xmpmeta|<rdf:RDF/i.test(text);
+            } catch (e) { /* ignore */ }
+
+            return scan;
+        }
+
+        // ============================================
+        // FILE LOADING
+        // ============================================
+        async function loadFiles(fileList) {
+            clearError();
+            clearLog();
+            const files = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+            if (files.length === 0) {
+                showError('No valid PDF files selected.');
+                return;
+            }
+            loadedFiles = [];
+            for (const file of files) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const scan = await scanFile(bytes);
+                    loadedFiles.push({ name: file.name, bytes, scan });
+                    logMsg(`Scanned "${file.name}" — found ${countFoundFields(scan)} metadata field(s).`, 'success');
+                } catch (err) {
+                    logMsg(`Failed to scan "${file.name}": ${err.message || err}`, 'error');
+                }
+            }
+            if (loadedFiles.length === 0) {
+                showError('None of the selected files could be read as PDFs.');
+                return;
+            }
+
+            const first = loadedFiles[0];
+            document.getElementById('lfName').textContent = loadedFiles.length === 1 ? first.name : `${first.name} + ${loadedFiles.length - 1} more`;
+            document.getElementById('lfMeta').textContent = loadedFiles.length === 1
+                ? `${countFoundFields(first.scan)} metadata field(s) found`
+                : `${loadedFiles.length} files loaded — batch mode`;
+            loadedFileCard.classList.add('show');
+            document.getElementById('totalFilesLoaded').textContent = loadedFiles.length;
+
+            const base = first.name.replace(/\.pdf$/i, '');
+            document.getElementById('outputFilename').value = base + '-cleaned.pdf';
+
+            initFieldSelection();
+            renderRiskScore();
+            renderFieldInspector();
+            invalidateClean();
+            renderPlan();
+        }
+
+        function countFoundFields(scan) {
+            let n = 0;
+            scan.fields.forEach(f => { if (f.value) n++; });
+            n += scan.customInfo.length;
+            if (scan.gpsFound) n++;
+            if (scan.editHistoryFound) n++;
+            if (scan.hasXmp) n++;
+            return n;
+        }
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            loadedFiles = [];
+            loadedFileCard.classList.remove('show');
+            fieldInspectorWrap.classList.remove('show');
+            riskScoreStrip.classList.remove('show');
+            document.getElementById('totalFilesLoaded').textContent = '0';
+            document.getElementById('totalFieldsFound').textContent = '0';
+            invalidateClean();
+            planPane.innerHTML = '<p class="info-empty">Load a PDF and it\'ll be scanned automatically — the removal plan appears here.</p>';
+        });
+
+        // ============================================
+        // RISK SCORE
+        // ============================================
+        function renderRiskScore() {
+            if (loadedFiles.length === 0) { riskScoreStrip.classList.remove('show'); return; }
+            let high = 0, med = 0, low = 0;
+            loadedFiles.forEach(f => {
+                f.scan.fields.forEach(field => {
+                    if (!field.value) return;
+                    if (field.severity === 'high') high++;
+                    else if (field.severity === 'med') med++;
+                    else low++;
+                });
+                high += f.scan.customInfo.length;
+                if (f.scan.gpsFound) high++;
+                if (f.scan.editHistoryFound) med++;
+                if (f.scan.jsFound) high++;
+            });
+            const score = Math.min(99, high * 12 + med * 5 + low * 1);
+            const ring = document.getElementById('riskScoreRing');
+            const label = document.getElementById('riskScoreLabel');
+            const sub = document.getElementById('riskScoreSub');
+            ring.textContent = score;
+            ring.className = 'risk-score-ring ' + (score >= 40 ? 'high' : score >= 15 ? 'med' : 'low');
+            label.textContent = score >= 40 ? 'High exposure' : score >= 15 ? 'Moderate exposure' : score === 0 ? 'No exposure detected' : 'Low exposure';
+            sub.textContent = `${high} high-risk · ${med} medium · ${low} low field(s) across ${loadedFiles.length} file(s)`;
+            riskScoreStrip.classList.add('show');
+        }
+
+        // ============================================
+        // FIELD INSPECTOR (first file drives the UI; batch applies same rules)
+        // ============================================
+        function initFieldSelection() {
+            fieldSelection = {};
+            const first = loadedFiles[0];
+            if (!first) return;
+            first.scan.fields.forEach(f => { if (f.value) fieldSelection[f.key] = document.getElementById(f.checkboxId).checked; });
+            first.scan.customInfo.forEach((c, i) => { fieldSelection['custom:' + c.key] = document.getElementById('stripCustomInfo').checked; });
+            if (first.scan.hasXmp) fieldSelection['xmp'] = document.getElementById('stripXmp').checked;
+            if (first.scan.gpsFound) fieldSelection['gps'] = document.getElementById('stripGps').checked;
+            if (first.scan.editHistoryFound) fieldSelection['history'] = document.getElementById('stripEditHistory').checked;
+        }
+
+        function renderFieldInspector() {
+            const first = loadedFiles[0];
+            if (!first) { fieldInspectorWrap.classList.remove('show'); return; }
+            const s = first.scan;
+            let html = '';
+            let foundCount = 0;
+
+            const infoRows = s.fields.filter(f => f.value);
+            if (infoRows.length) {
+                html += `<div class="fi-group"><div class="fi-group-head">Document Info</div>`;
+                infoRows.forEach(f => {
+                    foundCount++;
+                    html += fiRow(f.key, f.label, f.value, f.severity);
+                });
+                html += `</div>`;
+            }
+
+            if (s.customInfo.length) {
+                html += `<div class="fi-group"><div class="fi-group-head">Custom Info Entries</div>`;
+                s.customInfo.forEach(c => {
+                    foundCount++;
+                    html += fiRow('custom:' + c.key, c.key, c.value, 'high');
+                });
+                html += `</div>`;
+            }
+
+            const xmpRows = [];
+            if (s.hasXmp) xmpRows.push(['xmp', 'XMP metadata packet', 'present', 'high']);
+            if (s.gpsFound) xmpRows.push(['gps', 'GPS / geolocation', 'coordinates detected', 'high']);
+            if (s.editHistoryFound) xmpRows.push(['history', 'Edit / revision history', 'history entries detected', 'med']);
+            if (xmpRows.length) {
+                html += `<div class="fi-group"><div class="fi-group-head">XMP / Embedded</div>`;
+                xmpRows.forEach(([key, label, val, sev]) => { foundCount++; html += fiRow(key, label, val, sev); });
+                html += `</div>`;
+            }
+
+            const flagRows = [];
+            if (s.jsFound) flagRows.push(['JavaScript / actions', 'code execution risk — review manually']);
+            if (s.embeddedFiles.length) flagRows.push(['Embedded files', s.embeddedFiles.length + ' attachment(s) detected']);
+            if (s.annotAuthors.length) flagRows.push(['Annotation authors', s.annotAuthors.slice(0, 4).join(', ')]);
+            if (flagRows.length) {
+                html += `<div class="fi-group"><div class="fi-group-head">Flagged For Review</div>`;
+                flagRows.forEach(([label, val]) => {
+                    html += `<div class="fi-row"><div style="width:17px;flex-shrink:0;"></div><div class="fi-main"><div class="fi-key">${escapeHtmlStr(label)}</div><div class="fi-val">${escapeHtmlStr(val)}</div></div><span class="fi-badge med">Flag</span></div>`;
+                });
+                html += `</div>`;
+            }
+
+            if (!html) {
+                html = '<div style="padding:20px;"><p class="info-empty">No identifying metadata fields were found in this file.</p></div>';
+            }
+            fieldInspector.innerHTML = html;
+            document.getElementById('totalFieldsFound').textContent = foundCount;
+
+            fieldInspector.querySelectorAll('.fi-row input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    fieldSelection[cb.dataset.key] = cb.checked;
+                    invalidateClean();
+                    renderPlan();
+                });
+            });
+
+            fieldInspectorWrap.classList.add('show');
+        }
+
+        function fiRow(key, label, value, severity) {
+            const checked = fieldSelection[key] !== false;
+            return `<div class="fi-row">
+                <input type="checkbox" data-key="${escapeHtmlAttr(key)}" ${checked ? 'checked' : ''}>
+                <div class="fi-main"><div class="fi-key">${escapeHtmlStr(label)}</div><div class="fi-val${value ? '' : ' empty'}">${value ? escapeHtmlStr(truncate(value, 90)) : '(empty)'}</div></div>
+                <span class="fi-badge ${severity}">${severity === 'high' ? 'High' : severity === 'med' ? 'Medium' : 'Low'}</span>
+            </div>`;
+        }
+
+        document.getElementById('fiSelectAllBtn').addEventListener('click', () => {
+            Object.keys(fieldSelection).forEach(k => fieldSelection[k] = true);
+            fieldInspector.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            invalidateClean(); renderPlan();
+        });
+        document.getElementById('fiSelectNoneBtn').addEventListener('click', () => {
+            Object.keys(fieldSelection).forEach(k => fieldSelection[k] = false);
+            fieldInspector.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            invalidateClean(); renderPlan();
+        });
+
+        // ============================================
+        // REMOVAL PLAN PREVIEW
+        // ============================================
+        function renderPlan() {
+            if (loadedFiles.length === 0) {
+                planPane.innerHTML = '<p class="info-empty">Load a PDF and it\'ll be scanned automatically — the removal plan appears here.</p>';
+                return;
+            }
+            const opts = getOptions();
+            const toRemove = Object.entries(fieldSelection).filter(([k, v]) => v).map(([k]) => k);
+            let html = `<div class="meta-row"><span>Files queued</span><span>${loadedFiles.length}</span></div>`;
+            html += `<div class="meta-row"><span>Fields marked for removal</span><span>${toRemove.length}</span></div>`;
+            html += `<div class="meta-row"><span>Timestamp handling</span><span>${labelForDateMode(opts.rewriteDateMode)}</span></div>`;
+            if (opts.rewriteTitle) html += `<div class="meta-row"><span>Rewrite Title</span><span>${escapeHtmlStr(opts.rewriteTitle)}</span></div>`;
+            if (opts.rewriteAuthor) html += `<div class="meta-row"><span>Rewrite Author</span><span>${escapeHtmlStr(opts.rewriteAuthor)}</span></div>`;
+            if (opts.rewriteSubject) html += `<div class="meta-row"><span>Rewrite Subject</span><span>${escapeHtmlStr(opts.rewriteSubject)}</span></div>`;
+            if (opts.rewriteProducer) html += `<div class="meta-row"><span>Rewrite Producer</span><span>${escapeHtmlStr(opts.rewriteProducer)}</span></div>`;
+            if (opts.customKv.length) html += `<div class="meta-row"><span>Custom fields to add</span><span>${opts.customKv.map(([k]) => escapeHtmlStr(k)).join(', ')}</span></div>`;
+            html += `<div class="meta-row"><span>Re-scan after cleaning</span><span>${opts.optVerifyAfter ? 'Yes' : 'No'}</span></div>`;
+            planPane.innerHTML = html;
+        }
+        function labelForDateMode(mode) {
+            return { remove: 'Remove entirely', now: 'Stamp current date/time', fixed: 'Set fixed date', keep: 'Keep original' }[mode] || mode;
+        }
+
+        // ============================================
+        // CLEANING ENGINE
+        // ============================================
+        function parseFixedDate(str) {
+            const d = new Date(str);
+            return isNaN(d.getTime()) ? new Date() : d;
+        }
+
+        // Reach the real Info PDFDict via the public context/trailerInfo — this is the
+        // same object PDFDocument's own setTitle/setAuthor/etc mutate internally, so
+        // .set()/.delete() here are first-class pdf-lib operations, not a workaround.
+        function getInfoDict(doc) {
+            const { PDFDict, PDFName } = PDFLib;
+            let infoRef = doc.context.trailerInfo.Info;
+            let info = infoRef ? doc.context.lookup(infoRef) : undefined;
+            if (!info || !(info instanceof PDFDict)) {
+                info = doc.context.obj({});
+                doc.context.trailerInfo.Info = doc.context.register(info);
+            }
+            return info;
+        }
+
+        const STANDARD_INFO_KEYS = ['Title','Author','Subject','Keywords','Creator','Producer','CreationDate','ModDate','Trapped'];
+
+        function readInfoSnapshot(doc) {
+            const { PDFName } = PDFLib;
+            const info = getInfoDict(doc);
+            const snap = {};
+            STANDARD_INFO_KEYS.forEach(k => {
+                const v = info.lookup(PDFName.of(k));
+                snap[k] = v && v.decodeText ? v.decodeText() : (v && v.asString ? v.asString() : (v ? String(v) : ''));
+            });
+            const custom = [];
+            info.entries().forEach(([k, v]) => {
+                const name = k.encodedName ? k.encodedName().replace(/^\//, '') : String(k);
+                if (!STANDARD_INFO_KEYS.includes(name)) {
+                    let vs = '';
+                    try { vs = v.decodeText ? v.decodeText() : (v.asString ? v.asString() : String(v)); } catch (e) { vs = String(v); }
+                    custom.push([name, vs]);
+                }
+            });
+            return { standard: snap, custom };
+        }
+
+        async function cleanOneFile(entry, opts) {
+            const { PDFName, PDFString, PDFHexString, PDFDict } = PDFLib;
+            const srcDoc = await PDFLib.PDFDocument.load(entry.bytes, { ignoreEncryption: true, updateMetadata: false });
+
+            const beforeSnap = readInfoSnapshot(srcDoc);
+            const before = { ...beforeSnap.standard };
+
+            const info = getInfoDict(srcDoc);
+
+            // --- Real deletion of standard Info keys, via PDFDict.delete() ---
+            if (fieldSelection['Title'] !== false && opts.stripTitle) info.delete(PDFName.of('Title'));
+            if (fieldSelection['Author'] !== false && opts.stripAuthor) info.delete(PDFName.of('Author'));
+            if (fieldSelection['Subject'] !== false && opts.stripSubject) info.delete(PDFName.of('Subject'));
+            if (fieldSelection['Keywords'] !== false && opts.stripKeywords) info.delete(PDFName.of('Keywords'));
+            if (fieldSelection['Creator'] !== false && opts.stripCreatorApp) info.delete(PDFName.of('Creator'));
+            if (fieldSelection['Producer'] !== false && opts.stripProducer) info.delete(PDFName.of('Producer'));
+
+            // --- Real deletion of every non-standard custom Info key found on this file ---
+            let customRemoved = 0;
+            if (opts.stripCustomInfo) {
+                beforeSnap.custom.forEach(([key]) => {
+                    if (fieldSelection['custom:' + key] !== false) {
+                        info.delete(PDFName.of(key));
+                        customRemoved++;
+                    }
+                });
+            }
+
+            // --- Dates: real delete or real overwrite, never a no-op placeholder ---
+            if (opts.rewriteDateMode === 'remove') {
+                if (fieldSelection['CreationDate'] !== false && opts.stripCreationDate) info.delete(PDFName.of('CreationDate'));
+                if (fieldSelection['ModDate'] !== false && opts.stripModDate) info.delete(PDFName.of('ModDate'));
+            } else if (opts.rewriteDateMode === 'now') {
+                const now = new Date();
+                info.set(PDFName.of('CreationDate'), PDFString.fromDate(now));
+                info.set(PDFName.of('ModDate'), PDFString.fromDate(now));
+            } else if (opts.rewriteDateMode === 'fixed' && opts.rewriteFixedDate) {
+                const d = parseFixedDate(opts.rewriteFixedDate);
+                info.set(PDFName.of('CreationDate'), PDFString.fromDate(d));
+                info.set(PDFName.of('ModDate'), PDFString.fromDate(d));
+            } // 'keep' -> untouched
+
+            // --- Rewrite values (applied after strip, real .set() calls) ---
+            if (opts.rewriteTitle) info.set(PDFName.of('Title'), PDFHexString.fromText(opts.rewriteTitle));
+            if (opts.rewriteAuthor) info.set(PDFName.of('Author'), PDFHexString.fromText(opts.rewriteAuthor));
+            if (opts.rewriteSubject) info.set(PDFName.of('Subject'), PDFHexString.fromText(opts.rewriteSubject));
+            if (opts.rewriteProducer) {
+                info.set(PDFName.of('Producer'), PDFHexString.fromText(opts.rewriteProducer));
+                info.set(PDFName.of('Creator'), PDFHexString.fromText(opts.rewriteProducer));
+            }
+
+            // --- Add user-defined custom Info entries (real .set(), arbitrary keys) ---
+            let customAdded = 0;
+            (opts.customKv || []).forEach(([k, v]) => {
+                if (!k) return;
+                info.set(PDFName.of(k), PDFHexString.fromText(v || ''));
+                customAdded++;
+            });
+
+            // --- XMP: delete the actual /Metadata stream referenced from the Catalog (and Root-level only;
+            // pdf-lib's own save() with updateMetadata:false will not regenerate a replacement packet) ---
+            let xmpRemoved = false;
+            if (opts.stripXmp && fieldSelection['xmp'] !== false) {
+                if (srcDoc.catalog.get(PDFName.of('Metadata'))) {
+                    srcDoc.catalog.delete(PDFName.of('Metadata'));
+                    xmpRemoved = true;
+                }
+            }
+
+            const bytes = await srcDoc.save({ useObjectStreams: !!opts.optOptimize });
+
+            const afterSnap = readInfoSnapshot(await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false }));
+            const after = { ...afterSnap.standard };
+
+            return { bytes, before, after, customRemoved, customAdded, xmpRemoved, xmpWasPresent: !!beforeSnap.hasXmp };
+        }
+
+        async function cleanFiles() {
+            if (loadedFiles.length === 0) {
+                showError('Load a PDF before cleaning.');
+                return;
+            }
+            clearError();
+            clearLog();
+            cleanBtn.disabled = true;
+            downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Cleaning…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+            outputs = [];
+
+            const opts = getOptions();
+            let removedTotal = 0;
+            let leakTotal = 0;
+            let verifyHtml = '';
+
+            try {
+                for (let i = 0; i < loadedFiles.length; i++) {
+                    const entry = loadedFiles[i];
+                    const { bytes, before, after, customRemoved, customAdded, xmpRemoved, xmpWasPresent } = await cleanOneFile(entry, opts);
+
+                    let filename;
+                    if (loadedFiles.length === 1) {
+                        filename = (opts.outputFilename || 'cleaned.pdf').replace(/\.pdf$/i, '') + '.pdf';
+                    } else {
+                        filename = entry.name.replace(/\.pdf$/i, '') + '-cleaned.pdf';
+                    }
+                    outputs.push({ name: filename, blob: new Blob([bytes], { type: 'application/pdf' }), size: bytes.length });
+                    logMsg(`Cleaned "${entry.name}" → "${filename}" (${bytes.length.toLocaleString()} bytes).`, 'success');
+                    if (customRemoved) { logMsg(`Deleted ${customRemoved} custom Info key(s) from "${entry.name}".`, 'success'); removedTotal += customRemoved; }
+                    if (customAdded) logMsg(`Added ${customAdded} custom Info key(s) to "${entry.name}".`, 'success');
+                    if (xmpWasPresent && xmpRemoved) { logMsg(`Removed /Metadata (XMP) stream reference from "${entry.name}".`, 'success'); removedTotal += 1; }
+                    else if (xmpWasPresent && opts.stripXmp && !xmpRemoved) logMsg(`XMP strip requested but no /Metadata entry was found on the Catalog for "${entry.name}".`, 'warn');
+
+                    if (i === 0) {
+                        // Build verify view for first file, and optionally re-scan the cleaned output
+                        let rescan = null;
+                        if (opts.optVerifyAfter) {
+                            try { rescan = await scanFile(bytes); } catch (e) { logMsg('Re-scan of cleaned output failed: ' + (e.message || e), 'warn'); }
+                        }
+                        ['Title','Author','Subject','Keywords','Creator','Producer','CreationDate','ModDate'].forEach(k => {
+                            const b = formatValForDiff(before[k]);
+                            const a = formatValForDiff(after[k]);
+                            let status = 'kept';
+                            if (b && !a) status = 'removed';
+                            else if (b !== a) status = 'changed';
+                            if (!b && !a) return; // nothing to show
+                            if (status === 'removed') removedTotal++;
+                            verifyHtml += `<div class="verify-row">
+                                <span class="v-before">${escapeHtmlStr(truncate(b || '(empty)', 60))}</span>
+                                <span class="v-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                                <span class="v-after">${escapeHtmlStr(truncate(a || '(empty)', 60))}</span>
+                                <span class="v-status ${status}">${k}: ${status}</span>
+                            </div>`;
+                        });
+                        if (xmpWasPresent) {
+                            verifyHtml += `<div class="verify-row">
+                                <span class="v-before">present</span>
+                                <span class="v-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                                <span class="v-after">${xmpRemoved ? 'removed' : 'present'}</span>
+                                <span class="v-status ${xmpRemoved ? 'removed' : 'kept'}">XMP Metadata: ${xmpRemoved ? 'removed' : 'kept'}</span>
+                            </div>`;
+                        }
+                        if (customRemoved || customAdded) {
+                            verifyHtml += `<div class="verify-row">
+                                <span class="v-before">${customRemoved} custom key(s)</span>
+                                <span class="v-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                                <span class="v-after">${customAdded} added</span>
+                                <span class="v-status removed">Custom Info: updated</span>
+                            </div>`;
+                        }
+                        if (rescan) {
+                            const leaks = [];
+                            rescan.fields.forEach(f => { if (f.value) leaks.push(f.label); });
+                            if (rescan.customInfo.length) leaks.push(`${rescan.customInfo.length} custom field(s)`);
+                            if (rescan.gpsFound) leaks.push('GPS coordinates');
+                            if (rescan.hasXmp) leaks.push('XMP packet');
+                            leakTotal = leaks.length;
+                            if (leaks.length) {
+                                verifyHtml += `<div class="verify-row"><span class="v-before" style="grid-column:1/-1;color:var(--danger);">Still present after cleaning: ${escapeHtmlStr(leaks.join(', '))}</span></div>`;
+                                logMsg(`Re-scan found ${leaks.length} field(s) still present: ${leaks.join(', ')}`, 'warn');
+                            } else {
+                                verifyHtml += `<div class="verify-row"><span class="v-before" style="grid-column:1/-1;color:var(--accent);">Re-scan confirms no tracked fields remain.</span></div>`;
+                                logMsg('Re-scan confirms cleaned output is free of tracked metadata fields.', 'success');
+                            }
+                        }
+                    }
+                }
+
+                document.getElementById('outputRemovedCount').textContent = removedTotal;
+                document.getElementById('outputLeakCount').textContent = leakTotal;
+                verifyPane.innerHTML = verifyHtml || '<p class="info-empty">No differences to show.</p>';
+
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = outputs.length > 1 ? `Cleaned ${outputs.length} files` : 'Cleaned';
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add(leakTotal > 0 ? 'error' : 'success');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                logMsg(`Cleaning complete: ${outputs.length} file(s) processed, ${removedTotal} field(s) removed.`, 'success');
+            } catch (err) {
+                showError('Cleaning failed: ' + (err.message || err));
+                logMsg('Cleaning failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Cleaning failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                outputs = [];
+                downloadBtn.disabled = true;
+            } finally {
+                cleanBtn.disabled = false;
+            }
+        }
+
+        function formatValForDiff(v) {
+            if (!v) return '';
+            if (v instanceof Date) return v.toISOString();
+            return String(v);
+        }
+
+        function renderFilesPane() {
+            if (outputs.length === 0) {
+                filesPane.innerHTML = '<p class="info-empty">Cleaned files will be listed here after processing.</p>';
+                return;
+            }
+            filesPane.innerHTML = '';
+            outputs.forEach((o, i) => {
+                const row = document.createElement('div');
+                row.className = 'output-list-item';
+                row.innerHTML = `
+                    <span class="oli-name" title="${escapeHtmlStr(o.name)}">${escapeHtmlStr(o.name)}</span>
+                    <span class="oli-meta">${o.size.toLocaleString()}b</span>
+                    <button class="oli-dl" type="button" data-idx="${i}">Save</button>
+                `;
+                row.querySelector('.oli-dl').addEventListener('click', () => downloadSingle(i));
+                filesPane.appendChild(row);
+            });
+        }
+
+        function downloadSingle(idx) {
+            const o = outputs[idx];
+            if (!o) return;
+            const url = URL.createObjectURL(o.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = o.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAll() {
+            if (outputs.length === 0) return;
+            if (outputs.length === 1) {
+                downloadSingle(0);
+                return;
+            }
+            const opts = getOptions();
+            if (!opts.optBatchZip || !window['JSZip']) {
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+                return;
+            }
+            try {
+                const zip = new JSZip();
+                for (const o of outputs) {
+                    const buf = await o.blob.arrayBuffer();
+                    zip.file(o.name, buf);
+                }
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'cleaned-pdfs.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logMsg(`Downloaded ZIP bundle with ${outputs.length} file(s).`, 'success');
+            } catch (err) {
+                logMsg(`ZIP bundling failed, falling back to individual downloads: ${err.message || err}`, 'warn');
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+            }
+        }
+
+        function invalidateClean() {
+            if (outputs.length > 0) {
+                outputs = [];
+                downloadBtn.disabled = true;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Settings changed — clean again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                filesPane.innerHTML = '<p class="info-empty">Cleaned files will be listed here after processing.</p>';
+                verifyPane.innerHTML = '<p class="info-empty">Run "Strip Metadata" to see a before/after comparison confirming what was actually removed.</p>';
+            }
+        }
+
+        cleanBtn.addEventListener('click', cleanFiles);
+        downloadBtn.addEventListener('click', downloadAll);
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            loadFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            loadFiles(dropped);
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfMetaRemoverLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(saved ? JSON.parse(saved) : null);
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial render
+        toggleFixedDateField();
+        if (document.getElementById('customKvRows').children.length === 0) {
+            // no rows restored from draft — leave empty, user adds as needed
+        }
+    </script>
+</body>
+</html>
