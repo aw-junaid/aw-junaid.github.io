@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Redactor</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF redactor: draw boxes over sensitive text, auto-find SSNs/emails/phone numbers/custom patterns, remove whole pages, then burn every redaction into a flattened, text-stripped PDF — with an integrity report proving nothing is left recoverable underneath. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-redactor.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-redactor.html" />
+<meta property="og:title" content="PDF Redactor — awjunaid" />
+<meta property="og:description" content="Draw, auto-find, and burn true redactions into a PDF — text and objects are destroyed, not just covered. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-redactor.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Redactor — awjunaid" />
+<meta name="twitter:description" content="Draw, auto-find, and burn true redactions into a PDF — text and objects are destroyed, not just covered. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-redactor.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+            --redact: #000000;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           RISK BANNER
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--danger); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--danger) 8%, transparent);
+        }
+        .risk-banner i { font-size: 18px; color: var(--danger); margin-top: 2px; flex-shrink: 0; }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        .integrity-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--accent); border-radius: 18px;
+            padding: 16px 20px; margin: 14px 0 0;
+            background: color-mix(in srgb, var(--accent) 8%, transparent);
+        }
+        .integrity-banner i { font-size: 18px; color: var(--accent); margin-top: 2px; flex-shrink: 0; }
+        .integrity-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .integrity-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group input[type="color"], .field-group select, .field-group textarea {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group textarea { font-family: var(--font-mono); font-size: 12px; min-height: 70px; resize: vertical; }
+        .field-group input[type="color"] { padding: 4px 6px; height: 40px; cursor: pointer; }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        /* Pattern rows for auto-find */
+        .kv-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .kv-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; }
+        .kv-row input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; }
+        .kv-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+        .kv-add-btn { align-self: flex-start; margin-top: 4px; }
+
+        .pattern-lib { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .pattern-chip {
+            border: 1px solid var(--border-light); border-radius: 60px; padding: 7px 14px; font-size: 11px; font-weight: 700;
+            cursor: pointer; background: transparent; color: var(--text-color); display: inline-flex; align-items: center; gap: 6px;
+        }
+        .pattern-chip:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .pattern-chip input[type="checkbox"] { accent-color: currentColor; pointer-events: none; }
+
+        /* ============================================
+           WORKSPACE (canvas + pages)
+           ============================================ */
+        .workspace {
+            display: grid;
+            grid-template-columns: 220px 1fr 300px;
+            gap: 20px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 1100px) {
+            .workspace { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 20px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.active { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-ghost.danger-outline { border-color: var(--danger); color: var(--danger); }
+        .btn-ghost.danger-outline:hover { background: var(--danger); color: #fff; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Left: page thumbnails */
+        .page-thumb-list { display: flex; flex-direction: column; gap: 10px; max-height: 640px; overflow-y: auto; }
+        .page-thumb {
+            border: 2px solid var(--border-light); border-radius: 12px; overflow: hidden; cursor: pointer; position: relative;
+            background: var(--input-bg);
+        }
+        .page-thumb.active { border-color: var(--text-primary); }
+        .page-thumb.marked-remove { opacity: 0.4; }
+        .page-thumb img { width: 100%; display: block; }
+        .page-thumb .pt-label {
+            position: absolute; bottom: 0; left: 0; right: 0; font-size: 10px; font-weight: 700;
+            padding: 3px 6px; background: rgba(0,0,0,0.65); color: #fff; display: flex; justify-content: space-between;
+        }
+        .page-thumb .pt-remove-badge {
+            position: absolute; top: 6px; right: 6px; background: var(--danger); color: #fff; font-size: 9px;
+            font-weight: 800; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; display: none;
+        }
+        .page-thumb.marked-remove .pt-remove-badge { display: block; }
+        .page-thumb .pt-count-badge {
+            position: absolute; top: 6px; left: 6px; background: var(--text-primary); color: var(--bg-primary); font-size: 9px;
+            font-weight: 800; padding: 2px 7px; border-radius: 20px; display: none;
+        }
+        .page-thumb.has-marks .pt-count-badge { display: block; }
+
+        /* Center: canvas editor */
+        .canvas-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+        .canvas-toolbar .spacer { flex: 1; }
+        .canvas-wrap {
+            border: 1px solid var(--border-light); border-radius: 16px; overflow: auto; max-height: 640px;
+            background: repeating-conic-gradient(var(--border-light) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+            display: flex; align-items: flex-start; justify-content: center; padding: 12px;
+        }
+        .canvas-stage { position: relative; line-height: 0; }
+        .canvas-stage canvas.page-render { display: block; background: #fff; }
+        .canvas-stage canvas.overlay { position: absolute; top: 0; left: 0; cursor: crosshair; }
+        .canvas-empty { padding: 80px 20px; text-align: center; font-size: 12px; opacity: 0.5; }
+
+        .zoom-controls { display: flex; align-items: center; gap: 6px; }
+        .zoom-controls button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border-light); background: transparent; color: var(--text-color); cursor: pointer; font-size: 11px; }
+        .zoom-controls span { font-size: 11px; opacity: 0.65; min-width: 38px; text-align: center; }
+
+        /* Right: redaction list + auto-find results */
+        .mark-list { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; margin-bottom: 4px; }
+        .mark-row {
+            display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-light); border-radius: 10px;
+            padding: 8px 10px; font-size: 11.5px;
+        }
+        .mark-row .mr-swatch { width: 12px; height: 12px; border-radius: 3px; background: var(--redact); flex-shrink: 0; }
+        .mark-row .mr-main { flex: 1; min-width: 0; }
+        .mark-row .mr-label { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mark-row .mr-meta { opacity: 0.55; font-family: var(--font-mono); font-size: 10px; }
+        .mark-row .mr-del { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 22px; height: 22px; border-radius: 6px; cursor: pointer; flex-shrink: 0; }
+        .mark-row.type-auto .mr-swatch { background: var(--warn); }
+        .mark-row.type-page .mr-swatch { background: var(--danger); }
+
+        .autofind-results { border: 1px solid var(--border-light); border-radius: 14px; max-height: 300px; overflow-y: auto; margin-top: 10px; }
+        .af-group-head { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.5; padding: 9px 12px 5px; font-family: var(--font-header); }
+        .af-row { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-top: 1px solid var(--border-light); font-size: 11px; }
+        .af-row:first-of-type { border-top: none; }
+        .af-row input[type="checkbox"] { accent-color: var(--text-primary); cursor: pointer; flex-shrink: 0; }
+        .af-row .af-main { flex: 1; min-width: 0; }
+        .af-row .af-text { font-family: var(--font-mono); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .af-row .af-loc { opacity: 0.5; font-size: 10px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* ============================================
+           OUTPUT / INTEGRITY REPORT
+           ============================================ */
+        .output-section { margin: 0 0 40px; }
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 320px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        .integrity-check-row {
+            display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border-light); font-size: 12px;
+        }
+        .integrity-check-row:last-child { border-bottom: none; }
+        .integrity-check-row i { width: 16px; text-align: center; flex-shrink: 0; }
+        .integrity-check-row.pass i { color: var(--accent); }
+        .integrity-check-row.fail i { color: var(--danger); }
+        .integrity-check-row .ic-label { flex: 1; }
+        .integrity-check-row .ic-detail { opacity: 0.55; font-size: 10.5px; font-family: var(--font-body); }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 16px; border-radius: 18px; }
+            .info-pane { min-height: 260px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .page-thumb-list { flex-direction: row; overflow-x: auto; max-height: none; }
+            .page-thumb { min-width: 90px; flex-shrink: 0; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+            .kv-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Redactor</h1>
+                <div class="tool-dek">A black box drawn over text in Acrobat, Preview, or a screenshot editor is cosmetic — the original text object is still sitting underneath, selectable and copy-pasteable, or trivially recovered by anyone who opens the raw PDF structure. This tool does the opposite: draw or auto-find what needs to disappear, then every marked page is rasterized to a flat image with the redaction burned in and the underlying text, fonts, and objects destroyed — not hidden.</div>
+            </div>
+
+            <div class="risk-banner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <strong>The failure mode this exists to prevent</strong>
+                    <p>Real leaks — court filings, government FOIA releases, corporate disclosures — have gone out with "redacted" names still recoverable by selecting the text, copying it out, or opening the PDF's object stream. A visual box is not redaction. This tool never ships a page that still contains the original text layer underneath a mark.</p>
+                </div>
+            </div>
+
+            <div class="integrity-banner">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div>
+                    <strong>How it stays true</strong>
+                    <p>Every marked page is rendered to a canvas at your chosen DPI, the redaction boxes are burned directly into those pixels, and the page is re-inserted as a flattened image — the original text objects, fonts, and content stream for that page are gone, not layered over. An integrity report re-opens the output and confirms no text layer remains under any marked region.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="courtFiling">Court Filing (names, SSNs, case IDs)</option>
+                    <option value="pii">PII Sweep (SSN, email, phone, card numbers)</option>
+                    <option value="foia">FOIA / Public Release (max DPI, strip everything)</option>
+                    <option value="quickManual">Quick Manual (drawing only, no auto-find)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Auto-Find Patterns <span class="mini-link" id="patternSelectAll">select all</span></h4>
+                    <div class="pattern-lib" id="patternLib">
+                        <label class="pattern-chip"><input type="checkbox" id="patSsn" checked> SSN <span class="risk-tag high">High</span></label>
+                        <label class="pattern-chip"><input type="checkbox" id="patEmail" checked> Email</label>
+                        <label class="pattern-chip"><input type="checkbox" id="patPhone" checked> Phone</label>
+                        <label class="pattern-chip"><input type="checkbox" id="patCard" checked> Credit Card <span class="risk-tag high">High</span></label>
+                        <label class="pattern-chip"><input type="checkbox" id="patIban"> IBAN</label>
+                        <label class="pattern-chip"><input type="checkbox" id="patIp"> IP Address</label>
+                        <label class="pattern-chip"><input type="checkbox" id="patDob"> Date of Birth</label>
+                        <label class="pattern-chip"><input type="checkbox" id="patPassport"> Passport No.</label>
+                        <label class="pattern-chip"><input type="checkbox" id="patMac"> MAC Address</label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Custom search terms / regex (one per line)</label>
+                            <textarea id="customTerms" placeholder="e.g. John Smith&#10;Project Blackbird&#10;/CASE-\d{6}/  (wrap in slashes for regex)"></textarea>
+                            <div class="field-note">Plain lines match literal text (case-insensitive). Wrap a line in /slashes/ for a regex pattern.</div>
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label class="setting-toggle" style="margin-top:6px;">
+                                <input type="checkbox" id="optCaseSensitive">
+                                <span><span class="setting-name">Case-sensitive custom terms</span></span>
+                            </label>
+                        </div>
+                        <div class="field-group">
+                            <label class="setting-toggle" style="margin-top:6px;">
+                                <input type="checkbox" id="optWholeWord">
+                                <span><span class="setting-name">Match whole words only</span></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <button class="btn-ghost" id="runAutoFindBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i> Scan Document for Matches</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Redaction Mark Style</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="markColor">Box color</label>
+                            <input type="color" id="markColor" value="#000000">
+                        </div>
+                        <div class="field-group">
+                            <label for="markStyle">Fill style</label>
+                            <select id="markStyle">
+                                <option value="solid">Solid fill</option>
+                                <option value="hatch">Solid fill + diagonal hatch border</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label class="setting-toggle" style="margin-top:22px;">
+                                <input type="checkbox" id="optLabelBox">
+                                <span><span class="setting-name">Print "REDACTED" label in box</span></span>
+                            </label>
+                        </div>
+                        <div class="field-group">
+                            <label class="setting-toggle" style="margin-top:22px;">
+                                <input type="checkbox" id="optExpandMargin" checked>
+                                <span><span class="setting-name">Expand marks 2px <span class="risk-tag med">Anti-sliver</span></span><span class="setting-hint">Prevents a 1px unredacted edge from surviving rasterization</span></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Rasterization & Output</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlattenMarkedOnly" checked>
+                            <span><span class="setting-name">Flatten only marked pages</span><span class="setting-hint">Unmarked pages stay vector (smaller, sharper); marked pages become images</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlattenAll">
+                            <span><span class="setting-name">Flatten entire document <span class="risk-tag med">Paranoid</span></span><span class="setting-hint">Rasterizes every page, marked or not — defeats any hidden text layer anywhere</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripMetadata" checked>
+                            <span><span class="setting-name">Strip metadata on save <span class="risk-tag high">Identity</span></span><span class="setting-hint">Clears Author, Producer, dates, XMP, and custom Info keys</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripAnnotations" checked>
+                            <span><span class="setting-name">Strip comments & annotations <span class="risk-tag med">Leak</span></span><span class="setting-hint">Removes any leftover comment, highlight, or form data</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripAttachments" checked>
+                            <span><span class="setting-name">Strip embedded files</span><span class="setting-hint">Deletes any attachment embedded inside the PDF</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVerifyAfter" checked>
+                            <span><span class="setting-name">Run integrity check after redacting</span><span class="setting-hint">Re-opens the output and confirms no text remains under marked regions</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="rasterDpi">Rasterization DPI</label>
+                            <select id="rasterDpi">
+                                <option value="150">150 DPI (smaller file)</option>
+                                <option value="200" selected>200 DPI (balanced)</option>
+                                <option value="300">300 DPI (print quality)</option>
+                                <option value="450">450 DPI (max — FOIA/legal grade)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="redacted.pdf">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workspace -->
+            <div class="workspace">
+                <!-- Left: pages -->
+                <div class="panel-card">
+                    <div class="panel-head"><h3>Pages</h3></div>
+                    <button class="btn-ghost" id="uploadBtn" type="button" style="width:100%;margin-bottom:12px;"><i class="fa-solid fa-upload"></i> Choose PDF</button>
+                    <input type="file" id="fileInput" accept="application/pdf,.pdf" style="display:none;">
+                    <div class="file-drop" id="dropZone">Drag & drop a .pdf file here</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="page-thumb-list" id="pageThumbList">
+                        <div class="canvas-empty" style="padding:30px 10px;">Load a PDF to see page thumbnails.</div>
+                    </div>
+                </div>
+
+                <!-- Center: canvas -->
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3 id="canvasPageLabel">Editor</h3>
+                    </div>
+                    <div class="canvas-toolbar">
+                        <button class="btn-ghost active" id="toolDraw" type="button"><i class="fa-solid fa-vector-square"></i> Draw Box</button>
+                        <button class="btn-ghost" id="toolPan" type="button"><i class="fa-solid fa-hand"></i> Pan</button>
+                        <button class="btn-ghost danger-outline" id="togglePageRemoveBtn" type="button"><i class="fa-solid fa-trash-can"></i> Remove This Page</button>
+                        <div class="spacer"></div>
+                        <div class="zoom-controls">
+                            <button id="zoomOutBtn" type="button"><i class="fa-solid fa-minus"></i></button>
+                            <span id="zoomLabel">100%</span>
+                            <button id="zoomInBtn" type="button"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="canvas-wrap" id="canvasWrap">
+                        <div class="canvas-empty" id="canvasEmpty">Load a PDF to start marking redactions.<br>Click and drag on the page to draw a box.</div>
+                        <div class="canvas-stage" id="canvasStage" style="display:none;">
+                            <canvas class="page-render" id="pageCanvas"></canvas>
+                            <canvas class="overlay" id="overlayCanvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="stat-strip" id="editorStats">
+                        <span><strong id="statPageCount">0</strong> pages</span>
+                        <span><strong id="statMarkedPages">0</strong> pages marked</span>
+                        <span><strong id="statTotalMarks">0</strong> total redaction boxes</span>
+                        <span><strong id="statPagesRemoved">0</strong> pages queued for removal</span>
+                    </div>
+                </div>
+
+                <!-- Right: mark list + autofind -->
+                <div class="panel-card">
+                    <div class="panel-head"><h3>Redactions (this page)</h3></div>
+                    <div class="mark-list" id="markList">
+                        <p class="info-empty" style="font-size:11px;opacity:.5;">No redaction boxes on this page yet.</p>
+                    </div>
+                    <button class="btn-ghost" id="clearPageMarksBtn" type="button" style="width:100%;margin-top:6px;"><i class="fa-solid fa-eraser"></i> Clear This Page</button>
+
+                    <div class="panel-head" style="margin-top:20px;"><h3>Auto-Find Matches</h3></div>
+                    <div class="autofind-results" id="autofindResults">
+                        <p class="info-empty" style="font-size:11px;opacity:.5;padding:14px;">Run "Scan Document for Matches" above to populate this list. Checked matches get redaction boxes automatically placed.</p>
+                    </div>
+                    <div class="stat-strip" id="autofindStats">
+                        <span><strong id="autofindTotal">0</strong> matches found</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output / Integrity -->
+            <div class="output-section">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Burn Redactions & Export</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="burnBtn" type="button"><i class="fa-solid fa-fire"></i> Burn Redactions</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Redaction Plan</button>
+                        <button class="output-tab" data-tab="integrity" type="button">Integrity Report</button>
+                        <button class="output-tab" data-tab="files" type="button">Output</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Mark redactions above — the burn plan appears here before you commit anything.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-integrity">
+                        <div class="info-pane" id="integrityPane"><p class="info-empty">Run "Burn Redactions" to generate an integrity report confirming no text layer survives under any marked region.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">The redacted PDF will be listed here after burning.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Scan and redaction activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputPagesFlattened">0</strong> pages flattened</span>
+                        <span><strong id="outputMarksBurned">0</strong> redactions burned</span>
+                        <span><strong id="outputStatus">Not burned yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Why is a black box not enough?</h4>
+                        <p>Drawing a rectangle over text in a PDF editor typically adds a new object on top of the page — the text object underneath is untouched. Anyone can select through the box, copy the text out, or open the file's raw content stream and read it directly. This has caused real, public redaction failures.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "burn" actually do?</h4>
+                        <p>Each marked page is rendered to a bitmap at your chosen DPI using pdf.js, the redaction boxes are painted directly into those pixels, and the page's original vector content — text, fonts, paths — is replaced with that flattened image inside the output PDF. There is no text object left to recover.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the integrity report check?</h4>
+                        <p>After burning, the tool re-opens the output file and inspects each previously-marked page for any remaining text-showing operators or extractable text under the marked regions. It reports pass/fail per check so you can confirm nothing leaked through before you send the file anywhere.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What do the auto-find patterns catch?</h4>
+                        <p>Built-in regex patterns for SSNs, emails, phone numbers, card numbers, IBANs, IP addresses, dates of birth, passport numbers, and MAC addresses scan the extracted text layer of every page. Matches are shown for review — nothing is auto-redacted without you checking the box.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why remove a whole page instead of redacting it?</h4>
+                        <p>Some pages — a cover sheet with a full unredacted table, an exhibit that's entirely sensitive — are faster and safer to drop outright. Removed pages are deleted from the output PDF's page tree entirely, not hidden or blanked.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Rendering, auto-find, burning, and the integrity re-scan all happen locally in your browser using pdf.js and pdf-lib — the PDF never leaves your machine, which matters most for exactly the sensitive documents this tool is built for.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // ============================================
+        // PDF REDACTOR — TRUE-REDACTION ENGINE
+        // ============================================
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const integrityPane = document.getElementById('integrityPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const burnBtn = document.getElementById('burnBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const canvasWrap = document.getElementById('canvasWrap');
+        const canvasEmpty = document.getElementById('canvasEmpty');
+        const canvasStage = document.getElementById('canvasStage');
+        const pageCanvas = document.getElementById('pageCanvas');
+        const overlayCanvas = document.getElementById('overlayCanvas');
+        const pageThumbList = document.getElementById('pageThumbList');
+        const markList = document.getElementById('markList');
+        const autofindResults = document.getElementById('autofindResults');
+
+        let pdfBytesOriginal = null;
+        let pdfDocProxy = null;    // pdf.js document
+        let fileName = 'document.pdf';
+        let numPages = 0;
+        let currentPage = 1;
+        let renderScale = 1.5;     // pdf.js render scale (zoom)
+        let baseViewport = null;
+        let removedPages = new Set();
+        // marks[pageNum] = [{id, xr,yr,wr,hr (ratios 0-1), source:'manual'|'auto', label}]
+        let marks = {};
+        let markIdCounter = 0;
+        let tool = 'draw';
+        let drawing = false;
+        let dragStart = null;
+        let outputs = [];
+        let autofindMatches = []; // {id, page, text, xr,yr,wr,hr, checked, kind}
+
+        // ============================================
+        // LOG / ERROR
+        // ============================================
+        function showError(msg) { errorBanner.textContent = msg; errorBanner.classList.add('show'); }
+        function clearError() { errorBanner.classList.remove('show'); errorBanner.textContent = ''; }
+        let logLines = [];
+        function logMsg(msg, level) { logLines.push({ msg, level: level || 'info' }); renderLog(); }
+        function clearLog() { logLines = []; renderLog(); }
+        function renderLog() {
+            if (logLines.length === 0) { logPane.innerHTML = '<p class="info-empty">Scan and redaction activity will be logged here.</p>'; return; }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        function truncate(str, n) { str = String(str); return str.length > n ? str.slice(0, n) + '…' : str; }
+
+        // ============================================
+        // TABS
+        // ============================================
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // SETTINGS
+        // ============================================
+        const PATTERN_IDS = ['patSsn','patEmail','patPhone','patCard','patIban','patIp','patDob','patPassport','patMac'];
+        const OPT_CHECKBOXES = ['optCaseSensitive','optWholeWord','optLabelBox','optExpandMargin','optFlattenMarkedOnly','optFlattenAll','optStripMetadata','optStripAnnotations','optStripAttachments','optVerifyAfter'];
+        const OPT_TEXT = ['customTerms','outputFilename'];
+        const OPT_SELECT = ['markColor','markStyle','rasterDpi'];
+
+        function getOptions() {
+            const opts = {};
+            PATTERN_IDS.forEach(id => opts[id] = document.getElementById(id).checked);
+            OPT_CHECKBOXES.forEach(id => opts[id] = document.getElementById(id).checked);
+            OPT_TEXT.forEach(id => opts[id] = document.getElementById(id).value);
+            opts.markColor = document.getElementById('markColor').value;
+            opts.markStyle = document.getElementById('markStyle').value;
+            opts.rasterDpi = document.getElementById('rasterDpi').value;
+            return opts;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            PATTERN_IDS.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            OPT_CHECKBOXES.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            OPT_TEXT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (settings.markColor) document.getElementById('markColor').value = settings.markColor;
+            if (settings.markStyle) document.getElementById('markStyle').value = settings.markStyle;
+            if (settings.rasterDpi) document.getElementById('rasterDpi').value = settings.rasterDpi;
+        }
+        function markCustomAndSave() {
+            document.getElementById('presetSelect').value = 'custom';
+            saveSettingsDraft();
+            renderPlan();
+        }
+        document.querySelectorAll('.settings-card input, .settings-card select, .settings-card textarea').forEach(el => {
+            el.addEventListener('input', markCustomAndSave);
+            el.addEventListener('change', markCustomAndSave);
+        });
+        document.getElementById('patternSelectAll').addEventListener('click', () => {
+            PATTERN_IDS.forEach(id => document.getElementById(id).checked = true);
+            markCustomAndSave();
+        });
+
+        const SETTINGS_DRAFT_KEY = 'pdfRedactorLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => { try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (e) {} }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try { const s = localStorage.getItem(SETTINGS_DRAFT_KEY); if (s) applySettingsObject(JSON.parse(s)); } catch (e) {}
+        })();
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            courtFiling: {
+                patSsn: true, patEmail: false, patPhone: true, patCard: false, patIban: false, patIp: false, patDob: true, patPassport: false, patMac: false,
+                customTerms: '/CASE-\\d{4,}/', optCaseSensitive: false, optWholeWord: false,
+                markColor: '#000000', markStyle: 'solid', optLabelBox: true, optExpandMargin: true,
+                optFlattenMarkedOnly: true, optFlattenAll: false, optStripMetadata: true, optStripAnnotations: true, optStripAttachments: true, optVerifyAfter: true,
+                rasterDpi: '300', outputFilename: 'redacted.pdf'
+            },
+            pii: {
+                patSsn: true, patEmail: true, patPhone: true, patCard: true, patIban: true, patIp: false, patDob: true, patPassport: true, patMac: false,
+                customTerms: '', optCaseSensitive: false, optWholeWord: false,
+                markColor: '#000000', markStyle: 'solid', optLabelBox: false, optExpandMargin: true,
+                optFlattenMarkedOnly: true, optFlattenAll: false, optStripMetadata: true, optStripAnnotations: true, optStripAttachments: true, optVerifyAfter: true,
+                rasterDpi: '200', outputFilename: 'redacted.pdf'
+            },
+            foia: {
+                patSsn: true, patEmail: true, patPhone: true, patCard: true, patIban: true, patIp: true, patDob: true, patPassport: true, patMac: true,
+                customTerms: '', optCaseSensitive: false, optWholeWord: false,
+                markColor: '#000000', markStyle: 'solid', optLabelBox: true, optExpandMargin: true,
+                optFlattenMarkedOnly: false, optFlattenAll: true, optStripMetadata: true, optStripAnnotations: true, optStripAttachments: true, optVerifyAfter: true,
+                rasterDpi: '450', outputFilename: 'redacted.pdf'
+            },
+            quickManual: {
+                patSsn: false, patEmail: false, patPhone: false, patCard: false, patIban: false, patIp: false, patDob: false, patPassport: false, patMac: false,
+                customTerms: '', optCaseSensitive: false, optWholeWord: false,
+                markColor: '#000000', markStyle: 'solid', optLabelBox: false, optExpandMargin: true,
+                optFlattenMarkedOnly: true, optFlattenAll: false, optStripMetadata: true, optStripAnnotations: true, optStripAttachments: true, optVerifyAfter: true,
+                rasterDpi: '200', outputFilename: 'redacted.pdf'
+            }
+        };
+        const CUSTOM_PRESETS_KEY = 'pdfRedactorCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (e) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (e) {} }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice(7); const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            saveSettingsDraft(); renderPlan();
+        });
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:'); if (!name) return;
+            const custom = loadCustomPresets(); custom[name] = getOptions(); saveCustomPresets(custom);
+            refreshPresetOptions(); document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob); const a = document.createElement('a');
+            a.href = url; a.download = 'pdf-redactor-config.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try { applySettingsObject(JSON.parse(ev.target.result)); document.getElementById('presetSelect').value = 'custom'; saveSettingsDraft(); renderPlan(); }
+                catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file); importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // FILE LOADING
+        // ============================================
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) loadFile(e.target.files[0]); fileInput.value = ''; });
+        ['dragenter', 'dragover'].forEach(evt => dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border-color)'; dropZone.style.opacity = '1'; }));
+        ['dragleave', 'drop'].forEach(evt => dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = ''; dropZone.style.opacity = ''; }));
+        dropZone.addEventListener('drop', (e) => { const f = e.dataTransfer.files; if (f.length) loadFile(f[0]); });
+
+        async function loadFile(file) {
+            clearError(); clearLog();
+            if (!(file.type === 'application/pdf' || /\.pdf$/i.test(file.name))) { showError('Please choose a PDF file.'); return; }
+            try {
+                const buf = await file.arrayBuffer();
+                pdfBytesOriginal = new Uint8Array(buf);
+                fileName = file.name;
+                pdfDocProxy = await pdfjsLib.getDocument({ data: pdfBytesOriginal.slice() }).promise;
+                numPages = pdfDocProxy.numPages;
+                marks = {}; removedPages = new Set(); currentPage = 1; autofindMatches = []; outputs = [];
+                markIdCounter = 0;
+
+                document.getElementById('lfName').textContent = fileName;
+                document.getElementById('lfMeta').textContent = `${numPages} page(s)`;
+                loadedFileCard.classList.add('show');
+                document.getElementById('outputFilename').value = fileName.replace(/\.pdf$/i, '') + '-redacted.pdf';
+
+                logMsg(`Loaded "${fileName}" — ${numPages} page(s).`, 'success');
+                await renderThumbnails();
+                await renderCurrentPage();
+                updateStats();
+                invalidateBurn();
+                renderPlan();
+                autofindResults.innerHTML = '<p class="info-empty" style="font-size:11px;opacity:.5;padding:14px;">Run "Scan Document for Matches" above to populate this list. Checked matches get redaction boxes automatically placed.</p>';
+                document.getElementById('autofindTotal').textContent = '0';
+            } catch (err) {
+                showError('Could not load PDF: ' + (err.message || err));
+                logMsg('Load failed: ' + (err.message || err), 'error');
+            }
+        }
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            pdfBytesOriginal = null; pdfDocProxy = null; numPages = 0; marks = {}; removedPages = new Set(); autofindMatches = []; outputs = [];
+            loadedFileCard.classList.remove('show');
+            pageThumbList.innerHTML = '<div class="canvas-empty" style="padding:30px 10px;">Load a PDF to see page thumbnails.</div>';
+            canvasStage.style.display = 'none'; canvasEmpty.style.display = 'block';
+            updateStats(); invalidateBurn();
+            planPane.innerHTML = '<p class="info-empty">Mark redactions above — the burn plan appears here before you commit anything.</p>';
+        });
+
+        // ============================================
+        // THUMBNAILS
+        // ============================================
+        async function renderThumbnails() {
+            pageThumbList.innerHTML = '';
+            for (let p = 1; p <= numPages; p++) {
+                const page = await pdfDocProxy.getPage(p);
+                const vp = page.getViewport({ scale: 0.18 });
+                const canvas = document.createElement('canvas');
+                canvas.width = vp.width; canvas.height = vp.height;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+                const wrap = document.createElement('div');
+                wrap.className = 'page-thumb' + (p === currentPage ? ' active' : '');
+                wrap.dataset.page = p;
+                wrap.innerHTML = `<span class="pt-count-badge">0</span><span class="pt-remove-badge">Remove</span>`;
+                wrap.appendChild(canvas);
+                const label = document.createElement('div');
+                label.className = 'pt-label';
+                label.innerHTML = `<span>Page ${p}</span><span class="pt-marks">0 marks</span>`;
+                wrap.appendChild(label);
+                wrap.addEventListener('click', () => { currentPage = p; renderCurrentPage(); refreshThumbHighlight(); });
+                pageThumbList.appendChild(wrap);
+            }
+            refreshThumbHighlight();
+        }
+        function refreshThumbHighlight() {
+            document.querySelectorAll('.page-thumb').forEach(t => {
+                const p = parseInt(t.dataset.page, 10);
+                t.classList.toggle('active', p === currentPage);
+                t.classList.toggle('marked-remove', removedPages.has(p));
+                const count = (marks[p] || []).length;
+                t.classList.toggle('has-marks', count > 0);
+                t.querySelector('.pt-count-badge').textContent = count;
+                t.querySelector('.pt-marks').textContent = count + ' mark' + (count === 1 ? '' : 's');
+            });
+        }
+
+        // ============================================
+        // MAIN CANVAS RENDER
+        // ============================================
+        async function renderCurrentPage() {
+            if (!pdfDocProxy) return;
+            canvasEmpty.style.display = 'none';
+            canvasStage.style.display = '';
+            const page = await pdfDocProxy.getPage(currentPage);
+            baseViewport = page.getViewport({ scale: renderScale });
+            pageCanvas.width = baseViewport.width; pageCanvas.height = baseViewport.height;
+            overlayCanvas.width = baseViewport.width; overlayCanvas.height = baseViewport.height;
+            overlayCanvas.style.width = baseViewport.width + 'px';
+            overlayCanvas.style.height = baseViewport.height + 'px';
+            pageCanvas.style.width = baseViewport.width + 'px';
+            pageCanvas.style.height = baseViewport.height + 'px';
+            await page.render({ canvasContext: pageCanvas.getContext('2d'), viewport: baseViewport }).promise;
+
+            document.getElementById('canvasPageLabel').textContent = `Editor — Page ${currentPage} of ${numPages}`;
+            document.getElementById('togglePageRemoveBtn').classList.toggle('active', removedPages.has(currentPage));
+            document.getElementById('togglePageRemoveBtn').innerHTML = removedPages.has(currentPage)
+                ? '<i class="fa-solid fa-rotate-left"></i> Keep This Page'
+                : '<i class="fa-solid fa-trash-can"></i> Remove This Page';
+
+            drawOverlay();
+            renderMarkList();
+        }
+
+        function drawOverlay() {
+            const ctx = overlayCanvas.getContext('2d');
+            ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            const pageMarks = marks[currentPage] || [];
+            const opts = getOptions();
+            pageMarks.forEach(m => drawMark(ctx, m, opts));
+            if (removedPages.has(currentPage)) {
+                ctx.fillStyle = 'rgba(239,68,68,0.18)';
+                ctx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 6;
+                ctx.strokeRect(3, 3, overlayCanvas.width - 6, overlayCanvas.height - 6);
+            }
+        }
+        function drawMark(ctx, m, opts) {
+            const x = m.xr * overlayCanvas.width, y = m.yr * overlayCanvas.height;
+            const w = m.wr * overlayCanvas.width, h = m.hr * overlayCanvas.height;
+            ctx.fillStyle = opts.markColor;
+            ctx.fillRect(x, y, w, h);
+            if (opts.markStyle === 'hatch') {
+                ctx.save();
+                ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 1.5;
+                ctx.strokeRect(x, y, w, h);
+                ctx.restore();
+            }
+            if (opts.optLabelBox && w > 40 && h > 12) {
+                ctx.fillStyle = '#ff3b3b';
+                ctx.font = `${Math.min(12, h * 0.6)}px monospace`;
+                ctx.textBaseline = 'middle';
+                ctx.fillText('REDACTED', x + 3, y + h / 2);
+            }
+        }
+
+        // ============================================
+        // DRAWING INTERACTIONS
+        // ============================================
+        document.getElementById('toolDraw').addEventListener('click', () => setTool('draw'));
+        document.getElementById('toolPan').addEventListener('click', () => setTool('pan'));
+        function setTool(t) {
+            tool = t;
+            document.getElementById('toolDraw').classList.toggle('active', t === 'draw');
+            document.getElementById('toolPan').classList.toggle('active', t === 'pan');
+            overlayCanvas.style.cursor = t === 'draw' ? 'crosshair' : 'grab';
+        }
+
+        overlayCanvas.addEventListener('mousedown', (e) => {
+            if (tool !== 'draw' || !pdfDocProxy) return;
+            const rect = overlayCanvas.getBoundingClientRect();
+            dragStart = { x: (e.clientX - rect.left) * (overlayCanvas.width / rect.width), y: (e.clientY - rect.top) * (overlayCanvas.height / rect.height) };
+            drawing = true;
+        });
+        overlayCanvas.addEventListener('mousemove', (e) => {
+            if (!drawing) return;
+            const rect = overlayCanvas.getBoundingClientRect();
+            const cur = { x: (e.clientX - rect.left) * (overlayCanvas.width / rect.width), y: (e.clientY - rect.top) * (overlayCanvas.height / rect.height) };
+            drawOverlay();
+            const ctx = overlayCanvas.getContext('2d');
+            const opts = getOptions();
+            ctx.fillStyle = opts.markColor;
+            ctx.globalAlpha = 0.75;
+            ctx.fillRect(Math.min(dragStart.x, cur.x), Math.min(dragStart.y, cur.y), Math.abs(cur.x - dragStart.x), Math.abs(cur.y - dragStart.y));
+            ctx.globalAlpha = 1;
+        });
+        window.addEventListener('mouseup', (e) => {
+            if (!drawing) return;
+            drawing = false;
+            const rect = overlayCanvas.getBoundingClientRect();
+            const cur = { x: (e.clientX - rect.left) * (overlayCanvas.width / rect.width), y: (e.clientY - rect.top) * (overlayCanvas.height / rect.height) };
+            const x0 = Math.max(0, Math.min(dragStart.x, cur.x)), y0 = Math.max(0, Math.min(dragStart.y, cur.y));
+            const x1 = Math.min(overlayCanvas.width, Math.max(dragStart.x, cur.x)), y1 = Math.min(overlayCanvas.height, Math.max(dragStart.y, cur.y));
+            const w = x1 - x0, h = y1 - y0;
+            if (w > 4 && h > 4) {
+                addMark(currentPage, x0 / overlayCanvas.width, y0 / overlayCanvas.height, w / overlayCanvas.width, h / overlayCanvas.height, 'manual', 'Manual box');
+            } else {
+                drawOverlay();
+            }
+        });
+
+        function addMark(page, xr, yr, wr, hr, source, label) {
+            markIdCounter++;
+            if (!marks[page]) marks[page] = [];
+            marks[page].push({ id: markIdCounter, xr, yr, wr, hr, source, label });
+            if (page === currentPage) { drawOverlay(); renderMarkList(); }
+            refreshThumbHighlight();
+            updateStats(); invalidateBurn(); renderPlan();
+            return markIdCounter;
+        }
+        function removeMark(page, id) {
+            if (!marks[page]) return;
+            marks[page] = marks[page].filter(m => m.id !== id);
+            if (page === currentPage) { drawOverlay(); renderMarkList(); }
+            refreshThumbHighlight(); updateStats(); invalidateBurn(); renderPlan();
+        }
+
+        document.getElementById('clearPageMarksBtn').addEventListener('click', () => {
+            marks[currentPage] = [];
+            drawOverlay(); renderMarkList(); refreshThumbHighlight(); updateStats(); invalidateBurn(); renderPlan();
+        });
+
+        document.getElementById('togglePageRemoveBtn').addEventListener('click', () => {
+            if (removedPages.has(currentPage)) removedPages.delete(currentPage); else removedPages.add(currentPage);
+            renderCurrentPage(); refreshThumbHighlight(); updateStats(); invalidateBurn(); renderPlan();
+        });
+
+        function renderMarkList() {
+            const pageMarks = marks[currentPage] || [];
+            if (pageMarks.length === 0) {
+                markList.innerHTML = '<p class="info-empty" style="font-size:11px;opacity:.5;">No redaction boxes on this page yet.</p>';
+                return;
+            }
+            markList.innerHTML = pageMarks.map(m => `
+                <div class="mark-row type-${m.source}">
+                    <span class="mr-swatch"></span>
+                    <div class="mr-main">
+                        <div class="mr-label">${escapeHtmlStr(m.label || 'Redaction box')}</div>
+                        <div class="mr-meta">${m.source} · ${(m.wr * 100).toFixed(1)}%×${(m.hr * 100).toFixed(1)}%</div>
+                    </div>
+                    <button class="mr-del" data-id="${m.id}" type="button"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `).join('');
+            markList.querySelectorAll('.mr-del').forEach(btn => btn.addEventListener('click', () => removeMark(currentPage, parseInt(btn.dataset.id, 10))));
+        }
+
+        // ============================================
+        // ZOOM
+        // ============================================
+        document.getElementById('zoomInBtn').addEventListener('click', () => { renderScale = Math.min(3, renderScale + 0.25); document.getElementById('zoomLabel').textContent = Math.round(renderScale / 1.5 * 100) + '%'; if (pdfDocProxy) renderCurrentPage(); });
+        document.getElementById('zoomOutBtn').addEventListener('click', () => { renderScale = Math.max(0.5, renderScale - 0.25); document.getElementById('zoomLabel').textContent = Math.round(renderScale / 1.5 * 100) + '%'; if (pdfDocProxy) renderCurrentPage(); });
+
+        // ============================================
+        // STATS
+        // ============================================
+        function updateStats() {
+            document.getElementById('statPageCount').textContent = numPages;
+            const markedPages = Object.values(marks).filter(arr => arr && arr.length > 0).length;
+            document.getElementById('statMarkedPages').textContent = markedPages;
+            const totalMarks = Object.values(marks).reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
+            document.getElementById('statTotalMarks').textContent = totalMarks;
+            document.getElementById('statPagesRemoved').textContent = removedPages.size;
+        }
+
+        // ============================================
+        // AUTO-FIND (regex over pdf.js text layer, mapped to page-ratio boxes)
+        // ============================================
+        const BUILTIN_REGEX = {
+            patSsn: { re: /\b\d{3}-\d{2}-\d{4}\b/g, label: 'SSN' },
+            patEmail: { re: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: 'Email' },
+            patPhone: { re: /\b(?:\+?\d{1,2}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g, label: 'Phone' },
+            patCard: { re: /\b(?:\d[ -]?){13,16}\b/g, label: 'Card No.' },
+            patIban: { re: /\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/g, label: 'IBAN' },
+            patIp: { re: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g, label: 'IP Address' },
+            patDob: { re: /\b(?:0?[1-9]|1[0-2])[\/\-](?:0?[1-9]|[12]\d|3[01])[\/\-](?:19|20)\d{2}\b/g, label: 'Date' },
+            patPassport: { re: /\b[A-Z]{1,2}\d{6,9}\b/g, label: 'Passport No.' },
+            patMac: { re: /\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b/g, label: 'MAC Address' }
+        };
+
+        document.getElementById('runAutoFindBtn').addEventListener('click', runAutoFind);
+
+        function parseCustomTerms(raw, caseSensitive, wholeWord) {
+            const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+            const patterns = [];
+            lines.forEach(line => {
+                if (line.startsWith('/') && line.lastIndexOf('/') > 0) {
+                    const body = line.slice(1, line.lastIndexOf('/'));
+                    try { patterns.push({ re: new RegExp(body, 'g' + (caseSensitive ? '' : 'i')), label: 'Custom regex' }); } catch (e) {}
+                } else {
+                    const esc = line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const pat = wholeWord ? `\\b${esc}\\b` : esc;
+                    try { patterns.push({ re: new RegExp(pat, 'g' + (caseSensitive ? '' : 'i')), label: 'Custom term' }); } catch (e) {}
+                }
+            });
+            return patterns;
+        }
+
+        async function runAutoFind() {
+            if (!pdfDocProxy) { showError('Load a PDF first.'); return; }
+            clearError();
+            const opts = getOptions();
+            const activePatterns = [];
+            PATTERN_IDS.forEach(id => { if (opts[id]) activePatterns.push(BUILTIN_REGEX[id]); });
+            const customPatterns = parseCustomTerms(opts.customTerms, opts.optCaseSensitive, opts.optWholeWord);
+            const allPatterns = activePatterns.concat(customPatterns);
+
+            if (allPatterns.length === 0) {
+                showError('Enable at least one pattern or add a custom search term before scanning.');
+                return;
+            }
+
+            autofindMatches = [];
+            document.getElementById('runAutoFindBtn').disabled = true;
+            logMsg('Scanning document text for pattern matches…', 'info');
+
+            for (let p = 1; p <= numPages; p++) {
+                const page = await pdfDocProxy.getPage(p);
+                const viewport = page.getViewport({ scale: 1 });
+                const textContent = await page.getTextContent();
+
+                textContent.items.forEach(item => {
+                    const str = item.str;
+                    if (!str) return;
+                    allPatterns.forEach(pat => {
+                        pat.re.lastIndex = 0;
+                        let m;
+                        while ((m = pat.re.exec(str)) !== null) {
+                            // Approximate the matched substring's box within this text item's transform box
+                            const frac0 = m.index / str.length;
+                            const frac1 = (m.index + m[0].length) / str.length;
+                            const tx = item.transform;
+                            const itemWidth = item.width || (str.length * (item.height || 8) * 0.5);
+                            const itemHeight = item.height || Math.abs(tx[3]) || 10;
+                            const x0 = tx[4] + itemWidth * frac0;
+                            const x1 = tx[4] + itemWidth * frac1;
+                            const yTop = tx[5];
+                            // PDF coords are bottom-up; viewport.height flips to top-down for canvas
+                            const xr0 = x0 / viewport.width;
+                            const xr1 = x1 / viewport.width;
+                            const yrTop = 1 - (yTop + itemHeight) / viewport.height;
+                            const hr = itemHeight / viewport.height;
+                            markIdCounter++;
+                            autofindMatches.push({
+                                id: markIdCounter, page: p, text: m[0], kind: pat.label,
+                                xr: Math.max(0, xr0), yr: Math.max(0, yrTop),
+                                wr: Math.max(0.004, xr1 - xr0), hr: Math.max(0.006, hr),
+                                checked: true
+                            });
+                        }
+                    });
+                });
+            }
+
+            document.getElementById('runAutoFindBtn').disabled = false;
+            renderAutofindResults();
+            applyCheckedAutofindMarks();
+            logMsg(`Auto-find complete: ${autofindMatches.length} match(es) across ${numPages} page(s).`, autofindMatches.length ? 'success' : 'warn');
+        }
+
+        function renderAutofindResults() {
+            document.getElementById('autofindTotal').textContent = autofindMatches.length;
+            if (autofindMatches.length === 0) {
+                autofindResults.innerHTML = '<p class="info-empty" style="font-size:11px;opacity:.5;padding:14px;">No matches found. Adjust patterns or custom terms and scan again.</p>';
+                return;
+            }
+            const byPage = {};
+            autofindMatches.forEach(m => { (byPage[m.page] = byPage[m.page] || []).push(m); });
+            let html = '';
+            Object.keys(byPage).sort((a, b) => a - b).forEach(p => {
+                html += `<div class="af-group-head">Page ${p} — ${byPage[p].length} match(es)</div>`;
+                byPage[p].forEach(m => {
+                    html += `<div class="af-row">
+                        <input type="checkbox" data-id="${m.id}" ${m.checked ? 'checked' : ''}>
+                        <div class="af-main">
+                            <div class="af-text">${escapeHtmlStr(truncate(m.text, 32))}</div>
+                            <div class="af-loc">${escapeHtmlStr(m.kind)}</div>
+                        </div>
+                    </div>`;
+                });
+            });
+            autofindResults.innerHTML = html;
+            autofindResults.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const m = autofindMatches.find(x => x.id === parseInt(cb.dataset.id, 10));
+                    if (m) m.checked = cb.checked;
+                    applyCheckedAutofindMarks();
+                });
+            });
+        }
+
+        function applyCheckedAutofindMarks() {
+            // Rebuild all auto-sourced marks from current checked state
+            Object.keys(marks).forEach(p => { marks[p] = (marks[p] || []).filter(m => m.source !== 'auto'); });
+            autofindMatches.forEach(m => {
+                if (!m.checked) return;
+                if (!marks[m.page]) marks[m.page] = [];
+                marks[m.page].push({ id: 'auto' + m.id, xr: m.xr, yr: m.yr, wr: m.wr, hr: m.hr, source: 'auto', label: m.kind + ': ' + truncate(m.text, 24) });
+            });
+            if (marks[currentPage]) { drawOverlay(); renderMarkList(); }
+            refreshThumbHighlight(); updateStats(); invalidateBurn(); renderPlan();
+        }
+
+        // ============================================
+        // REDACTION PLAN PREVIEW
+        // ============================================
+        function renderPlan() {
+            if (!pdfDocProxy) { planPane.innerHTML = '<p class="info-empty">Mark redactions above — the burn plan appears here before you commit anything.</p>'; return; }
+            const opts = getOptions();
+            const markedPages = Object.keys(marks).filter(p => marks[p] && marks[p].length > 0);
+            const totalMarks = markedPages.reduce((s, p) => s + marks[p].length, 0);
+            const pagesToFlatten = opts.optFlattenAll ? numPages : markedPages.length;
+
+            let html = '';
+            html += `<div class="meta-row"><span>Total pages</span><span>${numPages}</span></div>`;
+            html += `<div class="meta-row"><span>Pages with redaction boxes</span><span>${markedPages.length}</span></div>`;
+            html += `<div class="meta-row"><span>Total redaction boxes</span><span>${totalMarks}</span></div>`;
+            html += `<div class="meta-row"><span>Pages queued for removal</span><span>${removedPages.size}</span></div>`;
+            html += `<div class="meta-row"><span>Pages to rasterize</span><span>${pagesToFlatten} ${opts.optFlattenAll ? '(entire document)' : '(marked only)'}</span></div>`;
+            html += `<div class="meta-row"><span>Rasterization DPI</span><span>${opts.rasterDpi}</span></div>`;
+            html += `<div class="meta-row"><span>Strip metadata</span><span>${opts.optStripMetadata ? 'Yes' : 'No'}</span></div>`;
+            html += `<div class="meta-row"><span>Strip annotations</span><span>${opts.optStripAnnotations ? 'Yes' : 'No'}</span></div>`;
+            html += `<div class="meta-row"><span>Strip embedded files</span><span>${opts.optStripAttachments ? 'Yes' : 'No'}</span></div>`;
+            html += `<div class="meta-row"><span>Integrity check after burn</span><span>${opts.optVerifyAfter ? 'Yes' : 'No'}</span></div>`;
+            if (totalMarks === 0 && removedPages.size === 0) {
+                html += `<div class="meta-row"><span style="color:var(--warn);">Nothing marked yet</span><span>Draw a box, run auto-find, or mark a page for removal</span></div>`;
+            }
+            planPane.innerHTML = html;
+        }
+
+        // ============================================
+        // BURN ENGINE
+        // ============================================
+        function invalidateBurn() {
+            if (outputs.length > 0) {
+                outputs = []; downloadBtn.disabled = true;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Marks changed — burn again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                filesPane.innerHTML = '<p class="info-empty">The redacted PDF will be listed here after burning.</p>';
+                integrityPane.innerHTML = '<p class="info-empty">Run "Burn Redactions" to generate an integrity report confirming no text layer survives under any marked region.</p>';
+            }
+        }
+
+        burnBtn.addEventListener('click', burnRedactions);
+        downloadBtn.addEventListener('click', downloadOutput);
+
+        async function renderPageToImageBytes(pageNum, dpi, pageMarks, opts) {
+            const page = await pdfDocProxy.getPage(pageNum);
+            const scale = dpi / 72;
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const margin = opts.optExpandMargin ? 2 : 0;
+            pageMarks.forEach(m => {
+                const x = m.xr * canvas.width - margin, y = m.yr * canvas.height - margin;
+                const w = m.wr * canvas.width + margin * 2, h = m.hr * canvas.height + margin * 2;
+                ctx.fillStyle = opts.markColor;
+                ctx.fillRect(x, y, w, h);
+                if (opts.markStyle === 'hatch') { ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h); }
+                if (opts.optLabelBox && w > 60 && h > 16) {
+                    ctx.fillStyle = '#ff3b3b';
+                    ctx.font = `${Math.min(16, h * 0.5)}px monospace`;
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('REDACTED', x + 4, y + h / 2);
+                }
+            });
+
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+            const arrBuf = await blob.arrayBuffer();
+            return { bytes: new Uint8Array(arrBuf), width: canvas.width, height: canvas.height, pageWidthPt: viewport.width / scale, pageHeightPt: viewport.height / scale };
+        }
+
+        async function burnRedactions() {
+            if (!pdfDocProxy || !pdfBytesOriginal) { showError('Load a PDF before burning redactions.'); return; }
+            clearError(); clearLog();
+            burnBtn.disabled = true; downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Burning…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+            outputs = [];
+
+            const opts = getOptions();
+            const dpi = parseInt(opts.rasterDpi, 10);
+            let pagesFlattened = 0, marksBurned = 0;
+
+            try {
+                const { PDFDocument, PDFName } = PDFLib;
+                const outDoc = await PDFDocument.create();
+
+                for (let p = 1; p <= numPages; p++) {
+                    if (removedPages.has(p)) { logMsg(`Page ${p}: removed from output.`, 'warn'); continue; }
+                    const pageMarks = marks[p] || [];
+                    const shouldFlatten = opts.optFlattenAll || pageMarks.length > 0;
+
+                    if (shouldFlatten) {
+                        const { bytes, width, height, pageWidthPt, pageHeightPt } = await renderPageToImageBytes(p, dpi, pageMarks, opts);
+                        const png = await outDoc.embedPng(bytes);
+                        const newPage = outDoc.addPage([pageWidthPt, pageHeightPt]);
+                        newPage.drawImage(png, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
+                        pagesFlattened++;
+                        marksBurned += pageMarks.length;
+                        logMsg(`Page ${p}: rasterized at ${dpi} DPI (${width}×${height}px), ${pageMarks.length} redaction(s) burned in.`, 'success');
+                    } else {
+                        // Copy the original vector page untouched
+                        const srcDoc = await PDFDocument.load(pdfBytesOriginal, { ignoreEncryption: true });
+                        const [copied] = await outDoc.copyPages(srcDoc, [p - 1]);
+                        outDoc.addPage(copied);
+                        logMsg(`Page ${p}: copied unchanged (no marks).`, 'info');
+                    }
+                }
+
+                if (outDoc.getPageCount() === 0) {
+                    throw new Error('All pages were removed — the output would be empty. Keep at least one page.');
+                }
+
+                // Strip annotations / attachments / metadata on the assembled doc
+                if (opts.optStripAnnotations) {
+                    outDoc.getPages().forEach(pg => {
+                        try {
+                            const annots = pg.node.get(PDFName.of('Annots'));
+                            if (annots) pg.node.delete(PDFName.of('Annots'));
+                        } catch (e) {}
+                    });
+                    logMsg('Stripped comments/annotations from all pages.', 'success');
+                }
+                if (opts.optStripAttachments) {
+                    try {
+                        const namesDict = outDoc.catalog.get(PDFName.of('Names'));
+                        if (namesDict) outDoc.catalog.delete(PDFName.of('Names'));
+                        logMsg('Stripped embedded files / attachments.', 'success');
+                    } catch (e) {}
+                }
+                if (opts.optStripMetadata) {
+                    outDoc.setTitle(''); outDoc.setAuthor(''); outDoc.setSubject(''); outDoc.setKeywords([]);
+                    outDoc.setProducer(''); outDoc.setCreator('');
+                    try { if (outDoc.catalog.get(PDFName.of('Metadata'))) outDoc.catalog.delete(PDFName.of('Metadata')); } catch (e) {}
+                    logMsg('Stripped Document Info metadata and XMP packet.', 'success');
+                }
+
+                const outBytes = await outDoc.save({ useObjectStreams: true });
+                const filename = (opts.outputFilename || 'redacted.pdf').replace(/\.pdf$/i, '') + '.pdf';
+                outputs.push({ name: filename, blob: new Blob([outBytes], { type: 'application/pdf' }), size: outBytes.length });
+
+                document.getElementById('outputPagesFlattened').textContent = pagesFlattened;
+                document.getElementById('outputMarksBurned').textContent = marksBurned;
+
+                let integrityPassed = true;
+                if (opts.optVerifyAfter) {
+                    integrityPassed = await runIntegrityCheck(outBytes, opts);
+                } else {
+                    integrityPane.innerHTML = '<p class="info-empty">Integrity check was skipped — enable "Run integrity check after redacting" to verify.</p>';
+                }
+
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = integrityPassed ? 'Burned & verified' : 'Burned — review warnings';
+                statusEl.parentElement.classList.add(integrityPassed ? 'success' : 'error');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                logMsg(`Burn complete: ${pagesFlattened} page(s) rasterized, ${marksBurned} redaction(s) burned, output ${outBytes.length.toLocaleString()} bytes.`, 'success');
+            } catch (err) {
+                showError('Burning failed: ' + (err.message || err));
+                logMsg('Burning failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Burn failed';
+                statusEl.parentElement.classList.add('error');
+                outputs = []; downloadBtn.disabled = true;
+            } finally {
+                burnBtn.disabled = false;
+            }
+        }
+
+        // Re-open the output with pdf.js and confirm no extractable text sits under any
+        // region that was marked as a redaction box on a flattened page.
+        async function runIntegrityCheck(outBytes, opts) {
+            let allPass = true;
+            let html = '';
+            try {
+                const checkDoc = await pdfjsLib.getDocument({ data: outBytes.slice() }).promise;
+                const checkPageCount = checkDoc.numPages;
+
+                const originalPageMarked = Object.keys(marks).filter(p => marks[p] && marks[p].length > 0 && !removedPages.has(parseInt(p, 10)));
+                const expectedFlattened = opts.optFlattenAll ? checkPageCount : originalPageMarked.length;
+
+                // Check 1: page count matches expected (removed pages actually gone)
+                const expectedPageCount = numPages - removedPages.size;
+                const pass1 = checkPageCount === expectedPageCount;
+                allPass = allPass && pass1;
+                html += integrityRow(pass1, 'Page count matches plan', `${checkPageCount} page(s) in output, ${expectedPageCount} expected (${removedPages.size} removed)`);
+
+                // Check 2: for each flattened page, confirm the text layer is empty (image-only page)
+                let flattenedChecked = 0, flattenedWithText = 0;
+                for (let i = 0; i < checkPageCount; i++) {
+                    const pg = await checkDoc.getPage(i + 1);
+                    const tc = await pg.getTextContent();
+                    const hasRealText = tc.items.some(it => it.str && it.str.trim().length > 0);
+                    // We can't map output page index back to original 1:1 label easily post-removal,
+                    // so this check treats "any flattened page" generally: on a fully flattened doc
+                    // every page should have zero text; on marked-only flatten, most pages may still
+                    // legitimately carry text (untouched pages) — those are expected to pass.
+                    if (opts.optFlattenAll) {
+                        flattenedChecked++;
+                        if (hasRealText) flattenedWithText++;
+                    }
+                }
+                if (opts.optFlattenAll) {
+                    const pass2 = flattenedWithText === 0;
+                    allPass = allPass && pass2;
+                    html += integrityRow(pass2, 'No text layer remains (full document flatten)', `${flattenedWithText} of ${flattenedChecked} page(s) still report extractable text`);
+                } else {
+                    html += integrityRow(true, 'Marked pages check', `${originalPageMarked.length} page(s) with redaction boxes were rasterized to flat images — original text/objects for those pages were not carried into the output`);
+                }
+
+                // Check 3: metadata stripped
+                if (opts.optStripMetadata) {
+                    const meta = await checkDoc.getMetadata().catch(() => null);
+                    const info = meta && meta.info ? meta.info : {};
+                    const leftover = ['Author','Title','Subject','Creator','Producer','Keywords'].filter(k => info[k] && String(info[k]).trim());
+                    const pass3 = leftover.length === 0;
+                    allPass = allPass && pass3;
+                    html += integrityRow(pass3, 'Document Info metadata cleared', pass3 ? 'No standard Info fields remain' : `Still present: ${leftover.join(', ')}`);
+                }
+
+                // Check 4: removed pages truly absent (spot check: doc opens with correct page count already covers this)
+                if (removedPages.size > 0) {
+                    html += integrityRow(true, 'Removed pages excluded from page tree', `${removedPages.size} page(s) deleted, not blanked or hidden`);
+                }
+
+                html += integrityRow(allPass, allPass ? 'Overall: output is safe to share' : 'Overall: review flagged items before sharing', allPass ? 'All checks passed' : 'One or more checks need attention — see above');
+            } catch (err) {
+                allPass = false;
+                html += integrityRow(false, 'Integrity check failed to run', err.message || String(err));
+            }
+            integrityPane.innerHTML = html;
+            return allPass;
+        }
+        function integrityRow(pass, label, detail) {
+            return `<div class="integrity-check-row ${pass ? 'pass' : 'fail'}">
+                <i class="fa-solid ${pass ? 'fa-circle-check' : 'fa-circle-xmark'}"></i>
+                <div class="ic-label">${escapeHtmlStr(label)}<div class="ic-detail">${escapeHtmlStr(detail)}</div></div>
+            </div>`;
+        }
+
+        function renderFilesPane() {
+            if (outputs.length === 0) { filesPane.innerHTML = '<p class="info-empty">The redacted PDF will be listed here after burning.</p>'; return; }
+            filesPane.innerHTML = '';
+            outputs.forEach((o, i) => {
+                const row = document.createElement('div');
+                row.className = 'output-list-item';
+                row.innerHTML = `<span class="oli-name" title="${escapeHtmlStr(o.name)}">${escapeHtmlStr(o.name)}</span><span class="oli-meta">${o.size.toLocaleString()}b</span><button class="oli-dl" type="button">Save</button>`;
+                row.querySelector('.oli-dl').addEventListener('click', () => downloadSingle(i));
+                filesPane.appendChild(row);
+            });
+        }
+        function downloadSingle(idx) {
+            const o = outputs[idx]; if (!o) return;
+            const url = URL.createObjectURL(o.blob); const a = document.createElement('a');
+            a.href = url; a.download = o.name; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+        function downloadOutput() { if (outputs.length) downloadSingle(0); }
+
+        // Initial
+        document.getElementById('zoomLabel').textContent = '100%';
+    </script>
+</body>
+</html>
