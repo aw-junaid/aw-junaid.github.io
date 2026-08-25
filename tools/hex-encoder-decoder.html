@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | Hex Encoder & Decoder (Text ⇄ Hex, Hex Dump)</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free hex encoder and decoder. Convert text to hex or hex back to text, generate xxd-style hex dumps with offsets and an ASCII sidebar, batch-convert multiple lines, and use the built-in Hex⇄Base64 converter, random byte generator, and hex diff tool. Supports every delimiter, byte grouping, prefix style, and parsing rule you'd need for logs, protocol debugging, and firmware/network work — 100% client-side, nothing sent anywhere." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/hex-encoder-decoder.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/hex-encoder-decoder.html" />
+<meta property="og:title" content="Hex Encoder & Decoder — awjunaid" />
+<meta property="og:description" content="Convert text to hex and hex to text, build xxd-style hex dumps, batch-convert lines, and diff two hex strings. Every delimiter, grouping, and prefix style covered. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/hex-encoder-decoder.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Hex Encoder & Decoder — awjunaid" />
+<meta name="twitter:description" content="Text ⇄ hex conversion, xxd-style hex dumps, batch conversion, Hex⇄Base64, random bytes, and hex diffing — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/hex-encoder-decoder.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group input[type="password"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #mainInput, #batchInput, #b64ToolInput, #diffA, #diffB {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #mainInput { min-height: 180px; }
+        #batchInput { min-height: 160px; }
+        #b64ToolInput { min-height: 90px; }
+        #diffA, #diffB { min-height: 70px; }
+        #mainInput:focus, #batchInput:focus, #b64ToolInput:focus, #diffA:focus, #diffB:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        .field-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .field-label-row label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; }
+        .inline-toggle-group { display: flex; gap: 4px; }
+        .inline-toggle-group button {
+            border: 1px solid var(--border-light); background: transparent; color: var(--text-color);
+            padding: 4px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+            border-radius: 30px; cursor: pointer; font-family: var(--font-header);
+        }
+        .inline-toggle-group button.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 34%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .badge.neutral { background: transparent; }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+        .result-hash {
+            font-family: var(--font-mono); font-size: 14px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 16px 18px; word-break: break-all; line-height: 1.6; position: relative; white-space: pre-wrap;
+        }
+        .result-hash.empty { opacity: 0.4; font-style: italic; }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+        .hexdump-ascii { opacity: 0.65; }
+        .hexdump-byte-mismatch { color: var(--danger); font-weight: 700; }
+
+        /* Utility grid */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #mainInput { min-height: 140px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">Hex Encoder &amp; Decoder</h1>
+                <div class="tool-dek">Convert text to hex or hex back to text, with full control over case, delimiters, byte grouping, and prefixes. Build xxd-style hex dumps with offsets and an ASCII sidebar, batch-convert multiple lines against the same settings, and reach for the built-in Hex⇄Base64 converter, random byte generator, and hex diff tool for debugging mismatched payloads — computed entirely in your browser, nothing sent anywhere.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="compact">Compact Hex (No Delimiter)</option>
+                    <option value="wireshark">Network / Wireshark Style</option>
+                    <option value="cstyle">C-Style Escaped Bytes (\x41\x42…)</option>
+                    <option value="xxd">xxd-Style Hex Dump</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Direction &amp; Text Handling</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Direction</label>
+                            <div class="radio-row" id="directionRadios">
+                                <label class="radio-opt"><input type="radio" name="direction" value="encode" checked> Encode (Text → Hex)</label>
+                                <label class="radio-opt"><input type="radio" name="direction" value="decode"> Decode (Hex → Text)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optWarnNonAscii" checked>
+                            <span><span class="setting-name">Warn on multi-byte UTF-8 characters</span><span class="setting-hint">Characters outside the ASCII range encode to more than one byte in UTF-8 — worth knowing when the receiving system expects single-byte text</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictUtf8Decode">
+                            <span><span class="setting-name">Strict UTF-8 decoding</span><span class="setting-hint">Off shows the Unicode replacement character (&#65533;) for invalid byte sequences instead of failing outright — on rejects the input entirely</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Hex Output Format <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:0.8;">(when encoding)</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOutputLowercase" checked>
+                            <span><span class="setting-name">Lowercase hex output</span><span class="setting-hint">Uncheck for uppercase hex digits</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optWholeStringPrefix">
+                            <span><span class="setting-name">Prefix whole string with 0x</span><span class="setting-hint">Adds a single 0x before the entire output — handy when pasting as a hex literal in code. Most useful with no delimiter</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="delimiterSelect">Byte delimiter</label>
+                            <select id="delimiterSelect">
+                                <option value="none">None</option>
+                                <option value="space" selected>Space</option>
+                                <option value="comma">Comma</option>
+                                <option value="colon">Colon</option>
+                                <option value="dash">Dash</option>
+                                <option value="newline">Newline</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="byteGroupSelect">Group size (bytes per token)</label>
+                            <select id="byteGroupSelect">
+                                <option value="1" selected>1 byte</option>
+                                <option value="2">2 bytes</option>
+                                <option value="4">4 bytes</option>
+                                <option value="8">8 bytes</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="bytePrefixSelect">Per-byte prefix</label>
+                            <select id="bytePrefixSelect">
+                                <option value="none" selected>None</option>
+                                <option value="0x">0x (e.g. 0x41)</option>
+                                <option value="bs">\x (e.g. \x41)</option>
+                                <option value="percent">% (e.g. %41 — URL escape)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="wrapAfterInput">Wrap after N tokens (0 = no wrap)</label>
+                            <input type="number" id="wrapAfterInput" min="0" max="200" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Hex Input Parsing <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:0.8;">(when decoding)</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIgnoreWhitespace" checked>
+                            <span><span class="setting-name">Ignore whitespace, commas, colons, dashes</span><span class="setting-hint">Strips common separators before parsing, so pasted hex from any format works</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIgnoreHexPrefixes" checked>
+                            <span><span class="setting-name">Strip 0x / \x / % prefixes</span><span class="setting-hint">Removes per-byte prefix markers before parsing</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLenientParsing">
+                            <span><span class="setting-name">Ignore other non-hex characters</span><span class="setting-hint">When off, any leftover character outside 0-9a-fA-F raises an error instead of being silently dropped</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Odd-length input</label>
+                            <div class="radio-row" id="oddLengthRadios">
+                                <label class="radio-opt"><input type="radio" name="oddLength" value="error" checked> Treat as error</label>
+                                <label class="radio-opt"><input type="radio" name="oddLength" value="padleft"> Pad with leading zero</label>
+                                <label class="radio-opt"><input type="radio" name="oddLength" value="padright"> Pad with trailing zero</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Hex Dump View</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowOffset" checked>
+                            <span><span class="setting-name">Show offset column</span><span class="setting-hint">Displays the running byte position at the start of each line, like <code>xxd</code> or a debugger memory view</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowAsciiSidebar" checked>
+                            <span><span class="setting-name">Show ASCII sidebar</span><span class="setting-hint">Prints the printable-ASCII representation of each line's bytes alongside the hex, using . for non-printable bytes</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUppercaseOffset">
+                            <span><span class="setting-name">Uppercase offset digits</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="bytesPerLineInput">Bytes per line</label>
+                            <select id="bytesPerLineInput">
+                                <option value="8">8</option>
+                                <option value="16" selected>16</option>
+                                <option value="32">32</option>
+                            </select>
+                        </div>
+                        <div class="field-group full-width">
+                            <label>Offset base</label>
+                            <div class="radio-row" id="offsetBaseRadios">
+                                <label class="radio-opt"><input type="radio" name="offsetBase" value="hex" checked> Hexadecimal</label>
+                                <label class="radio-opt"><input type="radio" name="offsetBase" value="decimal"> Decimal</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch Mode</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchTreatAsUtf8" checked>
+                            <span><span class="setting-name">Treat each encode line as UTF-8 text</span><span class="setting-hint">Applies when the direction above is Encode — uncheck to apply Hex Input Parsing rules to each batch line instead</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchIncludeIndex">
+                            <span><span class="setting-name">Include line index in batch output</span><span class="setting-hint">Adds a row number column to the batch table and export</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxBatchLinesInput">Max lines per batch run</label>
+                            <input type="number" id="maxBatchLinesInput" min="1" max="5000" value="500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3 id="inputPanelTitle">Text Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+
+                    <textarea id="mainInput" spellcheck="false" placeholder="Type or paste text to convert to hex…"></textarea>
+
+                    <div class="input-hint" id="inputHint">Hex conversion is byte-sensitive — the settings above control exactly how those bytes are formatted or parsed.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip" id="statStrip"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyResultBtn" type="button"><i class="fa-solid fa-copy"></i> Copy Result</button>
+                            <button class="btn-solid" id="downloadJsonBtn" type="button"><i class="fa-solid fa-download"></i> Download JSON</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="result" type="button">Result</button>
+                        <button class="output-tab" data-tab="hexdump" type="button">Hex Dump</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-result"><div class="empty-pane">Enter text or hex above to see results.</div></div>
+                    <div class="output-pane" id="pane-hexdump"><div class="empty-pane">A hex dump of the current bytes will appear here.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Use the Batch Conversion utility below to see results here.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter text or hex above to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-list-ol"></i> Batch Conversion</h3>
+                    <div class="utility-note">Convert multiple lines at once using the direction and settings selected above — useful for turning a list of strings into hex, or a list of hex payloads back into text, in one pass.</div>
+                    <div class="field-group">
+                        <label for="batchInput">One item per line</label>
+                        <textarea id="batchInput" spellcheck="false" placeholder="line one&#10;line two&#10;line three"></textarea>
+                    </div>
+                    <button class="btn-solid small" id="batchRunBtn" type="button">Convert All</button>
+                    <div class="utility-result" id="batchUtilResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-shuffle"></i> Hex ⇄ Base64 / Random Bytes</h3>
+                    <div class="utility-note">Convert a hex string to Base64 (or back), or generate cryptographically random bytes as a starting point for a key, nonce, or test fixture.</div>
+                    <div class="field-group">
+                        <label for="b64ToolInput">Hex or Base64 input</label>
+                        <textarea id="b64ToolInput" spellcheck="false" placeholder="deadbeef… or 3q2+7w=="></textarea>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                        <button class="btn-solid small" id="hexToB64Btn" type="button">Hex → Base64</button>
+                        <button class="btn-solid small" id="b64ToHexBtn" type="button">Base64 → Hex</button>
+                    </div>
+                    <div class="field-group">
+                        <label for="randomBytesLenInput">Random bytes to generate</label>
+                        <input type="number" id="randomBytesLenInput" min="1" max="256" value="16">
+                    </div>
+                    <button class="btn-ghost small" id="genRandomBtn" type="button">Generate Random Hex</button>
+                    <div class="utility-result" id="b64ToolResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-code-compare"></i> Hex Diff</h3>
+                    <div class="utility-note">Compares two hex strings byte-by-byte after normalizing whitespace and prefixes — reports length differences and flags the first mismatch, useful when a decoded payload doesn't match what you expected.</div>
+                    <div class="field-group">
+                        <label for="diffA">Hex A</label>
+                        <textarea id="diffA" spellcheck="false" placeholder="deadbeef00…"></textarea>
+                    </div>
+                    <div class="field-group">
+                        <label for="diffB">Hex B</label>
+                        <textarea id="diffB" spellcheck="false" placeholder="deadbeef01…"></textarea>
+                    </div>
+                    <button class="btn-solid small" id="diffBtn" type="button">Compare</button>
+                    <div class="utility-result" id="diffResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>Hex shows up constantly once you're outside plain text: memory dumps, network packet captures, firmware and EEPROM contents, binary protocol fields, color codes, escape sequences in source code, and crash logs. This tool moves between readable text and its raw hex bytes in either direction, and adds the formatting rules — delimiters, grouping, prefixes — that different tools and languages expect.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why do different tools show hex so differently?</h4>
+                        <p>The underlying bytes never change, but the text representation of those bytes varies by convention: Wireshark and many network tools space-delimit single bytes, C source uses <code>\x41\x42</code> escapes, URLs use <code>%41</code> percent-encoding, and compact protocol dumps often use no delimiter at all. The settings above cover each of these so you can match whatever you're pasting into.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is a hex dump, and why include offsets?</h4>
+                        <p>A hex dump lays bytes out in fixed-width rows alongside a running byte offset and, often, an ASCII sidebar — the same layout tools like <code>xxd</code> or <code>hexdump</code> produce. The offset lets you locate a specific byte by position when comparing against a spec or reporting a bug, and the ASCII column makes it easy to spot embedded readable strings inside otherwise binary data.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why did my decoded text show a replacement character (&#65533;)?</h4>
+                        <p>That symbol means the byte sequence at that position isn't valid UTF-8 — often because the hex represents binary data rather than encoded text, or because bytes were dropped or reordered somewhere upstream. Strict UTF-8 decoding, when enabled, rejects the input outright instead of substituting that character, which can be more useful when you need to know decoding failed rather than see a partial result.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does odd-length hex cause problems?</h4>
+                        <p>Every byte is exactly two hex characters, so a string with an odd number of characters is missing a nibble somewhere and can't be split into whole bytes unambiguously. Padding options let you recover a best guess — a leading zero assumes the last character is a low nibble, a trailing zero assumes it's a high nibble — but treating it as an error is usually safer when the source of the hex should be trustworthy.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. Every conversion — text-to-hex, hex-to-text, hex dumps, batch conversion, Base64 conversion, random byte generation, and hex diffing — runs entirely in your browser. Nothing you type ever leaves the page.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // HEX ENCODER & DECODER — ENGINE
+        // ============================================
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ---------- Byte helpers ----------
+        function textToBytes(str) { return new TextEncoder().encode(str); }
+        function bytesToText(bytes, strict) {
+            const decoder = new TextDecoder('utf-8', { fatal: !!strict });
+            return decoder.decode(bytes);
+        }
+        function countCodepoints(str) { return Array.from(str).length; }
+
+        function toHexByte(b, upper) {
+            const h = b.toString(16).padStart(2, '0');
+            return upper ? h.toUpperCase() : h;
+        }
+
+        function delimiterChar(name) {
+            switch (name) {
+                case 'space': return ' ';
+                case 'comma': return ',';
+                case 'colon': return ':';
+                case 'dash': return '-';
+                case 'newline': return '\n';
+                default: return '';
+            }
+        }
+
+        function bytePrefixStr(name) {
+            if (name === '0x') return '0x';
+            if (name === 'bs') return '\\x';
+            if (name === 'percent') return '%';
+            return '';
+        }
+
+        function formatHexOutput(bytes, o) {
+            const upper = !o.outputLowercase;
+            let byteStrs = Array.from(bytes).map(b => bytePrefixStr(o.bytePrefix) + toHexByte(b, upper));
+            const groupSize = o.groupSize;
+            const tokens = [];
+            for (let i = 0; i < byteStrs.length; i += groupSize) {
+                tokens.push(byteStrs.slice(i, i + groupSize).join(''));
+            }
+            const sep = delimiterChar(o.delimiter);
+            let joined;
+            if (o.wrapAfter > 0) {
+                const lines = [];
+                for (let i = 0; i < tokens.length; i += o.wrapAfter) {
+                    lines.push(tokens.slice(i, i + o.wrapAfter).join(sep));
+                }
+                joined = lines.join('\n');
+            } else {
+                joined = tokens.join(sep);
+            }
+            if (o.wholeStringPrefix) joined = '0x' + joined;
+            return joined;
+        }
+
+        // ---------- Hex parsing (for decode + hex dump input) ----------
+        function parseHexInput(raw, o) {
+            let str = raw;
+            if (o.ignoreHexPrefixes) {
+                str = str.replace(/0x/gi, '').replace(/\\x/gi, '').replace(/%/g, '');
+            }
+            if (o.ignoreWhitespace) {
+                str = str.replace(/[\s,:\-]+/g, '');
+            } else {
+                str = str.replace(/\s+/g, ''); // always strip actual whitespace/newlines, they can never be hex
+            }
+            if (o.lenientParsing) {
+                str = str.replace(/[^0-9a-fA-F]/g, '');
+            } else {
+                const badMatch = str.match(/[^0-9a-fA-F]/);
+                if (badMatch) {
+                    const idx = str.indexOf(badMatch[0]);
+                    throw new Error('Invalid character "' + badMatch[0] + '" at position ' + idx + '. Enable lenient parsing to ignore stray characters.');
+                }
+            }
+            if (str.length % 2 !== 0) {
+                if (o.oddLength === 'padleft') str = '0' + str;
+                else if (o.oddLength === 'padright') str = str + '0';
+                else throw new Error('Hex string has an odd number of digits (' + str.length + '). Enable a padding option or fix the input.');
+            }
+            const bytes = new Uint8Array(str.length / 2);
+            for (let i = 0; i < str.length; i += 2) bytes[i / 2] = parseInt(str.substr(i, 2), 16);
+            return bytes;
+        }
+
+        // ---------- Base64 helpers ----------
+        function bytesToBase64(bytes) {
+            let bin = '';
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            return btoa(bin);
+        }
+        function base64ToBytes(b64) {
+            const bin = atob(b64.trim());
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return bytes;
+        }
+
+        // ---------- Hex dump ----------
+        function buildHexDump(bytes, o) {
+            const perLine = o.bytesPerLine;
+            const lines = [];
+            for (let offset = 0; offset < bytes.length; offset += perLine) {
+                const chunk = bytes.slice(offset, offset + perLine);
+                const hexPart = Array.from(chunk).map(b => toHexByte(b, o.uppercaseOffset)).join(' ');
+                const asciiPart = Array.from(chunk).map(b => (b >= 0x20 && b <= 0x7e) ? String.fromCharCode(b) : '.').join('');
+                let offsetStr = '';
+                if (o.showOffset) {
+                    offsetStr = o.offsetBase === 'decimal'
+                        ? String(offset).padStart(8, '0')
+                        : offset.toString(16).padStart(8, '0');
+                    if (o.uppercaseOffset) offsetStr = offsetStr.toUpperCase();
+                }
+                lines.push({ offset: offsetStr, hex: hexPart.padEnd(perLine * 3 - 1, ' '), ascii: asciiPart });
+            }
+            if (bytes.length === 0) return [];
+            return lines;
+        }
+
+        // ---------- Options ----------
+        function getOptions() {
+            return {
+                direction: (document.querySelector('input[name="direction"]:checked') || {}).value || 'encode',
+                warnNonAscii: document.getElementById('optWarnNonAscii').checked,
+                strictUtf8Decode: document.getElementById('optStrictUtf8Decode').checked,
+                outputLowercase: document.getElementById('optOutputLowercase').checked,
+                wholeStringPrefix: document.getElementById('optWholeStringPrefix').checked,
+                delimiter: document.getElementById('delimiterSelect').value,
+                groupSize: parseInt(document.getElementById('byteGroupSelect').value, 10) || 1,
+                bytePrefix: document.getElementById('bytePrefixSelect').value,
+                wrapAfter: parseInt(document.getElementById('wrapAfterInput').value, 10) || 0,
+                ignoreWhitespace: document.getElementById('optIgnoreWhitespace').checked,
+                ignoreHexPrefixes: document.getElementById('optIgnoreHexPrefixes').checked,
+                lenientParsing: document.getElementById('optLenientParsing').checked,
+                oddLength: (document.querySelector('input[name="oddLength"]:checked') || {}).value || 'error',
+                showOffset: document.getElementById('optShowOffset').checked,
+                showAsciiSidebar: document.getElementById('optShowAsciiSidebar').checked,
+                uppercaseOffset: document.getElementById('optUppercaseOffset').checked,
+                bytesPerLine: parseInt(document.getElementById('bytesPerLineInput').value, 10) || 16,
+                offsetBase: (document.querySelector('input[name="offsetBase"]:checked') || {}).value || 'hex',
+                batchTreatAsUtf8: document.getElementById('optBatchTreatAsUtf8').checked,
+                batchIncludeIndex: document.getElementById('optBatchIncludeIndex').checked,
+                maxBatchLines: parseInt(document.getElementById('maxBatchLinesInput').value, 10) || 500
+            };
+        }
+
+        let lastResult = null;
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function updateDirectionUi(opts) {
+            const title = document.getElementById('inputPanelTitle');
+            const input = document.getElementById('mainInput');
+            const hint = document.getElementById('inputHint');
+            if (opts.direction === 'encode') {
+                title.textContent = 'Text Input';
+                input.placeholder = 'Type or paste text to convert to hex…';
+                hint.innerHTML = 'Hex conversion is byte-sensitive — the settings above control exactly how those bytes are formatted.';
+            } else {
+                title.textContent = 'Hex Input';
+                input.placeholder = 'Paste hex to decode, e.g. 48 65 6c 6c 6f or 0x48,0x65,0x6c…';
+                hint.innerHTML = 'Whitespace, delimiters, and prefixes are handled per the Hex Input Parsing settings above.';
+            }
+        }
+
+        async function analyze() {
+            const opts = getOptions();
+            updateDirectionUi(opts);
+            const errorBox = document.getElementById('errorBox');
+            errorBox.classList.remove('show');
+            document.getElementById('statStrip').innerHTML = '';
+
+            const raw = document.getElementById('mainInput').value;
+            if (!raw) {
+                paneEmpty('pane-result', 'Enter text or hex above to see results.');
+                paneEmpty('pane-hexdump', 'A hex dump of the current bytes will appear here.');
+                document.getElementById('jsonOut').textContent = 'Enter text or hex above to see results.';
+                lastResult = null;
+                return;
+            }
+
+            let bytes, textOut = null, warnHtml = '';
+            try {
+                if (opts.direction === 'encode') {
+                    bytes = textToBytes(raw);
+                    if (opts.warnNonAscii && countCodepoints(raw) !== bytes.length) {
+                        warnHtml = '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>This text contains multi-byte UTF-8 characters — ' + countCodepoints(raw) + ' character(s) encoded to ' + bytes.length + ' byte(s).</span></div>';
+                    }
+                } else {
+                    bytes = parseHexInput(raw, opts);
+                    try {
+                        textOut = bytesToText(bytes, opts.strictUtf8Decode);
+                    } catch (err) {
+                        throw new Error('Decoded bytes are not valid UTF-8: ' + err.message);
+                    }
+                }
+            } catch (err) {
+                errorBox.textContent = err.message;
+                errorBox.classList.add('show');
+                lastResult = null;
+                paneEmpty('pane-result', 'Fix the error above to see results.');
+                paneEmpty('pane-hexdump', 'Fix the error above to see results.');
+                document.getElementById('jsonOut').textContent = 'Fix the error above to see results.';
+                return;
+            }
+
+            const hexFormatted = formatHexOutput(bytes, opts);
+            const base64 = bytesToBase64(bytes);
+
+            document.getElementById('statStrip').innerHTML =
+                '<span>Bytes: <strong>' + bytes.length + '</strong></span>' +
+                (opts.direction === 'encode' ? '<span>Characters: <strong>' + countCodepoints(raw) + '</strong></span>' : '<span>Decoded characters: <strong>' + countCodepoints(textOut || '') + '</strong></span>');
+
+            lastResult = { opts, bytes, hexFormatted, base64, textOut, rawInput: raw };
+            renderResult(opts, warnHtml);
+            renderHexDump(opts);
+            renderJson(opts);
+        }
+
+        function renderResult(opts, warnHtml) {
+            let html = warnHtml;
+            if (opts.direction === 'encode') {
+                html += '<div style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Hex</div>';
+                html += '<div class="result-hash">' + escapeHtml(lastResult.hexFormatted) + '</div>';
+                html += '<div style="margin:16px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Base64</div>';
+                html += '<div class="result-hash">' + escapeHtml(lastResult.base64) + '</div>';
+            } else {
+                html += '<div style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Decoded Text</div>';
+                html += '<div class="result-hash">' + escapeHtml(lastResult.textOut) + '</div>';
+                html += '<div style="margin:16px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Normalized Hex</div>';
+                html += '<div class="result-hash">' + escapeHtml(lastResult.hexFormatted) + '</div>';
+            }
+            html += '<div style="margin-top:14px;font-size:11px;opacity:0.55;">' + lastResult.bytes.length + ' byte(s) total</div>';
+            document.getElementById('pane-result').innerHTML = html;
+        }
+
+        function renderHexDump(opts) {
+            const lines = buildHexDump(lastResult.bytes, opts);
+            if (lines.length === 0) { paneEmpty('pane-hexdump', 'No bytes to display.'); return; }
+            let html = '<div class="mono-box" style="font-size:12px;">';
+            lines.forEach(l => {
+                let row = '';
+                if (opts.showOffset) row += l.offset + '  ';
+                row += l.hex;
+                if (opts.showAsciiSidebar) row += '  |' + l.ascii + '|';
+                html += escapeHtml(row) + '\n';
+            });
+            html += '</div>';
+            document.getElementById('pane-hexdump').innerHTML = html;
+        }
+
+        function renderJson(opts) {
+            const out = {
+                direction: opts.direction,
+                bytes_length: lastResult.bytes.length,
+                hex: lastResult.hexFormatted,
+                hex_compact: Array.from(lastResult.bytes).map(b => toHexByte(b, false)).join(''),
+                base64: lastResult.base64
+            };
+            if (opts.direction === 'decode') out.text = lastResult.textOut;
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring: main analyze ----------
+        let analyzeTimer;
+        function scheduleAnalyze() { clearTimeout(analyzeTimer); analyzeTimer = setTimeout(analyze, 120); saveDraft(); }
+        document.getElementById('mainInput').addEventListener('input', scheduleAnalyze);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; scheduleAnalyze(); });
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('mainInput').value = '';
+            analyze(); saveDraft();
+            document.getElementById('mainInput').focus();
+        });
+
+        document.getElementById('copyResultBtn').addEventListener('click', async () => {
+            if (!lastResult) return;
+            const text = lastResult.opts.direction === 'encode' ? lastResult.hexFormatted : lastResult.textOut;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+            if (!lastResult) return;
+            const opts = lastResult.opts;
+            const out = { direction: opts.direction, bytes_length: lastResult.bytes.length, hex: lastResult.hexFormatted, base64: lastResult.base64 };
+            if (opts.direction === 'decode') out.text = lastResult.textOut;
+            const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'hex-result.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- Utility: Batch Conversion ----------
+        document.getElementById('batchRunBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('batchUtilResult');
+            let lines = document.getElementById('batchInput').value.split('\n').filter(l => l.trim() !== '');
+            lines = lines.slice(0, opts.maxBatchLines);
+            if (lines.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Add at least one line.</div>'; return; }
+
+            const rows = [];
+            for (const line of lines) {
+                try {
+                    if (opts.direction === 'encode') {
+                        const bytes = textToBytes(line);
+                        rows.push({ input: line, output: formatHexOutput(bytes, opts) });
+                    } else {
+                        const bytes = opts.batchTreatAsUtf8 ? parseHexInput(line, opts) : parseHexInput(line, opts);
+                        const text = bytesToText(bytes, opts.strictUtf8Decode);
+                        rows.push({ input: line, output: text });
+                    }
+                } catch (err) {
+                    rows.push({ input: line, error: err.message });
+                }
+            }
+
+            const cols = opts.batchIncludeIndex ? ['#', 'Input', 'Output'] : ['Input', 'Output'];
+            function buildTable(maxLen) {
+                let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+                rows.forEach((r, i) => {
+                    let cells = [];
+                    if (opts.batchIncludeIndex) cells.push(String(i + 1));
+                    cells.push(escapeHtml(r.input.length > maxLen ? r.input.slice(0, maxLen) + '…' : r.input));
+                    cells.push(r.error ? '<span style="color:var(--danger);">' + escapeHtml(r.error) + '</span>' : escapeHtml(r.output.length > maxLen ? r.output.slice(0, maxLen) + '…' : r.output));
+                    html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+                });
+                html += '</tbody></table></div>';
+                return html;
+            }
+
+            resultEl.innerHTML = buildTable(60);
+            document.getElementById('pane-batch').innerHTML = buildTable(80);
+            window._lastBatchRows = rows;
+        });
+
+        // ---------- Utility: Hex ⇄ Base64 / Random Bytes ----------
+        document.getElementById('hexToB64Btn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('b64ToolResult');
+            const raw = document.getElementById('b64ToolInput').value;
+            if (!raw.trim()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Paste a hex string first.</div>'; return; }
+            try {
+                const bytes = parseHexInput(raw, opts);
+                resultEl.innerHTML = '<div class="mono-box" style="font-size:11.5px;">' + escapeHtml(bytesToBase64(bytes)) + '</div>';
+            } catch (err) {
+                resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">' + escapeHtml(err.message) + '</div>';
+            }
+        });
+        document.getElementById('b64ToHexBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('b64ToolResult');
+            const raw = document.getElementById('b64ToolInput').value;
+            if (!raw.trim()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Paste a Base64 string first.</div>'; return; }
+            try {
+                const bytes = base64ToBytes(raw);
+                resultEl.innerHTML = '<div class="mono-box" style="font-size:11.5px;">' + escapeHtml(formatHexOutput(bytes, opts)) + '</div>';
+            } catch (err) {
+                resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Could not parse as Base64: ' + escapeHtml(err.message) + '</div>';
+            }
+        });
+        document.getElementById('genRandomBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const len = Math.max(1, Math.min(256, parseInt(document.getElementById('randomBytesLenInput').value, 10) || 16));
+            const bytes = new Uint8Array(len);
+            crypto.getRandomValues(bytes);
+            const resultEl = document.getElementById('b64ToolResult');
+            resultEl.innerHTML =
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:6px;">Hex</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(formatHexOutput(bytes, opts)) + '</div>' +
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin:10px 0 6px;">Base64</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(bytesToBase64(bytes)) + '</div>';
+        });
+
+        // ---------- Utility: Hex Diff ----------
+        document.getElementById('diffBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('diffResult');
+            const rawA = document.getElementById('diffA').value;
+            const rawB = document.getElementById('diffB').value;
+            if (!rawA.trim() || !rawB.trim()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter both hex strings to compare.</div>'; return; }
+            let bytesA, bytesB;
+            try { bytesA = parseHexInput(rawA, opts); } catch (err) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Hex A: ' + escapeHtml(err.message) + '</div>'; return; }
+            try { bytesB = parseHexInput(rawB, opts); } catch (err) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Hex B: ' + escapeHtml(err.message) + '</div>'; return; }
+
+            const maxLen = Math.max(bytesA.length, bytesB.length);
+            let firstMismatch = -1;
+            let mismatchCount = 0;
+            for (let i = 0; i < maxLen; i++) {
+                const a = i < bytesA.length ? bytesA[i] : null;
+                const b = i < bytesB.length ? bytesB[i] : null;
+                if (a !== b) {
+                    mismatchCount++;
+                    if (firstMismatch === -1) firstMismatch = i;
+                }
+            }
+            const equal = mismatchCount === 0 && bytesA.length === bytesB.length;
+            let html = '<div style="margin-bottom:8px;"><span class="badge ' + (equal ? 'public' : 'invalid') + '">' + (equal ? 'Identical' : 'Different') + '</span></div>';
+            html += '<div class="mono-box" style="font-size:11.5px;">Length A: ' + bytesA.length + ' byte(s)\nLength B: ' + bytesB.length + ' byte(s)';
+            if (!equal) {
+                html += '\nMismatched bytes: ' + mismatchCount;
+                html += firstMismatch >= 0 ? ('\nFirst mismatch at byte offset: ' + firstMismatch) : '';
+            }
+            html += '</div>';
+            resultEl.innerHTML = html;
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optWarnNonAscii', 'optStrictUtf8Decode', 'optOutputLowercase', 'optWholeStringPrefix', 'optIgnoreWhitespace', 'optIgnoreHexPrefixes', 'optLenientParsing', 'optShowOffset', 'optShowAsciiSidebar', 'optUppercaseOffset', 'optBatchTreatAsUtf8', 'optBatchIncludeIndex'],
+            text: ['wrapAfterInput', 'maxBatchLinesInput', 'randomBytesLenInput'],
+            select: ['delimiterSelect', 'byteGroupSelect', 'bytePrefixSelect', 'bytesPerLineInput'],
+            radio: ['direction', 'oddLength', 'offsetBase']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            compact: {
+                direction: 'encode', optWarnNonAscii: true, optStrictUtf8Decode: false,
+                optOutputLowercase: true, optWholeStringPrefix: false,
+                delimiterSelect: 'none', byteGroupSelect: '1', bytePrefixSelect: 'none', wrapAfterInput: '0',
+                optIgnoreWhitespace: true, optIgnoreHexPrefixes: true, optLenientParsing: false, oddLength: 'error',
+                optShowOffset: true, optShowAsciiSidebar: true, optUppercaseOffset: false, bytesPerLineInput: '16', offsetBase: 'hex',
+                optBatchTreatAsUtf8: true, optBatchIncludeIndex: false, maxBatchLinesInput: '500'
+            },
+            wireshark: {
+                direction: 'decode', optWarnNonAscii: true, optStrictUtf8Decode: false,
+                optOutputLowercase: true, optWholeStringPrefix: false,
+                delimiterSelect: 'space', byteGroupSelect: '1', bytePrefixSelect: 'none', wrapAfterInput: '16',
+                optIgnoreWhitespace: true, optIgnoreHexPrefixes: true, optLenientParsing: true, oddLength: 'padleft',
+                optShowOffset: true, optShowAsciiSidebar: true, optUppercaseOffset: false, bytesPerLineInput: '16', offsetBase: 'hex',
+                optBatchTreatAsUtf8: false, optBatchIncludeIndex: true, maxBatchLinesInput: '500'
+            },
+            cstyle: {
+                direction: 'encode', optWarnNonAscii: true, optStrictUtf8Decode: false,
+                optOutputLowercase: true, optWholeStringPrefix: false,
+                delimiterSelect: 'none', byteGroupSelect: '1', bytePrefixSelect: 'bs', wrapAfterInput: '0',
+                optIgnoreWhitespace: true, optIgnoreHexPrefixes: true, optLenientParsing: false, oddLength: 'error',
+                optShowOffset: true, optShowAsciiSidebar: true, optUppercaseOffset: false, bytesPerLineInput: '16', offsetBase: 'hex',
+                optBatchTreatAsUtf8: true, optBatchIncludeIndex: false, maxBatchLinesInput: '500'
+            },
+            xxd: {
+                direction: 'encode', optWarnNonAscii: true, optStrictUtf8Decode: false,
+                optOutputLowercase: true, optWholeStringPrefix: false,
+                delimiterSelect: 'space', byteGroupSelect: '2', bytePrefixSelect: 'none', wrapAfterInput: '8',
+                optIgnoreWhitespace: true, optIgnoreHexPrefixes: true, optLenientParsing: false, oddLength: 'error',
+                optShowOffset: true, optShowAsciiSidebar: true, optUppercaseOffset: false, bytesPerLineInput: '16', offsetBase: 'hex',
+                optBatchTreatAsUtf8: true, optBatchIncludeIndex: false, maxBatchLinesInput: '500'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'hexToolCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            scheduleAnalyze();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'hex-tool-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    scheduleAnalyze();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave ----------
+        const DRAFT_INPUT_KEY = 'hexToolDraftInput';
+        const DRAFT_SETTINGS_KEY = 'hexToolLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_INPUT_KEY, document.getElementById('mainInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedInput = localStorage.getItem(DRAFT_INPUT_KEY);
+                if (savedInput !== null) document.getElementById('mainInput').value = savedInput;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        analyze();
+    </script>
+</body>
+</html>
