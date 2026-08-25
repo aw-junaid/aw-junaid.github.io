@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | Wildcard Mask Calculator (Cisco ACL / OSPF)</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free wildcard mask calculator for Cisco ACLs and OSPF network statements. Convert CIDR/subnet mask to wildcard mask and back, generate access-list and OSPF network lines, build discontiguous (non-contiguous) wildcard masks, test whether an IP matches a wildcard rule, and batch-audit ACL lists — 100% client-side." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/wildcard-mask-calculator.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/wildcard-mask-calculator.html" />
+<meta property="og:title" content="Wildcard Mask Calculator — Cisco ACL &amp; OSPF | awjunaid" />
+<meta property="og:description" content="Convert CIDR/subnet masks to wildcard masks and back, generate access-list and OSPF network statements, build discontiguous wildcard masks, check IP matches, and batch-audit ACL rules. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/wildcard-mask-calculator.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Wildcard Mask Calculator — Cisco ACL &amp; OSPF | awjunaid" />
+<meta name="twitter:description" content="Convert CIDR/subnet masks to wildcard masks, generate ACL and OSPF network lines, build discontiguous masks, and test IP matches — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/wildcard-mask-calculator.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #wcInput {
+            width: 100%;
+            min-height: 160px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #wcInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        /* Bit grid (octet visualizer) */
+        .bit-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+        .bit-octet { border: 1px solid var(--border-light); border-radius: 10px; padding: 8px 10px; text-align: center; flex: 1; min-width: 110px; }
+        .bit-octet .oct-label { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 700; }
+        .bit-octet .oct-bits { font-family: var(--font-mono); font-size: 14px; letter-spacing: 2px; }
+        .bit-octet .oct-bits .bit-1 { color: var(--danger); font-weight: 700; }
+        .bit-octet .oct-bits .bit-0 { opacity: 0.55; }
+        .bit-octet .oct-dec { font-family: var(--font-mono); font-size: 11px; opacity: 0.6; margin-top: 4px; }
+
+        /* Utility grid */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #wcInput { min-height: 140px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .bit-octet { min-width: 46%; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">Wildcard Mask Calculator</h1>
+                <div class="tool-dek">Paste a CIDR block, subnet mask, or an existing wildcard mask to convert between them instantly, see the inverted bit pattern per octet, and generate ready-to-paste Cisco <code>access-list</code> and OSPF <code>network</code> statements. Build discontiguous (non-contiguous) wildcard masks for odd matching patterns, test whether a specific IP matches a wildcard rule, and batch-audit whole ACL lists — entirely in your browser, nothing sent to a server.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="acl">Cisco ACL Rule Builder</option>
+                    <option value="ospf">OSPF Network Statements</option>
+                    <option value="discontiguous">Discontiguous Mask Lab</option>
+                    <option value="batch">Batch ACL Audit</option>
+                    <option value="minimal">Minimal / Quick Convert</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Input Interpretation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoDetectInput" checked>
+                            <span><span class="setting-name">Auto-detect input type</span><span class="setting-hint">Recognizes CIDR (<code>/24</code>), a dotted subnet mask (<code>255.255.255.0</code>), or a dotted wildcard mask on its own</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictValidation">
+                            <span><span class="setting-name">Strict octet validation</span><span class="setting-hint">Rejects octets with leading zeros, e.g. "255.255.001.0"</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label>Bare dotted-quad without context means</label>
+                            <select id="bareInputMeaning">
+                                <option value="wildcard">Wildcard mask</option>
+                                <option value="netmask">Subnet mask</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="defaultIpForCidr">Base IP for bare <code>/prefix</code> input</label>
+                            <input type="text" id="defaultIpForCidr" value="192.168.1.0" placeholder="192.168.1.0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Wildcard / Netmask Display</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowNetmask" checked>
+                            <span><span class="setting-name">Show equivalent subnet mask</span><span class="setting-hint">The standard dotted netmask, e.g. 255.255.255.0</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowCidr" checked>
+                            <span><span class="setting-name">Show CIDR prefix</span><span class="setting-hint">Only shown when the mask is contiguous — a discontiguous mask has no single CIDR prefix</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowBinary" checked>
+                            <span><span class="setting-name">Show binary breakdown</span><span class="setting-hint">32-bit binary of the wildcard mask, grouped by octet</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowBitVisualizer" checked>
+                            <span><span class="setting-name">Show per-octet bit visualizer</span><span class="setting-hint">Highlights which bits are "don't care" (1) vs "must match" (0)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowHex">
+                            <span><span class="setting-name">Show hexadecimal</span><span class="setting-hint">Wildcard mask as a 0x-prefixed 32-bit hex integer</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectDiscontiguous" checked>
+                            <span><span class="setting-name">Flag discontiguous masks</span><span class="setting-hint">Warns when the mask's 1-bits aren't a single contiguous block (no equivalent CIDR)</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Matched Network</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowNetworkAddr" checked>
+                            <span><span class="setting-name">Show effective network address</span><span class="setting-hint">The base IP with all "care" bits kept and "don't care" bits zeroed</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowMatchRange" checked>
+                            <span><span class="setting-name">Show matched address range</span><span class="setting-hint">First and last address the wildcard will match (contiguous masks only)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowMatchCount" checked>
+                            <span><span class="setting-name">Show number of matched addresses</span><span class="setting-hint">2^(number of "don't care" bits) — works for both contiguous and discontiguous masks</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Cisco Command Generation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGenStdAcl" checked>
+                            <span><span class="setting-name">Standard numbered ACL line</span><span class="setting-hint"><code>access-list [n] permit [ip] [wildcard]</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGenExtAcl" checked>
+                            <span><span class="setting-name">Extended numbered ACL line</span><span class="setting-hint"><code>access-list [n] permit ip [ip] [wildcard] any</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGenNamedAcl">
+                            <span><span class="setting-name">Named ACL line</span><span class="setting-hint"><code>permit ip [ip] [wildcard] any</code>, for use inside <code>ip access-list extended NAME</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGenOspf" checked>
+                            <span><span class="setting-name">OSPF network statement</span><span class="setting-hint"><code>network [ip] [wildcard] area [n]</code></span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGenEigrp">
+                            <span><span class="setting-name">EIGRP network statement</span><span class="setting-hint"><code>network [ip] [wildcard]</code>, classic-mode EIGRP</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="aclNumber">ACL number</label>
+                            <input type="number" id="aclNumber" min="1" max="199" value="10">
+                        </div>
+                        <div class="field-group">
+                            <label for="aclNameInput">Named ACL name</label>
+                            <input type="text" id="aclNameInput" value="FILTER-IN">
+                        </div>
+                        <div class="field-group">
+                            <label>ACL action</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="aclAction" value="permit" checked> Permit</label>
+                                <label class="radio-opt"><input type="radio" name="aclAction" value="deny"> Deny</label>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="ospfArea">OSPF area</label>
+                            <input type="number" id="ospfArea" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Discontiguous Mask Builder</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optEnableDiscontiguousBuilder">
+                            <span><span class="setting-name">Enable manual per-octet builder</span><span class="setting-hint">Type any 0–255 value per octet (not just power-of-two blocks) to build masks like 0.15.255.0</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" id="discontiguousFields" style="display:none;">
+                        <div class="field-group"><label>Octet 1</label><input type="number" id="disc0" min="0" max="255" value="0"></div>
+                        <div class="field-group"><label>Octet 2</label><input type="number" id="disc1" min="0" max="255" value="0"></div>
+                        <div class="field-group"><label>Octet 3</label><input type="number" id="disc2" min="0" max="255" value="0"></div>
+                        <div class="field-group"><label>Octet 4</label><input type="number" id="disc3" min="0" max="255" value="0"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch Tools</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchGenAcl" checked>
+                            <span><span class="setting-name">Include generated ACL line per batch row</span><span class="setting-hint">Uses the ACL settings above for every line in the batch table</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchSequential">
+                            <span><span class="setting-name">Auto-increment sequence numbers</span><span class="setting-hint">Numbers each named-ACL line by 10s (10, 20, 30…) for easy re-ordering later</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Mask / CIDR / IP Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="wcInput" spellcheck="false" placeholder="192.168.1.0/24
+10.20.0.0 255.255.0.0
+0.0.0.63
+172.16.0.0/22"></textarea>
+                    <div class="input-hint">One entry per line. Accepts <code>IP/prefix</code> (<code>192.168.1.0/24</code>), <code>IP netmask</code> or <code>IP wildcard</code> as two space-separated dotted quads (<code>10.0.0.0 255.255.0.0</code>), or a bare dotted mask on its own (<code>0.0.0.63</code> — interpreted per the "bare input" setting above, paired with the base IP field). The Summary / Bit Grid / Cisco Commands tabs analyze the <strong>first</strong> line; Batch Table covers every line.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip">
+                        <span><strong id="lineCount">0</strong> line(s)</span>
+                        <span><strong id="validCount">0</strong> valid</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyJsonBtn" type="button"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+                            <button class="btn-solid" id="downloadCsvBtn" type="button"><i class="fa-solid fa-download"></i> Download Batch CSV</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="summary" type="button">Summary</button>
+                        <button class="output-tab" data-tab="bits" type="button">Bit Grid</button>
+                        <button class="output-tab" data-tab="match" type="button">Matched Range</button>
+                        <button class="output-tab" data-tab="cisco" type="button">Cisco Commands</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-summary"><div class="empty-pane">Enter a mask, CIDR, or IP/mask pair above to see results.</div></div>
+                    <div class="output-pane" id="pane-bits"><div class="empty-pane">Enter a mask, CIDR, or IP/mask pair above to see results.</div></div>
+                    <div class="output-pane" id="pane-match"><div class="empty-pane">Enter a mask, CIDR, or IP/mask pair above to see results.</div></div>
+                    <div class="output-pane" id="pane-cisco"><div class="empty-pane">Enter a mask, CIDR, or IP/mask pair above to see results.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Add lines to see the batch table.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter a mask, CIDR, or IP/mask pair above to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-magnifying-glass"></i> IP Match Tester</h3>
+                    <div class="utility-note">Enter a network address and wildcard mask, then test whether a specific host IP would be matched by that ACL/OSPF line — before you deploy it.</div>
+                    <div class="field-group">
+                        <label for="matchNetwork">Network address</label>
+                        <input type="text" id="matchNetwork" placeholder="10.20.0.0">
+                    </div>
+                    <div class="field-group">
+                        <label for="matchWildcard">Wildcard mask</label>
+                        <input type="text" id="matchWildcard" placeholder="0.0.255.255">
+                    </div>
+                    <div class="field-group">
+                        <label for="matchTestIp">Host IP to test</label>
+                        <input type="text" id="matchTestIp" placeholder="10.20.5.100">
+                    </div>
+                    <button class="btn-solid small" id="matchCheckBtn" type="button">Check Match</button>
+                    <div class="utility-result" id="matchResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-shuffle"></i> Netmask ⇄ Wildcard Converter</h3>
+                    <div class="utility-note">Quick standalone bit-flip: paste either a subnet mask or a wildcard mask and get the other one back instantly — useful mid-conversation when you don't need the full breakdown.</div>
+                    <div class="field-group">
+                        <label for="quickConvertInput">Subnet mask or wildcard mask</label>
+                        <input type="text" id="quickConvertInput" placeholder="255.255.255.192">
+                    </div>
+                    <button class="btn-solid small" id="quickConvertBtn" type="button">Invert</button>
+                    <div class="utility-result" id="quickConvertResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-code-compare"></i> ACL Line Diff / Summarizer</h3>
+                    <div class="utility-note">Paste two <code>network wildcard</code> pairs (one per line) to see whether they overlap, and if the second is fully covered by the first — handy for spotting redundant ACL entries.</div>
+                    <div class="field-group">
+                        <label for="diffLineA">Rule A — network wildcard</label>
+                        <input type="text" id="diffLineA" placeholder="10.0.0.0 0.255.255.255">
+                    </div>
+                    <div class="field-group">
+                        <label for="diffLineB">Rule B — network wildcard</label>
+                        <input type="text" id="diffLineB" placeholder="10.20.0.0 0.0.255.255">
+                    </div>
+                    <button class="btn-solid small" id="diffCheckBtn" type="button">Compare</button>
+                    <div class="utility-result" id="diffResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What is a wildcard mask, and why isn't it just a subnet mask?</h4>
+                        <p>Cisco IOS uses wildcard masks — not subnet masks — in access-list rules, OSPF <code>network</code> statements, and classic EIGRP configuration. A wildcard mask is the bitwise inverse of a subnet mask: a <code>0</code> bit means "this bit must match exactly" and a <code>1</code> bit means "don't care." So <code>255.255.255.0</code> (netmask) becomes <code>0.0.0.255</code> (wildcard) for the same /24.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's a discontiguous (non-contiguous) wildcard mask?</h4>
+                        <p>A normal subnet mask's 1-bits are always one contiguous block, so it always maps to a clean CIDR prefix. A wildcard mask doesn't have that restriction — IOS will accept <code>0.15.255.0</code>, whose 1-bits are scattered across two octets. These are legal for matching odd, non-CIDR-aligned address patterns, but they have no equivalent <code>/prefix</code> notation, which is why this tool flags them separately.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does the ACL/OSPF command generation work?</h4>
+                        <p>Once a network address and wildcard mask are resolved from your input, the Cisco Commands tab assembles the exact syntax IOS expects for standard and extended numbered ACLs, named ACLs, OSPF <code>network</code> statements, and classic EIGRP <code>network</code> statements — using the ACL number, name, action, and area you set in the settings panel.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How is the "matched address range" calculated?</h4>
+                        <p>For a contiguous wildcard mask, the range is simply the network address through network-address OR wildcard-mask (every "don't care" bit set to 1). For a discontiguous mask this single first/last range doesn't fully describe the match set, so the tool instead reports the total count of matched addresses (2 raised to the number of "don't care" bits) rather than a misleading range.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I build a wildcard mask that isn't a power-of-two block?</h4>
+                        <p>Yes — turn on "Enable manual per-octet builder" under Discontiguous Mask Builder and type any value 0–255 into each octet field. This bypasses CIDR logic entirely and lets you construct arbitrary masks like <code>0.31.0.255</code> for matching scattered address patterns some real-world ACLs actually use.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. All parsing, bit-flipping, range math, and command generation runs entirely in your browser. Your draft input and settings only persist in this browser's local storage so they survive a page reload.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I check whether a specific host is covered by an existing rule?</h4>
+                        <p>Use the IP Match Tester utility card: enter the rule's network address and wildcard mask plus the host IP you want to verify, and it reports a clear match / no-match result along with the reasoning per octet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // WILDCARD MASK CALCULATOR — ENGINE
+        // ============================================
+
+        // ---------- IPv4 primitives ----------
+        function parseIPv4(str, opts) {
+            if (typeof str !== 'string') return null;
+            const s = str.trim();
+            const m = s.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+            if (!m) return null;
+            const parts = m.slice(1, 5);
+            if (opts && opts.strictValidation) {
+                if (parts.some(p => p.length > 1 && p[0] === '0')) return null;
+            }
+            const octs = parts.map(p => parseInt(p, 10));
+            if (octs.some(o => o < 0 || o > 255)) return null;
+            return octs;
+        }
+        function ipv4ToInt(o) { return ((o[0] * 16777216) + (o[1] * 65536) + (o[2] * 256) + o[3]) >>> 0; }
+        function intToIPv4(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
+        function prefixToNetmaskInt(prefix) {
+            if (prefix <= 0) return 0;
+            if (prefix >= 32) return 0xFFFFFFFF >>> 0;
+            return (0xFFFFFFFF << (32 - prefix)) >>> 0;
+        }
+        function invertInt(n) { return (~n) >>> 0; }
+        function isContiguousMaskInt(wildcardInt) {
+            // wildcard mask is contiguous if the NETMASK (its inverse) has a contiguous run of 1s from the top.
+            const netmaskInt = invertInt(wildcardInt);
+            let seenZero = false;
+            for (let i = 31; i >= 0; i--) {
+                const bit = (netmaskInt >>> i) & 1;
+                if (bit === 1) { if (seenZero) return false; }
+                else { seenZero = true; }
+            }
+            return true;
+        }
+        function netmaskIntToPrefix(netmaskInt) {
+            let count = 0;
+            for (let i = 31; i >= 0; i--) { if ((netmaskInt >>> i) & 1) count++; else break; }
+            return count;
+        }
+        function popcount32(n) {
+            n = n >>> 0;
+            let c = 0;
+            while (n) { c += n & 1; n >>>= 1; }
+            return c;
+        }
+
+        // ---------- Line parsing ----------
+        // Accepts:
+        //   "IP/prefix"                -> CIDR
+        //   "IP MASK"                  -> IP + (netmask or wildcard depending on setting/heuristic)
+        //   "MASK" alone               -> bare mask (netmask or wildcard depending on setting), paired with defaultIpForCidr
+        function parseLine(line, opts) {
+            line = line.trim();
+            if (!line) return null;
+            const result = { raw: line, valid: false, error: null };
+
+            // CIDR form: IP/prefix
+            if (line.includes('/')) {
+                const idx = line.lastIndexOf('/');
+                const ipPart = line.slice(0, idx).trim();
+                const prefixPart = line.slice(idx + 1).trim();
+                const octs = parseIPv4(ipPart, opts);
+                if (!octs) { result.error = 'Invalid IPv4 address before "/"'; return result; }
+                const prefix = parseInt(prefixPart, 10);
+                if (isNaN(prefix) || prefix < 0 || prefix > 32) { result.error = 'Invalid prefix length (0–32)'; return result; }
+                const netmaskInt = prefixToNetmaskInt(prefix);
+                result.baseIp = octs;
+                result.baseIpInt = ipv4ToInt(octs);
+                result.netmaskInt = netmaskInt;
+                result.wildcardInt = invertInt(netmaskInt);
+                result.sourceForm = 'cidr';
+                result.prefix = prefix;
+                result.valid = true;
+                return result;
+            }
+
+            // Two-token form: "IP MASK"
+            const tokens = line.split(/\s+/).filter(Boolean);
+            if (tokens.length === 2) {
+                const octsA = parseIPv4(tokens[0], opts);
+                const octsB = parseIPv4(tokens[1], opts);
+                if (!octsA || !octsB) { result.error = 'Both tokens must be valid dotted-quad values'; return result; }
+                const maskInt = ipv4ToInt(octsB);
+                // Heuristic: if second token, when inverted, forms a contiguous netmask AND is itself NOT a "clean descending" netmask pattern
+                // more reliably: decide netmask-vs-wildcard by testing which interpretation is contiguous.
+                const asNetmaskContiguous = isContiguousNetmaskInt(maskInt);
+                const asWildcardContiguous = isContiguousMaskInt(maskInt);
+                let treated;
+                if (asNetmaskContiguous && !asWildcardContiguous) treated = 'netmask';
+                else if (!asNetmaskContiguous && asWildcardContiguous) treated = 'wildcard';
+                else treated = opts.bareInputMeaning; // ambiguous (e.g. all-0s, all-1s, or genuinely discontiguous either way) -> use setting
+                result.baseIp = octsA;
+                result.baseIpInt = ipv4ToInt(octsA);
+                if (treated === 'netmask') {
+                    result.netmaskInt = maskInt;
+                    result.wildcardInt = invertInt(maskInt);
+                } else {
+                    result.wildcardInt = maskInt;
+                    result.netmaskInt = invertInt(maskInt);
+                }
+                result.sourceForm = 'ip-mask (' + treated + ')';
+                result.valid = true;
+                return result;
+            }
+
+            // Single-token bare mask
+            if (tokens.length === 1) {
+                const octs = parseIPv4(tokens[0], opts);
+                if (!octs) { result.error = 'Not a valid dotted-quad mask, CIDR, or IP/mask pair'; return result; }
+                const maskInt = ipv4ToInt(octs);
+                const baseOcts = parseIPv4(opts.defaultIpForCidr, opts) || [192, 168, 1, 0];
+                result.baseIp = baseOcts;
+                result.baseIpInt = ipv4ToInt(baseOcts);
+                if (opts.bareInputMeaning === 'netmask') {
+                    result.netmaskInt = maskInt;
+                    result.wildcardInt = invertInt(maskInt);
+                } else {
+                    result.wildcardInt = maskInt;
+                    result.netmaskInt = invertInt(maskInt);
+                }
+                result.sourceForm = 'bare-mask (' + opts.bareInputMeaning + ')';
+                result.valid = true;
+                return result;
+            }
+
+            result.error = 'Could not parse — use IP/prefix, "IP MASK", or a bare dotted mask';
+            return result;
+        }
+        function isContiguousNetmaskInt(netmaskInt) {
+            let seenZero = false;
+            for (let i = 31; i >= 0; i--) {
+                const bit = (netmaskInt >>> i) & 1;
+                if (bit === 1) { if (seenZero) return false; }
+                else { seenZero = true; }
+            }
+            return true;
+        }
+
+        // ---------- Derived computations ----------
+        function computeDetails(r, opts) {
+            const d = {};
+            d.wildcardDotted = intToIPv4(r.wildcardInt);
+            d.netmaskDotted = intToIPv4(r.netmaskInt);
+            d.contiguous = isContiguousMaskInt(r.wildcardInt);
+            d.prefix = d.contiguous ? netmaskIntToPrefix(r.netmaskInt) : null;
+            d.dontCareBits = popcount32(r.wildcardInt);
+            d.careBits = 32 - d.dontCareBits;
+            d.matchCount = Math.pow(2, d.dontCareBits);
+            let hex = r.wildcardInt.toString(16).padStart(8, '0');
+            d.hex = '0x' + hex;
+
+            const networkInt = (r.baseIpInt & r.netmaskInt) >>> 0;
+            d.networkAddr = intToIPv4(networkInt);
+            if (d.contiguous) {
+                const lastInt = (networkInt | r.wildcardInt) >>> 0;
+                d.rangeFirst = intToIPv4(networkInt);
+                d.rangeLast = intToIPv4(lastInt);
+            } else {
+                d.rangeFirst = null;
+                d.rangeLast = null;
+            }
+
+            // per-octet bit breakdown
+            const wOcts = [(r.wildcardInt >>> 24) & 255, (r.wildcardInt >>> 16) & 255, (r.wildcardInt >>> 8) & 255, r.wildcardInt & 255];
+            const nOcts = [(networkInt >>> 24) & 255, (networkInt >>> 16) & 255, (networkInt >>> 8) & 255, networkInt & 255];
+            d.wildcardOctets = wOcts;
+            d.networkOctets = nOcts;
+
+            return d;
+        }
+
+        function matchesWildcard(ipInt, networkInt, wildcardInt) {
+            return ((ipInt & invertInt(wildcardInt)) >>> 0) === ((networkInt & invertInt(wildcardInt)) >>> 0);
+        }
+
+        function getOptions() {
+            return {
+                autoDetectInput: document.getElementById('optAutoDetectInput').checked,
+                strictValidation: document.getElementById('optStrictValidation').checked,
+                bareInputMeaning: document.getElementById('bareInputMeaning').value,
+                defaultIpForCidr: document.getElementById('defaultIpForCidr').value.trim() || '192.168.1.0',
+                showNetmask: document.getElementById('optShowNetmask').checked,
+                showCidr: document.getElementById('optShowCidr').checked,
+                showBinary: document.getElementById('optShowBinary').checked,
+                showBitVisualizer: document.getElementById('optShowBitVisualizer').checked,
+                showHex: document.getElementById('optShowHex').checked,
+                detectDiscontiguous: document.getElementById('optDetectDiscontiguous').checked,
+                showNetworkAddr: document.getElementById('optShowNetworkAddr').checked,
+                showMatchRange: document.getElementById('optShowMatchRange').checked,
+                showMatchCount: document.getElementById('optShowMatchCount').checked,
+                genStdAcl: document.getElementById('optGenStdAcl').checked,
+                genExtAcl: document.getElementById('optGenExtAcl').checked,
+                genNamedAcl: document.getElementById('optGenNamedAcl').checked,
+                genOspf: document.getElementById('optGenOspf').checked,
+                genEigrp: document.getElementById('optGenEigrp').checked,
+                aclNumber: parseInt(document.getElementById('aclNumber').value, 10) || 10,
+                aclName: document.getElementById('aclNameInput').value.trim() || 'FILTER-IN',
+                aclAction: (document.querySelector('input[name="aclAction"]:checked') || {}).value || 'permit',
+                ospfArea: document.getElementById('ospfArea').value.trim() || '0',
+                enableDiscontiguousBuilder: document.getElementById('optEnableDiscontiguousBuilder').checked,
+                discOctets: [0, 1, 2, 3].map(i => Math.max(0, Math.min(255, parseInt(document.getElementById('disc' + i).value, 10) || 0))),
+                batchGenAcl: document.getElementById('optBatchGenAcl').checked,
+                batchSequential: document.getElementById('optBatchSequential').checked
+            };
+        }
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        let lastAnalysis = { primary: null, batch: [] };
+
+        function analyze() {
+            const opts = getOptions();
+            const raw = document.getElementById('wcInput').value;
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+
+            const errorBox = document.getElementById('errorBox');
+            let results = lines.map(l => parseLine(l, opts));
+
+            // If manual discontiguous builder is enabled, override the primary result's wildcard with the built one,
+            // using the first valid line's base IP (or the default IP field) as the network base.
+            if (opts.enableDiscontiguousBuilder) {
+                const builtWildcardInt = ((opts.discOctets[0] << 24) | (opts.discOctets[1] << 16) | (opts.discOctets[2] << 8) | opts.discOctets[3]) >>> 0;
+                const baseOcts = parseIPv4(opts.defaultIpForCidr, opts) || [192, 168, 1, 0];
+                const builtResult = {
+                    raw: '(manual builder) ' + intToIPv4(builtWildcardInt),
+                    valid: true, error: null,
+                    baseIp: baseOcts, baseIpInt: ipv4ToInt(baseOcts),
+                    wildcardInt: builtWildcardInt, netmaskInt: invertInt(builtWildcardInt),
+                    sourceForm: 'manual-builder'
+                };
+                results = [builtResult, ...results];
+            }
+
+            const validCount = results.filter(r => r && r.valid).length;
+            document.getElementById('validCount').textContent = validCount;
+
+            const firstInvalid = results.find(r => r && !r.valid);
+            if (firstInvalid) {
+                errorBox.textContent = '"' + firstInvalid.raw + '" — ' + firstInvalid.error;
+                errorBox.classList.add('show');
+            } else {
+                errorBox.classList.remove('show');
+            }
+
+            lastAnalysis.batch = results;
+            const primary = results.find(r => r && r.valid) || null;
+            lastAnalysis.primary = primary;
+
+            renderSummary(primary, opts);
+            renderBits(primary, opts);
+            renderMatch(primary, opts);
+            renderCisco(primary, opts);
+            renderBatch(results, opts);
+            renderJson(primary, results, opts);
+        }
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function renderSummary(r, opts) {
+            if (!r) { paneEmpty('pane-summary', 'Enter a valid mask, CIDR, or IP/mask pair above.'); return; }
+            const d = computeDetails(r, opts);
+            let rows = [];
+            rows.push(['Input', escapeHtml(r.raw)]);
+            rows.push(['Interpreted as', r.sourceForm]);
+            rows.push(['Base / network IP', intToIPv4(r.baseIpInt)]);
+            if (opts.showNetmask) rows.push(['Subnet mask', d.netmaskDotted]);
+            rows.push(['Wildcard mask', d.wildcardDotted]);
+            if (opts.showCidr) rows.push(['CIDR prefix', d.contiguous ? ('/' + d.prefix) : '— (discontiguous, no CIDR equivalent)']);
+            if (opts.showHex) rows.push(['Wildcard (hex)', opts.showHex ? d.hex : '']);
+            if (opts.detectDiscontiguous) rows.push(['Contiguous?', '__CONTIG_BADGE__']);
+            rows.push(['"Don\'t care" bits', d.dontCareBits + ' of 32']);
+            if (opts.showMatchCount) rows.push(['Addresses matched', d.matchCount.toLocaleString()]);
+
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) {
+                let val = v;
+                if (v === '__CONTIG_BADGE__') {
+                    val = d.contiguous ? '<span class="badge public">Contiguous (CIDR-equivalent)</span>' : '<span class="badge private">Discontiguous — no /prefix</span>';
+                }
+                html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + val + '</td></tr>';
+            }
+            html += '</table>';
+            document.getElementById('pane-summary').innerHTML = html;
+        }
+
+        function renderBits(r, opts) {
+            if (!r) { paneEmpty('pane-bits', 'Enter a valid mask, CIDR, or IP/mask pair above.'); return; }
+            const d = computeDetails(r, opts);
+            let html = '';
+            if (opts.showBinary) {
+                const wBin = d.wildcardOctets.map(o => o.toString(2).padStart(8, '0')).join('.');
+                const nBin = [(r.netmaskInt >>> 24) & 255, (r.netmaskInt >>> 16) & 255, (r.netmaskInt >>> 8) & 255, r.netmaskInt & 255].map(o => o.toString(2).padStart(8, '0')).join('.');
+                html += '<table class="kv-table">';
+                html += '<tr><td class="k">Wildcard binary</td><td class="v">' + escapeHtml(wBin) + '</td></tr>';
+                if (opts.showNetmask) html += '<tr><td class="k">Netmask binary</td><td class="v">' + escapeHtml(nBin) + '</td></tr>';
+                html += '</table>';
+            }
+            if (opts.showBitVisualizer) {
+                html += '<div style="margin-top:14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;opacity:0.6;margin-bottom:8px;">Per-octet bit map — <span style="color:var(--danger);">red = don\'t care (1)</span>, dim = must match (0)</div>';
+                html += '<div class="bit-grid">';
+                for (let i = 0; i < 4; i++) {
+                    const val = d.wildcardOctets[i];
+                    const bits = val.toString(2).padStart(8, '0');
+                    const spans = bits.split('').map(b => '<span class="' + (b === '1' ? 'bit-1' : 'bit-0') + '">' + b + '</span>').join('');
+                    html += '<div class="bit-octet"><div class="oct-label">Octet ' + (i + 1) + '</div><div class="oct-bits">' + spans + '</div><div class="oct-dec">= ' + val + '</div></div>';
+                }
+                html += '</div>';
+            }
+            if (!opts.showBinary && !opts.showBitVisualizer) { paneEmpty('pane-bits', 'Both bit-display options are turned off in settings.'); return; }
+            document.getElementById('pane-bits').innerHTML = html;
+        }
+
+        function renderMatch(r, opts) {
+            if (!r) { paneEmpty('pane-match', 'Enter a valid mask, CIDR, or IP/mask pair above.'); return; }
+            const d = computeDetails(r, opts);
+            let rows = [];
+            if (opts.showNetworkAddr) rows.push(['Effective network address', d.networkAddr]);
+            if (opts.showMatchRange) {
+                if (d.contiguous) rows.push(['Matched range', d.rangeFirst + ' – ' + d.rangeLast]);
+                else rows.push(['Matched range', 'Not a single contiguous range (discontiguous mask) — see address count below']);
+            }
+            if (opts.showMatchCount) rows.push(['Total addresses matched', d.matchCount.toLocaleString()]);
+            if (rows.length === 0) { paneEmpty('pane-match', 'All matched-range display options are turned off in settings.'); return; }
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+            html += '</table>';
+            document.getElementById('pane-match').innerHTML = html;
+        }
+
+        function buildCiscoLines(r, opts) {
+            const d = computeDetails(r, opts);
+            const ip = d.networkAddr;
+            const wc = d.wildcardDotted;
+            const lines = [];
+            let seq = 10;
+            if (opts.genStdAcl) lines.push({ label: 'Standard numbered ACL', cmd: 'access-list ' + opts.aclNumber + ' ' + opts.aclAction + ' ' + ip + ' ' + wc });
+            if (opts.genExtAcl) lines.push({ label: 'Extended numbered ACL', cmd: 'access-list ' + opts.aclNumber + ' ' + opts.aclAction + ' ip ' + ip + ' ' + wc + ' any' });
+            if (opts.genNamedAcl) {
+                const prefix = opts.batchSequential ? (seq + ' ') : '';
+                lines.push({ label: 'Named ACL (inside "ip access-list extended ' + opts.aclName + '")', cmd: prefix + opts.aclAction + ' ip ' + ip + ' ' + wc + ' any' });
+            }
+            if (opts.genOspf) lines.push({ label: 'OSPF network statement', cmd: 'network ' + ip + ' ' + wc + ' area ' + opts.ospfArea });
+            if (opts.genEigrp) lines.push({ label: 'EIGRP network statement', cmd: 'network ' + ip + ' ' + wc });
+            return lines;
+        }
+
+        function renderCisco(r, opts) {
+            if (!r) { paneEmpty('pane-cisco', 'Enter a valid mask, CIDR, or IP/mask pair above.'); return; }
+            const lines = buildCiscoLines(r, opts);
+            if (lines.length === 0) { paneEmpty('pane-cisco', 'All Cisco command-generation options are turned off in settings.'); return; }
+            let html = '';
+            for (const l of lines) {
+                html += '<div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;opacity:0.6;margin-bottom:6px;">' + escapeHtml(l.label) + '</div><div class="mono-box">' + escapeHtml(l.cmd) + '</div></div>';
+            }
+            document.getElementById('pane-cisco').innerHTML = html;
+        }
+
+        function renderBatch(results, opts) {
+            const valid = results.filter(r => r);
+            if (valid.length === 0) { paneEmpty('pane-batch', 'Add lines to see the batch table.'); return; }
+            let cols = ['Input', 'Network', 'Wildcard', 'Netmask', 'CIDR', 'Contiguous', 'Matched'];
+            if (opts.batchGenAcl) cols.push('ACL Line');
+
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+            let seq = 10;
+            for (const r of valid) {
+                if (!r.valid) {
+                    html += '<tr><td>' + escapeHtml(r.raw) + '</td><td colspan="' + (cols.length - 1) + '" style="color:var(--danger);">' + escapeHtml(r.error) + '</td></tr>';
+                    continue;
+                }
+                const d = computeDetails(r, opts);
+                let cells = [escapeHtml(r.raw), d.networkAddr, d.wildcardDotted, d.netmaskDotted, d.contiguous ? ('/' + d.prefix) : '—', d.contiguous ? 'Yes' : 'No', d.matchCount.toLocaleString()];
+                if (opts.batchGenAcl) {
+                    const aclLine = 'access-list ' + opts.aclNumber + ' ' + opts.aclAction + ' ip ' + d.networkAddr + ' ' + d.wildcardDotted + ' any';
+                    cells.push((opts.batchSequential ? (seq + ' ') : '') + escapeHtml(aclLine));
+                    seq += 10;
+                }
+                html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('pane-batch').innerHTML = html;
+        }
+
+        function buildJsonForLine(r, opts) {
+            if (!r) return null;
+            if (!r.valid) return { input: r.raw, valid: false, error: r.error };
+            const d = computeDetails(r, opts);
+            return {
+                input: r.raw, valid: true, interpretedAs: r.sourceForm,
+                networkAddress: d.networkAddr, wildcardMask: d.wildcardDotted, subnetMask: d.netmaskDotted,
+                cidrPrefix: d.contiguous ? d.prefix : null, contiguous: d.contiguous,
+                hex: d.hex, dontCareBits: d.dontCareBits, careBits: d.careBits, addressesMatched: d.matchCount,
+                matchedRange: d.contiguous ? { first: d.rangeFirst, last: d.rangeLast } : null,
+                cisco: buildCiscoLines(r, opts).reduce((acc, l) => { acc[l.label] = l.cmd; return acc; }, {})
+            };
+        }
+
+        function renderJson(primary, results, opts) {
+            const batch = results.filter(r => r).map(r => buildJsonForLine(r, opts));
+            const out = { primary: primary ? buildJsonForLine(primary, opts) : null, batch };
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring ----------
+        document.getElementById('wcInput').addEventListener('input', analyze);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; analyze(); });
+        });
+
+        document.getElementById('optEnableDiscontiguousBuilder').addEventListener('change', (e) => {
+            document.getElementById('discontiguousFields').style.display = e.target.checked ? 'grid' : 'none';
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('wcInput').value = '';
+            analyze();
+            document.getElementById('wcInput').focus();
+        });
+
+        document.getElementById('copyJsonBtn').addEventListener('click', async () => {
+            const text = document.getElementById('jsonOut').textContent;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const rows = lastAnalysis.batch.filter(r => r);
+            if (rows.length === 0) return;
+            const header = ['input', 'valid', 'network', 'wildcard', 'netmask', 'cidr', 'contiguous', 'addressesMatched', 'aclLine', 'error'];
+            const lines = [header.join(',')];
+            let seq = 10;
+            for (const r of rows) {
+                if (!r.valid) { lines.push([csvCell(r.raw), 'false', '', '', '', '', '', '', '', csvCell(r.error)].join(',')); continue; }
+                const d = computeDetails(r, opts);
+                const aclLine = 'access-list ' + opts.aclNumber + ' ' + opts.aclAction + ' ip ' + d.networkAddr + ' ' + d.wildcardDotted + ' any';
+                lines.push([
+                    csvCell(r.raw), 'true', csvCell(d.networkAddr), csvCell(d.wildcardDotted), csvCell(d.netmaskDotted),
+                    csvCell(d.contiguous ? ('/' + d.prefix) : ''), d.contiguous ? 'true' : 'false', d.matchCount, csvCell(aclLine), ''
+                ].join(','));
+                seq += 10;
+            }
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'wildcard-mask-audit.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        function csvCell(s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; }
+
+        // ---------- IP Match Tester ----------
+        document.getElementById('matchCheckBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('matchResult');
+            const netOcts = parseIPv4(document.getElementById('matchNetwork').value.trim(), opts);
+            const wcOcts = parseIPv4(document.getElementById('matchWildcard').value.trim(), opts);
+            const testOcts = parseIPv4(document.getElementById('matchTestIp').value.trim(), opts);
+            if (!netOcts || !wcOcts || !testOcts) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter three valid dotted-quad values.</div>'; return; }
+            const netInt = ipv4ToInt(netOcts), wcInt = ipv4ToInt(wcOcts), testInt = ipv4ToInt(testOcts);
+            const match = matchesWildcard(testInt, netInt, wcInt);
+            let perOctet = '';
+            for (let i = 0; i < 4; i++) {
+                const shift = (3 - i) * 8;
+                const nB = (netInt >>> shift) & 255, wB = (wcInt >>> shift) & 255, tB = (testInt >>> shift) & 255;
+                const careMask = (~wB) & 255;
+                const ok = (nB & careMask) === (tB & careMask);
+                perOctet += 'Octet ' + (i + 1) + ': network=' + nB + ' wildcard=' + wB + ' test=' + tB + ' → ' + (ok ? 'OK' : 'MISMATCH') + '\n';
+            }
+            resultEl.innerHTML =
+                '<div style="margin-bottom:8px;"><span class="badge ' + (match ? 'public' : 'invalid') + '">' + (match ? 'Match' : 'No match') + '</span></div>' +
+                '<div class="mono-box" style="font-size:11.5px;">' + escapeHtml(perOctet.trim()) + '</div>';
+        });
+
+        // ---------- Quick Netmask/Wildcard converter ----------
+        document.getElementById('quickConvertBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('quickConvertResult');
+            const octs = parseIPv4(document.getElementById('quickConvertInput').value.trim(), opts);
+            if (!octs) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a valid dotted-quad mask.</div>'; return; }
+            const inInt = ipv4ToInt(octs);
+            const outInt = invertInt(inInt);
+            const inputLooksLikeNetmask = isContiguousNetmaskInt(inInt);
+            resultEl.innerHTML =
+                '<div class="mono-box">Input: ' + escapeHtml(intToIPv4(inInt)) + (inputLooksLikeNetmask ? ' (looks like a subnet mask)' : '') + '\nInverted: ' + escapeHtml(intToIPv4(outInt)) + '</div>';
+        });
+
+        // ---------- ACL Line Diff / Summarizer ----------
+        function parseNetWildcardPair(str, opts) {
+            const tokens = str.trim().split(/\s+/).filter(Boolean);
+            if (tokens.length !== 2) return null;
+            const net = parseIPv4(tokens[0], opts);
+            const wc = parseIPv4(tokens[1], opts);
+            if (!net || !wc) return null;
+            return { netInt: ipv4ToInt(net), wcInt: ipv4ToInt(wc) };
+        }
+        document.getElementById('diffCheckBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('diffResult');
+            const a = parseNetWildcardPair(document.getElementById('diffLineA').value, opts);
+            const b = parseNetWildcardPair(document.getElementById('diffLineB').value, opts);
+            if (!a || !b) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter both rules as "network wildcard" (two dotted quads separated by a space).</div>'; return; }
+
+            // B fully covered by A: every address matched by B must be matched by A.
+            // Using care-masks: careA = ~wcA, careB = ~wcB. B covered by A requires careA is subset of careB's "don't care" complement logic:
+            // Simplify: B ⊆ A iff (careA & careB) == careA  AND  (netA & careA) == (netB & careA)
+            const careA = invertInt(a.wcInt), careB = invertInt(b.wcInt);
+            const aSubsetTest = ((careA & careB) >>> 0) === careA;
+            const netAligned = ((a.netInt & careA) >>> 0) === ((b.netInt & careA) >>> 0);
+            const bCoveredByA = aSubsetTest && netAligned;
+
+            const careAB = invertInt(a.wcInt) & invertInt(b.wcInt);
+            const overlap = ((a.netInt & careAB) >>> 0) === ((b.netInt & careAB) >>> 0);
+
+            let verdict;
+            if (bCoveredByA) verdict = 'Rule B is fully covered by Rule A (Rule B may be redundant).';
+            else if (overlap) verdict = 'Rules A and B overlap partially, but neither fully covers the other.';
+            else verdict = 'Rules A and B do not overlap at all.';
+
+            resultEl.innerHTML =
+                '<div style="margin-bottom:8px;"><span class="badge ' + (bCoveredByA ? 'private' : (overlap ? 'public' : 'invalid')) + '">' + (bCoveredByA ? 'B ⊆ A' : (overlap ? 'Overlap' : 'Disjoint')) + '</span></div>' +
+                '<div class="mono-box" style="font-size:11.5px;">' + escapeHtml(verdict) + '\n\nRule A: ' + intToIPv4(a.netInt) + ' ' + intToIPv4(a.wcInt) + '\nRule B: ' + intToIPv4(b.netInt) + ' ' + intToIPv4(b.wcInt) + '</div>';
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optAutoDetectInput', 'optStrictValidation', 'optShowNetmask', 'optShowCidr', 'optShowBinary', 'optShowBitVisualizer', 'optShowHex', 'optDetectDiscontiguous', 'optShowNetworkAddr', 'optShowMatchRange', 'optShowMatchCount', 'optGenStdAcl', 'optGenExtAcl', 'optGenNamedAcl', 'optGenOspf', 'optGenEigrp', 'optEnableDiscontiguousBuilder', 'optBatchGenAcl', 'optBatchSequential'],
+            text: ['defaultIpForCidr', 'aclNumber', 'aclNameInput', 'ospfArea', 'disc0', 'disc1', 'disc2', 'disc3'],
+            select: ['bareInputMeaning'],
+            radio: ['aclAction']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+            document.getElementById('discontiguousFields').style.display = document.getElementById('optEnableDiscontiguousBuilder').checked ? 'grid' : 'none';
+        }
+
+        const BUILTIN_PRESETS = {
+            acl: {
+                optAutoDetectInput: true, optStrictValidation: false, bareInputMeaning: 'wildcard', defaultIpForCidr: '192.168.1.0',
+                optShowNetmask: true, optShowCidr: true, optShowBinary: true, optShowBitVisualizer: true, optShowHex: false, optDetectDiscontiguous: true,
+                optShowNetworkAddr: true, optShowMatchRange: true, optShowMatchCount: true,
+                optGenStdAcl: true, optGenExtAcl: true, optGenNamedAcl: true, optGenOspf: false, optGenEigrp: false,
+                aclNumber: '110', aclNameInput: 'FILTER-IN', aclAction: 'permit', ospfArea: '0',
+                optEnableDiscontiguousBuilder: false, disc0: '0', disc1: '0', disc2: '0', disc3: '0',
+                optBatchGenAcl: true, optBatchSequential: true
+            },
+            ospf: {
+                optAutoDetectInput: true, optStrictValidation: false, bareInputMeaning: 'wildcard', defaultIpForCidr: '10.0.0.0',
+                optShowNetmask: true, optShowCidr: true, optShowBinary: false, optShowBitVisualizer: false, optShowHex: false, optDetectDiscontiguous: true,
+                optShowNetworkAddr: true, optShowMatchRange: true, optShowMatchCount: false,
+                optGenStdAcl: false, optGenExtAcl: false, optGenNamedAcl: false, optGenOspf: true, optGenEigrp: true,
+                aclNumber: '10', aclNameInput: 'FILTER-IN', aclAction: 'permit', ospfArea: '0',
+                optEnableDiscontiguousBuilder: false, disc0: '0', disc1: '0', disc2: '0', disc3: '0',
+                optBatchGenAcl: false, optBatchSequential: false
+            },
+            discontiguous: {
+                optAutoDetectInput: true, optStrictValidation: false, bareInputMeaning: 'wildcard', defaultIpForCidr: '172.16.0.0',
+                optShowNetmask: true, optShowCidr: true, optShowBinary: true, optShowBitVisualizer: true, optShowHex: true, optDetectDiscontiguous: true,
+                optShowNetworkAddr: true, optShowMatchRange: true, optShowMatchCount: true,
+                optGenStdAcl: false, optGenExtAcl: true, optGenNamedAcl: false, optGenOspf: false, optGenEigrp: false,
+                aclNumber: '110', aclNameInput: 'FILTER-IN', aclAction: 'permit', ospfArea: '0',
+                optEnableDiscontiguousBuilder: true, disc0: '0', disc1: '15', disc2: '255', disc3: '0',
+                optBatchGenAcl: false, optBatchSequential: false
+            },
+            batch: {
+                optAutoDetectInput: true, optStrictValidation: true, bareInputMeaning: 'wildcard', defaultIpForCidr: '192.168.1.0',
+                optShowNetmask: true, optShowCidr: true, optShowBinary: false, optShowBitVisualizer: false, optShowHex: false, optDetectDiscontiguous: true,
+                optShowNetworkAddr: true, optShowMatchRange: false, optShowMatchCount: true,
+                optGenStdAcl: false, optGenExtAcl: false, optGenNamedAcl: false, optGenOspf: false, optGenEigrp: false,
+                aclNumber: '110', aclNameInput: 'FILTER-IN', aclAction: 'permit', ospfArea: '0',
+                optEnableDiscontiguousBuilder: false, disc0: '0', disc1: '0', disc2: '0', disc3: '0',
+                optBatchGenAcl: true, optBatchSequential: true
+            },
+            minimal: {
+                optAutoDetectInput: true, optStrictValidation: false, bareInputMeaning: 'wildcard', defaultIpForCidr: '192.168.1.0',
+                optShowNetmask: true, optShowCidr: true, optShowBinary: false, optShowBitVisualizer: false, optShowHex: false, optDetectDiscontiguous: false,
+                optShowNetworkAddr: false, optShowMatchRange: false, optShowMatchCount: false,
+                optGenStdAcl: false, optGenExtAcl: false, optGenNamedAcl: false, optGenOspf: false, optGenEigrp: false,
+                aclNumber: '10', aclNameInput: 'FILTER-IN', aclAction: 'permit', ospfArea: '0',
+                optEnableDiscontiguousBuilder: false, disc0: '0', disc1: '0', disc2: '0', disc3: '0',
+                optBatchGenAcl: false, optBatchSequential: false
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'wildcardCalcCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            analyze();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'wildcard-calc-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    analyze();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave ----------
+        const DRAFT_KEY = 'wildcardCalcDraft';
+        const DRAFT_SETTINGS_KEY = 'wildcardCalcLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, document.getElementById('wcInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        document.getElementById('wcInput').addEventListener('input', saveDraft);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => el.addEventListener('input', saveDraft));
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') document.getElementById('wcInput').value = savedDraft;
+                else document.getElementById('wcInput').value = '192.168.1.0/24\n10.20.0.0 255.255.0.0\n0.0.0.63\n172.16.0.0/22';
+            } catch (err) {
+                document.getElementById('wcInput').value = '192.168.1.0/24\n10.20.0.0 255.255.0.0\n0.0.0.63\n172.16.0.0/22';
+            }
+        })();
+
+        // Initial run
+        analyze();
+    </script>
+</body>
+</html>
