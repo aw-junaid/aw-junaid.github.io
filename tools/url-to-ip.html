@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | URL to IP Resolver & DNS Resolution Checker</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free URL to IP resolver. Paste any URL or hostname to resolve its A/AAAA records, follow the CNAME chain, cross-check the answer across Cloudflare, Google and Quad9, run reverse DNS (PTR) and forward-confirmed reverse DNS checks, flag private/internal IPs for SSRF safety, and batch-resolve a whole list — 100% client-side over DNS-over-HTTPS." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/url-to-ip.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/url-to-ip.html" />
+<meta property="og:title" content="URL to IP Resolver & DNS Resolution Checker — awjunaid" />
+<meta property="og:description" content="Resolve any URL or hostname to its A/AAAA records, follow the CNAME chain, cross-check across multiple public resolvers, run reverse DNS and forward-confirmed reverse DNS checks, flag private/internal IPs for SSRF safety, and batch-resolve a list of URLs. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/url-to-ip.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="URL to IP Resolver & DNS Resolution Checker — awjunaid" />
+<meta name="twitter:description" content="URL/hostname to A/AAAA resolution with CNAME chains, cross-resolver checks, reverse DNS, SSRF-safe private IP flagging, and batch auditing. Free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/url-to-ip.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-primary: #ffffff; --bg-secondary: #f5f5f5; --bg-color: #ffffff;
+            --text-primary: #000000; --text-secondary: #333333; --text-color: #000000;
+            --border-color: #000000; --border-light: #e0e0e0; --input-bg: #ffffff;
+            --hover-bg: #000000; --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif; --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4; --note-bg: #fff9c4; --content-width: 1280px;
+            --accent: #10b981; --danger: #ef4444; --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000; --bg-secondary: #0a0a0a; --bg-color: #000000;
+            --text-primary: #ffffff; --text-secondary: #aaaaaa; --text-color: #ffffff;
+            --border-color: #ffffff; --border-light: #2a2a2a; --input-bg: #111111;
+            --hover-bg: #ffffff; --hover-text: #000000; --code-bg: #111111; --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-body);
+            display: flex; flex-direction: column; min-height: 100vh; transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased; overflow-x: hidden; line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        header { border-bottom: 1px solid var(--border-color); padding: 16px 0; width: 100%; z-index: 1000; position: sticky; top: 0; background-color: var(--bg-color); transition: all 0.3s ease; }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content { display: none; position: absolute; background-color: var(--bg-color); min-width: 200px; border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0; box-shadow: 0 6px 12px rgba(0,0,0,0.05); }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700; text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap; }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        .tool-hero { margin: 48px 0 32px; border-bottom: 2px solid var(--border-color); padding-bottom: 28px; }
+        .tool-eyebrow { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800; margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .tool-title { font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px; }
+        .tool-dek { font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px; border-left: 2px solid var(--border-color); padding-left: 20px; }
+
+        .preset-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0; }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select { padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600; }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        .settings-card { border: 1px solid var(--border-light); border-radius: 20px; padding: 26px 26px 8px; margin: 16px 0 32px; }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 { font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 20px; }
+        .setting-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; cursor: pointer; user-select: none; }
+        .setting-toggle input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0; }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px; }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        .tool-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0 0 24px; align-items: start; }
+        @media (max-width: 900px) { .tool-layout { grid-template-columns: 1fr; } }
+
+        .panel-card { background: var(--code-bg); border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+        .panel-head h3 { font-family: var(--font-inter); font-size: 1.15rem; font-weight: 800; }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid { border-radius: 60px; padding: 9px 18px; font-weight: 700; font-family: var(--font-header); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border-color); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #ipInput { width: 100%; min-height: 140px; background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 16px; padding: 18px 20px; font-family: var(--font-mono); color: var(--text-primary); font-size: 13.5px; line-height: 1.7; resize: vertical; transition: border-color 0.2s; }
+        #ipInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box { border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px; font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none; }
+        .error-box.show { display: block; }
+
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab { border: 1px solid var(--border-light); border-radius: 60px; padding: 8px 16px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; background: transparent; color: var(--text-color); font-family: var(--font-header); transition: all 0.2s; }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge { display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        .mono-box { font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap; }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning { border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
+        .net-warning i { margin-top: 2px; }
+
+        .stat-strip { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; opacity: 0.75; }
+        .stat-strip strong { opacity: 1; }
+
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading { font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase; margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px; }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item { border: 1px solid var(--border-light); border-radius: 16px; padding: 20px 22px; }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        .email-signup { background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center; margin: 48px 0 40px; border: 1px solid var(--border-light); }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input { flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); }
+        .signup-form button { background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px; border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s; }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; padding: 20px 0; border-top: 1px solid var(--border-light); }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) { .footer-middle { flex-direction: column; text-align: center; } .signup-form { flex-direction: column; } }
+
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #ipInput { min-height: 120px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+
+        /* URL-to-IP specific */
+        .resolver-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; }
+        .resolver-row:last-child { border-bottom: none; }
+        .resolver-name { font-weight: 700; font-size: 12.5px; }
+        .resolver-ns-list { font-family: var(--font-mono); font-size: 12px; opacity: 0.85; }
+        .pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; border: 1px solid var(--border-color); }
+        .pill.ok { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .pill.mismatch { background: var(--warn); color: #000; border-color: var(--warn); }
+        .pill.fail { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .spinner-text { font-size: 12.5px; opacity: 0.6; padding: 10px 0; }
+        .chain-arrow { opacity: 0.4; margin: 0 6px; }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">URL to IP Resolver</h1>
+                <div class="tool-dek">Paste a URL or hostname to resolve its A/AAAA records, follow the full CNAME chain, cross-check the answer across Cloudflare, Google, and Quad9, run reverse DNS and forward-confirmed reverse DNS checks, and flag any private or internal IP that comes back — the SSRF check you'd want before letting an app fetch a user-submitted URL. Batch-resolve a whole list, entirely over public DNS-over-HTTPS from your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="quick">Quick Resolve</option>
+                    <option value="cdn">CDN / Geo-Routing Check</option>
+                    <option value="ssrf">SSRF Safety Audit</option>
+                    <option value="fcrdns">Forward-Confirmed Reverse DNS</option>
+                    <option value="batch">Batch URL Audit</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>URL / Host Parsing</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripToHost" checked>
+                            <span><span class="setting-name">Parse full URLs down to hostname</span><span class="setting-hint">Strips protocol, port, path, query string, and credentials from a pasted URL</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowPort">
+                            <span><span class="setting-name">Show port from input separately</span><span class="setting-hint">e.g. "example.com:8443" \u2192 host resolved, port shown alongside</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIdnaConvert" checked>
+                            <span><span class="setting-name">Convert IDN to punycode</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDedupe" checked>
+                            <span><span class="setting-name">Deduplicate identical hostnames</span><span class="setting-hint">Skips re-querying the same host twice in a batch</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Record Types & CNAME</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optResolveA" checked>
+                            <span><span class="setting-name">Resolve A (IPv4)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optResolveAAAA" checked>
+                            <span><span class="setting-name">Resolve AAAA (IPv6)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowCname" checked>
+                            <span><span class="setting-name">Show CNAME chain</span><span class="setting-hint">Displays every alias hop between the hostname and its final A/AAAA target</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowTtl" checked>
+                            <span><span class="setting-name">Show TTL</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="timeoutInput">Request timeout (ms)</label>
+                            <input type="number" id="timeoutInput" min="500" max="20000" step="500" value="5000">
+                        </div>
+                        <div class="field-group">
+                            <label for="batchDelayInput">Delay between batch hosts (ms)</label>
+                            <input type="number" id="batchDelayInput" min="0" max="5000" step="50" value="150">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Resolvers (Cross-Check)</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseCloudflare" checked>
+                            <span><span class="setting-name">Cloudflare (1.1.1.1)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseGoogle" checked>
+                            <span><span class="setting-name">Google Public DNS (8.8.8.8)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseQuad9" checked>
+                            <span><span class="setting-name">Quad9 (9.9.9.9)</span><span class="setting-hint">May fail to load in some browsers due to that provider's CORS policy</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseCustom">
+                            <span><span class="setting-name">Custom DoH JSON endpoint</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="customResolverInput">Custom resolver URL</label>
+                            <input type="text" id="customResolverInput" placeholder="https://doh.example.com/dns-query">
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:4px;">
+                        <div class="field-group full-width">
+                            <label>Primary resolver (used for Summary / Records / CNAME / Reverse DNS tabs)</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="primaryResolver" value="cloudflare" checked> Cloudflare</label>
+                                <label class="radio-opt"><input type="radio" name="primaryResolver" value="google"> Google</label>
+                                <label class="radio-opt"><input type="radio" name="primaryResolver" value="quad9"> Quad9</label>
+                                <label class="radio-opt"><input type="radio" name="primaryResolver" value="custom"> Custom</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Reverse DNS (PTR)</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDoPtr" checked>
+                            <span><span class="setting-name">Perform PTR lookup on resolved IPs</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optForwardConfirm" checked>
+                            <span><span class="setting-name">Forward-confirm the PTR result</span><span class="setting-hint">Re-resolves the PTR hostname and flags it if that doesn't lead back to the same IP (FCrDNS)</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxPtrInput">Max IPs to PTR-check per host</label>
+                            <input type="number" id="maxPtrInput" min="1" max="20" value="4">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Security (SSRF / Private-IP Guard)</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagPrivate" checked>
+                            <span><span class="setting-name">Flag private / reserved IPs</span><span class="setting-hint">RFC 1918, CGNAT, loopback, link-local, documentation, multicast, and reserved ranges \u2014 a hostname resolving here is a red flag for SSRF or DNS rebinding</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagMultiIp">
+                            <span><span class="setting-name">Flag hosts with multiple public IPs</span><span class="setting-hint">Informational: usually load balancing or a CDN, but worth knowing before pinning a single IP</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Geolocation / Hosting Info</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGeoLookup">
+                            <span><span class="setting-name">Show approximate location & org</span><span class="setting-hint">Opt-in third-party call to ipapi.co for resolved public IPs</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxGeoInput">Max IPs to geolocate per host</label>
+                            <input type="number" id="maxGeoInput" min="1" max="10" value="2">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output & Batch</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSortIps" checked>
+                            <span><span class="setting-name">Sort resolved IPs</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowRawJson">
+                            <span><span class="setting-name">Include raw resolver responses in JSON tab</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchColSecurity" checked>
+                            <span><span class="setting-name">Include security column in batch table</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchColPropagation" checked>
+                            <span><span class="setting-name">Include cross-resolver column in batch table</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxUrlsInput">Max URLs per batch run</label>
+                            <input type="number" id="maxUrlsInput" min="1" max="100" value="25">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>URL / Host Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="ipInput" spellcheck="false" placeholder="https://example.com/path?query=1
+cloudflare.com
+198.51.100.7.nip.io:8443"></textarea>
+                    <div class="input-hint">One URL or hostname per line. Full URLs are parsed down to the hostname automatically. The Summary / Records / CNAME / Reverse DNS / Security tabs analyze the <strong>first</strong> line; the Batch Table covers every line (up to the max above). Nothing runs automatically \u2014 click "Resolve" to query.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip">
+                        <span><strong id="lineCount">0</strong> line(s)</span>
+                        <button class="btn-solid small" id="runLookupBtn" type="button" style="margin-left:auto;"><i class="fa-solid fa-magnifying-glass"></i> Resolve</button>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyJsonBtn" type="button"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+                            <button class="btn-solid" id="downloadCsvBtn" type="button"><i class="fa-solid fa-download"></i> Download Batch CSV</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="summary" type="button">Summary</button>
+                        <button class="output-tab" data-tab="records" type="button">A / AAAA</button>
+                        <button class="output-tab" data-tab="cname" type="button">CNAME Chain</button>
+                        <button class="output-tab" data-tab="reverse" type="button">Reverse DNS</button>
+                        <button class="output-tab" data-tab="security" type="button">Security</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-summary"><div class="empty-pane">Enter a URL above and click Resolve.</div></div>
+                    <div class="output-pane" id="pane-records"><div class="empty-pane">Enter a URL above and click Resolve.</div></div>
+                    <div class="output-pane" id="pane-cname"><div class="empty-pane">Enter a URL above and click Resolve.</div></div>
+                    <div class="output-pane" id="pane-reverse"><div class="empty-pane">Enter a URL above and click Resolve.</div></div>
+                    <div class="output-pane" id="pane-security"><div class="empty-pane">Enter a URL above and click Resolve.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Add lines and click Resolve to see the batch table.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter a URL above and click Resolve.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-globe"></i> Cross-Resolver IP Consistency Check</h3>
+                    <div class="utility-note">CDNs and geo-routed services often return different IPs to different resolvers on purpose. This shows what Cloudflare, Google, and Quad9 each resolve a hostname to, side by side.</div>
+                    <div class="field-group">
+                        <label for="propHost">URL or hostname</label>
+                        <input type="text" id="propHost" placeholder="example.com">
+                    </div>
+                    <button class="btn-solid small" id="propBtn" type="button">Check Consistency</button>
+                    <div class="utility-result" id="propResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-arrows-turn-to-dots"></i> Forward-Confirmed Reverse DNS</h3>
+                    <div class="utility-note">Enter an IP address. This looks up its PTR hostname, then resolves that hostname's own A records forward, and confirms it points back to the same IP \u2014 the check mail servers and bot allowlists rely on.</div>
+                    <div class="field-group">
+                        <label for="fcrdnsIp">IP address</label>
+                        <input type="text" id="fcrdnsIp" placeholder="8.8.8.8">
+                    </div>
+                    <button class="btn-solid small" id="fcrdnsBtn" type="button">Check FCrDNS</button>
+                    <div class="utility-result" id="fcrdnsResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-shield-halved"></i> Private / Internal IP (SSRF) Guard</h3>
+                    <div class="utility-note">Before your app fetches a user-submitted URL, check where it actually points. Flags any resolved IP that falls in a private, loopback, link-local, CGNAT, or other non-public range \u2014 a classic SSRF or DNS-rebinding red flag.</div>
+                    <div class="field-group">
+                        <label for="ssrfHost">URL or hostname</label>
+                        <input type="text" id="ssrfHost" placeholder="internal-service.example.com">
+                    </div>
+                    <button class="btn-solid small" id="ssrfBtn" type="button">Check Safety</button>
+                    <div class="utility-result" id="ssrfResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How does resolution work from a browser?</h4>
+                        <p>Browsers can't send raw DNS packets, so this queries public DNS-over-HTTPS (DoH) JSON APIs \u2014 Cloudflare, Google, Quad9, or a custom endpoint you provide. The resolver performs the real recursive lookup, including following any CNAME chain, and returns the answer as JSON.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why would resolvers disagree on a hostname's IP?</h4>
+                        <p>Content delivery networks and geo-load-balanced services intentionally return different IPs depending on where the resolver making the request is located, to route each visitor to a nearby edge node. A mismatch here is usually that by design \u2014 not a misconfiguration \u2014 though it's also exactly what you'd see during a slow DNS propagation window after a genuine change.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the SSRF check actually protecting against?</h4>
+                        <p>Server-Side Request Forgery happens when an app fetches a URL a user controls, and that URL's hostname resolves to an internal address \u2014 a cloud metadata endpoint, an internal admin panel, localhost. Because DNS answers aren't guaranteed to stay the same between the time you check and the time you fetch (DNS rebinding), this check is a starting point for manual review, not a substitute for enforcing IP allowlists at request time in your own infrastructure.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does forward-confirmed reverse DNS actually verify?</h4>
+                        <p>A PTR record is set by whoever controls the IP's reverse zone, not by the domain owner, so it can claim to be anything. Forward-confirming it \u2014 resolving the claimed hostname's own A records and checking they include the original IP \u2014 shows that whoever controls the forward zone agrees with the PTR claim, which is the basis of checks used to validate mail servers and search-engine crawlers.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does CNAME chain length matter?</h4>
+                        <p>Modern stacks often chain several aliases \u2014 your domain to a CDN, the CDN to a load balancer, the load balancer to a regional endpoint \u2014 before reaching an A record. Seeing the full chain helps you tell whether you're looking at your own DNS or a third party's, and is often the fastest way to confirm a CDN or SaaS integration is actually wired up.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>Only to the public resolvers you select, to perform the DNS queries, and optionally to ipapi.co if you enable the geolocation toggle. Nothing is sent to any server we operate, and results are never stored \u2014 they exist only in your browser tab.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // URL TO IP RESOLVER — ENGINE
+        // ============================================
+
+        const RESOLVER_DEFS = {
+            cloudflare: { label: 'Cloudflare', url: 'https://cloudflare-dns.com/dns-query' },
+            google: { label: 'Google', url: 'https://dns.google/resolve' },
+            quad9: { label: 'Quad9', url: 'https://dns.quad9.net/dns-query' },
+            custom: { label: 'Custom', url: null }
+        };
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ---------- IPv4/IPv6 primitives (for private-range detection & PTR names) ----------
+        function parseIPv4(str) {
+            if (typeof str !== 'string') return null;
+            const m = str.trim().match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+            if (!m) return null;
+            const octs = m.slice(1, 5).map(p => parseInt(p, 10));
+            if (octs.some(o => o < 0 || o > 255)) return null;
+            return octs;
+        }
+        function ipv4ToInt(o) { return ((o[0] * 16777216) + (o[1] * 65536) + (o[2] * 256) + o[3]) >>> 0; }
+        function prefixToNetmaskInt(prefix) { if (prefix <= 0) return 0; if (prefix >= 32) return 0xFFFFFFFF >>> 0; return (0xFFFFFFFF << (32 - prefix)) >>> 0; }
+        function ipv4Ptr(o) { return [...o].reverse().join('.') + '.in-addr.arpa'; }
+        function parseIPv6(str) {
+            if (typeof str !== 'string') return null;
+            const s = str.trim();
+            if (!/^[0-9a-fA-F:]+$/.test(s)) return null;
+            const parts = s.split('::');
+            if (parts.length > 2) return null;
+            let groups;
+            if (parts.length === 2) {
+                const head = parts[0] === '' ? [] : parts[0].split(':');
+                const tail = parts[1] === '' ? [] : parts[1].split(':');
+                const missing = 8 - (head.length + tail.length);
+                if (missing < 0) return null;
+                groups = [...head, ...Array(missing).fill('0'), ...tail];
+            } else {
+                groups = s.split(':');
+                if (groups.length !== 8) return null;
+            }
+            if (groups.length !== 8) return null;
+            const nums = [];
+            for (const g of groups) { if (g === '' || !/^[0-9a-fA-F]{1,4}$/.test(g)) return null; nums.push(parseInt(g, 16)); }
+            return nums;
+        }
+        function ipv6Ptr(groups) { const hex = groups.map(g => g.toString(16).padStart(4, '0')).join(''); return hex.split('').reverse().join('.') + '.ip6.arpa'; }
+
+        const IPV4_SPECIAL = [
+            { cidr: '0.0.0.0/8', name: '"This network" (RFC 791)', cat: 'reserved' },
+            { cidr: '10.0.0.0/8', name: 'Private-Use (RFC 1918)', cat: 'private' },
+            { cidr: '100.64.0.0/10', name: 'Shared Address Space / CGNAT (RFC 6598)', cat: 'private' },
+            { cidr: '127.0.0.0/8', name: 'Loopback (RFC 1122)', cat: 'private' },
+            { cidr: '169.254.0.0/16', name: 'Link-Local (RFC 3927)', cat: 'private' },
+            { cidr: '172.16.0.0/12', name: 'Private-Use (RFC 1918)', cat: 'private' },
+            { cidr: '192.0.0.0/24', name: 'IETF Protocol Assignments (RFC 6890)', cat: 'reserved' },
+            { cidr: '192.0.2.0/24', name: 'Documentation TEST-NET-1 (RFC 5737)', cat: 'reserved' },
+            { cidr: '192.168.0.0/16', name: 'Private-Use (RFC 1918)', cat: 'private' },
+            { cidr: '198.18.0.0/15', name: 'Benchmarking (RFC 2544)', cat: 'reserved' },
+            { cidr: '198.51.100.0/24', name: 'Documentation TEST-NET-2 (RFC 5737)', cat: 'reserved' },
+            { cidr: '203.0.113.0/24', name: 'Documentation TEST-NET-3 (RFC 5737)', cat: 'reserved' },
+            { cidr: '224.0.0.0/4', name: 'Multicast (RFC 5771)', cat: 'reserved' },
+            { cidr: '240.0.0.0/4', name: 'Reserved for Future Use (RFC 1112)', cat: 'reserved' },
+            { cidr: '255.255.255.255/32', name: 'Limited Broadcast (RFC 8190)', cat: 'reserved' }
+        ];
+        const IPV6_SPECIAL = [
+            { cidr: '::/128', name: 'Unspecified Address (RFC 4291)', cat: 'reserved' },
+            { cidr: '::1/128', name: 'Loopback (RFC 4291)', cat: 'private' },
+            { cidr: '64:ff9b::/96', name: 'NAT64 (RFC 6052)', cat: 'reserved' },
+            { cidr: '100::/64', name: 'Discard-Only Address Block (RFC 6666)', cat: 'reserved' },
+            { cidr: '2001:db8::/32', name: 'Documentation (RFC 3849)', cat: 'reserved' },
+            { cidr: 'fc00::/7', name: 'Unique Local Address (RFC 4193)', cat: 'private' },
+            { cidr: 'fe80::/10', name: 'Link-Local Unicast (RFC 4291)', cat: 'private' },
+            { cidr: 'ff00::/8', name: 'Multicast (RFC 4291)', cat: 'reserved' }
+        ];
+        function matchSpecialV4(ipStr) {
+            const o = parseIPv4(ipStr);
+            if (!o) return null;
+            const ipInt = ipv4ToInt(o);
+            let best = null;
+            for (const entry of IPV4_SPECIAL) {
+                const [rangeIp, prefixStr] = entry.cidr.split('/');
+                const prefix = parseInt(prefixStr, 10);
+                const maskInt = prefixToNetmaskInt(prefix);
+                const rangeInt = ipv4ToInt(parseIPv4(rangeIp));
+                if (((ipInt & maskInt) >>> 0) === ((rangeInt & maskInt) >>> 0)) { if (!best || prefix > best.prefix) best = Object.assign({}, entry, { prefix }); }
+            }
+            return best;
+        }
+        function matchSpecialV6(ipStr) {
+            const groups = parseIPv6(ipStr);
+            if (!groups) return null;
+            let big = 0n; for (const g of groups) big = (big << 16n) | BigInt(g);
+            let best = null;
+            for (const entry of IPV6_SPECIAL) {
+                const [rangeIp, prefixStr] = entry.cidr.split('/');
+                const prefix = parseInt(prefixStr, 10);
+                const rangeGroups = parseIPv6(rangeIp);
+                if (!rangeGroups) continue;
+                let rangeBig = 0n; for (const g of rangeGroups) rangeBig = (rangeBig << 16n) | BigInt(g);
+                const shift = BigInt(128 - prefix);
+                if ((big >> shift) === (rangeBig >> shift)) { if (!best || prefix > best.prefix) best = Object.assign({}, entry, { prefix }); }
+            }
+            return best;
+        }
+        function classifyIp(ipStr) {
+            const isV6 = ipStr.includes(':');
+            const special = isV6 ? matchSpecialV6(ipStr) : matchSpecialV4(ipStr);
+            return { version: isV6 ? 6 : 4, special, isPrivate: !!(special && special.cat === 'private'), isReserved: !!(special && special.cat === 'reserved') };
+        }
+
+        function getOptions() {
+            return {
+                stripToHost: document.getElementById('optStripToHost').checked,
+                showPort: document.getElementById('optShowPort').checked,
+                idnaConvert: document.getElementById('optIdnaConvert').checked,
+                dedupe: document.getElementById('optDedupe').checked,
+                resolveA: document.getElementById('optResolveA').checked,
+                resolveAAAA: document.getElementById('optResolveAAAA').checked,
+                showCname: document.getElementById('optShowCname').checked,
+                showTtl: document.getElementById('optShowTtl').checked,
+                timeoutMs: parseInt(document.getElementById('timeoutInput').value, 10) || 5000,
+                batchDelayMs: parseInt(document.getElementById('batchDelayInput').value, 10) || 150,
+                useCloudflare: document.getElementById('optUseCloudflare').checked,
+                useGoogle: document.getElementById('optUseGoogle').checked,
+                useQuad9: document.getElementById('optUseQuad9').checked,
+                useCustom: document.getElementById('optUseCustom').checked,
+                customUrl: document.getElementById('customResolverInput').value.trim(),
+                primaryResolver: (document.querySelector('input[name="primaryResolver"]:checked') || {}).value || 'cloudflare',
+                doPtr: document.getElementById('optDoPtr').checked,
+                forwardConfirm: document.getElementById('optForwardConfirm').checked,
+                maxPtr: parseInt(document.getElementById('maxPtrInput').value, 10) || 4,
+                flagPrivate: document.getElementById('optFlagPrivate').checked,
+                flagMultiIp: document.getElementById('optFlagMultiIp').checked,
+                geoLookup: document.getElementById('optGeoLookup').checked,
+                maxGeo: parseInt(document.getElementById('maxGeoInput').value, 10) || 2,
+                sortIps: document.getElementById('optSortIps').checked,
+                showRawJson: document.getElementById('optShowRawJson').checked,
+                batchColSecurity: document.getElementById('optBatchColSecurity').checked,
+                batchColPropagation: document.getElementById('optBatchColPropagation').checked,
+                maxUrls: parseInt(document.getElementById('maxUrlsInput').value, 10) || 25
+            };
+        }
+
+        function activeResolvers(opts) {
+            const list = [];
+            if (opts.useCloudflare) list.push('cloudflare');
+            if (opts.useGoogle) list.push('google');
+            if (opts.useQuad9) list.push('quad9');
+            if (opts.useCustom && opts.customUrl) list.push('custom');
+            return list;
+        }
+        function resolverUrl(key, opts) { if (key === 'custom') return opts.customUrl; return RESOLVER_DEFS[key].url; }
+
+        function parseUrlToHost(raw, opts) {
+            let s = raw.trim();
+            if (!opts.stripToHost) return { host: s.toLowerCase(), port: null };
+            try {
+                const withProto = s.includes('://') ? s : 'http://' + s;
+                const u = new URL(withProto);
+                let host = u.hostname;
+                if (opts.idnaConvert) { /* URL() already punycodes the hostname */ }
+                return { host: host.toLowerCase(), port: u.port || null };
+            } catch (err) {
+                return { host: s.toLowerCase(), port: null };
+            }
+        }
+
+        async function dohQuery(url, name, type, timeoutMs) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const qs = '?name=' + encodeURIComponent(name) + '&type=' + encodeURIComponent(type);
+                const res = await fetch(url + qs, { headers: { 'Accept': 'application/dns-json' }, signal: controller.signal });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return await res.json();
+            } finally { clearTimeout(timer); }
+        }
+
+        function splitAnswer(dohResponse) {
+            const out = { cname: [], a: [], aaaa: [] };
+            if (!dohResponse || !Array.isArray(dohResponse.Answer)) return out;
+            for (const a of dohResponse.Answer) {
+                if (a.type === 5) out.cname.push({ data: a.data.replace(/\.$/, ''), ttl: a.TTL });
+                else if (a.type === 1) out.a.push({ data: a.data, ttl: a.TTL });
+                else if (a.type === 28) out.aaaa.push({ data: a.data, ttl: a.TTL });
+            }
+            return out;
+        }
+
+        async function resolveOneResolver(resolverKey, host, opts) {
+            const url = resolverUrl(resolverKey, opts);
+            if (!url) return { resolver: resolverKey, error: 'No URL configured' };
+            try {
+                let a = { cname: [], a: [] }, aaaa = { cname: [], aaaa: [] };
+                if (opts.resolveA) { const resp = await dohQuery(url, host, 'A', opts.timeoutMs); a = splitAnswer(resp); a._status = resp.Status; a._raw = opts.showRawJson ? resp : undefined; }
+                if (opts.resolveAAAA) { const resp = await dohQuery(url, host, 'AAAA', opts.timeoutMs); aaaa = splitAnswer(resp); aaaa._raw = opts.showRawJson ? resp : undefined; }
+                let ips = [...a.a.map(r => ({ ip: r.data, ttl: r.ttl, version: 4 })), ...aaaa.aaaa.map(r => ({ ip: r.data, ttl: r.ttl, version: 6 }))];
+                if (opts.sortIps) ips.sort((x, y) => x.ip.localeCompare(y.ip));
+                const cnameChain = (opts.resolveA ? a.cname : aaaa.cname).map(c => c.data);
+                return { resolver: resolverKey, status: a._status, ips, cnameChain, raw: { a: a._raw, aaaa: aaaa._raw } };
+            } catch (err) {
+                return { resolver: resolverKey, error: (err && err.name === 'AbortError') ? 'Timed out' : (err.message || 'Request failed') };
+            }
+        }
+
+        async function ptrLookup(ip, resolverUrlStr, timeoutMs) {
+            const isV6 = ip.includes(':');
+            let name;
+            if (isV6) { const g = parseIPv6(ip); if (!g) return null; name = ipv6Ptr(g); }
+            else { const o = parseIPv4(ip); if (!o) return null; name = ipv4Ptr(o); }
+            try {
+                const resp = await dohQuery(resolverUrlStr, name, 'PTR', timeoutMs);
+                if (!resp.Answer) return [];
+                return resp.Answer.filter(a => a.type === 12).map(a => a.data.replace(/\.$/, ''));
+            } catch (err) { return null; }
+        }
+
+        async function geoLookupIp(ip) {
+            try {
+                const res = await fetch('https://ipapi.co/' + ip + '/json/');
+                const data = await res.json();
+                return [data.city, data.region, data.country_name].filter(Boolean).join(', ') + (data.org ? (' \u2014 ' + data.org) : '');
+            } catch (err) { return null; }
+        }
+
+        let lastAnalysis = { primary: null, batch: [] };
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+        function paneLoading(id, msg) { document.getElementById(id).innerHTML = '<div class="spinner-text"><i class="fa-solid fa-spinner fa-spin"></i> ' + escapeHtml(msg) + '</div>'; }
+
+        async function analyzeHost(rawLine, opts) {
+            const parsed = parseUrlToHost(rawLine, opts);
+            const host = parsed.host;
+            const resolvers = activeResolvers(opts);
+            if (resolvers.length === 0) return { input: rawLine, host, error: 'No resolvers enabled in settings' };
+            const perResolver = {};
+            for (const key of resolvers) perResolver[key] = await resolveOneResolver(key, host, opts);
+            const primaryKey = resolvers.includes(opts.primaryResolver) ? opts.primaryResolver : resolvers[0];
+            const primary = perResolver[primaryKey];
+
+            const ipSets = resolvers.map(k => (perResolver[k].ips || []).map(r => r.ip).slice().sort().join(','));
+            const consistent = ipSets.every(s => s === ipSets[0]) && ipSets[0] !== undefined && ipSets[0] !== '';
+
+            let reverse = {};
+            if (opts.doPtr && primary && primary.ips) {
+                const primaryResolverUrl = resolverUrl(primaryKey, opts);
+                const ipsToCheck = primary.ips.slice(0, opts.maxPtr);
+                for (const rec of ipsToCheck) {
+                    const ptrNames = await ptrLookup(rec.ip, primaryResolverUrl, opts.timeoutMs);
+                    let forwardMatch = null;
+                    if (opts.forwardConfirm && ptrNames && ptrNames.length) {
+                        try {
+                            const fresp = await dohQuery(primaryResolverUrl, ptrNames[0], rec.version === 6 ? 'AAAA' : 'A', opts.timeoutMs);
+                            const split = splitAnswer(fresp);
+                            const forwardIps = (rec.version === 6 ? split.aaaa : split.a).map(r => r.data);
+                            forwardMatch = forwardIps.includes(rec.ip);
+                        } catch (err) { forwardMatch = null; }
+                    }
+                    reverse[rec.ip] = { ptrNames: ptrNames || [], forwardMatch };
+                }
+            }
+
+            let security = {};
+            if (opts.flagPrivate && primary && primary.ips) {
+                for (const rec of primary.ips) security[rec.ip] = classifyIp(rec.ip);
+            }
+
+            let geo = {};
+            if (opts.geoLookup && primary && primary.ips) {
+                const ipsToGeo = primary.ips.slice(0, opts.maxGeo);
+                for (const rec of ipsToGeo) geo[rec.ip] = await geoLookupIp(rec.ip);
+            }
+
+            return { input: rawLine, host, port: parsed.port, perResolver, primaryKey, primary, consistent, reverse, security, geo };
+        }
+
+        async function runLookup() {
+            const opts = getOptions();
+            const raw = document.getElementById('ipInput').value;
+            let lines = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+
+            const errorBox = document.getElementById('errorBox');
+            errorBox.classList.remove('show');
+            if (activeResolvers(opts).length === 0) { errorBox.textContent = 'Enable at least one resolver in settings before resolving.'; errorBox.classList.add('show'); return; }
+            if (lines.length === 0) { paneEmpty('pane-summary', 'Enter a URL above and click Resolve.'); return; }
+            if (opts.dedupe) lines = [...new Set(lines)];
+            if (lines.length > opts.maxUrls) lines = lines.slice(0, opts.maxUrls);
+
+            ['pane-summary', 'pane-records', 'pane-cname', 'pane-reverse', 'pane-security'].forEach(id => paneLoading(id, 'Resolving\u2026'));
+            paneLoading('pane-batch', 'Resolving ' + lines.length + ' host(s)\u2026');
+            document.getElementById('jsonOut').textContent = 'Resolving\u2026';
+
+            const results = [];
+            for (let i = 0; i < lines.length; i++) {
+                const r = await analyzeHost(lines[i], opts);
+                results.push(r);
+                if (i === 0) {
+                    lastAnalysis.primary = r;
+                    renderSummary(r, opts);
+                    renderRecords(r, opts);
+                    renderCname(r, opts);
+                    renderReverse(r, opts);
+                    renderSecurity(r, opts);
+                }
+                if (opts.batchDelayMs > 0 && i < lines.length - 1) await new Promise(res => setTimeout(res, opts.batchDelayMs));
+            }
+            lastAnalysis.batch = results;
+            renderBatch(results, opts);
+            renderJson(results, opts);
+        }
+
+        function renderSummary(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-summary', r ? r.error : 'Enter a URL above and click Resolve.'); return; }
+            const primary = r.primary || {};
+            const ipCount = (primary.ips || []).length;
+            let rows = [];
+            rows.push(['Input', escapeHtml(r.input)]);
+            rows.push(['Host', escapeHtml(r.host) + (opts.showPort && r.port ? (':' + r.port) : '')]);
+            rows.push(['Primary resolver', RESOLVER_DEFS[r.primaryKey] ? RESOLVER_DEFS[r.primaryKey].label : r.primaryKey]);
+            rows.push(['Query status', primary.error ? ('Error: ' + primary.error) : ('DNS status ' + primary.status)]);
+            rows.push(['Resolved IPs', ipCount ? ipCount : '<span class="pill fail">None</span>']);
+            rows.push(['Cross-resolver consistency', r.consistent ? '<span class="pill ok">Consistent</span>' : '<span class="pill mismatch">Mismatch</span>']);
+            if (opts.flagPrivate) {
+                const priv = Object.values(r.security || {}).filter(s => s.isPrivate);
+                rows.push(['Private/internal IP found', priv.length ? ('<span class="pill fail">Yes (' + priv.length + ')</span>') : '<span class="pill ok">No</span>']);
+            }
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + v + '</td></tr>';
+            html += '</table>';
+            document.getElementById('pane-summary').innerHTML = html;
+        }
+
+        function renderRecords(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-records', r ? r.error : 'Enter a URL above and click Resolve.'); return; }
+            const primary = r.primary || {};
+            if (primary.error) { paneEmpty('pane-records', 'Primary resolver error: ' + primary.error); return; }
+            const ips = primary.ips || [];
+            if (ips.length === 0) { paneEmpty('pane-records', 'No A/AAAA records found.'); return; }
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr><th>IP</th><th>Version</th>' + (opts.showTtl ? '<th>TTL</th>' : '') + '</tr></thead><tbody>';
+            for (const rec of ips) html += '<tr><td>' + escapeHtml(rec.ip) + '</td><td>IPv' + rec.version + '</td>' + (opts.showTtl ? '<td>' + rec.ttl + '</td>' : '') + '</tr>';
+            html += '</tbody></table></div>';
+            if (opts.flagMultiIp && ips.filter(r2 => r2.version === 4).length > 1) {
+                html += '<div class="net-warning" style="margin-top:10px;"><i class="fa-solid fa-circle-info"></i><span>Multiple IPv4 addresses returned \u2014 likely load balancing, round-robin, or a CDN.</span></div>';
+            }
+            document.getElementById('pane-records').innerHTML = html;
+        }
+
+        function renderCname(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-cname', r ? r.error : 'Enter a URL above and click Resolve.'); return; }
+            if (!opts.showCname) { paneEmpty('pane-cname', 'CNAME chain display is turned off in settings.'); return; }
+            const primary = r.primary || {};
+            const chain = primary.cnameChain || [];
+            if (chain.length === 0) { paneEmpty('pane-cname', 'No CNAME records \u2014 "' + escapeHtml(r.host) + '" resolves directly to A/AAAA.'); return; }
+            const full = [r.host, ...chain];
+            const html = '<div class="mono-box">' + full.map(escapeHtml).join(' \u2192\n') + '</div>';
+            document.getElementById('pane-cname').innerHTML = html;
+        }
+
+        function renderReverse(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-reverse', r ? r.error : 'Enter a URL above and click Resolve.'); return; }
+            if (!opts.doPtr) { paneEmpty('pane-reverse', 'Reverse DNS lookup is turned off in settings.'); return; }
+            const entries = Object.entries(r.reverse || {});
+            if (entries.length === 0) { paneEmpty('pane-reverse', 'No IPs to reverse-lookup.'); return; }
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr><th>IP</th><th>PTR Hostname(s)</th>' + (opts.forwardConfirm ? '<th>Forward-Confirmed</th>' : '') + '</tr></thead><tbody>';
+            for (const [ip, rec] of entries) {
+                const ptrText = rec.ptrNames && rec.ptrNames.length ? rec.ptrNames.join(', ') : '\u2014';
+                html += '<tr><td>' + escapeHtml(ip) + '</td><td>' + escapeHtml(ptrText) + '</td>' + (opts.forwardConfirm ? ('<td>' + (rec.forwardMatch === null ? '\u2014' : (rec.forwardMatch ? '<span class="pill ok">Yes</span>' : '<span class="pill fail">No</span>')) + '</td>') : '') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('pane-reverse').innerHTML = html;
+        }
+
+        function renderSecurity(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-security', r ? r.error : 'Enter a URL above and click Resolve.'); return; }
+            const primary = r.primary || {};
+            const ips = primary.ips || [];
+            if (ips.length === 0) { paneEmpty('pane-security', 'No resolved IPs to check.'); return; }
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr><th>IP</th><th>Classification</th>' + (opts.geoLookup ? '<th>Approx. Location / Org</th>' : '') + '</tr></thead><tbody>';
+            for (const rec of ips) {
+                const sec = r.security[rec.ip] || classifyIp(rec.ip);
+                const label = sec.isPrivate ? ('<span class="pill fail">' + escapeHtml(sec.special.name) + '</span>') : (sec.isReserved ? ('<span class="pill mismatch">' + escapeHtml(sec.special.name) + '</span>') : '<span class="pill ok">Public</span>');
+                html += '<tr><td>' + escapeHtml(rec.ip) + '</td><td>' + label + '</td>' + (opts.geoLookup ? ('<td>' + (r.geo[rec.ip] ? escapeHtml(r.geo[rec.ip]) : '\u2014') + '</td>') : '') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+            const anyPrivate = ips.some(rec => (r.security[rec.ip] || {}).isPrivate);
+            if (anyPrivate) html += '<div class="net-warning" style="margin-top:10px;"><i class="fa-solid fa-triangle-exclamation"></i><span>This host resolves to a private or internal address. Treat with caution before letting any server-side process fetch it.</span></div>';
+            document.getElementById('pane-security').innerHTML = html;
+        }
+
+        function renderBatch(results, opts) {
+            if (!results || results.length === 0) { paneEmpty('pane-batch', 'Add lines and click Resolve to see the batch table.'); return; }
+            let cols = ['Host', 'IP Count'];
+            if (opts.batchColPropagation) cols.push('Cross-Resolver');
+            if (opts.batchColSecurity) cols.push('Security');
+            cols.push('Resolved IPs');
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+            for (const r of results) {
+                if (r.error) { html += '<tr><td>' + escapeHtml(r.host || r.input) + '</td><td colspan="' + (cols.length - 1) + '" style="color:var(--danger);">' + escapeHtml(r.error) + '</td></tr>'; continue; }
+                const primary = r.primary || {};
+                const ips = primary.ips || [];
+                let cells = [escapeHtml(r.host), ips.length];
+                if (opts.batchColPropagation) cells.push(r.consistent ? '<span class="pill ok">Consistent</span>' : '<span class="pill mismatch">Mismatch</span>');
+                if (opts.batchColSecurity) {
+                    const anyPrivate = ips.some(rec => (r.security[rec.ip] || classifyIp(rec.ip)).isPrivate);
+                    cells.push(anyPrivate ? '<span class="pill fail">Private IP</span>' : '<span class="pill ok">Public</span>');
+                }
+                cells.push(escapeHtml(ips.map(rec => rec.ip).join(', ') || '\u2014'));
+                html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('pane-batch').innerHTML = html;
+        }
+
+        function csvCell(s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; }
+
+        function renderJson(results, opts) {
+            const out = results.map(r => {
+                if (r.error) return { host: r.host || r.input, error: r.error };
+                const primary = r.primary || {};
+                return {
+                    input: r.input, host: r.host, port: r.port,
+                    primaryResolver: r.primaryKey,
+                    ips: (primary.ips || []).map(rec => ({ ip: rec.ip, version: rec.version, ttl: rec.ttl })),
+                    cnameChain: primary.cnameChain || [],
+                    consistentAcrossResolvers: r.consistent,
+                    reverseDns: r.reverse,
+                    security: r.security,
+                    geo: r.geo,
+                    perResolver: opts.showRawJson ? r.perResolver : Object.fromEntries(Object.entries(r.perResolver).map(([k, v]) => [k, { status: v.status, ips: v.ips, cnameChain: v.cnameChain, error: v.error }]))
+                };
+            });
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring ----------
+        document.getElementById('runLookupBtn').addEventListener('click', runLookup);
+        document.getElementById('ipInput').addEventListener('input', () => {
+            const lines = document.getElementById('ipInput').value.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+            saveDraft();
+        });
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; saveDraft(); });
+        });
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('ipInput').value = '';
+            document.getElementById('lineCount').textContent = '0';
+            document.getElementById('ipInput').focus();
+        });
+        document.getElementById('copyJsonBtn').addEventListener('click', async () => {
+            const text = document.getElementById('jsonOut').textContent;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const rows = lastAnalysis.batch || [];
+            if (rows.length === 0) return;
+            const header = ['host', 'ipCount', 'ips', 'consistent', 'anyPrivateIp', 'error'];
+            const lines = [header.join(',')];
+            for (const r of rows) {
+                if (r.error) { lines.push([csvCell(r.host || r.input), '', '', '', '', csvCell(r.error)].join(',')); continue; }
+                const primary = r.primary || {};
+                const ips = primary.ips || [];
+                const anyPrivate = ips.some(rec => (r.security[rec.ip] || classifyIp(rec.ip)).isPrivate);
+                lines.push([csvCell(r.host), ips.length, csvCell(ips.map(rec => rec.ip).join('; ')), r.consistent, anyPrivate, ''].join(','));
+            }
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'url-to-ip-batch.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- Utility: Cross-Resolver IP Consistency ----------
+        document.getElementById('propBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('propResult');
+            const parsed = parseUrlToHost(document.getElementById('propHost').value.trim(), opts);
+            if (!parsed.host) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a URL or hostname.</div>'; return; }
+            resultEl.innerHTML = '<div class="spinner-text"><i class="fa-solid fa-spinner fa-spin"></i> Querying resolvers\u2026</div>';
+            const resolvers = activeResolvers(opts);
+            if (resolvers.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enable at least one resolver in settings.</div>'; return; }
+            let html = '';
+            const sets = [];
+            for (const key of resolvers) {
+                const res = await resolveOneResolver(key, parsed.host, opts);
+                const label = RESOLVER_DEFS[key].label;
+                if (res.error) { html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="pill fail">' + escapeHtml(res.error) + '</span></div>'; }
+                else {
+                    const list = (res.ips || []).map(r => r.ip);
+                    sets.push(list.slice().sort().join(','));
+                    html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="resolver-ns-list">' + escapeHtml(list.join(', ') || '(none)') + '</span></div>';
+                }
+            }
+            const consistent = sets.every(s => s === sets[0]) && sets.length > 0 && sets[0] !== '';
+            resultEl.innerHTML = '<div style="margin-bottom:8px;">' + (consistent ? '<span class="pill ok">Consistent across resolvers</span>' : '<span class="pill mismatch">Mismatch \u2014 likely geo-routing/CDN or propagation lag</span>') + '</div>' + html;
+        });
+
+        // ---------- Utility: Forward-Confirmed Reverse DNS ----------
+        document.getElementById('fcrdnsBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('fcrdnsResult');
+            const ip = document.getElementById('fcrdnsIp').value.trim();
+            if (!ip) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter an IP address.</div>'; return; }
+            resultEl.innerHTML = '<div class="spinner-text"><i class="fa-solid fa-spinner fa-spin"></i> Looking up PTR\u2026</div>';
+            const url = resolverUrl(opts.primaryResolver, opts) || resolverUrl('cloudflare', opts);
+            const ptrNames = await ptrLookup(ip, url, opts.timeoutMs);
+            if (!ptrNames || ptrNames.length === 0) { resultEl.innerHTML = '<div class="pill fail">No PTR record found for ' + escapeHtml(ip) + '</div>'; return; }
+            const isV6 = ip.includes(':');
+            let rowsHtml = '';
+            for (const name of ptrNames) {
+                try {
+                    const resp = await dohQuery(url, name, isV6 ? 'AAAA' : 'A', opts.timeoutMs);
+                    const split = splitAnswer(resp);
+                    const forwardIps = (isV6 ? split.aaaa : split.a).map(r => r.data);
+                    const match = forwardIps.includes(ip);
+                    rowsHtml += '<tr><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(forwardIps.join(', ') || '\u2014') + '</td><td>' + (match ? '<span class="pill ok">Matches</span>' : '<span class="pill fail">No match</span>') + '</td></tr>';
+                } catch (err) {
+                    rowsHtml += '<tr><td>' + escapeHtml(name) + '</td><td colspan="2" style="color:var(--danger);">Forward lookup failed</td></tr>';
+                }
+            }
+            resultEl.innerHTML = '<div class="table-scroll"><table class="data-table"><thead><tr><th>PTR Hostname</th><th>Forward Resolves To</th><th>FCrDNS</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+        });
+
+        // ---------- Utility: SSRF / Private IP Guard ----------
+        document.getElementById('ssrfBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('ssrfResult');
+            const parsed = parseUrlToHost(document.getElementById('ssrfHost').value.trim(), opts);
+            if (!parsed.host) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a URL or hostname.</div>'; return; }
+            resultEl.innerHTML = '<div class="spinner-text"><i class="fa-solid fa-spinner fa-spin"></i> Resolving\u2026</div>';
+            const url = resolverUrl(opts.primaryResolver, opts) || resolverUrl('cloudflare', opts);
+            const res = await resolveOneResolver(opts.primaryResolver && resolverUrl(opts.primaryResolver, opts) ? opts.primaryResolver : 'cloudflare', parsed.host, opts);
+            if (res.error) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">' + escapeHtml(res.error) + '</div>'; return; }
+            const ips = res.ips || [];
+            if (ips.length === 0) { resultEl.innerHTML = '<div class="pill fail">No A/AAAA records \u2014 host does not resolve</div>'; return; }
+            let rowsHtml = '', anyPrivate = false;
+            for (const rec of ips) {
+                const sec = classifyIp(rec.ip);
+                if (sec.isPrivate) anyPrivate = true;
+                const label = sec.isPrivate ? ('<span class="pill fail">' + escapeHtml(sec.special.name) + '</span>') : (sec.isReserved ? ('<span class="pill mismatch">' + escapeHtml(sec.special.name) + '</span>') : '<span class="pill ok">Public</span>');
+                rowsHtml += '<tr><td>' + escapeHtml(rec.ip) + '</td><td>' + label + '</td></tr>';
+            }
+            let html = '<div style="margin-bottom:8px;">' + (anyPrivate ? '<span class="pill fail">Unsafe \u2014 resolves to a private/internal address</span>' : '<span class="pill ok">Looks safe \u2014 public IPs only</span>') + '</div>';
+            html += '<div class="table-scroll"><table class="data-table"><thead><tr><th>IP</th><th>Classification</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+            if (anyPrivate) html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>Remember DNS answers can change between this check and an actual request (DNS rebinding) \u2014 enforce IP allowlisting at request time for anything security-sensitive.</span></div>';
+            resultEl.innerHTML = html;
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optStripToHost', 'optShowPort', 'optIdnaConvert', 'optDedupe', 'optResolveA', 'optResolveAAAA', 'optShowCname', 'optShowTtl', 'optUseCloudflare', 'optUseGoogle', 'optUseQuad9', 'optUseCustom', 'optDoPtr', 'optForwardConfirm', 'optFlagPrivate', 'optFlagMultiIp', 'optGeoLookup', 'optSortIps', 'optShowRawJson', 'optBatchColSecurity', 'optBatchColPropagation'],
+            text: ['timeoutInput', 'batchDelayInput', 'customResolverInput', 'maxPtrInput', 'maxGeoInput', 'maxUrlsInput'],
+            radio: ['primaryResolver']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) { const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]'); if (el) el.checked = true; }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            quick: {
+                optStripToHost: true, optShowPort: false, optIdnaConvert: true, optDedupe: true,
+                optResolveA: true, optResolveAAAA: false, optShowCname: true, optShowTtl: true,
+                timeoutInput: '5000', batchDelayInput: '150',
+                optUseCloudflare: true, optUseGoogle: false, optUseQuad9: false, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optDoPtr: false, optForwardConfirm: false, maxPtrInput: '4',
+                optFlagPrivate: true, optFlagMultiIp: false, optGeoLookup: false, maxGeoInput: '2',
+                optSortIps: true, optShowRawJson: false, optBatchColSecurity: true, optBatchColPropagation: false, maxUrlsInput: '25'
+            },
+            cdn: {
+                optStripToHost: true, optShowPort: false, optIdnaConvert: true, optDedupe: true,
+                optResolveA: true, optResolveAAAA: true, optShowCname: true, optShowTtl: true,
+                timeoutInput: '6000', batchDelayInput: '150',
+                optUseCloudflare: true, optUseGoogle: true, optUseQuad9: true, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optDoPtr: false, optForwardConfirm: false, maxPtrInput: '4',
+                optFlagPrivate: true, optFlagMultiIp: true, optGeoLookup: true, maxGeoInput: '3',
+                optSortIps: true, optShowRawJson: false, optBatchColSecurity: false, optBatchColPropagation: true, maxUrlsInput: '25'
+            },
+            ssrf: {
+                optStripToHost: true, optShowPort: true, optIdnaConvert: true, optDedupe: true,
+                optResolveA: true, optResolveAAAA: true, optShowCname: true, optShowTtl: false,
+                timeoutInput: '5000', batchDelayInput: '150',
+                optUseCloudflare: true, optUseGoogle: false, optUseQuad9: false, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optDoPtr: false, optForwardConfirm: false, maxPtrInput: '4',
+                optFlagPrivate: true, optFlagMultiIp: false, optGeoLookup: false, maxGeoInput: '2',
+                optSortIps: true, optShowRawJson: false, optBatchColSecurity: true, optBatchColPropagation: false, maxUrlsInput: '25'
+            },
+            fcrdns: {
+                optStripToHost: true, optShowPort: false, optIdnaConvert: true, optDedupe: true,
+                optResolveA: true, optResolveAAAA: false, optShowCname: false, optShowTtl: false,
+                timeoutInput: '6000', batchDelayInput: '150',
+                optUseCloudflare: true, optUseGoogle: false, optUseQuad9: false, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optDoPtr: true, optForwardConfirm: true, maxPtrInput: '6',
+                optFlagPrivate: false, optFlagMultiIp: false, optGeoLookup: false, maxGeoInput: '2',
+                optSortIps: true, optShowRawJson: false, optBatchColSecurity: false, optBatchColPropagation: false, maxUrlsInput: '25'
+            },
+            batch: {
+                optStripToHost: true, optShowPort: false, optIdnaConvert: true, optDedupe: true,
+                optResolveA: true, optResolveAAAA: false, optShowCname: false, optShowTtl: false,
+                timeoutInput: '4000', batchDelayInput: '250',
+                optUseCloudflare: true, optUseGoogle: true, optUseQuad9: false, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optDoPtr: false, optForwardConfirm: false, maxPtrInput: '2',
+                optFlagPrivate: true, optFlagMultiIp: false, optGeoLookup: false, maxGeoInput: '1',
+                optSortIps: true, optShowRawJson: false, optBatchColSecurity: true, optBatchColPropagation: true, maxUrlsInput: '50'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'urlToIpCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) { applySettingsObject(BUILTIN_PRESETS[val]); }
+            saveDraft();
+        });
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'url-to-ip-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    saveDraft();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave (input text + settings only; no query results persisted) ----------
+        const DRAFT_KEY = 'urlToIpDraft';
+        const DRAFT_SETTINGS_KEY = 'urlToIpLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, document.getElementById('ipInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') document.getElementById('ipInput').value = savedDraft;
+                else document.getElementById('ipInput').value = 'https://example.com/path?query=1\ncloudflare.com\ngithub.com';
+            } catch (err) {
+                document.getElementById('ipInput').value = 'https://example.com/path?query=1\ncloudflare.com\ngithub.com';
+            }
+            const lines = document.getElementById('ipInput').value.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+        })();
+    </script>
+</body>
+</html>
