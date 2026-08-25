@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | ASCII ↔ Binary Converter (Text, Hex, Octal, Base64, CRC)</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free ASCII to binary converter and back. Convert text to binary/hex/octal/decimal/Base64, decode binary strings to readable text, validate malformed binary input, support multiple bit-widths (7/8/16-bit) and endianness, batch-convert line by line, and compute parity/checksums — 100% client-side, nothing sent to a server." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/ascii-binary-converter.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/ascii-binary-converter.html" />
+<meta property="og:title" content="ASCII ↔ Binary Converter — awjunaid" />
+<meta property="og:description" content="Convert text to binary/hex/octal/decimal/Base64 and back. Multiple bit-widths, endianness control, batch line conversion, parity & checksum tools. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ascii-binary-converter.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="ASCII ↔ Binary Converter — awjunaid" />
+<meta name="twitter:description" content="Convert text to binary/hex/octal/Base64 and decode binary back to text. Bit-widths, endianness, batch mode, parity & checksums — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ascii-binary-converter.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group input[type="password"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #textInput, #binaryInput, #batchInput {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #textInput { min-height: 140px; }
+        #binaryInput { min-height: 140px; }
+        #batchInput { min-height: 160px; }
+        #textInput:focus, #binaryInput:focus, #batchInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        .field-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .field-label-row label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; }
+        .inline-toggle-group { display: flex; gap: 4px; }
+        .inline-toggle-group button {
+            border: 1px solid var(--border-light); background: transparent; color: var(--text-color);
+            padding: 4px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+            border-radius: 30px; cursor: pointer; font-family: var(--font-header);
+        }
+        .inline-toggle-group button.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        /* Direction toggle */
+        .direction-toggle {
+            display: flex; gap: 6px; margin-bottom: 18px; border: 1px solid var(--border-light); border-radius: 60px; padding: 4px;
+        }
+        .direction-toggle button {
+            flex: 1; border: none; background: transparent; color: var(--text-color); padding: 10px 14px;
+            font-family: var(--font-header); font-weight: 700; text-transform: uppercase; font-size: 11px;
+            letter-spacing: 0.5px; border-radius: 60px; cursor: pointer; transition: all 0.2s;
+        }
+        .direction-toggle button.active { background: var(--text-primary); color: var(--bg-primary); }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 34%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .badge.neutral { background: transparent; }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+        .result-hash {
+            font-family: var(--font-mono); font-size: 14px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 16px 18px; word-break: break-all; line-height: 1.6; position: relative;
+        }
+        .result-hash.empty { opacity: 0.4; font-style: italic; }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        /* Char-by-char breakdown */
+        .char-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px;
+        }
+        .char-cell {
+            border: 1px solid var(--border-light); border-radius: 10px; padding: 8px 10px; text-align: center;
+        }
+        .char-cell .ch { font-family: var(--font-mono); font-size: 15px; font-weight: 700; margin-bottom: 4px; min-height: 18px; }
+        .char-cell .bin { font-family: var(--font-mono); font-size: 10.5px; opacity: 0.65; word-break: break-all; }
+        .char-cell .dec { font-family: var(--font-mono); font-size: 10px; opacity: 0.45; margin-top: 2px; }
+
+        /* Utility grid */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+        .net-warning.danger-warn { border-color: var(--danger); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #textInput, #binaryInput { min-height: 120px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">ASCII ↔ Binary Converter</h1>
+                <div class="tool-dek">Convert text to binary, hexadecimal, octal, decimal, or Base64 — and decode binary strings back to readable text. Handles the real-world mess: mixed separators, malformed groups, 7-bit vs 8-bit ASCII, UTF-8 multi-byte characters, endianness, and batch line-by-line conversion for CTF challenges, homework, protocol debugging, and low-level programming — computed entirely in your browser, nothing sent anywhere.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="ctf">CTF / Puzzle Decoding</option>
+                    <option value="teaching">Teaching / Byte Breakdown</option>
+                    <option value="protocol">Protocol / Network Debugging</option>
+                    <option value="strict">Strict 7-bit ASCII Validation</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Character Encoding</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseUtf8" checked>
+                            <span><span class="setting-name">Encode text as UTF-8</span><span class="setting-hint">Off treats each character as a single byte (Latin-1), which will mangle non-ASCII characters like emoji or accented letters</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrict7Bit">
+                            <span><span class="setting-name">Enforce strict 7-bit ASCII</span><span class="setting-hint">Rejects any character above code point 127 instead of silently encoding it as UTF-8 bytes</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="bitWidthSelect">Bit width per unit</label>
+                            <select id="bitWidthSelect">
+                                <option value="7">7-bit</option>
+                                <option value="8" selected>8-bit</option>
+                                <option value="16">16-bit (UTF-16 code unit)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Binary Formatting</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSpaceGroups" checked>
+                            <span><span class="setting-name">Space-separate byte groups</span><span class="setting-hint">Outputs "01001000 01101001" instead of one long unbroken string</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optZeroPad" checked>
+                            <span><span class="setting-name">Zero-pad to full bit width</span><span class="setting-hint">Pads each binary group to the selected bit width, e.g. "01000001" instead of "1000001"</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAddPrefix0b">
+                            <span><span class="setting-name">Prefix each group with 0b</span><span class="setting-hint">Common in code snippets: "0b01001000"</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Byte order (multi-byte units only)</label>
+                            <div class="radio-row" id="endianRadios">
+                                <label class="radio-opt"><input type="radio" name="endian" value="big" checked> Big-endian</label>
+                                <label class="radio-opt"><input type="radio" name="endian" value="little"> Little-endian</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Binary → Text Parsing</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIgnoreNonBinaryChars" checked>
+                            <span><span class="setting-name">Ignore stray separators automatically</span><span class="setting-hint">Strips spaces, commas, dashes, pipes, and newlines before parsing — handles copy-pasted binary with inconsistent formatting</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoDetectWidth" checked>
+                            <span><span class="setting-name">Auto-detect bit grouping</span><span class="setting-hint">If input length isn't a clean multiple of the selected bit width, tries 7-bit and 8-bit automatically before failing</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAllowPartialLastByte">
+                            <span><span class="setting-name">Allow ragged final group</span><span class="setting-hint">Left-pads an incomplete trailing group with zeros instead of raising a length error — useful for hand-typed or corrupted binary</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Formats to Compute</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowHex" checked>
+                            <span><span class="setting-name">Hexadecimal</span><span class="setting-hint">e.g. 48 69</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowOctal">
+                            <span><span class="setting-name">Octal</span><span class="setting-hint">e.g. 110 151</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowDecimal" checked>
+                            <span><span class="setting-name">Decimal</span><span class="setting-hint">e.g. 72 105</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowBase64" checked>
+                            <span><span class="setting-name">Base64</span><span class="setting-hint">Standard Base64 of the underlying UTF-8 bytes</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optHexUppercase">
+                            <span><span class="setting-name">Uppercase hex</span><span class="setting-hint">Uncheck for lowercase hex digits</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Validation &amp; Integrity</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optComputeParity">
+                            <span><span class="setting-name">Show per-byte parity bit</span><span class="setting-hint">Displays even parity for each byte — useful for serial/UART protocol work</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optComputeChecksum" checked>
+                            <span><span class="setting-name">Compute simple checksums</span><span class="setting-hint">Shows an XOR checksum and additive (mod 256) checksum of all bytes — common in embedded/serial framing, not cryptographic</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagControlChars" checked>
+                            <span><span class="setting-name">Flag non-printable control characters</span><span class="setting-hint">Highlights decoded bytes that aren't printable ASCII (e.g. NUL, BEL, ESC) instead of silently rendering them blank</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch Mode</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchIncludeIndex" checked>
+                            <span><span class="setting-name">Include line index in batch output</span><span class="setting-hint">Adds a row number column to the batch table and export</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchSkipEmpty" checked>
+                            <span><span class="setting-name">Skip empty lines</span><span class="setting-hint">Uncheck to preserve blank lines as empty rows in batch output</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxBatchLinesInput">Max lines per batch run</label>
+                            <input type="number" id="maxBatchLinesInput" min="1" max="5000" value="500">
+                        </div>
+                        <div class="field-group">
+                            <label for="batchDirectionSelect">Batch direction</label>
+                            <select id="batchDirectionSelect">
+                                <option value="toBinary">Text → Binary</option>
+                                <option value="toText">Binary → Text</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="swapBtn" type="button"><i class="fa-solid fa-arrow-right-arrow-left"></i> Swap</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="direction-toggle">
+                        <button class="active" id="dirToBinaryBtn" type="button" data-dir="toBinary">Text → Binary</button>
+                        <button id="dirToTextBtn" type="button" data-dir="toText">Binary → Text</button>
+                    </div>
+
+                    <div id="wrapTextInput">
+                        <label for="textInput" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:8px;">Text</label>
+                        <textarea id="textInput" spellcheck="false" placeholder="Hi there!"></textarea>
+                    </div>
+
+                    <div id="wrapBinaryInput" style="display:none;">
+                        <label for="binaryInput" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:8px;">Binary</label>
+                        <textarea id="binaryInput" spellcheck="false" placeholder="01001000 01101001 00100001"></textarea>
+                    </div>
+
+                    <div class="input-hint">In <code>Binary → Text</code> mode, stray separators (spaces, commas, dashes, pipes) are stripped automatically if enabled above. HMAC-style byte-sensitivity applies here too — an unexpected bit width or endianness setting will decode to garbage even though the input itself is "valid" binary.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip" id="statStrip"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyPrimaryBtn" type="button"><i class="fa-solid fa-copy"></i> Copy</button>
+                            <button class="btn-solid" id="downloadJsonBtn" type="button"><i class="fa-solid fa-download"></i> Download JSON</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="result" type="button">Result</button>
+                        <button class="output-tab" data-tab="formats" type="button">All Formats</button>
+                        <button class="output-tab" data-tab="breakdown" type="button">Byte Breakdown</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-result"><div class="empty-pane">Enter text or binary on the left to see results.</div></div>
+                    <div class="output-pane" id="pane-formats"><div class="empty-pane">Enter text or binary on the left to see all formats.</div></div>
+                    <div class="output-pane" id="pane-breakdown"><div class="empty-pane">Enter text or binary on the left to see a per-byte breakdown.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Use the Batch Conversion utility below to see results here.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter text or binary on the left to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-list-ol"></i> Batch Conversion</h3>
+                    <div class="utility-note">Convert multiple lines at once, in the direction set in Batch Mode settings above — useful for decoding a list of CTF binary strings or generating test fixtures.</div>
+                    <div class="field-group">
+                        <label for="batchInput">One item per line</label>
+                        <textarea id="batchInput" spellcheck="false" placeholder="Hi
+there
+friend"></textarea>
+                    </div>
+                    <button class="btn-solid small" id="batchConvertBtn" type="button">Convert All</button>
+                    <div class="utility-result" id="batchUtilResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-magnifying-glass-chart"></i> Binary Validator</h3>
+                    <div class="utility-note">Checks whether a string is well-formed binary for the selected bit width — flags stray characters, bad group lengths, and shows exactly where parsing would fail, before you commit to decoding it.</div>
+                    <div class="field-group">
+                        <label for="validateInput">Binary string</label>
+                        <input type="text" id="validateInput" placeholder="01001000 0110100 01100001">
+                    </div>
+                    <button class="btn-solid small" id="validateBtn" type="button">Validate</button>
+                    <div class="utility-result" id="validateResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-dice"></i> Random Binary Generator</h3>
+                    <div class="utility-note">Generates a random binary string of printable ASCII characters using the Web Crypto API's secure random source — useful as test input or a quick puzzle for teaching binary/ASCII conversion.</div>
+                    <div class="field-group">
+                        <label for="randomLengthInput">Number of characters</label>
+                        <input type="number" id="randomLengthInput" min="1" max="200" value="12">
+                    </div>
+                    <button class="btn-solid small" id="genRandomBtn" type="button">Generate</button>
+                    <div class="utility-result" id="genRandomResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>Real binary you encounter — in CTF challenges, homework, protocol dumps, or serial logs — is rarely clean. It's often missing zero-padding, mixed with commas or dashes, split across lines, or ambiguous about whether it's 7-bit or 8-bit ASCII. This tool auto-detects bit grouping, strips stray separators, validates malformed input with a specific error location, and computes hex/octal/decimal/Base64 side by side so you don't have to guess which format your target system expects.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does bit width matter?</h4>
+                        <p>Standard ASCII fits in 7 bits (0–127), but most systems store text as 8-bit bytes with the high bit unused for plain ASCII. Old telegraph and some legacy serial protocols use true 7-bit packing, which shifts every subsequent byte's boundary if you decode it as 8-bit. Getting this wrong is the single most common reason binary "looks right" but decodes to garbage.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does endianness mean for text?</h4>
+                        <p>For single-byte 8-bit ASCII, endianness is irrelevant — a byte is a byte. It matters once you're working with multi-byte units like 16-bit UTF-16 code units, where big-endian stores the most significant byte first and little-endian stores it last. Getting this backwards is a classic cause of correctly-spaced binary decoding into the wrong characters.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why did my binary decode to gibberish or "?" characters?</h4>
+                        <p>The most common causes, in order: wrong bit width (7 vs 8), a stray extra or missing bit somewhere in the string throwing off every following byte's alignment, or a multi-byte UTF-8 character being decoded one byte at a time instead of as a unit. Enabling "Ignore stray separators" and "Auto-detect bit grouping" resolves the majority of real-world cases.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is the checksum here cryptographically secure?</h4>
+                        <p>No — the XOR and additive checksums are simple integrity checks used in embedded systems and serial framing (like NMEA or Modbus-style sums), not security primitives. They catch accidental corruption, not deliberate tampering. For authenticated integrity, use an HMAC tool instead.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between ASCII and UTF-8 here?</h4>
+                        <p>ASCII only covers code points 0–127. Any character outside that range (emoji, accented letters, non-Latin scripts) needs UTF-8, which encodes each character as 1–4 bytes. With "Encode text as UTF-8" on, this tool handles both transparently; with strict 7-bit ASCII enforced, anything outside that range is rejected instead of silently multi-byte-encoded.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. Every computation — text/binary conversion, validation, batch processing, checksums, and random generation — runs entirely in your browser. Nothing you type ever leaves the page.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // ASCII ↔ BINARY CONVERTER — ENGINE
+        // ============================================
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ---------- Core codec helpers ----------
+        function textToCodeUnits(text, opts) {
+            // Returns array of {value, width} — either UTF-8 bytes (7/8-bit) or UTF-16 code units (16-bit)
+            if (opts.bitWidth === 16) {
+                const units = [];
+                for (let i = 0; i < text.length; i++) units.push(text.charCodeAt(i));
+                return units;
+            }
+            let bytes;
+            if (opts.useUtf8) {
+                bytes = Array.from(new TextEncoder().encode(text));
+            } else {
+                bytes = Array.from(text).map(ch => ch.charCodeAt(0) & 0xFF);
+            }
+            if (opts.strict7Bit) {
+                const bad = bytes.find(b => b > 127);
+                if (bad !== undefined) throw new Error('Strict 7-bit ASCII is enabled but input contains a byte value ' + bad + ' (> 127). Disable strict mode or remove non-ASCII characters.');
+            }
+            return bytes;
+        }
+
+        function unitToBinaryString(value, width, opts) {
+            let bin;
+            if (width === 16) {
+                const hi = (value >> 8) & 0xFF, lo = value & 0xFF;
+                const hiBin = hi.toString(2).padStart(8, '0');
+                const loBin = lo.toString(2).padStart(8, '0');
+                bin = opts.endian === 'little' ? (loBin + hiBin) : (hiBin + loBin);
+            } else {
+                bin = value.toString(2);
+                if (opts.zeroPad) bin = bin.padStart(width, '0');
+            }
+            if (opts.prefix0b) bin = '0b' + bin;
+            return bin;
+        }
+
+        function bytesToHexStr(bytes, uppercase) {
+            const hex = bytes.map(b => b.toString(16).padStart(2, '0')).join(' ');
+            return uppercase ? hex.toUpperCase() : hex;
+        }
+        function bytesToOctalStr(bytes) { return bytes.map(b => b.toString(8).padStart(3, '0')).join(' '); }
+        function bytesToDecimalStr(bytes) { return bytes.join(' '); }
+        function bytesToBase64(bytes) {
+            let bin = '';
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            return btoa(bin);
+        }
+        function isPrintableAscii(code) { return code >= 32 && code <= 126; }
+        function evenParityBit(byteVal) {
+            let x = byteVal, count = 0;
+            while (x) { count += x & 1; x >>= 1; }
+            return count % 2 === 0 ? 0 : 1;
+        }
+
+        // ---------- Binary parsing (Binary -> Text) ----------
+        function cleanBinaryInput(str, opts) {
+            if (opts.ignoreNonBinary) {
+                return str.replace(/[^01]/g, '');
+            }
+            return str.trim();
+        }
+
+        function parseBinaryToUnits(rawStr, opts) {
+            const cleaned = cleanBinaryInput(rawStr, opts);
+            if (!/^[01]*$/.test(cleaned)) {
+                const idx = cleaned.search(/[^01]/);
+                throw new Error('Input contains a non-binary character at position ' + idx + '. Enable "Ignore stray separators" or remove it manually.');
+            }
+            if (cleaned.length === 0) throw new Error('No binary digits found in input.');
+
+            let width = opts.bitWidth;
+            let working = cleaned;
+
+            if (working.length % width !== 0) {
+                if (opts.autoDetectWidth) {
+                    const candidates = [8, 7, 16];
+                    const fit = candidates.find(w => working.length % w === 0);
+                    if (fit !== undefined) {
+                        width = fit;
+                    } else if (opts.allowPartialLast) {
+                        // pad to nearest multiple
+                        const rem = working.length % width;
+                        working = '0'.repeat(width - rem) + working;
+                    } else {
+                        throw new Error('Binary length (' + working.length + ' bits) is not a clean multiple of ' + width + '-bit groups, and no 7/8/16-bit grouping fits either. Enable "Allow ragged final group" or check your input.');
+                    }
+                } else if (opts.allowPartialLast) {
+                    const rem = working.length % width;
+                    working = '0'.repeat(width - rem) + working;
+                } else {
+                    throw new Error('Binary length (' + working.length + ' bits) is not a clean multiple of the selected ' + width + '-bit width. Enable "Auto-detect bit grouping" or "Allow ragged final group".');
+                }
+            }
+
+            const groups = [];
+            for (let i = 0; i < working.length; i += width) groups.push(working.slice(i, i + width));
+
+            const units = groups.map(g => {
+                if (width === 16) {
+                    let hiBin, loBin;
+                    if (opts.endian === 'little') { loBin = g.slice(0, 8); hiBin = g.slice(8, 16); }
+                    else { hiBin = g.slice(0, 8); loBin = g.slice(8, 16); }
+                    return (parseInt(hiBin, 2) << 8) | parseInt(loBin, 2);
+                }
+                return parseInt(g, 2);
+            });
+            return { units, width };
+        }
+
+        function unitsToText(units, width) {
+            if (width === 16) {
+                return String.fromCharCode(...units);
+            }
+            try {
+                return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(units));
+            } catch (err) {
+                return units.map(u => String.fromCharCode(u)).join('');
+            }
+        }
+
+        // ---------- Options ----------
+        function getOptions() {
+            return {
+                useUtf8: document.getElementById('optUseUtf8').checked,
+                strict7Bit: document.getElementById('optStrict7Bit').checked,
+                bitWidth: parseInt(document.getElementById('bitWidthSelect').value, 10),
+                spaceGroups: document.getElementById('optSpaceGroups').checked,
+                zeroPad: document.getElementById('optZeroPad').checked,
+                prefix0b: document.getElementById('optAddPrefix0b').checked,
+                endian: (document.querySelector('input[name="endian"]:checked') || {}).value || 'big',
+                ignoreNonBinary: document.getElementById('optIgnoreNonBinaryChars').checked,
+                autoDetectWidth: document.getElementById('optAutoDetectWidth').checked,
+                allowPartialLast: document.getElementById('optAllowPartialLastByte').checked,
+                showHex: document.getElementById('optShowHex').checked,
+                showOctal: document.getElementById('optShowOctal').checked,
+                showDecimal: document.getElementById('optShowDecimal').checked,
+                showBase64: document.getElementById('optShowBase64').checked,
+                hexUppercase: document.getElementById('optHexUppercase').checked,
+                computeParity: document.getElementById('optComputeParity').checked,
+                computeChecksum: document.getElementById('optComputeChecksum').checked,
+                flagControlChars: document.getElementById('optFlagControlChars').checked,
+                batchIncludeIndex: document.getElementById('optBatchIncludeIndex').checked,
+                batchSkipEmpty: document.getElementById('optBatchSkipEmpty').checked,
+                maxBatchLines: parseInt(document.getElementById('maxBatchLinesInput').value, 10) || 500,
+                batchDirection: document.getElementById('batchDirectionSelect').value
+            };
+        }
+
+        let currentDirection = 'toBinary';
+        let lastResult = null;
+
+        function setDirection(dir) {
+            currentDirection = dir;
+            document.getElementById('dirToBinaryBtn').classList.toggle('active', dir === 'toBinary');
+            document.getElementById('dirToTextBtn').classList.toggle('active', dir === 'toText');
+            document.getElementById('wrapTextInput').style.display = dir === 'toBinary' ? 'block' : 'none';
+            document.getElementById('wrapBinaryInput').style.display = dir === 'toText' ? 'block' : 'none';
+            analyze();
+        }
+        document.getElementById('dirToBinaryBtn').addEventListener('click', () => setDirection('toBinary'));
+        document.getElementById('dirToTextBtn').addEventListener('click', () => setDirection('toText'));
+
+        document.getElementById('swapBtn').addEventListener('click', () => {
+            if (!lastResult) { setDirection(currentDirection === 'toBinary' ? 'toText' : 'toBinary'); return; }
+            if (currentDirection === 'toBinary') {
+                document.getElementById('binaryInput').value = lastResult.binaryDisplay;
+                setDirection('toText');
+            } else {
+                document.getElementById('textInput').value = lastResult.text;
+                setDirection('toBinary');
+            }
+        });
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function analyze() {
+            const opts = getOptions();
+            const errorBox = document.getElementById('errorBox');
+            errorBox.classList.remove('show');
+            document.getElementById('statStrip').innerHTML = '';
+
+            let text, bytesForFormats, binaryGroups, width;
+
+            if (currentDirection === 'toBinary') {
+                const raw = document.getElementById('textInput').value;
+                if (!raw) { resetEmptyPanes('Enter text or binary on the left to see results.'); lastResult = null; return; }
+                try {
+                    const units = textToCodeUnits(raw, opts);
+                    width = opts.bitWidth;
+                    text = raw;
+                    bytesForFormats = opts.bitWidth === 16 ? null : units;
+                    binaryGroups = units.map(u => unitToBinaryString(u, width, opts));
+                    lastResult = { opts, text, units, width, bytesForFormats, binaryGroups, dir: 'toBinary' };
+                } catch (err) {
+                    errorBox.textContent = err.message;
+                    errorBox.classList.add('show');
+                    lastResult = null;
+                    resetEmptyPanes('Fix the input error above to see results.');
+                    return;
+                }
+            } else {
+                const raw = document.getElementById('binaryInput').value;
+                if (!raw.trim()) { resetEmptyPanes('Enter text or binary on the left to see results.'); lastResult = null; return; }
+                try {
+                    const parsed = parseBinaryToUnits(raw, opts);
+                    width = parsed.width;
+                    const units = parsed.units;
+                    text = unitsToText(units, width);
+                    bytesForFormats = width === 16 ? null : units;
+                    binaryGroups = units.map(u => unitToBinaryString(u, width, opts));
+                    lastResult = { opts, text, units, width, bytesForFormats, binaryGroups, dir: 'toText' };
+                } catch (err) {
+                    errorBox.textContent = err.message;
+                    errorBox.classList.add('show');
+                    lastResult = null;
+                    resetEmptyPanes('Fix the input error above to see results.');
+                    return;
+                }
+            }
+
+            const rawBinaryJoined = lastResult.binaryGroups.join(opts.spaceGroups ? ' ' : '');
+            lastResult.binaryDisplay = rawBinaryJoined;
+
+            document.getElementById('statStrip').innerHTML =
+                '<span>Units: <strong>' + lastResult.units.length + '</strong></span>' +
+                '<span>Bit width: <strong>' + width + '</strong></span>' +
+                '<span>Total bits: <strong>' + (lastResult.units.length * width) + '</strong></span>';
+
+            renderResult(lastResult);
+            renderFormats(lastResult);
+            renderBreakdown(lastResult);
+            renderJsonOut(lastResult);
+        }
+
+        function resetEmptyPanes(msg) {
+            paneEmpty('pane-result', msg);
+            paneEmpty('pane-formats', msg);
+            paneEmpty('pane-breakdown', msg);
+            document.getElementById('jsonOut').textContent = msg;
+        }
+
+        function renderResult(r) {
+            const opts = r.opts;
+            let html = '';
+            if (r.dir === 'toText' && opts.flagControlChars) {
+                const controlUnits = r.units.filter(u => u < 32 || u === 127);
+                if (controlUnits.length > 0) {
+                    html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>Decoded output contains ' + controlUnits.length + ' non-printable control character(s) (e.g. code ' + controlUnits[0] + '). These may not render visibly but are present in the text.</span></div>';
+                }
+            }
+            const label = r.dir === 'toBinary' ? 'Binary' : 'Decoded Text';
+            html += '<div style="margin:14px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">' + label + '</div>';
+            const primary = r.dir === 'toBinary' ? r.binaryDisplay : r.text;
+            html += '<div class="result-hash' + (primary === '' ? ' empty' : '') + '">' + (primary === '' ? '(empty)' : escapeHtml(primary)) + '</div>';
+
+            if (r.dir === 'toBinary') {
+                html += '<div style="margin:16px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Original Text</div>';
+                html += '<div class="result-hash">' + escapeHtml(r.text) + '</div>';
+            }
+            document.getElementById('pane-result').innerHTML = html;
+        }
+
+        function renderFormats(r) {
+            const opts = r.opts;
+            if (!r.bytesForFormats) {
+                paneEmpty('pane-formats', '16-bit mode: hex/octal/decimal/Base64 formats apply to 8-bit byte data only. Switch bit width to 7 or 8 to see them.');
+                return;
+            }
+            const bytes = r.bytesForFormats;
+            let html = '<table class="kv-table">';
+            html += '<tr><td class="k">Binary</td><td class="v">' + escapeHtml(r.binaryDisplay) + '</td></tr>';
+            if (opts.showHex) html += '<tr><td class="k">Hex</td><td class="v">' + escapeHtml(bytesToHexStr(bytes, opts.hexUppercase)) + '</td></tr>';
+            if (opts.showOctal) html += '<tr><td class="k">Octal</td><td class="v">' + escapeHtml(bytesToOctalStr(bytes)) + '</td></tr>';
+            if (opts.showDecimal) html += '<tr><td class="k">Decimal</td><td class="v">' + escapeHtml(bytesToDecimalStr(bytes)) + '</td></tr>';
+            if (opts.showBase64) {
+                try { html += '<tr><td class="k">Base64</td><td class="v">' + escapeHtml(bytesToBase64(bytes)) + '</td></tr>'; }
+                catch (err) { html += '<tr><td class="k">Base64</td><td class="v">(unavailable — bytes out of range)</td></tr>'; }
+            }
+            if (opts.computeChecksum) {
+                const xorSum = bytes.reduce((a, b) => a ^ b, 0);
+                const addSum = bytes.reduce((a, b) => (a + b) % 256, 0);
+                html += '<tr><td class="k">XOR Checksum</td><td class="v">0x' + xorSum.toString(16).padStart(2, '0') + '</td></tr>';
+                html += '<tr><td class="k">Sum Checksum (mod 256)</td><td class="v">0x' + addSum.toString(16).padStart(2, '0') + '</td></tr>';
+            }
+            html += '</table>';
+            document.getElementById('pane-formats').innerHTML = html;
+        }
+
+        function renderBreakdown(r) {
+            const opts = r.opts;
+            let html = '<div class="char-grid">';
+            r.units.forEach((u, i) => {
+                const displayChar = r.width === 16
+                    ? (isPrintableAscii(u) ? String.fromCharCode(u) : '·')
+                    : (isPrintableAscii(u) ? String.fromCharCode(u) : '·');
+                const isControl = opts.flagControlChars && (u < 32 || u === 127);
+                html += '<div class="char-cell" style="' + (isControl ? 'border-color:var(--warn);' : '') + '">' +
+                    '<div class="ch">' + escapeHtml(displayChar) + '</div>' +
+                    '<div class="bin">' + escapeHtml(r.binaryGroups[i]) + '</div>' +
+                    '<div class="dec">dec ' + u + (opts.computeParity && r.width !== 16 ? ' · parity ' + evenParityBit(u) : '') + '</div>' +
+                    '</div>';
+            });
+            html += '</div>';
+            document.getElementById('pane-breakdown').innerHTML = html;
+        }
+
+        function renderJsonOut(r) {
+            const opts = r.opts;
+            const out = {
+                direction: r.dir,
+                bitWidth: r.width,
+                text: r.text,
+                binary: r.binaryDisplay,
+                units: r.units
+            };
+            if (r.bytesForFormats) {
+                out.hex = bytesToHexStr(r.bytesForFormats, opts.hexUppercase);
+                out.octal = bytesToOctalStr(r.bytesForFormats);
+                out.decimal = bytesToDecimalStr(r.bytesForFormats);
+                try { out.base64 = bytesToBase64(r.bytesForFormats); } catch (err) { /* skip */ }
+                if (opts.computeChecksum) {
+                    out.checksum = {
+                        xor: '0x' + r.bytesForFormats.reduce((a, b) => a ^ b, 0).toString(16).padStart(2, '0'),
+                        additive_mod256: '0x' + r.bytesForFormats.reduce((a, b) => (a + b) % 256, 0).toString(16).padStart(2, '0')
+                    };
+                }
+            }
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring: main analyze ----------
+        let analyzeTimer;
+        function scheduleAnalyze() { clearTimeout(analyzeTimer); analyzeTimer = setTimeout(analyze, 120); saveDraft(); }
+        document.getElementById('textInput').addEventListener('input', scheduleAnalyze);
+        document.getElementById('binaryInput').addEventListener('input', scheduleAnalyze);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; scheduleAnalyze(); });
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('textInput').value = '';
+            document.getElementById('binaryInput').value = '';
+            analyze(); saveDraft();
+            (currentDirection === 'toBinary' ? document.getElementById('textInput') : document.getElementById('binaryInput')).focus();
+        });
+
+        document.getElementById('copyPrimaryBtn').addEventListener('click', async () => {
+            if (!lastResult) return;
+            const val = lastResult.dir === 'toBinary' ? lastResult.binaryDisplay : lastResult.text;
+            try { await navigator.clipboard.writeText(val); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+            if (!lastResult) return;
+            const el = document.getElementById('jsonOut');
+            const blob = new Blob([el.textContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ascii-binary-result.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- Utility: Batch Conversion ----------
+        document.getElementById('batchConvertBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('batchUtilResult');
+            let lines = document.getElementById('batchInput').value.split('\n');
+            if (opts.batchSkipEmpty) lines = lines.filter(l => l.trim() !== '');
+            lines = lines.slice(0, opts.maxBatchLines);
+            if (lines.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Add at least one line.</div>'; return; }
+
+            const rows = [];
+            for (const line of lines) {
+                try {
+                    if (opts.batchDirection === 'toBinary') {
+                        const units = textToCodeUnits(line, opts);
+                        const groups = units.map(u => unitToBinaryString(u, opts.bitWidth, opts));
+                        rows.push({ input: line, output: groups.join(opts.spaceGroups ? ' ' : '') });
+                    } else {
+                        const parsed = parseBinaryToUnits(line, opts);
+                        const txt = unitsToText(parsed.units, parsed.width);
+                        rows.push({ input: line, output: txt });
+                    }
+                } catch (err) {
+                    rows.push({ input: line, error: err.message });
+                }
+            }
+
+            const cols = opts.batchIncludeIndex ? ['#', 'Input', 'Output'] : ['Input', 'Output'];
+            function buildTable(truncLen) {
+                let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+                rows.forEach((r, i) => {
+                    let cells = [];
+                    if (opts.batchIncludeIndex) cells.push(String(i + 1));
+                    cells.push(escapeHtml(r.input.length > truncLen ? r.input.slice(0, truncLen) + '…' : r.input));
+                    cells.push(r.error ? '<span style="color:var(--danger);">' + escapeHtml(r.error) + '</span>' : escapeHtml(r.output.length > truncLen ? r.output.slice(0, truncLen) + '…' : r.output));
+                    html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+                });
+                html += '</tbody></table></div>';
+                return html;
+            }
+
+            resultEl.innerHTML = buildTable(60);
+            document.getElementById('pane-batch').innerHTML = buildTable(100);
+            window._lastBatchRows = rows;
+        });
+
+        // ---------- Utility: Binary Validator ----------
+        document.getElementById('validateBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const raw = document.getElementById('validateInput').value;
+            const resultEl = document.getElementById('validateResult');
+            if (!raw.trim()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a binary string to validate.</div>'; return; }
+            try {
+                const parsed = parseBinaryToUnits(raw, opts);
+                resultEl.innerHTML = '<span class="badge public">Valid</span>' +
+                    '<div class="mono-box" style="margin-top:10px;font-size:11.5px;">Parsed as ' + parsed.units.length + ' unit(s) at ' + parsed.width + '-bit width.</div>';
+            } catch (err) {
+                resultEl.innerHTML = '<span class="badge invalid">Invalid</span>' +
+                    '<div class="mono-box" style="margin-top:10px;font-size:11.5px;color:var(--danger);">' + escapeHtml(err.message) + '</div>';
+            }
+        });
+
+        // ---------- Utility: Random Binary Generator ----------
+        document.getElementById('genRandomBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const len = Math.max(1, Math.min(200, parseInt(document.getElementById('randomLengthInput').value, 10) || 12));
+            const bytes = new Uint8Array(len);
+            crypto.getRandomValues(bytes);
+            const printable = Array.from(bytes).map(b => 32 + (b % 95)); // printable ASCII 32-126
+            const text = printable.map(c => String.fromCharCode(c)).join('');
+            const groups = printable.map(u => unitToBinaryString(u, 8, { zeroPad: true, prefix0b: opts.prefix0b, endian: 'big' }));
+            const binaryStr = groups.join(' ');
+            const resultEl = document.getElementById('genRandomResult');
+            resultEl.innerHTML =
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:6px;">Text</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(text) + '</div>' +
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin:10px 0 6px;">Binary</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(binaryStr) + '</div>' +
+                '<button class="btn-ghost small" id="useGeneratedBtn" type="button" style="margin-top:10px;">Use as Input</button>';
+            document.getElementById('useGeneratedBtn').addEventListener('click', () => {
+                setDirection('toBinary');
+                document.getElementById('textInput').value = text;
+                scheduleAnalyze();
+                document.getElementById('textInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optUseUtf8', 'optStrict7Bit', 'optSpaceGroups', 'optZeroPad', 'optAddPrefix0b', 'optIgnoreNonBinaryChars', 'optAutoDetectWidth', 'optAllowPartialLastByte', 'optShowHex', 'optShowOctal', 'optShowDecimal', 'optShowBase64', 'optHexUppercase', 'optComputeParity', 'optComputeChecksum', 'optFlagControlChars', 'optBatchIncludeIndex', 'optBatchSkipEmpty'],
+            text: ['maxBatchLinesInput'],
+            select: ['bitWidthSelect', 'batchDirectionSelect'],
+            radio: ['endian']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            ctf: {
+                optUseUtf8: true, optStrict7Bit: false, bitWidthSelect: '8',
+                optSpaceGroups: true, optZeroPad: true, optAddPrefix0b: false, endian: 'big',
+                optIgnoreNonBinaryChars: true, optAutoDetectWidth: true, optAllowPartialLastByte: true,
+                optShowHex: true, optShowOctal: true, optShowDecimal: true, optShowBase64: true, optHexUppercase: false,
+                optComputeParity: false, optComputeChecksum: true, optFlagControlChars: true,
+                optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchDirectionSelect: 'toText'
+            },
+            teaching: {
+                optUseUtf8: true, optStrict7Bit: false, bitWidthSelect: '8',
+                optSpaceGroups: true, optZeroPad: true, optAddPrefix0b: true, endian: 'big',
+                optIgnoreNonBinaryChars: true, optAutoDetectWidth: false, optAllowPartialLastByte: false,
+                optShowHex: true, optShowOctal: true, optShowDecimal: true, optShowBase64: false, optHexUppercase: false,
+                optComputeParity: true, optComputeChecksum: false, optFlagControlChars: true,
+                optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '200', batchDirectionSelect: 'toBinary'
+            },
+            protocol: {
+                optUseUtf8: false, optStrict7Bit: false, bitWidthSelect: '8',
+                optSpaceGroups: false, optZeroPad: true, optAddPrefix0b: false, endian: 'big',
+                optIgnoreNonBinaryChars: true, optAutoDetectWidth: true, optAllowPartialLastByte: true,
+                optShowHex: true, optShowOctal: false, optShowDecimal: true, optShowBase64: false, optHexUppercase: true,
+                optComputeParity: true, optComputeChecksum: true, optFlagControlChars: true,
+                optBatchIncludeIndex: true, optBatchSkipEmpty: false, maxBatchLinesInput: '1000', batchDirectionSelect: 'toText'
+            },
+            strict: {
+                optUseUtf8: true, optStrict7Bit: true, bitWidthSelect: '7',
+                optSpaceGroups: true, optZeroPad: true, optAddPrefix0b: false, endian: 'big',
+                optIgnoreNonBinaryChars: false, optAutoDetectWidth: false, optAllowPartialLastByte: false,
+                optShowHex: true, optShowOctal: false, optShowDecimal: true, optShowBase64: false, optHexUppercase: false,
+                optComputeParity: false, optComputeChecksum: false, optFlagControlChars: true,
+                optBatchIncludeIndex: false, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchDirectionSelect: 'toBinary'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'asciiBinCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            scheduleAnalyze();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ascii-binary-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    scheduleAnalyze();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave ----------
+        const DRAFT_TEXT_KEY = 'asciiBinDraftText';
+        const DRAFT_BINARY_KEY = 'asciiBinDraftBinary';
+        const DRAFT_DIR_KEY = 'asciiBinDraftDirection';
+        const DRAFT_SETTINGS_KEY = 'asciiBinLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_TEXT_KEY, document.getElementById('textInput').value);
+                    localStorage.setItem(DRAFT_BINARY_KEY, document.getElementById('binaryInput').value);
+                    localStorage.setItem(DRAFT_DIR_KEY, currentDirection);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedText = localStorage.getItem(DRAFT_TEXT_KEY);
+                const savedBinary = localStorage.getItem(DRAFT_BINARY_KEY);
+                const savedDir = localStorage.getItem(DRAFT_DIR_KEY);
+                if (savedText !== null) document.getElementById('textInput').value = savedText;
+                if (savedBinary !== null) document.getElementById('binaryInput').value = savedBinary;
+                if (savedDir === 'toText') {
+                    currentDirection = 'toText';
+                    document.getElementById('dirToBinaryBtn').classList.remove('active');
+                    document.getElementById('dirToTextBtn').classList.add('active');
+                    document.getElementById('wrapTextInput').style.display = 'none';
+                    document.getElementById('wrapBinaryInput').style.display = 'block';
+                }
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        analyze();
+    </script>
+</body>
+</html>
