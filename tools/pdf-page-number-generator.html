@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Page Number Generator</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF page number generator: stamp page numbers on any PDF with full control — position, format (Page X of Y, roman numerals, custom prefixes), start offset, skip cover/TOC pages, page ranges, odd/even mirrored margins, font, color, and background box. Batch multiple files with continuous numbering. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-page-number-generator.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-page-number-generator.html" />
+<meta property="og:title" content="PDF Page Number Generator — awjunaid" />
+<meta property="og:description" content="Stamp page numbers on any PDF — position, custom formats, roman numerals, skip pages, page ranges, odd/even mirroring, fonts, and background boxes. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-page-number-generator.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Page Number Generator — awjunaid" />
+<meta name="twitter:description" content="Stamp page numbers on any PDF — position, custom formats, roman numerals, skip pages, page ranges, odd/even mirroring, fonts, and background boxes. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-page-number-generator.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           INFO BANNER
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--border-color); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: var(--code-bg);
+        }
+        .risk-banner i { font-size: 18px; color: var(--text-primary); margin-top: 2px; flex-shrink: 0; }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .risk-tag.info { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group input[type="color"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group input[type="color"] { padding: 4px 6px; height: 40px; cursor: pointer; }
+        .field-group input[type="range"] { width: 100%; accent-color: var(--text-primary); }
+        .field-group .range-val { font-family: var(--font-mono); font-size: 11px; opacity: 0.6; float: right; }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        /* Position grid picker */
+        .pos-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+            width: 160px; margin-top: 4px;
+        }
+        .pos-cell {
+            aspect-ratio: 1; border: 1px solid var(--border-light); border-radius: 8px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 9px; opacity: 0.5; transition: all 0.15s;
+        }
+        .pos-cell:hover { opacity: 0.9; border-color: var(--text-primary); }
+        .pos-cell.active { background: var(--text-primary); color: var(--bg-primary); opacity: 1; border-color: var(--text-primary); }
+        .pos-cell i { font-size: 12px; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Live preview */
+        .preview-wrap {
+            display: none;
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px;
+            margin-bottom: 14px; align-items: center; justify-content: center; background: var(--input-bg);
+        }
+        .preview-wrap.show { display: flex; }
+        .preview-page {
+            position: relative; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            width: 170px; height: 220px; flex-shrink: 0; border-radius: 2px;
+        }
+        .preview-page .pv-body { position: absolute; top: 10%; left: 8%; right: 8%; }
+        .preview-page .pv-line { height: 4px; background: #e2e2e2; margin-bottom: 6px; border-radius: 2px; }
+        .preview-page .pv-line:nth-child(2) { width: 80%; }
+        .preview-page .pv-line:nth-child(3) { width: 60%; }
+        .preview-stamp {
+            position: absolute; font-family: var(--font-mono); font-size: 9px; white-space: nowrap;
+            padding: 2px 5px; line-height: 1.4;
+        }
+        .preview-meta { font-size: 11px; opacity: 0.6; margin-left: 18px; font-family: var(--font-mono); line-height: 1.9; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        .page-map { display: flex; flex-wrap: wrap; gap: 5px; }
+        .page-chip {
+            font-family: var(--font-mono); font-size: 10px; padding: 4px 7px; border-radius: 6px;
+            border: 1px solid var(--border-light); opacity: 0.55;
+        }
+        .page-chip.numbered { opacity: 1; border-color: var(--accent); color: var(--accent); }
+        .page-chip.skipped { opacity: 1; border-color: var(--warn); color: var(--warn); }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .preview-wrap { flex-direction: column; }
+            .preview-meta { margin-left: 0; margin-top: 12px; text-align: center; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Page Number Generator</h1>
+                <div class="tool-dek">Reports, theses, contracts, and manuals all need page numbers that actually match how they're printed and bound — a cover page with no number, roman numerals on the preface, "Page X of Y" on the body, mirrored margins for double-sided binding. Set it once, preview it live, and stamp every page correctly in one pass.</div>
+            </div>
+
+            <div class="risk-banner">
+                <i class="fa-solid fa-list-ol"></i>
+                <div>
+                    <strong>Built for the messy real-world case, not just "1, 2, 3…"</strong>
+                    <p>Most page-number tools only do a single number in a single corner. Real documents need a cover page skipped, front matter numbered in roman numerals restarting at i, the main body restarting at 1, specific ranges excluded (blank pages, dividers), and — for anything bound and printed double-sided — the number mirrored to the outer edge on alternating pages. All of that is configurable here, previewed before you commit, and applied consistently across a whole batch of files.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="simpleFooter">Simple Footer (Page X)</option>
+                    <option value="xOfY">Bottom Center — X of Y</option>
+                    <option value="report">Report — Cover Skipped, Roman Front Matter</option>
+                    <option value="bookPrint">Book Print — Mirrored Outer Margins</option>
+                    <option value="draftWatermark">Draft — Top Right, Faded</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Position & Placement</h4>
+                    <div class="field-row" style="align-items:start;">
+                        <div class="field-group">
+                            <label>Anchor position</label>
+                            <div class="pos-grid" id="posGrid">
+                                <div class="pos-cell" data-pos="top-left"><i class="fa-solid fa-arrow-up"></i></div>
+                                <div class="pos-cell" data-pos="top-center"><i class="fa-solid fa-arrow-up"></i></div>
+                                <div class="pos-cell" data-pos="top-right"><i class="fa-solid fa-arrow-up"></i></div>
+                                <div class="pos-cell" data-pos="mid-left"><i class="fa-solid fa-minus"></i></div>
+                                <div class="pos-cell" style="opacity:0.15;cursor:default;"><i class="fa-solid fa-file"></i></div>
+                                <div class="pos-cell" data-pos="mid-right"><i class="fa-solid fa-minus"></i></div>
+                                <div class="pos-cell" data-pos="bottom-left"><i class="fa-solid fa-arrow-down"></i></div>
+                                <div class="pos-cell active" data-pos="bottom-center"><i class="fa-solid fa-arrow-down"></i></div>
+                                <div class="pos-cell" data-pos="bottom-right"><i class="fa-solid fa-arrow-down"></i></div>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="marginX">Horizontal margin (pt) <span class="range-val" id="marginXVal">36</span></label>
+                            <input type="range" id="marginX" min="10" max="120" value="36">
+                            <label for="marginY" style="margin-top:10px;">Vertical margin (pt) <span class="range-val" id="marginYVal">28</span></label>
+                            <input type="range" id="marginY" min="10" max="120" value="28">
+                        </div>
+                        <div class="field-group">
+                            <label class="setting-toggle" style="margin-bottom:10px;">
+                                <input type="checkbox" id="mirrorOddEven">
+                                <span><span class="setting-name">Mirror odd/even pages <span class="risk-tag info">Book</span></span><span class="setting-hint">Flips left/right anchor on even pages for double-sided binding — number sits on the outer edge</span></span>
+                            </label>
+                            <label class="setting-toggle">
+                                <input type="checkbox" id="matchRotation" checked>
+                                <span><span class="setting-name">Match page rotation</span><span class="setting-hint">Keeps text upright on rotated/landscape pages instead of drawing sideways</span></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Number Format</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="formatPreset">Format</label>
+                            <select id="formatPreset">
+                                <option value="{page}">1, 2, 3…</option>
+                                <option value="Page {page}">Page 1</option>
+                                <option value="Page {page} of {total}" selected>Page 1 of 12</option>
+                                <option value="{page} / {total}">1 / 12</option>
+                                <option value="- {page} -">- 1 -</option>
+                                <option value="{roman}">Roman numerals (i, ii, iii…)</option>
+                                <option value="{ROMAN}">Roman numerals (I, II, III…)</option>
+                                <option value="custom">Custom template…</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="customFormat">Custom template</label>
+                            <input type="text" id="customFormat" placeholder="e.g. {filename} — {page}/{total}" disabled>
+                            <div class="field-note">Tokens: {page} {total} {roman} {ROMAN} {filename} {date}</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="startNumber">Start numbering at</label>
+                            <input type="number" id="startNumber" value="1" min="0">
+                        </div>
+                        <div class="field-group">
+                            <label for="totalOverride">Total count shown as</label>
+                            <select id="totalOverride">
+                                <option value="auto">Auto — count of numbered pages</option>
+                                <option value="docTotal">Total pages in document</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Page Selection & Restarts</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="skipFirstN">Skip first N pages</label>
+                            <input type="number" id="skipFirstN" value="0" min="0">
+                            <div class="field-note">e.g. skip a cover page — it stays unnumbered</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="pageRange">Apply only to range</label>
+                            <input type="text" id="pageRange" placeholder="e.g. 1-5,8,10-end">
+                            <div class="field-note">Leave blank to apply to every page (after skip rule)</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="excludeRange">Exclude range</label>
+                            <input type="text" id="excludeRange" placeholder="e.g. 3,7-9">
+                            <div class="field-note">Pages here are never numbered, even if in the range above</div>
+                        </div>
+                        <div class="field-group">
+                            <label class="setting-toggle" style="margin-top:22px;">
+                                <input type="checkbox" id="restartAtSelection">
+                                <span><span class="setting-name">Restart count at first numbered page</span><span class="setting-hint">Skipped/excluded pages don't consume a number — counting begins fresh from Start value</span></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Typography</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="fontFamily">Font</label>
+                            <select id="fontFamily">
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="HelveticaBold">Helvetica Bold</option>
+                                <option value="TimesRoman">Times Roman</option>
+                                <option value="TimesRomanBold">Times Bold</option>
+                                <option value="Courier">Courier</option>
+                                <option value="CourierBold">Courier Bold</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="fontSize">Font size (pt) <span class="range-val" id="fontSizeVal">10</span></label>
+                            <input type="range" id="fontSize" min="6" max="28" value="10">
+                        </div>
+                        <div class="field-group">
+                            <label for="fontColor">Text color</label>
+                            <input type="color" id="fontColor" value="#000000">
+                        </div>
+                        <div class="field-group">
+                            <label for="textOpacity">Text opacity <span class="range-val" id="textOpacityVal">100%</span></label>
+                            <input type="range" id="textOpacity" min="10" max="100" value="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Background Box</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="enableBox">
+                            <span><span class="setting-name">Draw background box behind number</span><span class="setting-hint">Useful for numbers over busy backgrounds, scans, or dark page footers</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="boxColor">Box color</label>
+                            <input type="color" id="boxColor" value="#ffffff">
+                        </div>
+                        <div class="field-group">
+                            <label for="boxOpacity">Box opacity <span class="range-val" id="boxOpacityVal">85%</span></label>
+                            <input type="range" id="boxOpacity" min="10" max="100" value="85">
+                        </div>
+                        <div class="field-group">
+                            <label for="boxPadding">Box padding (pt) <span class="range-val" id="boxPaddingVal">6</span></label>
+                            <input type="range" id="boxPadding" min="0" max="24" value="6">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optContinuousBatch">
+                            <span><span class="setting-name">Continuous numbering across batch</span><span class="setting-hint">When multiple files are loaded, numbering carries on from one file into the next instead of resetting</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchZip" checked>
+                            <span><span class="setting-name">Bundle batch output as ZIP</span><span class="setting-hint">Applies when numbering multiple files at once</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlatten">
+                            <span><span class="setting-name">Flatten form fields</span><span class="setting-hint">Prevents interactive form fields from drawing over the stamped number</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="numbered.pdf">
+                            <div class="field-note">Applied to a single file. Batch mode appends "-numbered" to each original name.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source PDF</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Choose PDF(s)</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop one or more .pdf files here, or use "Choose PDF(s)" above.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="preview-wrap" id="previewWrap">
+                        <div class="preview-page" id="previewPage">
+                            <div class="pv-body">
+                                <div class="pv-line"></div>
+                                <div class="pv-line"></div>
+                                <div class="pv-line"></div>
+                            </div>
+                            <div class="preview-stamp" id="previewStamp">Page 1 of 12</div>
+                        </div>
+                        <div class="preview-meta" id="previewMeta"></div>
+                    </div>
+
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalPagesLoaded">0</strong> page(s)</span>
+                        <span><strong id="totalFilesLoaded">0</strong> file(s) loaded</span>
+                        <span><strong id="numberedPageCount">0</strong> will be numbered</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Generate & Download</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="generateBtn" type="button"><i class="fa-solid fa-hashtag"></i> Add Page Numbers</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Plan</button>
+                        <button class="output-tab" data-tab="map" type="button">Page Map</button>
+                        <button class="output-tab" data-tab="files" type="button">Output Files</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Load a PDF and configure settings above — the numbering plan appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-map">
+                        <div class="info-pane" id="mapPane"><p class="info-empty">A chip for every page will appear here once a file is loaded, showing which get numbered.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">Numbered files will be listed here after processing.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Processing activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputStampedCount">0</strong> pages stamped</span>
+                        <span><strong id="outputFileCount">0</strong> file(s) produced</span>
+                        <span><strong id="outputStatus">Not generated yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How do I skip the cover page?</h4>
+                        <p>Set "Skip first N pages" to 1 (or however many front pages should stay blank), and turn on "Restart count at first numbered page" so numbering starts clean at your Start value from the first page that actually gets stamped, rather than continuing from a hidden count.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I number front matter differently from the body?</h4>
+                        <p>Run the tool twice on the same source: first with a roman-numeral format restricted to the front-matter range (e.g. "2-6"), then load that output again and apply an arabic "Page {page} of {total}" format restricted to the remaining range starting at 1.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "Mirror odd/even pages" actually do?</h4>
+                        <p>For anything printed double-sided and bound, the page number should sit on the outer edge of the sheet, not the same corner on every page. This flips a left/right anchor to the opposite side on even-numbered pages automatically.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does the page range syntax work?</h4>
+                        <p>Comma-separated, with dashes for spans: "1-5,8,10-end" numbers pages 1 through 5, page 8, and 10 through the last page. Anything in the "Exclude" field is removed from that set afterward, even if it overlaps.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Does the total in "Page X of Y" count every page or just numbered ones?</h4>
+                        <p>Your choice — "Auto" counts only the pages actually being numbered (so a skipped cover doesn't inflate the total), while "Total pages in document" always reflects the PDF's real page count regardless of what's excluded.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every PDF you load is processed locally in your browser using pdf-lib — nothing is sent anywhere. Reload the page and everything clears except your saved settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // PDF PAGE NUMBER GENERATOR — ENTERPRISE EDITION
+        // ============================================
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const mapPane = document.getElementById('mapPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const previewWrap = document.getElementById('previewWrap');
+
+        let loadedFiles = []; // { name, bytes, pageCount }
+        let outputs = []; // { name, blob, size }
+        let currentPos = 'bottom-center';
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_CHECKBOXES = [
+            'mirrorOddEven','matchRotation','restartAtSelection','enableBox',
+            'optContinuousBatch','optBatchZip','optFlatten'
+        ];
+        const SETTING_RANGE = ['marginX','marginY','fontSize','textOpacity','boxOpacity','boxPadding'];
+        const SETTING_TEXT = ['customFormat','startNumber','skipFirstN','pageRange','excludeRange','outputFilename'];
+        const SETTING_SELECT = ['formatPreset','totalOverride','fontFamily','totalOverride'];
+        const SETTING_COLOR = ['fontColor','boxColor'];
+
+        function getOptions() {
+            const opts = { position: currentPos };
+            SETTING_CHECKBOXES.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_RANGE.forEach(id => opts[id] = Number(document.getElementById(id).value));
+            SETTING_TEXT.forEach(id => opts[id] = document.getElementById(id).value);
+            [...new Set(SETTING_SELECT)].forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_COLOR.forEach(id => opts[id] = document.getElementById(id).value);
+            return opts;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_CHECKBOXES.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_RANGE.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_TEXT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            [...new Set(SETTING_SELECT)].forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_COLOR.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (settings.position) setPosition(settings.position);
+            syncRangeLabels();
+            toggleCustomFormatField();
+        }
+
+        // Position grid
+        document.querySelectorAll('.pos-cell[data-pos]').forEach(cell => {
+            cell.addEventListener('click', () => { setPosition(cell.dataset.pos); markCustomAndSave(); });
+        });
+        function setPosition(pos) {
+            currentPos = pos;
+            document.querySelectorAll('.pos-cell[data-pos]').forEach(c => c.classList.toggle('active', c.dataset.pos === pos));
+        }
+
+        // Range label sync
+        function syncRangeLabels() {
+            document.getElementById('marginXVal').textContent = document.getElementById('marginX').value;
+            document.getElementById('marginYVal').textContent = document.getElementById('marginY').value;
+            document.getElementById('fontSizeVal').textContent = document.getElementById('fontSize').value;
+            document.getElementById('textOpacityVal').textContent = document.getElementById('textOpacity').value + '%';
+            document.getElementById('boxOpacityVal').textContent = document.getElementById('boxOpacity').value + '%';
+            document.getElementById('boxPaddingVal').textContent = document.getElementById('boxPadding').value;
+        }
+        SETTING_RANGE.forEach(id => document.getElementById(id).addEventListener('input', syncRangeLabels));
+
+        document.getElementById('formatPreset').addEventListener('change', () => { toggleCustomFormatField(); markCustomAndSave(); });
+        function toggleCustomFormatField() {
+            document.getElementById('customFormat').disabled = document.getElementById('formatPreset').value !== 'custom';
+        }
+
+        function markCustomAndSave() {
+            document.getElementById('presetSelect').value = 'custom';
+            invalidateGenerate();
+            renderPlan();
+            renderPreview();
+            renderPageMap();
+            saveSettingsDraft();
+        }
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', markCustomAndSave);
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            simpleFooter: {
+                position: 'bottom-center', marginX: 36, marginY: 28, mirrorOddEven: false, matchRotation: true,
+                formatPreset: '{page}', customFormat: '', startNumber: '1', skipFirstN: '0', pageRange: '', excludeRange: '',
+                restartAtSelection: false, totalOverride: 'auto', fontFamily: 'Helvetica', fontSize: 10, fontColor: '#000000', textOpacity: 100,
+                enableBox: false, boxColor: '#ffffff', boxOpacity: 85, boxPadding: 6,
+                optContinuousBatch: false, optBatchZip: true, optFlatten: false, outputFilename: 'numbered.pdf'
+            },
+            xOfY: {
+                position: 'bottom-center', marginX: 36, marginY: 28, mirrorOddEven: false, matchRotation: true,
+                formatPreset: 'Page {page} of {total}', customFormat: '', startNumber: '1', skipFirstN: '0', pageRange: '', excludeRange: '',
+                restartAtSelection: false, totalOverride: 'auto', fontFamily: 'Helvetica', fontSize: 10, fontColor: '#000000', textOpacity: 100,
+                enableBox: false, boxColor: '#ffffff', boxOpacity: 85, boxPadding: 6,
+                optContinuousBatch: false, optBatchZip: true, optFlatten: false, outputFilename: 'numbered.pdf'
+            },
+            report: {
+                position: 'bottom-center', marginX: 36, marginY: 30, mirrorOddEven: false, matchRotation: true,
+                formatPreset: '{roman}', customFormat: '', startNumber: '1', skipFirstN: '1', pageRange: '', excludeRange: '',
+                restartAtSelection: true, totalOverride: 'auto', fontFamily: 'TimesRoman', fontSize: 11, fontColor: '#000000', textOpacity: 100,
+                enableBox: false, boxColor: '#ffffff', boxOpacity: 85, boxPadding: 6,
+                optContinuousBatch: false, optBatchZip: true, optFlatten: false, outputFilename: 'numbered.pdf'
+            },
+            bookPrint: {
+                position: 'bottom-right', marginX: 40, marginY: 32, mirrorOddEven: true, matchRotation: true,
+                formatPreset: '{page}', customFormat: '', startNumber: '1', skipFirstN: '1', pageRange: '', excludeRange: '',
+                restartAtSelection: true, totalOverride: 'auto', fontFamily: 'TimesRoman', fontSize: 10, fontColor: '#000000', textOpacity: 100,
+                enableBox: false, boxColor: '#ffffff', boxOpacity: 85, boxPadding: 6,
+                optContinuousBatch: false, optBatchZip: true, optFlatten: false, outputFilename: 'numbered.pdf'
+            },
+            draftWatermark: {
+                position: 'top-right', marginX: 30, marginY: 24, mirrorOddEven: false, matchRotation: true,
+                formatPreset: 'custom', customFormat: 'DRAFT — {page}/{total}', startNumber: '1', skipFirstN: '0', pageRange: '', excludeRange: '',
+                restartAtSelection: false, totalOverride: 'auto', fontFamily: 'HelveticaBold', fontSize: 9, fontColor: '#b8860b', textOpacity: 70,
+                enableBox: true, boxColor: '#ffffff', boxOpacity: 60, boxPadding: 5,
+                optContinuousBatch: false, optBatchZip: true, optFlatten: false, outputFilename: 'numbered.pdf'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfPageNumCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            invalidateGenerate();
+            renderPlan(); renderPreview(); renderPageMap();
+            saveSettingsDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-page-number-generator-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    invalidateGenerate();
+                    renderPlan(); renderPreview(); renderPageMap();
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // ERROR / LOG HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function clearLog() {
+            logLines = [];
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Processing activity will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ============================================
+        // PAGE RANGE PARSING
+        // ============================================
+        // "1-5,8,10-end" -> Set of 1-based page numbers
+        function parseRangeSpec(spec, pageCount) {
+            const set = new Set();
+            if (!spec || !spec.trim()) return null; // null = "all pages"
+            spec.split(',').forEach(part => {
+                part = part.trim();
+                if (!part) return;
+                if (part.includes('-')) {
+                    let [a, b] = part.split('-').map(s => s.trim());
+                    let start = parseInt(a, 10);
+                    let end = (b.toLowerCase() === 'end' || b === '') ? pageCount : parseInt(b, 10);
+                    if (isNaN(start)) start = 1;
+                    if (isNaN(end)) end = pageCount;
+                    for (let i = Math.max(1, start); i <= Math.min(pageCount, end); i++) set.add(i);
+                } else {
+                    const n = parseInt(part, 10);
+                    if (!isNaN(n) && n >= 1 && n <= pageCount) set.add(n);
+                }
+            });
+            return set;
+        }
+
+        function romanize(num, upper) {
+            if (num <= 0) return '';
+            const table = [[1000,'m'],[900,'cm'],[500,'d'],[400,'cd'],[100,'c'],[90,'xc'],[50,'l'],[40,'xl'],[10,'x'],[9,'ix'],[5,'v'],[4,'iv'],[1,'i']];
+            let n = num, out = '';
+            for (const [val, sym] of table) { while (n >= val) { out += sym; n -= val; } }
+            return upper ? out.toUpperCase() : out;
+        }
+
+        // Compute, for a document of pageCount pages, which pages get numbered and what number each gets.
+        // Returns array of length pageCount: null (unnumbered) or integer sequence number.
+        function computeNumberingMap(pageCount, opts, continuationStart) {
+            const skipN = Math.max(0, parseInt(opts.skipFirstN, 10) || 0);
+            const includeSet = parseRangeSpec(opts.pageRange, pageCount); // null = all
+            const excludeSet = parseRangeSpec(opts.excludeRange, pageCount) || new Set();
+            const startNum = parseInt(opts.startNumber, 10) || 0;
+
+            const eligible = [];
+            for (let p = 1; p <= pageCount; p++) {
+                if (p <= skipN) continue;
+                if (includeSet && !includeSet.has(p)) continue;
+                if (excludeSet.has(p)) continue;
+                eligible.push(p);
+            }
+
+            const map = new Array(pageCount).fill(null);
+            let counter = opts.restartAtSelection ? startNum : (continuationStart != null ? continuationStart : startNum);
+            eligible.forEach(p => { map[p - 1] = counter; counter++; });
+            const nextContinuation = counter;
+            return { map, eligibleCount: eligible.length, nextContinuation };
+        }
+
+        function buildLabel(pageNum, totalShown, opts, filename) {
+            let template = opts.formatPreset === 'custom' ? (opts.customFormat || '{page}') : opts.formatPreset;
+            return template
+                .replace(/\{page\}/g, String(pageNum))
+                .replace(/\{total\}/g, String(totalShown))
+                .replace(/\{roman\}/g, romanize(pageNum, false))
+                .replace(/\{ROMAN\}/g, romanize(pageNum, true))
+                .replace(/\{filename\}/g, filename ? filename.replace(/\.pdf$/i, '') : '')
+                .replace(/\{date\}/g, new Date().toLocaleDateString());
+        }
+
+        function resolveAnchorForPage(basePos, mirror, pageIndexZero) {
+            if (!mirror) return basePos;
+            const isEven = (pageIndexZero + 1) % 2 === 0;
+            if (!isEven) return basePos;
+            if (basePos.includes('left')) return basePos.replace('left', 'right');
+            if (basePos.includes('right')) return basePos.replace('right', 'left');
+            return basePos;
+        }
+
+        // ============================================
+        // FILE LOADING
+        // ============================================
+        async function loadFiles(fileList) {
+            clearError();
+            clearLog();
+            const files = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+            if (files.length === 0) {
+                showError('No valid PDF files selected.');
+                return;
+            }
+            loadedFiles = [];
+            for (const file of files) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+                    const pageCount = doc.getPageCount();
+                    loadedFiles.push({ name: file.name, bytes, pageCount });
+                    logMsg(`Loaded "${file.name}" — ${pageCount} page(s).`, 'success');
+                } catch (err) {
+                    logMsg(`Failed to load "${file.name}": ${err.message || err}`, 'error');
+                }
+            }
+            if (loadedFiles.length === 0) {
+                showError('None of the selected files could be read as PDFs.');
+                return;
+            }
+
+            const first = loadedFiles[0];
+            const totalPages = loadedFiles.reduce((s, f) => s + f.pageCount, 0);
+            document.getElementById('lfName').textContent = loadedFiles.length === 1 ? first.name : `${first.name} + ${loadedFiles.length - 1} more`;
+            document.getElementById('lfMeta').textContent = loadedFiles.length === 1
+                ? `${first.pageCount} page(s)`
+                : `${loadedFiles.length} files loaded — batch mode, ${totalPages} total pages`;
+            loadedFileCard.classList.add('show');
+            document.getElementById('totalFilesLoaded').textContent = loadedFiles.length;
+            document.getElementById('totalPagesLoaded').textContent = totalPages;
+
+            const base = first.name.replace(/\.pdf$/i, '');
+            document.getElementById('outputFilename').value = base + '-numbered.pdf';
+
+            previewWrap.classList.add('show');
+            invalidateGenerate();
+            renderPlan();
+            renderPreview();
+            renderPageMap();
+        }
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            loadedFiles = [];
+            loadedFileCard.classList.remove('show');
+            previewWrap.classList.remove('show');
+            document.getElementById('totalFilesLoaded').textContent = '0';
+            document.getElementById('totalPagesLoaded').textContent = '0';
+            document.getElementById('numberedPageCount').textContent = '0';
+            invalidateGenerate();
+            planPane.innerHTML = '<p class="info-empty">Load a PDF and configure settings above — the numbering plan appears here.</p>';
+            mapPane.innerHTML = '<p class="info-empty">A chip for every page will appear here once a file is loaded, showing which get numbered.</p>';
+        });
+
+        // ============================================
+        // LIVE PREVIEW (first file only)
+        // ============================================
+        function renderPreview() {
+            if (loadedFiles.length === 0) return;
+            const opts = getOptions();
+            const first = loadedFiles[0];
+            const { map, eligibleCount } = computeNumberingMap(first.pageCount, opts, null);
+            const totalShown = opts.totalOverride === 'docTotal' ? first.pageCount : eligibleCount;
+            const firstNumberedIdx = map.findIndex(v => v !== null);
+            const previewPageIndex = firstNumberedIdx === -1 ? 0 : firstNumberedIdx;
+            const pageNum = map[previewPageIndex];
+
+            const stamp = document.getElementById('previewStamp');
+            const pageEl = document.getElementById('previewPage');
+            const anchor = resolveAnchorForPage(opts.position, opts.mirrorOddEven, previewPageIndex);
+
+            if (pageNum === null || pageNum === undefined) {
+                stamp.style.display = 'none';
+            } else {
+                stamp.style.display = 'block';
+                stamp.textContent = buildLabel(pageNum, totalShown, opts, first.name);
+                stamp.style.color = opts.fontColor;
+                stamp.style.opacity = (opts.textOpacity / 100).toFixed(2);
+                stamp.style.fontWeight = opts.fontFamily.includes('Bold') ? '700' : '400';
+                stamp.style.fontStyle = 'normal';
+                stamp.style.background = opts.enableBox ? hexToRgba(opts.boxColor, opts.boxOpacity / 100) : 'transparent';
+                stamp.style.borderRadius = opts.enableBox ? '3px' : '0';
+
+                // position via CSS approximating the pdf-lib anchor
+                const mx = 6 + (opts.marginX / 120) * 8; // scaled for the mini preview
+                const my = 4 + (opts.marginY / 120) * 8;
+                stamp.style.top = ''; stamp.style.bottom = ''; stamp.style.left = ''; stamp.style.right = ''; stamp.style.transform = '';
+                if (anchor.startsWith('top')) stamp.style.top = my + 'px'; else if (anchor.startsWith('bottom')) stamp.style.bottom = my + 'px'; else { stamp.style.top = '50%'; stamp.style.transform = 'translateY(-50%)'; }
+                if (anchor.endsWith('left')) stamp.style.left = mx + 'px';
+                else if (anchor.endsWith('right')) stamp.style.right = mx + 'px';
+                else { stamp.style.left = '50%'; stamp.style.transform = (stamp.style.transform ? stamp.style.transform + ' ' : '') + 'translateX(-50%)'; }
+            }
+
+            document.getElementById('previewMeta').innerHTML =
+                `showing page ${previewPageIndex + 1} of ${first.pageCount}<br>` +
+                `format: ${escapeHtmlStr(opts.formatPreset === 'custom' ? opts.customFormat : opts.formatPreset)}<br>` +
+                `anchor: ${anchor}${opts.mirrorOddEven ? ' (mirrored)' : ''}`;
+
+            document.getElementById('numberedPageCount').textContent = eligibleCount;
+        }
+        function hexToRgba(hex, alpha) {
+            const h = hex.replace('#', '');
+            const r = parseInt(h.substring(0,2), 16), g = parseInt(h.substring(2,4), 16), b = parseInt(h.substring(4,6), 16);
+            return `rgba(${r},${g},${b},${alpha})`;
+        }
+
+        // ============================================
+        // REMOVAL PLAN / PAGE MAP PREVIEW
+        // ============================================
+        function renderPlan() {
+            if (loadedFiles.length === 0) {
+                planPane.innerHTML = '<p class="info-empty">Load a PDF and configure settings above — the numbering plan appears here.</p>';
+                return;
+            }
+            const opts = getOptions();
+            const totalPages = loadedFiles.reduce((s, f) => s + f.pageCount, 0);
+            let totalNumbered = 0;
+            let continuation = null;
+            loadedFiles.forEach(f => {
+                const { eligibleCount, nextContinuation } = computeNumberingMap(f.pageCount, opts, opts.optContinuousBatch ? continuation : null);
+                totalNumbered += eligibleCount;
+                if (opts.optContinuousBatch) continuation = nextContinuation;
+            });
+
+            let html = `<div class="meta-row"><span>Files queued</span><span>${loadedFiles.length}</span></div>`;
+            html += `<div class="meta-row"><span>Total pages</span><span>${totalPages}</span></div>`;
+            html += `<div class="meta-row"><span>Pages to be numbered</span><span>${totalNumbered}</span></div>`;
+            html += `<div class="meta-row"><span>Format</span><span>${escapeHtmlStr(opts.formatPreset === 'custom' ? opts.customFormat : opts.formatPreset)}</span></div>`;
+            html += `<div class="meta-row"><span>Position</span><span>${opts.position}${opts.mirrorOddEven ? ' (mirrored odd/even)' : ''}</span></div>`;
+            html += `<div class="meta-row"><span>Start number</span><span>${opts.startNumber}</span></div>`;
+            html += `<div class="meta-row"><span>Skip first N pages</span><span>${opts.skipFirstN}</span></div>`;
+            if (opts.pageRange) html += `<div class="meta-row"><span>Restricted to range</span><span>${escapeHtmlStr(opts.pageRange)}</span></div>`;
+            if (opts.excludeRange) html += `<div class="meta-row"><span>Excluding</span><span>${escapeHtmlStr(opts.excludeRange)}</span></div>`;
+            html += `<div class="meta-row"><span>Font</span><span>${opts.fontFamily}, ${opts.fontSize}pt</span></div>`;
+            html += `<div class="meta-row"><span>Background box</span><span>${opts.enableBox ? 'Yes' : 'No'}</span></div>`;
+            if (loadedFiles.length > 1) html += `<div class="meta-row"><span>Continuous numbering across batch</span><span>${opts.optContinuousBatch ? 'Yes' : 'No'}</span></div>`;
+            planPane.innerHTML = html;
+        }
+
+        function renderPageMap() {
+            if (loadedFiles.length === 0) {
+                mapPane.innerHTML = '<p class="info-empty">A chip for every page will appear here once a file is loaded, showing which get numbered.</p>';
+                return;
+            }
+            const opts = getOptions();
+            const first = loadedFiles[0];
+            const { map } = computeNumberingMap(first.pageCount, opts, null);
+            let html = `<div class="page-map">`;
+            map.forEach((num, idx) => {
+                if (num !== null) {
+                    html += `<span class="page-chip numbered" title="Page ${idx + 1}">${idx + 1}: ${escapeHtmlStr(String(num))}</span>`;
+                } else {
+                    html += `<span class="page-chip skipped" title="Page ${idx + 1} — not numbered">${idx + 1}: —</span>`;
+                }
+            });
+            html += `</div>`;
+            if (loadedFiles.length > 1) html += `<p class="info-empty" style="margin-top:12px;">Showing page map for "${escapeHtmlStr(first.name)}" — first file in the batch. Other files follow the same rules${opts.optContinuousBatch ? ', continuing the count.' : '.'}</p>`;
+            mapPane.innerHTML = html;
+        }
+
+        // ============================================
+        // GENERATION ENGINE
+        // ============================================
+        function fontKeyToStandard(key) {
+            const { StandardFonts } = PDFLib;
+            const map = {
+                Helvetica: StandardFonts.Helvetica,
+                HelveticaBold: StandardFonts.HelveticaBold,
+                TimesRoman: StandardFonts.TimesRoman,
+                TimesRomanBold: StandardFonts.TimesRomanBold,
+                Courier: StandardFonts.Courier,
+                CourierBold: StandardFonts.CourierBold
+            };
+            return map[key] || StandardFonts.Helvetica;
+        }
+
+        function computeXY(anchor, pageWidth, pageHeight, textWidth, textHeight, marginX, marginY) {
+            let x, y;
+            if (anchor.endsWith('left')) x = marginX;
+            else if (anchor.endsWith('right')) x = pageWidth - marginX - textWidth;
+            else x = (pageWidth - textWidth) / 2;
+
+            if (anchor.startsWith('top')) y = pageHeight - marginY - textHeight;
+            else if (anchor.startsWith('bottom')) y = marginY;
+            else y = (pageHeight - textHeight) / 2;
+
+            return { x, y };
+        }
+
+        async function stampOneFile(entry, opts, continuationStart) {
+            const { rgb } = PDFLib;
+            const doc = await PDFLib.PDFDocument.load(entry.bytes, { ignoreEncryption: true, updateMetadata: false });
+            const pages = doc.getPages();
+            const font = await doc.embedFont(fontKeyToStandard(opts.fontFamily));
+
+            const { map, eligibleCount, nextContinuation } = computeNumberingMap(pages.length, opts, opts.optContinuousBatch ? continuationStart : null);
+            const totalShown = opts.totalOverride === 'docTotal' ? pages.length : eligibleCount;
+
+            const fc = hexToRgb01(opts.fontColor);
+            const bc = hexToRgb01(opts.boxColor);
+            let stamped = 0;
+
+            pages.forEach((page, idx) => {
+                const pageNum = map[idx];
+                if (pageNum === null) return;
+                const label = buildLabel(pageNum, totalShown, opts, entry.name);
+                const { width, height } = page.getSize();
+                const rotation = opts.matchRotation ? (page.getRotation().angle || 0) : 0;
+                const effW = (rotation === 90 || rotation === 270) ? height : width;
+                const effH = (rotation === 90 || rotation === 270) ? width : height;
+
+                const textWidth = font.widthOfTextAtSize(label, opts.fontSize);
+                const textHeight = font.heightAtSize(opts.fontSize);
+                const anchor = resolveAnchorForPage(opts.position, opts.mirrorOddEven, idx);
+                const { x, y } = computeXY(anchor, effW, effH, textWidth, textHeight, opts.marginX, opts.marginY);
+
+                if (opts.enableBox) {
+                    page.drawRectangle({
+                        x: x - opts.boxPadding,
+                        y: y - opts.boxPadding * 0.4,
+                        width: textWidth + opts.boxPadding * 2,
+                        height: textHeight + opts.boxPadding * 0.8,
+                        color: rgb(bc.r, bc.g, bc.b),
+                        opacity: opts.boxOpacity / 100
+                    });
+                }
+
+                page.drawText(label, {
+                    x, y, size: opts.fontSize, font,
+                    color: rgb(fc.r, fc.g, fc.b),
+                    opacity: opts.textOpacity / 100
+                });
+                stamped++;
+            });
+
+            if (opts.optFlatten) {
+                try { const form = doc.getForm(); form.flatten(); } catch (e) { /* no form present */ }
+            }
+
+            const bytes = await doc.save();
+            return { bytes, stamped, nextContinuation };
+        }
+
+        function hexToRgb01(hex) {
+            const h = hex.replace('#', '');
+            return { r: parseInt(h.substring(0,2),16)/255, g: parseInt(h.substring(2,4),16)/255, b: parseInt(h.substring(4,6),16)/255 };
+        }
+
+        async function generateFiles() {
+            if (loadedFiles.length === 0) {
+                showError('Load a PDF before generating page numbers.');
+                return;
+            }
+            clearError();
+            clearLog();
+            generateBtn.disabled = true;
+            downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Generating…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+            outputs = [];
+
+            const opts = getOptions();
+            let totalStamped = 0;
+            let continuation = null;
+
+            try {
+                for (let i = 0; i < loadedFiles.length; i++) {
+                    const entry = loadedFiles[i];
+                    const { bytes, stamped, nextContinuation } = await stampOneFile(entry, opts, continuation);
+                    if (opts.optContinuousBatch) continuation = nextContinuation;
+
+                    let filename;
+                    if (loadedFiles.length === 1) {
+                        filename = (opts.outputFilename || 'numbered.pdf').replace(/\.pdf$/i, '') + '.pdf';
+                    } else {
+                        filename = entry.name.replace(/\.pdf$/i, '') + '-numbered.pdf';
+                    }
+                    outputs.push({ name: filename, blob: new Blob([bytes], { type: 'application/pdf' }), size: bytes.length });
+                    totalStamped += stamped;
+                    logMsg(`Numbered "${entry.name}" → "${filename}" — ${stamped} page(s) stamped (${bytes.length.toLocaleString()} bytes).`, 'success');
+                }
+
+                document.getElementById('outputStampedCount').textContent = totalStamped;
+                document.getElementById('outputFileCount').textContent = outputs.length;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = outputs.length > 1 ? `Generated ${outputs.length} files` : 'Generated';
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add('success');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                logMsg(`Done: ${outputs.length} file(s) processed, ${totalStamped} page(s) stamped in total.`, 'success');
+            } catch (err) {
+                showError('Generation failed: ' + (err.message || err));
+                logMsg('Generation failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Generation failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                outputs = [];
+                downloadBtn.disabled = true;
+            } finally {
+                generateBtn.disabled = false;
+            }
+        }
+
+        function renderFilesPane() {
+            if (outputs.length === 0) {
+                filesPane.innerHTML = '<p class="info-empty">Numbered files will be listed here after processing.</p>';
+                return;
+            }
+            filesPane.innerHTML = '';
+            outputs.forEach((o, i) => {
+                const row = document.createElement('div');
+                row.className = 'output-list-item';
+                row.innerHTML = `
+                    <span class="oli-name" title="${escapeHtmlStr(o.name)}">${escapeHtmlStr(o.name)}</span>
+                    <span class="oli-meta">${o.size.toLocaleString()}b</span>
+                    <button class="oli-dl" type="button" data-idx="${i}">Save</button>
+                `;
+                row.querySelector('.oli-dl').addEventListener('click', () => downloadSingle(i));
+                filesPane.appendChild(row);
+            });
+        }
+
+        function downloadSingle(idx) {
+            const o = outputs[idx];
+            if (!o) return;
+            const url = URL.createObjectURL(o.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = o.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAll() {
+            if (outputs.length === 0) return;
+            if (outputs.length === 1) {
+                downloadSingle(0);
+                return;
+            }
+            const opts = getOptions();
+            if (!opts.optBatchZip || !window['JSZip']) {
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+                return;
+            }
+            try {
+                const zip = new JSZip();
+                for (const o of outputs) {
+                    const buf = await o.blob.arrayBuffer();
+                    zip.file(o.name, buf);
+                }
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'numbered-pdfs.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logMsg(`Downloaded ZIP bundle with ${outputs.length} file(s).`, 'success');
+            } catch (err) {
+                logMsg(`ZIP bundling failed, falling back to individual downloads: ${err.message || err}`, 'warn');
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+            }
+        }
+
+        function invalidateGenerate() {
+            if (outputs.length > 0) {
+                outputs = [];
+                downloadBtn.disabled = true;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Settings changed — generate again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                filesPane.innerHTML = '<p class="info-empty">Numbered files will be listed here after processing.</p>';
+            }
+        }
+
+        generateBtn.addEventListener('click', generateFiles);
+        downloadBtn.addEventListener('click', downloadAll);
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            loadFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            loadFiles(dropped);
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfPageNumLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial render
+        syncRangeLabels();
+        toggleCustomFormatField();
+    </script>
+</body>
+</html>
