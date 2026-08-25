@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | Subnet Calculator (IPv4 / CIDR / VLSM)</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free subnet calculator for IPv4 networks. CIDR breakdown, VLSM planning for multiple subnets, IP membership checks, and CIDR block summarization — network address, broadcast, usable host range, wildcard mask. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/subnet-calculator.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/subnet-calculator.html" />
+<meta property="og:title" content="Subnet Calculator — CIDR, VLSM & IP Range Planner — awjunaid" />
+<meta property="og:description" content="Calculate network address, broadcast, usable host range and wildcard mask from any CIDR. Plan VLSM subnets from department host counts, check if an IP falls inside a range, and summarize adjacent CIDR blocks. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/subnet-calculator.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Subnet Calculator — CIDR, VLSM & IP Range Planner — awjunaid" />
+<meta name="twitter:description" content="Network address, broadcast, usable hosts, wildcard mask, VLSM planning by host count, IP-in-subnet checks, and CIDR summarization. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/subnet-calculator.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           MODE TABS (Single / VLSM / IP Check / Summarize)
+           ============================================ */
+        .mode-tabs {
+            display: flex; gap: 8px; flex-wrap: wrap; margin: 32px 0 0;
+        }
+        .mode-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 11px 22px;
+            font-family: var(--font-header);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mode-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .mode-tab:hover:not(.active) { border-color: var(--border-color); }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 16px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group input[type="range"] { width: 100%; accent-color: var(--text-primary); margin-top: 8px; }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+        .cidr-display { font-family: var(--font-mono); font-size: 13px; font-weight: 700; margin-left: 8px; opacity: 0.8; }
+
+        /* ============================================
+           MAIN PANEL (Input + Results)
+           ============================================ */
+        .mode-pane { display: none; }
+        .mode-pane.active { display: block; }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-tiny { padding: 5px 10px; font-size: 9.5px; border-radius: 40px; }
+
+        input.cidr-input, input.ip-input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transition: border-color 0.2s;
+        }
+        input.cidr-input:focus, input.ip-input:focus { outline: none; border-color: var(--border-color); }
+        input.cidr-input.invalid, input.ip-input.invalid { border-color: var(--danger); }
+        .input-error { font-size: 11.5px; color: var(--danger); margin-top: 8px; font-weight: 600; display: none; }
+        .input-error.show { display: block; }
+
+        /* Results grid */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1px;
+            background: var(--border-light);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-top: 18px;
+        }
+        .result-cell {
+            background: var(--input-bg);
+            padding: 16px 18px;
+            position: relative;
+        }
+        .result-cell .r-label {
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.55; margin-bottom: 6px;
+        }
+        .result-cell .r-value {
+            font-family: var(--font-mono); font-size: 15px; font-weight: 700; word-break: break-word;
+        }
+        .result-cell .r-value.small { font-size: 12.5px; font-weight: 500; opacity: 0.85; }
+        .result-cell .r-copy {
+            position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--text-color);
+            opacity: 0.35; cursor: pointer; font-size: 12px; padding: 4px;
+        }
+        .result-cell .r-copy:hover { opacity: 1; }
+
+        /* Binary octet view */
+        .binary-view {
+            font-family: var(--font-mono); font-size: 13px; margin-top: 18px; border: 1px solid var(--border-light);
+            border-radius: 16px; padding: 18px 20px; overflow-x: auto;
+        }
+        .binary-row { display: flex; gap: 4px; align-items: center; margin-bottom: 8px; white-space: nowrap; }
+        .binary-row:last-child { margin-bottom: 0; }
+        .binary-row .b-tag { width: 90px; flex-shrink: 0; font-size: 10.5px; font-weight: 700; text-transform: uppercase; opacity: 0.55; }
+        .binary-row .b-octet { display: inline-flex; gap: 1px; }
+        .binary-row .b-bit { width: 13px; text-align: center; }
+        .binary-row .b-bit.net { color: var(--accent); font-weight: 700; }
+        .binary-row .b-bit.host { opacity: 0.55; }
+        .binary-row .b-sep { width: 8px; }
+
+        /* Host count slider display */
+        .host-slider-row { display: flex; align-items: center; gap: 14px; }
+        .host-slider-row .host-count-display {
+            font-family: var(--font-mono); font-weight: 800; font-size: 15px; min-width: 70px; text-align: right;
+        }
+
+        /* ============================================
+           VLSM TABLE
+           ============================================ */
+        .vlsm-add-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        @media (max-width: 600px) { .vlsm-add-row { grid-template-columns: 1fr; } }
+        .vlsm-add-row input {
+            padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .vlsm-table-wrap { overflow-x: auto; border: 1px solid var(--border-light); border-radius: 16px; }
+        table.vlsm-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 720px; }
+        table.vlsm-table th {
+            text-align: left; padding: 12px 14px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px;
+            font-weight: 800; opacity: 0.6; border-bottom: 1px solid var(--border-light); background: var(--code-bg);
+        }
+        table.vlsm-table td {
+            padding: 12px 14px; border-bottom: 1px solid var(--border-light); font-family: var(--font-mono); vertical-align: middle;
+        }
+        table.vlsm-table tr:last-child td { border-bottom: none; }
+        table.vlsm-table td.label-cell { font-family: var(--font-body); font-weight: 600; }
+        table.vlsm-table .row-remove {
+            background: none; border: 1px solid var(--border-light); border-radius: 50%; width: 24px; height: 24px;
+            cursor: pointer; color: var(--text-color); font-size: 11px; line-height: 1;
+        }
+        table.vlsm-table .row-remove:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+        .vlsm-empty-note { padding: 30px 20px; text-align: center; font-size: 12.5px; opacity: 0.5; }
+        .vlsm-summary-bar {
+            display: flex; gap: 22px; flex-wrap: wrap; margin-top: 16px; font-size: 12px; opacity: 0.8;
+        }
+        .vlsm-summary-bar strong { opacity: 1; }
+        .vlsm-warning {
+            margin-top: 14px; border: 1px solid var(--danger); border-radius: 12px; padding: 12px 16px;
+            font-size: 12px; font-weight: 600; color: var(--danger); display: none;
+        }
+        .vlsm-warning.show { display: block; }
+
+        /* ============================================
+           IP-CHECK MODE
+           ============================================ */
+        .ip-check-result {
+            margin-top: 18px; border-radius: 16px; padding: 20px 22px; border: 1px solid var(--border-light);
+            display: flex; align-items: center; gap: 14px; font-weight: 700; font-size: 15px;
+        }
+        .ip-check-result .status-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; background: var(--border-light); }
+        .ip-check-result.in .status-dot { background: var(--accent); }
+        .ip-check-result.out .status-dot { background: var(--danger); }
+
+        /* ============================================
+           SUMMARIZE MODE
+           ============================================ */
+        #summarizeInput {
+            width: 100%; min-height: 140px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 16px; padding: 16px 18px; font-family: var(--font-mono); font-size: 13px; line-height: 1.7; resize: vertical;
+        }
+        #summarizeInput:focus { outline: none; border-color: var(--border-color); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .binary-row .b-tag { width: 66px; font-size: 9.5px; }
+            .binary-row .b-bit { width: 11px; font-size: 11px; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .mode-tab { flex: 1 1 calc(50% - 4px); justify-content: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">Subnet Calculator</h1>
+                <div class="tool-dek">Break down a single CIDR into network/broadcast/host range, plan a full VLSM layout across departments by host count, check whether an IP falls inside a subnet, or summarize a list of adjacent CIDR blocks into the smallest covering supernet(s). Everything computes live, entirely in your browser.</div>
+            </div>
+
+            <!-- Mode Tabs -->
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="single" type="button"><i class="fa-solid fa-diagram-project"></i> Single Subnet</button>
+                <button class="mode-tab" data-mode="vlsm" type="button"><i class="fa-solid fa-layer-group"></i> VLSM Planner</button>
+                <button class="mode-tab" data-mode="ipcheck" type="button"><i class="fa-solid fa-magnifying-glass-location"></i> IP-in-Subnet Check</button>
+                <button class="mode-tab" data-mode="summarize" type="button"><i class="fa-solid fa-object-group"></i> CIDR Summarize</button>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="home">Home / SOHO LAN</option>
+                    <option value="office25">Small Office (~25 hosts)</option>
+                    <option value="office100">Branch Office (~100 hosts)</option>
+                    <option value="dc">Datacenter Rack (/26 per rack)</option>
+                    <option value="pointtopoint">Point-to-Point Link (/30)</option>
+                    <option value="cloudvpc">Cloud VPC (RFC1918 /16)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Display & Notation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowBinary" checked>
+                            <span><span class="setting-name">Show binary octet breakdown</span><span class="setting-hint">Displays IP and mask as 4 octets of bits, network portion highlighted</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowWildcard" checked>
+                            <span><span class="setting-name">Show wildcard mask</span><span class="setting-hint">Inverse of the subnet mask — used in ACLs, OSPF network statements</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowHex" checked>
+                            <span><span class="setting-name">Show hex representation</span><span class="setting-hint">Network address and mask as hexadecimal, e.g. 0xC0A80100</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowInteger" checked>
+                            <span><span class="setting-name">Show 32-bit integer form</span><span class="setting-hint">IP as a single unsigned decimal integer</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowInAddrArpa">
+                            <span><span class="setting-name">Show reverse DNS (in-addr.arpa)</span><span class="setting-hint">Reversed octet notation used for PTR record lookups</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowClass">
+                            <span><span class="setting-name">Show legacy address class</span><span class="setting-hint">Class A/B/C/D/E — historical, ignored by CIDR routing</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Host Range Rules</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optExcludeNetBcast" checked>
+                            <span><span class="setting-name">Exclude network & broadcast from usable range</span><span class="setting-hint">Standard behavior for /0–/30; disable to see the full raw range</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optP2PMode">
+                            <span><span class="setting-name">RFC 3021 mode for /31</span><span class="setting-hint">Treats /31 as a valid 2-host point-to-point link (both addresses usable)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFirstUsableGateway">
+                            <span><span class="setting-name">Flag first usable IP as gateway</span><span class="setting-hint">Common convention — labels the first host address as ".1 gateway"</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>VLSM Planner Rules</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVlsmSortDesc" checked>
+                            <span><span class="setting-name">Sort by host count, largest first</span><span class="setting-hint">Standard VLSM allocation order — prevents fragmentation and wasted space</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVlsmReserveGrowth">
+                            <span><span class="setting-name">Reserve 25% growth headroom</span><span class="setting-hint">Rounds each subnet up one extra size step for future host growth</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVlsmShowWaste" checked>
+                            <span><span class="setting-name">Show wasted addresses per subnet</span><span class="setting-hint">Difference between allocated block size and requested host count</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="vlsmBaseCidr">Base network to allocate from (CIDR)</label>
+                            <input type="text" id="vlsmBaseCidr" value="10.0.0.0/22" placeholder="e.g. 10.0.0.0/22">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>IP-in-Subnet Check</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCheckShowDistance" checked>
+                            <span><span class="setting-name">Show offset from network address</span><span class="setting-hint">e.g. "host #42 of 254" within the subnet</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCheckFlagReserved" checked>
+                            <span><span class="setting-name">Flag if IP is the network or broadcast address</span><span class="setting-hint">Warns when the checked IP is not actually assignable to a host</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>CIDR Summarization</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSummarizeStrict">
+                            <span><span class="setting-name">Strict mode (no over-inclusion)</span><span class="setting-hint">Only summarize when the supernet contains exactly the input blocks with no gaps</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSummarizeShowSaved" checked>
+                            <span><span class="setting-name">Show route-count reduction</span><span class="setting-hint">Compares route table entries before vs. after aggregation</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============ SINGLE SUBNET MODE ============ -->
+            <div class="mode-pane active" id="mode-single">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Network / CIDR</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyAllSingleBtn" type="button"><i class="fa-solid fa-copy"></i> Copy Summary<span class="copy-toast" id="copyToastSingle">Copied!</span></button>
+                        </div>
+                    </div>
+                    <input type="text" class="cidr-input" id="singleCidrInput" value="192.168.1.0/24" placeholder="e.g. 192.168.1.0/24 or 10.0.0.5/255.255.255.0" spellcheck="false">
+                    <div class="input-error" id="singleCidrError">Enter a valid IPv4 address with /CIDR (e.g. 192.168.1.0/24) or dotted mask.</div>
+                    <div class="field-row" style="margin-top:16px;">
+                        <div class="field-group full-width">
+                            <label for="singlePrefixSlider">Prefix length <span class="cidr-display" id="prefixSliderDisplay">/24</span></label>
+                            <input type="range" id="singlePrefixSlider" min="0" max="32" value="24">
+                        </div>
+                    </div>
+
+                    <div class="result-grid" id="singleResultGrid"></div>
+                    <div class="binary-view" id="singleBinaryView"></div>
+                </div>
+            </div>
+
+            <!-- ============ VLSM PLANNER MODE ============ -->
+            <div class="mode-pane" id="mode-vlsm">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Subnet Requirements</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="vlsmLoadSampleBtn" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Load Sample</button>
+                            <button class="btn-ghost" id="vlsmClearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear All</button>
+                            <button class="btn-solid" id="vlsmExportCsvBtn" type="button"><i class="fa-solid fa-download"></i> Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="vlsm-add-row">
+                        <input type="text" id="vlsmNameInput" placeholder="Segment name (e.g. Sales-VLAN10)">
+                        <input type="number" id="vlsmHostsInput" placeholder="Hosts needed" min="1">
+                        <button class="btn-solid" id="vlsmAddBtn" type="button"><i class="fa-solid fa-plus"></i> Add</button>
+                    </div>
+                    <div class="vlsm-table-wrap">
+                        <table class="vlsm-table" id="vlsmTable">
+                            <thead>
+                                <tr>
+                                    <th>Segment</th>
+                                    <th>Hosts Req.</th>
+                                    <th>CIDR</th>
+                                    <th>Network</th>
+                                    <th>Usable Range</th>
+                                    <th>Broadcast</th>
+                                    <th>Mask</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="vlsmTableBody">
+                                <tr><td colspan="8" class="vlsm-empty-note">Add segments above to build a VLSM allocation plan.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="vlsm-warning" id="vlsmWarning">Requested subnets exceed the base network's available space.</div>
+                    <div class="vlsm-summary-bar" id="vlsmSummaryBar"></div>
+                </div>
+            </div>
+
+            <!-- ============ IP-IN-SUBNET CHECK MODE ============ -->
+            <div class="mode-pane" id="mode-ipcheck">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Check IP Membership</h3>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="checkIpInput">IP address to check</label>
+                            <input type="text" class="ip-input" id="checkIpInput" value="192.168.1.130" placeholder="e.g. 192.168.1.130" spellcheck="false">
+                        </div>
+                        <div class="field-group full-width">
+                            <label for="checkCidrInput">Subnet (CIDR)</label>
+                            <input type="text" class="ip-input" id="checkCidrInput" value="192.168.1.0/25" placeholder="e.g. 192.168.1.0/25" spellcheck="false">
+                        </div>
+                    </div>
+                    <div class="input-error" id="checkError">Enter a valid IPv4 address and a valid CIDR subnet.</div>
+                    <div class="ip-check-result" id="checkResult">
+                        <div class="status-dot"></div>
+                        <div id="checkResultText">Enter an IP and subnet above.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============ CIDR SUMMARIZE MODE ============ -->
+            <div class="mode-pane" id="mode-summarize">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>CIDR Blocks to Summarize</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="summarizeSampleBtn" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Load Sample</button>
+                            <button class="btn-ghost" id="summarizeCopyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy Result<span class="copy-toast" id="copyToastSummarize">Copied!</span></button>
+                        </div>
+                    </div>
+                    <textarea id="summarizeInput" spellcheck="false" placeholder="One CIDR per line, e.g.
+192.168.0.0/24
+192.168.1.0/24
+192.168.2.0/24
+192.168.3.0/24"></textarea>
+                    <div class="stat-strip" id="summarizeInputStats">
+                        <span><strong id="sumInputCount">0</strong> input blocks</span>
+                        <span><strong id="sumInputAddrs">0</strong> total addresses</span>
+                    </div>
+                    <div class="result-grid" id="summarizeResultGrid" style="margin-top:20px;"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What's the difference between the four modes?</h4>
+                        <p>"Single Subnet" breaks one CIDR into its network, broadcast, mask and host range — the everyday lookup. "VLSM Planner" takes a base network and a list of host requirements per department or VLAN, then carves out right-sized subnets in the correct largest-first order so nothing overlaps or wastes space. "IP-in-Subnet Check" answers "does this address belong to this network?" — useful when reading firewall rules or ACLs. "CIDR Summarize" takes a list of adjacent /24s (or any prefix) and finds the smallest supernet(s) that cover them, the same aggregation logic routers use to shrink route tables.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does VLSM sort by host count first?</h4>
+                        <p>Variable-Length Subnet Masking only avoids fragmentation if the biggest requirements are placed first, since a large block can't be carved out of space already consumed by smaller ones placed earlier. Allocating largest-to-smallest against the base network is the standard textbook approach, and it's why the sort option defaults on.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "reserve growth headroom" actually do?</h4>
+                        <p>Real host counts grow. A department that needs 28 addresses today often needs 40+ in a year. This option rounds each requirement up to the next power-of-two block size beyond the minimum required, so a request for 28 hosts gets a /26 (62 usable) instead of the bare-minimum /27 (30 usable) with almost nothing left to grow into.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's RFC 3021 mode for /31?</h4>
+                        <p>Normally a subnet reserves its first address for the network ID and its last for broadcast, leaving zero usable hosts in a /31 (only 2 total addresses). RFC 3021 defines a special case for point-to-point links — like router-to-router WAN links — where both addresses in a /31 are treated as usable host addresses, since there's no need for a broadcast address on a link with exactly two endpoints.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does CIDR summarization decide what counts as "strict"?</h4>
+                        <p>A supernet aggregates several smaller blocks into one route, but the supernet's address range might include addresses beyond what was actually listed if the inputs don't perfectly fill it. Strict mode only proposes a summary when the input blocks exactly and completely fill the candidate supernet with no gaps and no extra space — otherwise it reports that the blocks can't be losslessly summarized and shows the tightest safe grouping instead.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. All subnet math — address parsing, masking, VLSM allocation, aggregation — runs locally in your browser using plain JavaScript bitwise operations. Nothing is uploaded, logged, or sent anywhere. Your last input and settings only persist in this browser's local storage.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why show binary, hex, and integer forms at all?</h4>
+                        <p>Dotted-decimal is how humans read addresses, but subnet math itself happens in binary — the mask literally marks which bits are "network" versus "host." Seeing the octets as bits makes it obvious why a /25 splits a /24 exactly in half, and the hex/integer forms are useful for pasting into tools, firewall configs, or scripts that expect those formats directly.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // SUBNET CALCULATOR — CORE IPv4 MATH
+        // ============================================
+
+        function ipToInt(ip) {
+            const parts = ip.trim().split('.');
+            if (parts.length !== 4) return null;
+            let n = 0;
+            for (const p of parts) {
+                if (!/^\d{1,3}$/.test(p)) return null;
+                const v = parseInt(p, 10);
+                if (v < 0 || v > 255) return null;
+                n = (n << 8) | v;
+            }
+            return n >>> 0;
+        }
+
+        function intToIp(n) {
+            n = n >>> 0;
+            return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+        }
+
+        function maskToPrefix(maskStr) {
+            const n = ipToInt(maskStr);
+            if (n === null) return null;
+            // count contiguous leading 1 bits
+            let prefix = 0;
+            let seenZero = false;
+            for (let i = 31; i >= 0; i--) {
+                const bit = (n >>> i) & 1;
+                if (bit === 1) {
+                    if (seenZero) return null; // not contiguous
+                    prefix++;
+                } else {
+                    seenZero = true;
+                }
+            }
+            return prefix;
+        }
+
+        function prefixToMaskInt(prefix) {
+            if (prefix === 0) return 0;
+            return (0xFFFFFFFF << (32 - prefix)) >>> 0;
+        }
+
+        // Parse "ip/prefix" or "ip/mask" strings
+        function parseCidr(input) {
+            const raw = input.trim();
+            const slashIdx = raw.indexOf('/');
+            if (slashIdx === -1) return null;
+            const ipPart = raw.slice(0, slashIdx).trim();
+            const cidrPart = raw.slice(slashIdx + 1).trim();
+            const ipInt = ipToInt(ipPart);
+            if (ipInt === null) return null;
+
+            let prefix;
+            if (/^\d{1,2}$/.test(cidrPart)) {
+                prefix = parseInt(cidrPart, 10);
+                if (prefix < 0 || prefix > 32) return null;
+            } else {
+                prefix = maskToPrefix(cidrPart);
+                if (prefix === null) return null;
+            }
+            return { ipInt, prefix, ipStr: ipPart };
+        }
+
+        function parseIp(input) {
+            return ipToInt(input.trim());
+        }
+
+        function subnetInfo(ipInt, prefix) {
+            const maskInt = prefixToMaskInt(prefix);
+            const networkInt = (ipInt & maskInt) >>> 0;
+            const wildcardInt = (~maskInt) >>> 0;
+            const broadcastInt = (networkInt | wildcardInt) >>> 0;
+            const totalAddrs = Math.pow(2, 32 - prefix);
+            return { maskInt, networkInt, wildcardInt, broadcastInt, totalAddrs, prefix };
+        }
+
+        function usableRange(info, opts) {
+            const { networkInt, broadcastInt, totalAddrs, prefix } = info;
+            if (prefix === 32) {
+                return { firstInt: networkInt, lastInt: networkInt, count: 1 };
+            }
+            if (prefix === 31) {
+                if (opts.optP2PMode) {
+                    return { firstInt: networkInt, lastInt: broadcastInt, count: 2 };
+                }
+                return { firstInt: null, lastInt: null, count: 0 };
+            }
+            if (!opts.optExcludeNetBcast) {
+                return { firstInt: networkInt, lastInt: broadcastInt, count: totalAddrs };
+            }
+            return { firstInt: networkInt + 1, lastInt: broadcastInt - 1, count: Math.max(0, totalAddrs - 2) };
+        }
+
+        function toHex32(n) {
+            return '0x' + (n >>> 0).toString(16).toUpperCase().padStart(8, '0');
+        }
+
+        function toBinaryOctets(n) {
+            const octets = [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+            return octets.map(o => o.toString(2).padStart(8, '0'));
+        }
+
+        function reverseDns(ipInt) {
+            const [a, b, c, d] = intToIp(ipInt).split('.');
+            return `${d}.${c}.${b}.${a}.in-addr.arpa`;
+        }
+
+        function addressClass(ipInt) {
+            const first = (ipInt >>> 24) & 255;
+            if (first < 128) return 'A';
+            if (first < 192) return 'B';
+            if (first < 224) return 'C';
+            if (first < 240) return 'D (Multicast)';
+            return 'E (Reserved)';
+        }
+
+        function isValidCidrString(input) {
+            return parseCidr(input) !== null;
+        }
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optShowBinary','optShowWildcard','optShowHex','optShowInteger','optShowInAddrArpa','optShowClass','optExcludeNetBcast','optP2PMode','optFirstUsableGateway','optVlsmSortDesc','optVlsmReserveGrowth','optVlsmShowWaste','optCheckShowDistance','optCheckFlagReserved','optSummarizeStrict','optSummarizeShowSaved'],
+            text: ['vlsmBaseCidr'],
+            radio: []
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            return raw;
+        }
+
+        function getRawSettingsForPersist() { return getOptions(); }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+        }
+
+        // ============================================
+        // PRESETS — tuned to real-world network sizes
+        // ============================================
+        const BUILTIN_PRESETS = {
+            home: {
+                vlsmBaseCidr: '192.168.1.0/24',
+                optShowBinary: true, optShowWildcard: true, optShowHex: false, optShowInteger: false, optShowInAddrArpa: false, optShowClass: false,
+                optExcludeNetBcast: true, optP2PMode: false, optFirstUsableGateway: true,
+                optVlsmSortDesc: true, optVlsmReserveGrowth: false, optVlsmShowWaste: true,
+                optCheckShowDistance: true, optCheckFlagReserved: true,
+                optSummarizeStrict: false, optSummarizeShowSaved: true
+            },
+            office25: {
+                vlsmBaseCidr: '10.10.0.0/26',
+                optShowBinary: true, optShowWildcard: true, optShowHex: false, optShowInteger: false, optShowInAddrArpa: false, optShowClass: false,
+                optExcludeNetBcast: true, optP2PMode: false, optFirstUsableGateway: true,
+                optVlsmSortDesc: true, optVlsmReserveGrowth: true, optVlsmShowWaste: true,
+                optCheckShowDistance: true, optCheckFlagReserved: true,
+                optSummarizeStrict: false, optSummarizeShowSaved: true
+            },
+            office100: {
+                vlsmBaseCidr: '10.20.0.0/24',
+                optShowBinary: true, optShowWildcard: true, optShowHex: false, optShowInteger: false, optShowInAddrArpa: false, optShowClass: false,
+                optExcludeNetBcast: true, optP2PMode: false, optFirstUsableGateway: true,
+                optVlsmSortDesc: true, optVlsmReserveGrowth: true, optVlsmShowWaste: true,
+                optCheckShowDistance: true, optCheckFlagReserved: true,
+                optSummarizeStrict: false, optSummarizeShowSaved: true
+            },
+            dc: {
+                vlsmBaseCidr: '10.100.0.0/22',
+                optShowBinary: true, optShowWildcard: true, optShowHex: true, optShowInteger: true, optShowInAddrArpa: false, optShowClass: false,
+                optExcludeNetBcast: true, optP2PMode: true, optFirstUsableGateway: true,
+                optVlsmSortDesc: true, optVlsmReserveGrowth: false, optVlsmShowWaste: true,
+                optCheckShowDistance: true, optCheckFlagReserved: true,
+                optSummarizeStrict: true, optSummarizeShowSaved: true
+            },
+            pointtopoint: {
+                vlsmBaseCidr: '10.255.255.0/24',
+                optShowBinary: true, optShowWildcard: true, optShowHex: false, optShowInteger: false, optShowInAddrArpa: false, optShowClass: false,
+                optExcludeNetBcast: true, optP2PMode: true, optFirstUsableGateway: false,
+                optVlsmSortDesc: true, optVlsmReserveGrowth: false, optVlsmShowWaste: false,
+                optCheckShowDistance: false, optCheckFlagReserved: true,
+                optSummarizeStrict: true, optSummarizeShowSaved: false
+            },
+            cloudvpc: {
+                vlsmBaseCidr: '10.0.0.0/16',
+                optShowBinary: false, optShowWildcard: false, optShowHex: true, optShowInteger: true, optShowInAddrArpa: true, optShowClass: false,
+                optExcludeNetBcast: true, optP2PMode: false, optFirstUsableGateway: true,
+                optVlsmSortDesc: true, optVlsmReserveGrowth: true, optVlsmShowWaste: true,
+                optCheckShowDistance: true, optCheckFlagReserved: true,
+                optSummarizeStrict: false, optSummarizeShowSaved: true
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'subnetCalcCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            recalcAll();
+        });
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => {
+                document.getElementById('presetSelect').value = 'custom';
+            });
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'subnet-calculator-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    recalcAll();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // MODE TABS
+        // ============================================
+        document.querySelectorAll('.mode-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.mode-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('mode-' + tab.dataset.mode).classList.add('active');
+                saveDraft();
+            });
+        });
+
+        // ============================================
+        // SINGLE SUBNET MODE
+        // ============================================
+        const singleCidrInput = document.getElementById('singleCidrInput');
+        const singlePrefixSlider = document.getElementById('singlePrefixSlider');
+        const prefixSliderDisplay = document.getElementById('prefixSliderDisplay');
+
+        function makeResultCell(label, value, opts) {
+            opts = opts || {};
+            const small = opts.small ? ' small' : '';
+            return `<div class="result-cell"><div class="r-label">${label}</div><div class="r-value${small}">${value}</div></div>`;
+        }
+
+        function renderSingle() {
+            const opts = getOptions();
+            const input = singleCidrInput.value;
+            const errorEl = document.getElementById('singleCidrError');
+            const parsed = parseCidr(input);
+
+            if (!parsed) {
+                singleCidrInput.classList.add('invalid');
+                errorEl.classList.add('show');
+                document.getElementById('singleResultGrid').innerHTML = '';
+                document.getElementById('singleBinaryView').innerHTML = '';
+                return;
+            }
+            singleCidrInput.classList.remove('invalid');
+            errorEl.classList.remove('show');
+
+            singlePrefixSlider.value = parsed.prefix;
+            prefixSliderDisplay.textContent = '/' + parsed.prefix;
+
+            const info = subnetInfo(parsed.ipInt, parsed.prefix);
+            const range = usableRange(info, opts);
+
+            let cells = [];
+            cells.push(makeResultCell('Network Address', intToIp(info.networkInt) + '/' + parsed.prefix));
+            cells.push(makeResultCell('Subnet Mask', intToIp(info.maskInt)));
+            cells.push(makeResultCell('Broadcast Address', parsed.prefix >= 31 ? '—' : intToIp(info.broadcastInt)));
+            if (opts.optShowWildcard) cells.push(makeResultCell('Wildcard Mask', intToIp(info.wildcardInt)));
+            cells.push(makeResultCell('Total Addresses', info.totalAddrs.toLocaleString()));
+            cells.push(makeResultCell('Usable Hosts', range.count.toLocaleString()));
+
+            let rangeStr = range.count === 0 ? 'None' : (range.firstInt === range.lastInt ? intToIp(range.firstInt) : `${intToIp(range.firstInt)} – ${intToIp(range.lastInt)}`);
+            if (opts.optFirstUsableGateway && range.count > 0 && parsed.prefix < 31) {
+                rangeStr += ` <span style="opacity:0.55;font-weight:500;">(.1 = gateway convention)</span>`;
+            }
+            cells.push(makeResultCell('Usable Host Range', rangeStr, { small: true }));
+
+            if (opts.optShowHex) {
+                cells.push(makeResultCell('Network (Hex)', toHex32(info.networkInt)));
+                cells.push(makeResultCell('Mask (Hex)', toHex32(info.maskInt)));
+            }
+            if (opts.optShowInteger) {
+                cells.push(makeResultCell('Network (Integer)', (info.networkInt >>> 0).toLocaleString()));
+            }
+            if (opts.optShowInAddrArpa) {
+                cells.push(makeResultCell('Reverse DNS', reverseDns(info.networkInt), { small: true }));
+            }
+            if (opts.optShowClass) {
+                cells.push(makeResultCell('Legacy Class', addressClass(parsed.ipInt)));
+            }
+
+            document.getElementById('singleResultGrid').innerHTML = cells.join('');
+
+            if (opts.optShowBinary) {
+                const ipBits = toBinaryOctets(parsed.ipInt);
+                const maskBits = toBinaryOctets(info.maskInt);
+                const prefix = parsed.prefix;
+
+                function bitsRow(tag, octets) {
+                    let bitIdx = 0;
+                    let html = `<div class="binary-row"><span class="b-tag">${tag}</span>`;
+                    octets.forEach((oct, oi) => {
+                        html += '<span class="b-octet">';
+                        for (const bit of oct) {
+                            const cls = bitIdx < prefix ? 'net' : 'host';
+                            html += `<span class="b-bit ${cls}">${bit}</span>`;
+                            bitIdx++;
+                        }
+                        html += '</span>';
+                        if (oi < 3) html += '<span class="b-sep"></span>';
+                    });
+                    html += '</div>';
+                    return html;
+                }
+
+                document.getElementById('singleBinaryView').innerHTML =
+                    bitsRow('IP', ipBits) + bitsRow('Mask', maskBits) +
+                    `<div class="binary-row" style="margin-top:6px;"><span class="b-tag" style="opacity:0.4;">Legend</span><span style="font-size:11px;opacity:0.6;"><span style="color:var(--accent);font-weight:700;">green</span> = network bits, dim = host bits</span></div>`;
+            } else {
+                document.getElementById('singleBinaryView').innerHTML = '';
+            }
+        }
+
+        singleCidrInput.addEventListener('input', () => { renderSingle(); saveDraft(); });
+        singlePrefixSlider.addEventListener('input', () => {
+            const parsed = parseCidr(singleCidrInput.value);
+            const prefix = parseInt(singlePrefixSlider.value, 10);
+            prefixSliderDisplay.textContent = '/' + prefix;
+            if (parsed) {
+                singleCidrInput.value = parsed.ipStr + '/' + prefix;
+                renderSingle();
+                saveDraft();
+            }
+        });
+
+        document.getElementById('copyAllSingleBtn').addEventListener('click', async () => {
+            const cells = document.querySelectorAll('#singleResultGrid .result-cell');
+            let lines = [];
+            cells.forEach(c => {
+                const label = c.querySelector('.r-label').textContent;
+                const value = c.querySelector('.r-value').textContent;
+                lines.push(`${label}: ${value}`);
+            });
+            const text = lines.join('\n');
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+            const toast = document.getElementById('copyToastSingle');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // ============================================
+        // VLSM PLANNER MODE
+        // ============================================
+        let vlsmSegments = []; // { name, hosts }
+
+        function nextPow2Prefix(hostsNeeded) {
+            // find smallest prefix (largest block <= needed) such that usable hosts >= hostsNeeded
+            for (let prefix = 30; prefix >= 0; prefix--) {
+                const total = Math.pow(2, 32 - prefix);
+                const usable = prefix >= 31 ? total : total - 2;
+                if (usable >= hostsNeeded) return prefix;
+            }
+            return 0;
+        }
+
+        function renderVlsm() {
+            const opts = getOptions();
+            const base = parseCidr(document.getElementById('vlsmBaseCidr').value);
+            const tbody = document.getElementById('vlsmTableBody');
+            const warningEl = document.getElementById('vlsmWarning');
+            const summaryBar = document.getElementById('vlsmSummaryBar');
+
+            if (vlsmSegments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="vlsm-empty-note">Add segments above to build a VLSM allocation plan.</td></tr>';
+                warningEl.classList.remove('show');
+                summaryBar.innerHTML = '';
+                return;
+            }
+
+            if (!base) {
+                tbody.innerHTML = '<tr><td colspan="8" class="vlsm-empty-note">Enter a valid base network CIDR in settings (e.g. 10.0.0.0/22).</td></tr>';
+                warningEl.classList.remove('show');
+                summaryBar.innerHTML = '';
+                return;
+            }
+
+            const baseInfo = subnetInfo(base.ipInt, base.prefix);
+            const baseStart = baseInfo.networkInt;
+            const baseEnd = baseInfo.broadcastInt;
+
+            let working = vlsmSegments.map(s => ({ ...s }));
+            if (opts.optVlsmSortDesc) {
+                working.sort((a, b) => b.hosts - a.hosts);
+            }
+
+            let cursor = baseStart;
+            let overflowed = false;
+            let totalAllocated = 0;
+            let totalWasted = 0;
+            const rows = [];
+
+            working.forEach(seg => {
+                let needed = seg.hosts;
+                if (opts.optVlsmReserveGrowth) needed = Math.ceil(needed * 1.25);
+                const prefix = nextPow2Prefix(needed);
+                const blockSize = Math.pow(2, 32 - prefix);
+
+                // align cursor to block boundary
+                const aligned = Math.ceil(cursor / blockSize) * blockSize;
+                const netInt = aligned;
+                const bcastInt = netInt + blockSize - 1;
+
+                if (bcastInt > baseEnd || netInt < baseStart) {
+                    overflowed = true;
+                }
+
+                const info = { maskInt: prefixToMaskInt(prefix), networkInt: netInt, broadcastInt: bcastInt, totalAddrs: blockSize, prefix };
+                const range = usableRange(info, opts);
+                const usableCount = range.count;
+                const wasted = Math.max(0, usableCount - seg.hosts);
+                totalAllocated += blockSize;
+                totalWasted += wasted;
+
+                rows.push({
+                    name: seg.name, hosts: seg.hosts, prefix, netInt, bcastInt,
+                    rangeStr: usableCount > 0 ? `${intToIp(range.firstInt)} – ${intToIp(range.lastInt)}` : 'None',
+                    mask: intToIp(info.maskInt), wasted, overflowed: bcastInt > baseEnd
+                });
+
+                cursor = netInt + blockSize;
+            });
+
+            // Re-attach original index for removal, matched by name+hosts (best effort since sorted copy)
+            tbody.innerHTML = rows.map((r) => {
+                const origIndex = vlsmSegments.findIndex(s => s.name === r.name && s.hosts === r.hosts);
+                return `<tr${r.overflowed ? ' style="opacity:0.5;"' : ''}>
+                    <td class="label-cell">${escapeHtmlStr(r.name)}</td>
+                    <td>${r.hosts}${opts.optVlsmShowWaste ? ` <span style="opacity:0.5;font-size:11px;">(+${r.wasted} spare)</span>` : ''}</td>
+                    <td>/${r.prefix}</td>
+                    <td>${intToIp(r.netInt)}</td>
+                    <td>${r.rangeStr}</td>
+                    <td>${intToIp(r.bcastInt)}</td>
+                    <td>${r.mask}</td>
+                    <td><button class="row-remove" data-idx="${origIndex}" title="Remove"><i class="fa-solid fa-xmark"></i></button></td>
+                </tr>`;
+            }).join('');
+
+            tbody.querySelectorAll('.row-remove').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.dataset.idx, 10);
+                    vlsmSegments.splice(idx, 1);
+                    renderVlsm();
+                    saveDraft();
+                });
+            });
+
+            warningEl.classList.toggle('show', overflowed);
+
+            const baseTotal = baseInfo.totalAddrs;
+            const pctUsed = Math.min(100, Math.round((totalAllocated / baseTotal) * 100));
+            summaryBar.innerHTML = `
+                <span><strong>${working.length}</strong> segments planned</span>
+                <span><strong>${totalAllocated.toLocaleString()}</strong> / ${baseTotal.toLocaleString()} addresses allocated (${pctUsed}%)</span>
+                ${opts.optVlsmShowWaste ? `<span><strong>${totalWasted.toLocaleString()}</strong> spare addresses across all subnets</span>` : ''}
+            `;
+        }
+
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        document.getElementById('vlsmAddBtn').addEventListener('click', () => {
+            const nameInput = document.getElementById('vlsmNameInput');
+            const hostsInput = document.getElementById('vlsmHostsInput');
+            const name = nameInput.value.trim() || `Segment-${vlsmSegments.length + 1}`;
+            const hosts = parseInt(hostsInput.value, 10);
+            if (!hosts || hosts < 1) { hostsInput.focus(); return; }
+            vlsmSegments.push({ name, hosts });
+            nameInput.value = '';
+            hostsInput.value = '';
+            nameInput.focus();
+            renderVlsm();
+            saveDraft();
+        });
+
+        [document.getElementById('vlsmNameInput'), document.getElementById('vlsmHostsInput')].forEach(el => {
+            el.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('vlsmAddBtn').click(); });
+        });
+
+        document.getElementById('vlsmClearBtn').addEventListener('click', () => {
+            vlsmSegments = [];
+            renderVlsm();
+            saveDraft();
+        });
+
+        document.getElementById('vlsmLoadSampleBtn').addEventListener('click', () => {
+            document.getElementById('vlsmBaseCidr').value = '10.0.0.0/22';
+            vlsmSegments = [
+                { name: 'Sales-VLAN10', hosts: 60 },
+                { name: 'Engineering-VLAN20', hosts: 120 },
+                { name: 'Guest-WiFi-VLAN30', hosts: 30 },
+                { name: 'Voice-VLAN40', hosts: 25 },
+                { name: 'Servers-VLAN50', hosts: 14 },
+                { name: 'Mgmt-VLAN99', hosts: 6 },
+                { name: 'WAN-Uplink-P2P', hosts: 2 }
+            ];
+            renderVlsm();
+            saveDraft();
+        });
+
+        document.getElementById('vlsmExportCsvBtn').addEventListener('click', () => {
+            const rows = [['Segment','Hosts Requested','CIDR Prefix','Network','Usable Range','Broadcast','Mask']];
+            document.querySelectorAll('#vlsmTableBody tr').forEach(tr => {
+                const tds = tr.querySelectorAll('td');
+                if (tds.length < 7) return;
+                rows.push([
+                    tds[0].textContent.trim(),
+                    tds[1].textContent.replace(/\(.*\)/, '').trim(),
+                    tds[2].textContent.trim(),
+                    tds[3].textContent.trim(),
+                    tds[4].textContent.trim(),
+                    tds[5].textContent.trim(),
+                    tds[6].textContent.trim()
+                ]);
+            });
+            if (rows.length === 1) return;
+            const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'vlsm-plan.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('vlsmBaseCidr').addEventListener('input', () => { renderVlsm(); saveDraft(); });
+
+        // ============================================
+        // IP-IN-SUBNET CHECK MODE
+        // ============================================
+        function renderIpCheck() {
+            const opts = getOptions();
+            const ipInput = document.getElementById('checkIpInput');
+            const cidrInput = document.getElementById('checkCidrInput');
+            const errorEl = document.getElementById('checkError');
+            const resultEl = document.getElementById('checkResult');
+            const resultText = document.getElementById('checkResultText');
+
+            const ipInt = parseIp(ipInput.value);
+            const parsed = parseCidr(cidrInput.value);
+
+            if (ipInt === null || !parsed) {
+                ipInput.classList.toggle('invalid', ipInt === null);
+                cidrInput.classList.toggle('invalid', !parsed);
+                errorEl.classList.add('show');
+                resultEl.className = 'ip-check-result';
+                resultText.textContent = 'Enter an IP and subnet above.';
+                return;
+            }
+            ipInput.classList.remove('invalid');
+            cidrInput.classList.remove('invalid');
+            errorEl.classList.remove('show');
+
+            const info = subnetInfo(parsed.ipInt, parsed.prefix);
+            const inRange = (ipInt & info.maskInt) >>> 0;
+            const isIn = inRange === info.networkInt;
+
+            resultEl.className = 'ip-check-result ' + (isIn ? 'in' : 'out');
+
+            let msg = isIn
+                ? `${intToIp(ipInt)} IS inside ${intToIp(info.networkInt)}/${parsed.prefix}`
+                : `${intToIp(ipInt)} is NOT inside ${intToIp(info.networkInt)}/${parsed.prefix}`;
+
+            if (isIn && opts.optCheckFlagReserved) {
+                if (ipInt === info.networkInt) msg += ' — this is the network address, not a host';
+                else if (ipInt === info.broadcastInt && parsed.prefix < 31) msg += ' — this is the broadcast address, not a host';
+            }
+
+            if (isIn && opts.optCheckShowDistance && parsed.prefix < 32) {
+                const range = usableRange(info, opts);
+                if (range.count > 0 && ipInt >= range.firstInt && ipInt <= range.lastInt) {
+                    const offset = ipInt - range.firstInt + 1;
+                    msg += ` — host #${offset} of ${range.count}`;
+                }
+            }
+
+            resultText.textContent = msg;
+        }
+
+        document.getElementById('checkIpInput').addEventListener('input', () => { renderIpCheck(); saveDraft(); });
+        document.getElementById('checkCidrInput').addEventListener('input', () => { renderIpCheck(); saveDraft(); });
+
+        // ============================================
+        // CIDR SUMMARIZE MODE
+        // ============================================
+        const summarizeInput = document.getElementById('summarizeInput');
+
+        function parseCidrList(text) {
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const valid = [];
+            const invalid = [];
+            lines.forEach(line => {
+                const parsed = parseCidr(line);
+                if (parsed) valid.push(parsed); else invalid.push(line);
+            });
+            return { valid, invalid };
+        }
+
+        // Aggregate a list of CIDR blocks into the minimal set of covering CIDR blocks.
+        function summarizeCidrs(blocks) {
+            if (blocks.length === 0) return [];
+            // Convert to [start,end] integer ranges
+            let ranges = blocks.map(b => {
+                const info = subnetInfo(b.ipInt, b.prefix);
+                return [info.networkInt, info.broadcastInt];
+            });
+            ranges.sort((a, b) => a[0] - b[0]);
+
+            // merge overlapping/adjacent ranges
+            const merged = [];
+            for (const r of ranges) {
+                if (merged.length > 0 && r[0] <= merged[merged.length - 1][1] + 1) {
+                    merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], r[1]);
+                } else {
+                    merged.push([r[0], r[1]]);
+                }
+            }
+
+            // For each merged range, split into minimal set of CIDR blocks
+            const result = [];
+            merged.forEach(([start, end]) => {
+                let cur = start;
+                while (cur <= end) {
+                    // max prefix such that cur is aligned
+                    let maxSizePrefix = 32;
+                    for (let p = 0; p <= 32; p++) {
+                        const blockSize = Math.pow(2, 32 - p);
+                        if (cur % blockSize === 0) { maxSizePrefix = p; break; }
+                    }
+                    // shrink block until it fits within remaining range
+                    let prefix = maxSizePrefix;
+                    let blockSize = Math.pow(2, 32 - prefix);
+                    while (cur + blockSize - 1 > end) {
+                        prefix++;
+                        blockSize = Math.pow(2, 32 - prefix);
+                    }
+                    result.push({ networkInt: cur, prefix, broadcastInt: cur + blockSize - 1 });
+                    cur += blockSize;
+                    if (blockSize === 0) break; // safety
+                }
+            });
+            return result;
+        }
+
+        function renderSummarize() {
+            const opts = getOptions();
+            const { valid, invalid } = parseCidrList(summarizeInput.value);
+
+            document.getElementById('sumInputCount').textContent = valid.length.toLocaleString();
+            const totalAddrs = valid.reduce((sum, b) => sum + Math.pow(2, 32 - b.prefix), 0);
+            document.getElementById('sumInputAddrs').textContent = totalAddrs.toLocaleString();
+
+            const grid = document.getElementById('summarizeResultGrid');
+
+            if (valid.length === 0) {
+                grid.innerHTML = invalid.length > 0
+                    ? makeResultCell('Status', `${invalid.length} line(s) could not be parsed as CIDR`, { small: true })
+                    : '';
+                return;
+            }
+
+            const summarized = summarizeCidrs(valid);
+
+            let cells = [];
+            cells.push(makeResultCell('Input Blocks', valid.length.toLocaleString()));
+            cells.push(makeResultCell('Summarized Into', summarized.length.toLocaleString() + ' block(s)'));
+
+            if (opts.optSummarizeShowSaved) {
+                const saved = valid.length - summarized.length;
+                cells.push(makeResultCell('Route Entries Saved', saved > 0 ? `${saved} fewer routes` : 'No reduction possible'));
+            }
+
+            if (opts.optSummarizeStrict) {
+                // check strict: does the union of summarized blocks exactly equal union of input blocks (already true by construction),
+                // AND is each summarized block's total size exactly matched by contiguous coverage (no partial coverage gaps beyond input)
+                const inputAddrCount = valid.reduce((s, b) => s + Math.pow(2, 32 - b.prefix), 0);
+                const summarizedAddrCount = summarized.reduce((s, b) => s + Math.pow(2, 32 - b.prefix), 0);
+                const isExact = inputAddrCount === summarizedAddrCount;
+                cells.push(makeResultCell('Strict Mode', isExact ? 'Exact coverage, no gaps' : 'Coverage includes address space not in input'));
+            }
+
+            cells.push(makeResultCell('Result CIDR(s)', summarized.map(b => `${intToIp(b.networkInt)}/${b.prefix}`).join('<br>'), { small: true }));
+
+            if (invalid.length > 0) {
+                cells.push(makeResultCell('Unparsed Lines', invalid.map(escapeHtmlStr).join('<br>'), { small: true }));
+            }
+
+            grid.innerHTML = cells.join('');
+        }
+
+        summarizeInput.addEventListener('input', () => { renderSummarize(); saveDraft(); });
+
+        document.getElementById('summarizeSampleBtn').addEventListener('click', () => {
+            summarizeInput.value = '192.168.0.0/24\n192.168.1.0/24\n192.168.2.0/24\n192.168.3.0/24\n192.168.4.0/24';
+            renderSummarize();
+            saveDraft();
+        });
+
+        document.getElementById('summarizeCopyBtn').addEventListener('click', async () => {
+            const { valid } = parseCidrList(summarizeInput.value);
+            const summarized = summarizeCidrs(valid);
+            const text = summarized.map(b => `${intToIp(b.networkInt)}/${b.prefix}`).join('\n');
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+            const toast = document.getElementById('copyToastSummarize');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        // ============================================
+        // GLOBAL RECALC
+        // ============================================
+        function recalcAll() {
+            renderSingle();
+            renderVlsm();
+            renderIpCheck();
+            renderSummarize();
+        }
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { recalcAll(); saveDraft(); });
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'subnetCalcDraft';
+        const DRAFT_SETTINGS_KEY = 'subnetCalcLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    const draft = {
+                        singleCidr: singleCidrInput.value,
+                        vlsmSegments: vlsmSegments,
+                        checkIp: document.getElementById('checkIpInput').value,
+                        checkCidr: document.getElementById('checkCidrInput').value,
+                        summarizeText: summarizeInput.value,
+                        activeMode: document.querySelector('.mode-tab.active').dataset.mode
+                    };
+                    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft) {
+                    const draft = JSON.parse(savedDraft);
+                    if (draft.singleCidr) singleCidrInput.value = draft.singleCidr;
+                    if (Array.isArray(draft.vlsmSegments)) vlsmSegments = draft.vlsmSegments;
+                    if (draft.checkIp) document.getElementById('checkIpInput').value = draft.checkIp;
+                    if (draft.checkCidr) document.getElementById('checkCidrInput').value = draft.checkCidr;
+                    if (draft.summarizeText) summarizeInput.value = draft.summarizeText;
+                    if (draft.activeMode) {
+                        document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === draft.activeMode));
+                        document.querySelectorAll('.mode-pane').forEach(p => p.classList.toggle('active', p.id === 'mode-' + draft.activeMode));
+                    }
+                }
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        recalcAll();
+    </script>
+</body>
+</html>
