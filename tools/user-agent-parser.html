@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | User-Agent Parser & Analyzer</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free User-Agent string parser and analyzer. Identify browser, rendering engine, OS, device type, and vendor from a UA string, detect bots/crawlers and automation tools, spot frozen/reduced UA strings, decode Sec-CH-UA Client Hints, compare two UA strings, batch-audit server log lists, and generate test UA strings — 100% client-side." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/user-agent-parser.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/user-agent-parser.html" />
+<meta property="og:title" content="User-Agent Parser & Analyzer — awjunaid" />
+<meta property="og:description" content="Parse any User-Agent string into browser, engine, OS, and device details, detect bots and automation tools, decode Sec-CH-UA Client Hints, compare UA strings, and batch-audit server logs. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/user-agent-parser.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="User-Agent Parser & Analyzer — awjunaid" />
+<meta name="twitter:description" content="Identify browser, engine, OS, and device from a UA string, detect bots/automation tools, decode Client Hints, and batch-audit log lists — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/user-agent-parser.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #uaInput {
+            width: 100%;
+            min-height: 160px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #uaInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        /* Utility grid */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #uaInput { min-height: 140px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">User-Agent Parser & Analyzer</h1>
+                <div class="tool-dek">Paste a User-Agent string (or a whole server-log list of them) to identify the browser, rendering engine, operating system, and device, detect bots/crawlers and automation tools, spot frozen or reduced UA strings, decode Sec-CH-UA Client Hints, and batch-audit access logs — entirely in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="quick">Quick Browser/OS Identification</option>
+                    <option value="botaudit">Bot / Crawler Traffic Audit</option>
+                    <option value="analytics">Analytics QA (device & version detail)</option>
+                    <option value="loganalysis">Server Log Batch Analysis</option>
+                    <option value="automation">Automation / Headless Detection</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Input & Parsing</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTrimQuotes" checked>
+                            <span><span class="setting-name">Auto-trim surrounding quotes</span><span class="setting-hint">Strips leading/trailing quote marks often present when copy-pasting from log files or JSON</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictValidation">
+                            <span><span class="setting-name">Strict validation</span><span class="setting-hint">Rejects lines under 10 characters or with no "/" version separators, since these are unlikely to be real UA strings</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowRawTokens">
+                            <span><span class="setting-name">Show raw product/version tokens</span><span class="setting-hint">Lists every "Name/Version" pair found in the string, in order</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Browser & Engine Detection</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowEngine" checked>
+                            <span><span class="setting-name">Show rendering engine</span><span class="setting-hint">Blink, Gecko, WebKit, Trident, or Presto, with its own version where present</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowFullVersion" checked>
+                            <span><span class="setting-name">Show full version string</span><span class="setting-hint">e.g. "120.0.6099.129" instead of just the major version</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowMajorVersion" checked>
+                            <span><span class="setting-name">Show major version separately</span><span class="setting-hint">Useful for grouping analytics by release, e.g. "Chrome 120"</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Operating System Detection</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMapWindowsNames" checked>
+                            <span><span class="setting-name">Map Windows NT codes to names</span><span class="setting-hint">"Windows NT 10.0" → "Windows 10 / 11" (the two can't be told apart from the UA alone)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowArch" checked>
+                            <span><span class="setting-name">Show CPU architecture / bitness</span><span class="setting-hint">x86, x64, or ARM64 where the string discloses it</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagFrozenOs" checked>
+                            <span><span class="setting-name">Flag frozen OS version markers</span><span class="setting-hint">macOS UAs stuck reporting "10_15_7" regardless of the real OS version, and similar reduction patterns</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Device Detection</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowDeviceType" checked>
+                            <span><span class="setting-name">Show device type</span><span class="setting-hint">Desktop, mobile, tablet, TV, or console, inferred from the string</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowDeviceVendor" checked>
+                            <span><span class="setting-name">Show device vendor / model hint</span><span class="setting-hint">Best-effort — reads the Android model token, or Apple's iPhone/iPad markers</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagIpadMasking" checked>
+                            <span><span class="setting-name">Flag possible iPad desktop-masking</span><span class="setting-hint">iPadOS 13+ reports as a Mac by default, so a "macOS" result with no other mobile signals may actually be an iPad</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Bot & Automation Detection</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseBotDb" checked>
+                            <span><span class="setting-name">Use built-in bot signature database</span><span class="setting-hint">~30 common crawlers matched by name, no network call</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowBotCategory" checked>
+                            <span><span class="setting-name">Show bot category</span><span class="setting-hint">Search Engine, Social Preview, SEO Tool, AI Crawler, Monitoring, or HTTP Library</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagAutomation" checked>
+                            <span><span class="setting-name">Flag headless / automation tools</span><span class="setting-hint">HeadlessChrome, PhantomJS, Selenium, Puppeteer, Playwright, and similar markers</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Client Hints Awareness</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optClientHintsNote" checked>
+                            <span><span class="setting-name">Show Client Hints migration note</span><span class="setting-hint">When a UA looks frozen/reduced, reminds you that Sec-CH-UA headers now carry the detail the UA string used to</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch & Export</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchColDevice" checked>
+                            <span><span class="setting-name">Include device column in batch table</span><span class="setting-hint">Adds device type to each batch row</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchColBot">
+                            <span><span class="setting-name">Include bot/automation column in batch table</span><span class="setting-hint">Adds matched bot name or automation flag to each batch row</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxBatchInput">Max rows in batch table</label>
+                            <input type="number" id="maxBatchInput" min="1" max="5000" value="500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>User-Agent Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="uaInput" spellcheck="false" placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1
+Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"></textarea>
+                    <div class="input-hint">One entry per line. Paste raw UA strings copied from browser dev tools, server access logs, or analytics exports. The Summary / Browser & Engine / OS & Device / Bot Detection tabs analyze the <strong>first</strong> line; the Batch Table tab covers every line.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip">
+                        <span><strong id="lineCount">0</strong> line(s)</span>
+                        <span><strong id="validCount">0</strong> valid</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyJsonBtn" type="button"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+                            <button class="btn-solid" id="downloadCsvBtn" type="button"><i class="fa-solid fa-download"></i> Download Batch CSV</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="summary" type="button">Summary</button>
+                        <button class="output-tab" data-tab="browser" type="button">Browser & Engine</button>
+                        <button class="output-tab" data-tab="osdevice" type="button">OS & Device</button>
+                        <button class="output-tab" data-tab="bot" type="button">Bot Detection</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-summary"><div class="empty-pane">Enter a User-Agent string above to see results.</div></div>
+                    <div class="output-pane" id="pane-browser"><div class="empty-pane">Enter a User-Agent string above to see results.</div></div>
+                    <div class="output-pane" id="pane-osdevice"><div class="empty-pane">Enter a User-Agent string above to see results.</div></div>
+                    <div class="output-pane" id="pane-bot"><div class="empty-pane">Enter a User-Agent string above to see results.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Add lines to see the batch table.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter a User-Agent string above to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-magnifying-glass"></i> Detect My Browser's UA</h3>
+                    <div class="utility-note">Reads <code>navigator.userAgent</code> directly from this browser tab. Nothing is sent anywhere — this is the only utility here that doesn't even need a network call.</div>
+                    <button class="btn-solid small" id="detectMyUaBtn" type="button">Detect My Browser's UA</button>
+                    <div class="utility-result" id="myUaResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-code-compare"></i> Compare Two UA Strings</h3>
+                    <div class="utility-note">Paste two User-Agent strings to see exactly which parsed fields differ — handy for spotting what actually changed between a browser update or two test devices.</div>
+                    <div class="field-group">
+                        <label for="compareUaA">UA String A</label>
+                        <input type="text" id="compareUaA" placeholder="Mozilla/5.0 (Windows NT 10.0...) Chrome/119...">
+                    </div>
+                    <div class="field-group">
+                        <label for="compareUaB">UA String B</label>
+                        <input type="text" id="compareUaB" placeholder="Mozilla/5.0 (Windows NT 10.0...) Chrome/120...">
+                    </div>
+                    <button class="btn-solid small" id="compareBtn" type="button">Compare</button>
+                    <div class="utility-result" id="compareResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Generate a Test UA String</h3>
+                    <div class="utility-note">Pick a common browser/OS/device combination to get a ready-made UA string — useful for testing responsive layouts, server rules, or a <code>curl -A</code> request without needing the real device.</div>
+                    <div class="field-group">
+                        <label for="genUaPreset">Preset</label>
+                        <select id="genUaPreset">
+                            <option value="chromeWin">Chrome — Windows 11</option>
+                            <option value="chromeAndroid">Chrome — Android</option>
+                            <option value="safariMac">Safari — macOS</option>
+                            <option value="safariIphone">Safari — iPhone</option>
+                            <option value="safariIpad">Safari — iPad</option>
+                            <option value="firefoxWin">Firefox — Windows 11</option>
+                            <option value="edgeWin">Edge — Windows 11</option>
+                            <option value="googlebot">Googlebot</option>
+                            <option value="curl">curl (HTTP library)</option>
+                        </select>
+                    </div>
+                    <button class="btn-solid small" id="generateUaBtn" type="button">Generate</button>
+                    <div class="utility-result" id="generateUaResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>Server logs, analytics exports, and support tickets are full of raw User-Agent strings that are unreadable at a glance. This tool turns them into the browser, engine, OS, and device someone was actually using, flags bots and automation tools so you can separate them from real visitors, and audits whole log dumps at once.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does my Chrome UA look so generic now?</h4>
+                        <p>Chrome has been progressively "freezing" and reducing the information in its User-Agent string (UA reduction) to limit passive fingerprinting, replacing the detail it used to carry with opt-in Sec-CH-UA Client Hints headers instead. A generic-looking Windows or Android UA on a recent Chrome version is expected, not a parsing failure.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does my iPad show up as a Mac?</h4>
+                        <p>Since iPadOS 13, Safari on iPad requests desktop sites by default and its User-Agent is deliberately identical to macOS Safari's — there's no "iPad" token to detect. Distinguishing an iPad from a real Mac reliably requires touch-capability detection or Client Hints, not the UA string alone.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can a User-Agent string be trusted or used for security?</h4>
+                        <p>No — it's simply a value the client chooses to send and can set to anything. It's useful for analytics, layout decisions, and casual bot filtering, but treating it as an access-control or identity signal is unsafe; a request claiming to be "Googlebot" proves nothing on its own without verifying the source IP against Google's published ranges.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What are Sec-CH-UA Client Hints?</h4>
+                        <p>They're a newer, opt-in set of request headers (<code>Sec-CH-UA</code>, <code>Sec-CH-UA-Platform</code>, <code>Sec-CH-UA-Mobile</code>, and more) that a server explicitly requests, giving structured brand, platform, and mobile-flag data instead of parsing a single free-text string. They're the intended long-term replacement for detailed UA sniffing.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How reliable is the bot detection here?</h4>
+                        <p>It matches the UA string against a curated list of well-known crawler and HTTP-library signatures, which catches identifiable, honestly-labeled bots quickly. It can't catch a bot deliberately spoofing a browser UA — for that, combine this with IP/ASN verification and behavioral signals.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's a good rogue-traffic or QA workflow with this?</h4>
+                        <p>Paste your access log's User-Agent column into the batch input. Sort by the Bot column to separate crawler traffic from real users, or by Browser/OS to spot which combinations are actually hitting your site — useful both for analytics QA and for noticing unexpected automated traffic.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. Every parsing, comparison, and generation feature here — including "Detect My Browser's UA" — runs entirely in your browser using the string you paste or your own <code>navigator.userAgent</code>. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // USER-AGENT PARSER & ANALYZER — ENGINE
+        // ============================================
+
+        function grab(re, ua) { const m = ua.match(re); return m ? m[1] : null; }
+
+        // ---------- Bot & automation signatures ----------
+        const BOT_SIGNATURES = [
+            { re: /googlebot/i, name: 'Googlebot', category: 'Search Engine' },
+            { re: /bingbot/i, name: 'Bingbot', category: 'Search Engine' },
+            { re: /slurp/i, name: 'Yahoo Slurp', category: 'Search Engine' },
+            { re: /duckduckbot/i, name: 'DuckDuckBot', category: 'Search Engine' },
+            { re: /baiduspider/i, name: 'Baiduspider', category: 'Search Engine' },
+            { re: /yandexbot/i, name: 'YandexBot', category: 'Search Engine' },
+            { re: /applebot/i, name: 'Applebot', category: 'Search Engine' },
+            { re: /petalbot/i, name: 'PetalBot', category: 'Search Engine' },
+            { re: /facebookexternalhit/i, name: 'Facebook Link Preview', category: 'Social Preview' },
+            { re: /twitterbot/i, name: 'Twitterbot', category: 'Social Preview' },
+            { re: /linkedinbot/i, name: 'LinkedInBot', category: 'Social Preview' },
+            { re: /whatsapp/i, name: 'WhatsApp', category: 'Social Preview' },
+            { re: /telegrambot/i, name: 'TelegramBot', category: 'Social Preview' },
+            { re: /slackbot/i, name: 'Slackbot', category: 'Social Preview' },
+            { re: /discordbot/i, name: 'Discordbot', category: 'Social Preview' },
+            { re: /ahrefsbot/i, name: 'AhrefsBot', category: 'SEO Tool' },
+            { re: /semrushbot/i, name: 'SemrushBot', category: 'SEO Tool' },
+            { re: /mj12bot/i, name: 'MJ12bot', category: 'SEO Tool' },
+            { re: /dotbot/i, name: 'DotBot', category: 'SEO Tool' },
+            { re: /bytespider/i, name: 'Bytespider (ByteDance)', category: 'AI Crawler' },
+            { re: /gptbot/i, name: 'GPTBot (OpenAI)', category: 'AI Crawler' },
+            { re: /claudebot/i, name: 'ClaudeBot (Anthropic)', category: 'AI Crawler' },
+            { re: /anthropic-ai/i, name: 'anthropic-ai', category: 'AI Crawler' },
+            { re: /ccbot/i, name: 'CCBot (Common Crawl)', category: 'AI Crawler' },
+            { re: /perplexitybot/i, name: 'PerplexityBot', category: 'AI Crawler' },
+            { re: /uptimerobot/i, name: 'UptimeRobot', category: 'Monitoring' },
+            { re: /pingdom/i, name: 'Pingdom', category: 'Monitoring' },
+            { re: /curl\//i, name: 'curl', category: 'HTTP Library' },
+            { re: /wget\//i, name: 'Wget', category: 'HTTP Library' },
+            { re: /python-requests/i, name: 'python-requests', category: 'HTTP Library' },
+            { re: /postmanruntime/i, name: 'PostmanRuntime', category: 'HTTP Library' },
+            { re: /go-http-client/i, name: 'Go-http-client', category: 'HTTP Library' },
+            { re: /okhttp/i, name: 'okhttp', category: 'HTTP Library' },
+            { re: /axios/i, name: 'axios', category: 'HTTP Library' },
+            { re: /node-fetch/i, name: 'node-fetch', category: 'HTTP Library' }
+        ];
+        const AUTOMATION_SIGNATURES = [
+            { re: /headlesschrome/i, name: 'HeadlessChrome' },
+            { re: /phantomjs/i, name: 'PhantomJS' },
+            { re: /selenium/i, name: 'Selenium' },
+            { re: /puppeteer/i, name: 'Puppeteer' },
+            { re: /playwright/i, name: 'Playwright' },
+            { re: /electron/i, name: 'Electron (embedded browser)' },
+            { re: /jsdom/i, name: 'jsdom' }
+        ];
+        function detectBot(ua) { for (const b of BOT_SIGNATURES) if (b.re.test(ua)) return b; return null; }
+        function detectAutomation(ua) { for (const a of AUTOMATION_SIGNATURES) if (a.re.test(ua)) return a; return null; }
+
+        // ---------- Browser & engine ----------
+        function detectBrowserAndEngine(ua) {
+            let name = null, version = null, engine = null, engineVersion = null, isIosWrapper = false;
+            if (/EdgA\//.test(ua)) { name = 'Microsoft Edge (Android)'; version = grab(/EdgA\/([\d.]+)/, ua); }
+            else if (/EdgiOS\//.test(ua)) { name = 'Microsoft Edge (iOS)'; version = grab(/EdgiOS\/([\d.]+)/, ua); isIosWrapper = true; }
+            else if (/Edg\//.test(ua)) { name = 'Microsoft Edge'; version = grab(/Edg\/([\d.]+)/, ua); }
+            else if (/OPR\//.test(ua)) { name = 'Opera'; version = grab(/OPR\/([\d.]+)/, ua); }
+            else if (/Opera Mini/i.test(ua)) { name = 'Opera Mini'; version = grab(/Opera Mini\/([\d.]+)/i, ua); }
+            else if (/OPiOS\//.test(ua)) { name = 'Opera (iOS)'; version = grab(/OPiOS\/([\d.]+)/, ua); isIosWrapper = true; }
+            else if (/SamsungBrowser\//.test(ua)) { name = 'Samsung Internet'; version = grab(/SamsungBrowser\/([\d.]+)/, ua); }
+            else if (/UCBrowser\//.test(ua)) { name = 'UC Browser'; version = grab(/UCBrowser\/([\d.]+)/, ua); }
+            else if (/Vivaldi\//.test(ua)) { name = 'Vivaldi'; version = grab(/Vivaldi\/([\d.]+)/, ua); }
+            else if (/FxiOS\//.test(ua)) { name = 'Firefox (iOS)'; version = grab(/FxiOS\/([\d.]+)/, ua); isIosWrapper = true; }
+            else if (/Firefox\//.test(ua) && !/Seamonkey/i.test(ua)) { name = 'Firefox'; version = grab(/Firefox\/([\d.]+)/, ua); }
+            else if (/CriOS\//.test(ua)) { name = 'Chrome (iOS)'; version = grab(/CriOS\/([\d.]+)/, ua); isIosWrapper = true; }
+            else if (/Chrome\//.test(ua) && !/Chromium\//.test(ua)) { name = 'Chrome'; version = grab(/Chrome\/([\d.]+)/, ua); }
+            else if (/Chromium\//.test(ua)) { name = 'Chromium'; version = grab(/Chromium\/([\d.]+)/, ua); }
+            else if (/MSIE |Trident\//.test(ua)) { name = 'Internet Explorer'; version = grab(/MSIE ([\d.]+)/, ua) || grab(/rv:([\d.]+)/, ua); }
+            else if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) { name = 'Safari'; version = grab(/Version\/([\d.]+)/, ua) || grab(/Safari\/([\d.]+)/, ua); }
+
+            if (isIosWrapper) { engine = 'WebKit (iOS — Apple-mandated for all browsers)'; engineVersion = grab(/AppleWebKit\/([\d.]+)/, ua); }
+            else if (name === 'Firefox') { engine = 'Gecko'; engineVersion = grab(/rv:([\d.]+)/, ua) || grab(/Gecko\/([\d]+)/, ua); }
+            else if (/Trident\//.test(ua)) { engine = 'Trident'; engineVersion = grab(/Trident\/([\d.]+)/, ua); }
+            else if (/AppleWebKit\//.test(ua)) {
+                engineVersion = grab(/AppleWebKit\/([\d.]+)/, ua);
+                engine = /Chrome\/|Chromium\/|Edg\/|EdgA\/|OPR\/|SamsungBrowser\/|Vivaldi\/|UCBrowser\//.test(ua) ? 'Blink' : 'WebKit';
+            }
+
+            if (!name) {
+                const anyTok = ua.match(/([A-Za-z][A-Za-z0-9\-\._]*)\/([\d][\d.]*)/);
+                if (anyTok) { name = anyTok[1]; version = anyTok[2]; }
+            }
+            const majorVersion = version ? version.split('.')[0] : null;
+            return { name: name || 'Unknown', version, majorVersion, engine: engine || 'Unknown', engineVersion };
+        }
+
+        // ---------- Operating system ----------
+        const WINDOWS_NAMES = { '10.0': 'Windows 10 / 11', '6.3': 'Windows 8.1', '6.2': 'Windows 8', '6.1': 'Windows 7', '6.0': 'Windows Vista', '5.2': 'Windows XP x64 / Server 2003', '5.1': 'Windows XP' };
+        function detectOS(ua, opts) {
+            let name = null, version = null, arch = null, frozen = false;
+            let m;
+            if (m = ua.match(/Windows NT ([\d.]+)/)) {
+                name = opts.mapWindowsNames ? (WINDOWS_NAMES[m[1]] || ('Windows NT ' + m[1])) : ('Windows NT ' + m[1]);
+                version = m[1];
+                if (/Win64|WOW64/.test(ua)) arch = 'x64'; else if (/ARM64/.test(ua)) arch = 'ARM64'; else arch = 'x86';
+            } else if (m = ua.match(/iPad; CPU OS ([\d_]+)/)) {
+                name = 'iPadOS'; version = m[1].replace(/_/g, '.');
+            } else if (m = ua.match(/CPU iPhone OS ([\d_]+)/)) {
+                name = 'iOS'; version = m[1].replace(/_/g, '.');
+            } else if (m = ua.match(/Mac OS X ([\d_.]+)/)) {
+                name = 'macOS'; version = m[1].replace(/_/g, '.');
+                arch = /Intel/.test(ua) ? 'Intel (or Apple Silicon — masked by UA freezing/Rosetta)' : (/PPC/.test(ua) ? 'PowerPC' : null);
+                if (opts.flagFrozenOs && version === '10.15.7') frozen = true;
+            } else if (m = ua.match(/Android ([\d.]+)/)) {
+                name = 'Android'; version = m[1];
+                arch = /arm64|aarch64/i.test(ua) ? 'ARM64' : (/armv?7|arm/i.test(ua) ? 'ARM' : null);
+            } else if (/CrOS/.test(ua)) {
+                name = 'Chrome OS'; version = grab(/CrOS [^\s]+ ([\d.]+)/, ua);
+            } else if (/Linux/.test(ua)) {
+                name = 'Linux'; version = null;
+                if (/x86_64/.test(ua)) arch = 'x64'; else if (/i686|i386/.test(ua)) arch = 'x86'; else if (/aarch64|arm64/i.test(ua)) arch = 'ARM64';
+            }
+            return { name: name || 'Unknown', version, arch, frozen };
+        }
+
+        // ---------- Device ----------
+        function guessAndroidVendor(model) {
+            if (!model) return null;
+            const m = model.toUpperCase();
+            if (m.startsWith('SM-') || m.includes('SAMSUNG')) return 'Samsung';
+            if (m.startsWith('PIXEL')) return 'Google';
+            if (m.startsWith('REDMI') || m.startsWith('POCO') || m.includes('MI ')) return 'Xiaomi';
+            if (m.startsWith('ONEPLUS')) return 'OnePlus';
+            if (/^(ALP|ANE|VOG|LYA|ELE)-/.test(m) || m.includes('HUAWEI')) return 'Huawei';
+            if (m.startsWith('MOTO') || m.includes('MOTOROLA')) return 'Motorola';
+            if (m.startsWith('LG-')) return 'LG';
+            return null;
+        }
+        function detectDevice(ua) {
+            let type = 'desktop', vendor = null, model = null;
+            if (/iPad/.test(ua)) { type = 'tablet'; vendor = 'Apple'; model = 'iPad'; }
+            else if (/iPhone/.test(ua)) { type = 'mobile'; vendor = 'Apple'; model = 'iPhone'; }
+            else if (/iPod/.test(ua)) { type = 'mobile'; vendor = 'Apple'; model = 'iPod touch'; }
+            else if (/Android/.test(ua)) {
+                const mm = ua.match(/Android [^;]+;\s*([^;)]+?)\s*(?:Build\/|\))/);
+                model = mm ? mm[1].trim() : null;
+                if (model === 'wv') model = null;
+                type = /Mobile/.test(ua) ? 'mobile' : 'tablet';
+                vendor = guessAndroidVendor(model);
+            } else if (/SmartTV|GoogleTV|AppleTV|Tizen|Web[o0]S|HbbTV|NetCast|Roku/i.test(ua)) { type = 'tv'; }
+            else if (/PlayStation/.test(ua)) { type = 'console'; vendor = 'Sony'; model = grab(/(PlayStation ?\d?)/, ua) || 'PlayStation'; }
+            else if (/Xbox/.test(ua)) { type = 'console'; vendor = 'Microsoft'; model = 'Xbox'; }
+            else if (/Nintendo/.test(ua)) { type = 'console'; vendor = 'Nintendo'; }
+            return { type, vendor, model };
+        }
+
+        // ---------- Raw tokens ----------
+        function extractTokens(ua) {
+            const tokens = [];
+            const re = /([A-Za-z][A-Za-z0-9\-\._]*)\/([\d][\d.\w]*)/g;
+            let m;
+            while ((m = re.exec(ua)) !== null) tokens.push(m[1] + '/' + m[2]);
+            return tokens;
+        }
+
+        function cleanInput(line, opts) {
+            let t = line.trim();
+            if (opts.trimQuotes) t = t.replace(/^["']+|["']+$/g, '').trim();
+            return t;
+        }
+
+        function analyzeLine(line, opts) {
+            const raw = line;
+            const ua = cleanInput(line, opts);
+            const result = { raw, valid: false, error: null };
+            if (!ua) return null;
+            if (opts.strictValidation && (ua.length < 10 || ua.indexOf('/') === -1)) {
+                result.error = 'Too short or missing a "Name/Version" token to look like a real UA string';
+                return result;
+            }
+            result.ua = ua;
+            result.browser = detectBrowserAndEngine(ua);
+            result.os = detectOS(ua, opts);
+            result.device = detectDevice(ua);
+            result.bot = opts.useBotDb ? detectBot(ua) : null;
+            result.automation = opts.flagAutomation ? detectAutomation(ua) : null;
+            result.tokens = opts.showRawTokens ? extractTokens(ua) : [];
+            result.possibleIpadMasking = opts.flagIpadMasking && result.os.name === 'macOS' && result.device.type === 'desktop' && !/iPad/.test(ua);
+            result.valid = true;
+            return result;
+        }
+
+        function getOptions() {
+            return {
+                trimQuotes: document.getElementById('optTrimQuotes').checked,
+                strictValidation: document.getElementById('optStrictValidation').checked,
+                showRawTokens: document.getElementById('optShowRawTokens').checked,
+                showEngine: document.getElementById('optShowEngine').checked,
+                showFullVersion: document.getElementById('optShowFullVersion').checked,
+                showMajorVersion: document.getElementById('optShowMajorVersion').checked,
+                mapWindowsNames: document.getElementById('optMapWindowsNames').checked,
+                showArch: document.getElementById('optShowArch').checked,
+                flagFrozenOs: document.getElementById('optFlagFrozenOs').checked,
+                showDeviceType: document.getElementById('optShowDeviceType').checked,
+                showDeviceVendor: document.getElementById('optShowDeviceVendor').checked,
+                flagIpadMasking: document.getElementById('optFlagIpadMasking').checked,
+                useBotDb: document.getElementById('optUseBotDb').checked,
+                showBotCategory: document.getElementById('optShowBotCategory').checked,
+                flagAutomation: document.getElementById('optFlagAutomation').checked,
+                clientHintsNote: document.getElementById('optClientHintsNote').checked,
+                batchColDevice: document.getElementById('optBatchColDevice').checked,
+                batchColBot: document.getElementById('optBatchColBot').checked,
+                maxBatch: parseInt(document.getElementById('maxBatchInput').value, 10) || 500
+            };
+        }
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        let lastAnalysis = { primary: null, batch: [] };
+
+        function analyze() {
+            const opts = getOptions();
+            const raw = document.getElementById('uaInput').value;
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+
+            document.getElementById('lineCount').textContent = lines.length;
+
+            const errorBox = document.getElementById('errorBox');
+            const results = lines.map(l => analyzeLine(l, opts));
+            const validCount = results.filter(r => r && r.valid).length;
+            document.getElementById('validCount').textContent = validCount;
+
+            const firstInvalid = results.find(r => r && !r.valid);
+            if (firstInvalid) {
+                errorBox.textContent = '"' + firstInvalid.raw + '" — ' + firstInvalid.error;
+                errorBox.classList.add('show');
+            } else {
+                errorBox.classList.remove('show');
+            }
+
+            lastAnalysis.batch = results;
+            const primary = results.find(r => r && r.valid) || null;
+            lastAnalysis.primary = primary;
+
+            renderSummary(primary, opts);
+            renderBrowser(primary, opts);
+            renderOsDevice(primary, opts);
+            renderBot(primary, opts);
+            renderBatch(results, opts);
+            renderJson(primary, results, opts);
+        }
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function renderSummary(r, opts) {
+            if (!r) { paneEmpty('pane-summary', 'Enter a valid User-Agent string above to see results.'); return; }
+            let rows = [];
+            rows.push(['Browser', r.browser.name + (r.browser.version ? ' ' + (opts.showFullVersion ? r.browser.version : r.browser.majorVersion) : '')]);
+            rows.push(['Engine', opts.showEngine ? (r.browser.engine + (r.browser.engineVersion ? ' ' + r.browser.engineVersion : '')) : '—']);
+            rows.push(['Operating system', r.os.name + (r.os.version ? ' ' + r.os.version : '')]);
+            rows.push(['Device type', opts.showDeviceType ? r.device.type : '—']);
+            rows.push(['Classification', '__CLASS__']);
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) {
+                let val = v;
+                if (v === '__CLASS__') {
+                    if (r.bot) val = '<span class="badge invalid">Bot / Crawler — ' + escapeHtml(r.bot.name) + '</span>';
+                    else if (r.automation) val = '<span class="badge private">Automation tool — ' + escapeHtml(r.automation.name) + '</span>';
+                    else val = '<span class="badge public">Regular browser traffic</span>';
+                } else {
+                    val = escapeHtml(val);
+                }
+                html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + val + '</td></tr>';
+            }
+            html += '</table>';
+            if (opts.flagIpadMasking && r.possibleIpadMasking) {
+                html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>Reports as macOS with no other mobile signals — this could be a real Mac, or an iPad requesting the desktop site (iPadOS 13+ masks itself as a Mac by default).</span></div>';
+            }
+            if (opts.clientHintsNote && r.os.frozen) {
+                html += '<div class="net-warning"><i class="fa-solid fa-circle-info"></i><span>This UA carries a frozen macOS version marker (10.15.7 regardless of the real OS version). For the actual OS version, check the request\\u2019s Sec-CH-UA-Platform-Version Client Hint instead.</span></div>';
+            }
+            document.getElementById('pane-summary').innerHTML = html;
+        }
+
+        function renderBrowser(r, opts) {
+            if (!r) { paneEmpty('pane-browser', 'Enter a valid User-Agent string above to see results.'); return; }
+            let rows = [];
+            rows.push(['Browser name', r.browser.name]);
+            if (opts.showFullVersion) rows.push(['Full version', r.browser.version || '—']);
+            if (opts.showMajorVersion) rows.push(['Major version', r.browser.majorVersion || '—']);
+            if (opts.showEngine) {
+                rows.push(['Rendering engine', r.browser.engine]);
+                rows.push(['Engine version', r.browser.engineVersion || '—']);
+            }
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+            html += '</table>';
+            if (opts.showRawTokens) {
+                html += '<div style="margin-top:14px;"><div class="k" style="font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Raw Name/Version tokens</div><div class="mono-box">' + (r.tokens.length ? r.tokens.map(escapeHtml).join('\n') : 'None found') + '</div></div>';
+            }
+            document.getElementById('pane-browser').innerHTML = html;
+        }
+
+        function renderOsDevice(r, opts) {
+            if (!r) { paneEmpty('pane-osdevice', 'Enter a valid User-Agent string above to see results.'); return; }
+            let rows = [];
+            rows.push(['OS name', r.os.name]);
+            rows.push(['OS version', r.os.version || 'Not disclosed']);
+            if (opts.showArch) rows.push(['Architecture', r.os.arch || 'Not disclosed']);
+            if (opts.showDeviceType) rows.push(['Device type', r.device.type]);
+            if (opts.showDeviceVendor) {
+                rows.push(['Device vendor', r.device.vendor || 'Unknown']);
+                rows.push(['Device model', r.device.model || 'Unknown']);
+            }
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+            html += '</table>';
+            if (opts.flagFrozenOs && r.os.frozen) {
+                html += '<div class="net-warning"><i class="fa-solid fa-snowflake"></i><span>macOS version marker looks frozen at 10.15.7 — this is a known UA-reduction pattern and does not reflect the real installed macOS version.</span></div>';
+            }
+            if (opts.flagIpadMasking && r.possibleIpadMasking) {
+                html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>Possible iPad requesting the desktop site — iPadOS masks itself as macOS by default since iPadOS 13.</span></div>';
+            }
+            document.getElementById('pane-osdevice').innerHTML = html;
+        }
+
+        function renderBot(r, opts) {
+            if (!r) { paneEmpty('pane-bot', 'Enter a valid User-Agent string above to see results.'); return; }
+            let html = '<table class="kv-table">';
+            html += '<tr><td class="k">Bot / crawler match</td><td class="v">' + (r.bot ? '<span class="badge invalid">' + escapeHtml(r.bot.name) + '</span>' + (opts.showBotCategory ? ' <span style="opacity:0.6;">(' + escapeHtml(r.bot.category) + ')</span>' : '') : '<span class="badge public">No known bot signature matched</span>') + '</td></tr>';
+            html += '<tr><td class="k">Automation tool match</td><td class="v">' + (r.automation ? '<span class="badge private">' + escapeHtml(r.automation.name) + '</span>' : 'None detected') + '</td></tr>';
+            html += '</table>';
+            html += '<div class="net-warning"><i class="fa-solid fa-shield-halved"></i><span>Signature matching only — a UA string can claim to be anything. For verifying a legitimate crawler (e.g. Googlebot), cross-check the request\\u2019s source IP against that crawler\\u2019s published IP ranges rather than trusting the UA alone.</span></div>';
+            document.getElementById('pane-bot').innerHTML = html;
+        }
+
+        function renderBatch(results, opts) {
+            const valid = results.filter(r => r);
+            if (valid.length === 0) { paneEmpty('pane-batch', 'Add lines to see the batch table.'); return; }
+            const rowsToShow = valid.slice(0, opts.maxBatch);
+            let cols = ['Input', 'Status', 'Browser', 'OS'];
+            if (opts.batchColDevice) cols.push('Device');
+            if (opts.batchColBot) cols.push('Bot / Automation');
+
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+            for (const r of rowsToShow) {
+                if (!r.valid) {
+                    html += '<tr><td>' + escapeHtml(r.raw) + '</td><td colspan="' + (cols.length - 1) + '" style="color:var(--danger);">' + escapeHtml(r.error) + '</td></tr>';
+                    continue;
+                }
+                let cells = [escapeHtml(r.raw.length > 60 ? r.raw.slice(0, 60) + '…' : r.raw)];
+                cells.push('<span style="color:var(--accent);">Valid</span>');
+                cells.push(escapeHtml(r.browser.name + (r.browser.majorVersion ? ' ' + r.browser.majorVersion : '')));
+                cells.push(escapeHtml(r.os.name + (r.os.version ? ' ' + r.os.version : '')));
+                if (opts.batchColDevice) cells.push(escapeHtml(r.device.type));
+                if (opts.batchColBot) cells.push(r.bot ? escapeHtml(r.bot.name) : (r.automation ? escapeHtml(r.automation.name) : '—'));
+                html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+            if (valid.length > opts.maxBatch) html += '<div style="margin-top:10px;font-size:11px;opacity:0.6;">Showing ' + opts.maxBatch + ' of ' + valid.length + ' rows (raise the limit in settings to see more).</div>';
+            document.getElementById('pane-batch').innerHTML = html;
+        }
+
+        function buildJsonForLine(r) {
+            if (!r) return null;
+            if (!r.valid) return { input: r.raw, valid: false, error: r.error };
+            return {
+                input: r.raw, valid: true,
+                browser: { name: r.browser.name, version: r.browser.version, majorVersion: r.browser.majorVersion, engine: r.browser.engine, engineVersion: r.browser.engineVersion },
+                os: { name: r.os.name, version: r.os.version, arch: r.os.arch, frozen: r.os.frozen },
+                device: { type: r.device.type, vendor: r.device.vendor, model: r.device.model },
+                bot: r.bot ? { name: r.bot.name, category: r.bot.category } : null,
+                automation: r.automation ? r.automation.name : null,
+                tokens: r.tokens
+            };
+        }
+
+        function renderJson(primary, results) {
+            const batch = results.filter(r => r).map(r => buildJsonForLine(r));
+            const out = { primary: primary ? buildJsonForLine(primary) : null, batch };
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring ----------
+        document.getElementById('uaInput').addEventListener('input', analyze);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; analyze(); });
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('uaInput').value = '';
+            analyze();
+            document.getElementById('uaInput').focus();
+        });
+
+        document.getElementById('copyJsonBtn').addEventListener('click', async () => {
+            const text = document.getElementById('jsonOut').textContent;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const rows = lastAnalysis.batch.filter(r => r);
+            if (rows.length === 0) return;
+            const header = ['input', 'valid', 'browser', 'browserVersion', 'engine', 'os', 'osVersion', 'deviceType', 'bot', 'automation', 'error'];
+            const lines = [header.join(',')];
+            for (const r of rows) {
+                if (!r.valid) { lines.push([csvCell(r.raw), 'false', '', '', '', '', '', '', '', '', csvCell(r.error)].join(',')); continue; }
+                lines.push([
+                    csvCell(r.raw), 'true', csvCell(r.browser.name), csvCell(r.browser.version || ''), csvCell(r.browser.engine),
+                    csvCell(r.os.name), csvCell(r.os.version || ''), csvCell(r.device.type),
+                    csvCell(r.bot ? r.bot.name : ''), csvCell(r.automation ? r.automation.name : ''), ''
+                ].join(','));
+            }
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ua-batch-audit.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        function csvCell(s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; }
+
+        // ---------- Detect My Browser's UA ----------
+        document.getElementById('detectMyUaBtn').addEventListener('click', () => {
+            const resultEl = document.getElementById('myUaResult');
+            const ua = navigator.userAgent;
+            resultEl.innerHTML = '<div class="mono-box">' + escapeHtml(ua) + '</div><button class="btn-ghost small" id="useMyUaBtn" type="button" style="margin-top:8px;">Analyze This UA</button>';
+            document.getElementById('useMyUaBtn').addEventListener('click', () => {
+                document.getElementById('uaInput').value = ua;
+                analyze();
+                document.getElementById('uaInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // ---------- Compare Two UA Strings ----------
+        document.getElementById('compareBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('compareResult');
+            const a = analyzeLine(document.getElementById('compareUaA').value.trim(), opts);
+            const b = analyzeLine(document.getElementById('compareUaB').value.trim(), opts);
+            if (!a || !a.valid || !b || !b.valid) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter two valid User-Agent strings to compare.</div>'; return; }
+            const fields = [
+                ['Browser', a.browser.name, b.browser.name],
+                ['Browser version', a.browser.version || '—', b.browser.version || '—'],
+                ['Engine', a.browser.engine, b.browser.engine],
+                ['OS', a.os.name, b.os.name],
+                ['OS version', a.os.version || '—', b.os.version || '—'],
+                ['Architecture', a.os.arch || '—', b.os.arch || '—'],
+                ['Device type', a.device.type, b.device.type],
+                ['Bot match', a.bot ? a.bot.name : '—', b.bot ? b.bot.name : '—']
+            ];
+            let rowsHtml = '';
+            let diffCount = 0;
+            for (const [label, av, bv] of fields) {
+                const differs = av !== bv;
+                if (differs) diffCount++;
+                rowsHtml += '<tr' + (differs ? ' style="background:var(--note-bg);"' : '') + '><td style="font-weight:700;font-size:11px;opacity:0.7;padding:6px 8px;">' + escapeHtml(label) + '</td><td style="padding:6px 8px;font-family:var(--font-mono);font-size:12px;">' + escapeHtml(av) + '</td><td style="padding:6px 8px;font-family:var(--font-mono);font-size:12px;">' + escapeHtml(bv) + '</td></tr>';
+            }
+            resultEl.innerHTML = '<div style="font-size:11.5px;opacity:0.6;margin-bottom:8px;">' + diffCount + ' of ' + fields.length + ' field(s) differ</div><div class="table-scroll"><table class="data-table"><thead><tr><th>Field</th><th>A</th><th>B</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+        });
+
+        // ---------- Generate a Test UA String ----------
+        const UA_PRESETS = {
+            chromeWin: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+            chromeAndroid: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+            safariMac: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+            safariIphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+            safariIpad: 'Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+            firefoxWin: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0',
+            edgeWin: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
+            googlebot: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            curl: 'curl/8.7.1'
+        };
+        document.getElementById('generateUaBtn').addEventListener('click', () => {
+            const preset = document.getElementById('genUaPreset').value;
+            const ua = UA_PRESETS[preset] || '';
+            const resultEl = document.getElementById('generateUaResult');
+            resultEl.innerHTML = '<div class="mono-box" style="font-size:12px;">' + escapeHtml(ua) + '</div>' +
+                '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">' +
+                '<button class="btn-ghost small" id="copyGenUaBtn" type="button">Copy</button>' +
+                '<button class="btn-ghost small" id="useGenUaBtn" type="button">Analyze This UA</button>' +
+                '</div>';
+            document.getElementById('copyGenUaBtn').addEventListener('click', async () => { try { await navigator.clipboard.writeText(ua); } catch (err) { /* ignore */ } });
+            document.getElementById('useGenUaBtn').addEventListener('click', () => {
+                document.getElementById('uaInput').value = ua;
+                analyze();
+                document.getElementById('uaInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optTrimQuotes', 'optStrictValidation', 'optShowRawTokens', 'optShowEngine', 'optShowFullVersion', 'optShowMajorVersion', 'optMapWindowsNames', 'optShowArch', 'optFlagFrozenOs', 'optShowDeviceType', 'optShowDeviceVendor', 'optFlagIpadMasking', 'optUseBotDb', 'optShowBotCategory', 'optFlagAutomation', 'optClientHintsNote', 'optBatchColDevice', 'optBatchColBot'],
+            text: ['maxBatchInput'],
+            radio: []
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+        }
+
+        const BUILTIN_PRESETS = {
+            quick: {
+                optTrimQuotes: true, optStrictValidation: false, optShowRawTokens: false,
+                optShowEngine: true, optShowFullVersion: false, optShowMajorVersion: true,
+                optMapWindowsNames: true, optShowArch: false, optFlagFrozenOs: false,
+                optShowDeviceType: true, optShowDeviceVendor: false, optFlagIpadMasking: false,
+                optUseBotDb: true, optShowBotCategory: false, optFlagAutomation: false, optClientHintsNote: false,
+                optBatchColDevice: true, optBatchColBot: false, maxBatchInput: '500'
+            },
+            botaudit: {
+                optTrimQuotes: true, optStrictValidation: true, optShowRawTokens: false,
+                optShowEngine: false, optShowFullVersion: false, optShowMajorVersion: true,
+                optMapWindowsNames: true, optShowArch: false, optFlagFrozenOs: false,
+                optShowDeviceType: false, optShowDeviceVendor: false, optFlagIpadMasking: false,
+                optUseBotDb: true, optShowBotCategory: true, optFlagAutomation: true, optClientHintsNote: false,
+                optBatchColDevice: false, optBatchColBot: true, maxBatchInput: '2000'
+            },
+            analytics: {
+                optTrimQuotes: true, optStrictValidation: false, optShowRawTokens: false,
+                optShowEngine: true, optShowFullVersion: true, optShowMajorVersion: true,
+                optMapWindowsNames: true, optShowArch: true, optFlagFrozenOs: true,
+                optShowDeviceType: true, optShowDeviceVendor: true, optFlagIpadMasking: true,
+                optUseBotDb: true, optShowBotCategory: true, optFlagAutomation: false, optClientHintsNote: true,
+                optBatchColDevice: true, optBatchColBot: false, maxBatchInput: '500'
+            },
+            loganalysis: {
+                optTrimQuotes: true, optStrictValidation: false, optShowRawTokens: false,
+                optShowEngine: false, optShowFullVersion: false, optShowMajorVersion: true,
+                optMapWindowsNames: true, optShowArch: false, optFlagFrozenOs: false,
+                optShowDeviceType: true, optShowDeviceVendor: false, optFlagIpadMasking: false,
+                optUseBotDb: true, optShowBotCategory: true, optFlagAutomation: true, optClientHintsNote: false,
+                optBatchColDevice: true, optBatchColBot: true, maxBatchInput: '5000'
+            },
+            automation: {
+                optTrimQuotes: true, optStrictValidation: false, optShowRawTokens: true,
+                optShowEngine: true, optShowFullVersion: true, optShowMajorVersion: true,
+                optMapWindowsNames: true, optShowArch: true, optFlagFrozenOs: false,
+                optShowDeviceType: true, optShowDeviceVendor: false, optFlagIpadMasking: false,
+                optUseBotDb: true, optShowBotCategory: false, optFlagAutomation: true, optClientHintsNote: false,
+                optBatchColDevice: false, optBatchColBot: true, maxBatchInput: '1000'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'uaParserCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            analyze();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ua-parser-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    analyze();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave ----------
+        const DRAFT_KEY = 'uaParserDraft';
+        const DRAFT_SETTINGS_KEY = 'uaParserLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, document.getElementById('uaInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        document.getElementById('uaInput').addEventListener('input', saveDraft);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => el.addEventListener('input', saveDraft));
+
+        (function restoreDraft() {
+            const defaultDraft = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\nMozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1\nMozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                document.getElementById('uaInput').value = (savedDraft !== null && savedDraft !== '') ? savedDraft : defaultDraft;
+            } catch (err) {
+                document.getElementById('uaInput').value = defaultDraft;
+            }
+        })();
+
+        // Initial run
+        analyze();
+    </script>
+</body>
+</html>
