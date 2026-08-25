@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | DNS Lookup & Propagation Checker</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free DNS lookup tool. Query A, AAAA, MX, TXT, NS, CNAME, SOA, CAA, SRV and DNSSEC records over DoH, check propagation across multiple public resolvers worldwide, verify SPF/DKIM/DMARC email records, trace NS delegation, batch-audit domain lists, and reverse-lookup IPs — 100% client-side." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/dns-lookup.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/dns-lookup.html" />
+<meta property="og:title" content="DNS Lookup & Propagation Checker — awjunaid" />
+<meta property="og:description" content="Query any DNS record type, check propagation across resolvers worldwide, verify SPF/DKIM/DMARC, trace NS delegation, and batch-audit domains. Free, browser-based, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/dns-lookup.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="DNS Lookup & Propagation Checker — awjunaid" />
+<meta name="twitter:description" content="Query A/AAAA/MX/TXT/NS/CNAME/SOA/CAA/SRV/DNSSEC records, check propagation across global resolvers, verify SPF/DKIM/DMARC, and batch-audit domains — free and browser-based." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/dns-lookup.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+        .chip-opt {
+            display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+            border: 1px solid var(--border-light); border-radius: 60px; padding: 7px 14px; cursor: pointer;
+        }
+        .chip-opt input { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #domainInput {
+            width: 100%;
+            min-height: 120px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #domainInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .badge.neutral { background: transparent; color: var(--text-color); }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+        .loading-pane { font-size: 13px; opacity: 0.6; padding: 40px 10px; text-align: center; }
+        .loading-pane i { margin-right: 8px; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        /* Utility grid (propagation, email auth, reverse lookup) */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+
+        .resolver-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+        .resolver-cell {
+            border: 1px solid var(--border-light); border-radius: 10px; padding: 10px 12px; font-size: 11.5px;
+        }
+        .resolver-cell .rname { font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.6; margin-bottom: 4px; }
+        .resolver-cell .rval { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
+        .resolver-cell.match { border-color: var(--accent); }
+        .resolver-cell.mismatch { border-color: var(--danger); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #domainInput { min-height: 100px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">DNS Lookup & Propagation Checker</h1>
+                <div class="tool-dek">Query any domain's A, AAAA, MX, TXT, NS, CNAME, SOA, CAA, SRV, PTR, and DNSSEC records over DNS-over-HTTPS. Compare answers across multiple public resolvers to check propagation, verify SPF/DKIM/DMARC email authentication, trace NS delegation, batch-audit domain lists, and reverse-lookup an IP — entirely from your browser, no server-side logging.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="quick">Quick Lookup (A/AAAA/MX/NS)</option>
+                    <option value="full">Full Record Audit (all types)</option>
+                    <option value="email">Email Deliverability (SPF/DKIM/DMARC)</option>
+                    <option value="propagation">Propagation Check (multi-resolver)</option>
+                    <option value="security">Security / DNSSEC Audit</option>
+                    <option value="batch">Batch Domain Audit</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Record Types To Query</h4>
+                    <div class="chip-row">
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="A" checked> A</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="AAAA" checked> AAAA</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="MX" checked> MX</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="NS" checked> NS</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="TXT" checked> TXT</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="CNAME" checked> CNAME</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="SOA"> SOA</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="CAA"> CAA</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="SRV"> SRV</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="PTR"> PTR</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="DNSKEY"> DNSKEY</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="DS"> DS</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="NAPTR"> NAPTR</label>
+                        <label class="chip-opt"><input type="checkbox" class="rtype" value="TLSA"> TLSA</label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Resolver & Transport</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDNSSEC">
+                            <span><span class="setting-name">Request DNSSEC data (DO bit)</span><span class="setting-hint">Adds RRSIG/AD-flag info via the DoH "do=1" flag where supported</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNoCache">
+                            <span><span class="setting-name">Bypass resolver cache (CD bit)</span><span class="setting-hint">Requests non-cached data where the resolver honors it — useful right after a DNS change</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowTTL" checked>
+                            <span><span class="setting-name">Show TTL per record</span><span class="setting-hint">Seconds remaining until the resolver's cached copy expires</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowRawJson">
+                            <span><span class="setting-name">Show raw DoH JSON per query</span><span class="setting-hint">The unprocessed RFC 8484 JSON response, useful for debugging</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="primaryResolverSelect">Primary resolver</label>
+                            <select id="primaryResolverSelect">
+                                <option value="cloudflare">Cloudflare (1.1.1.1)</option>
+                                <option value="google">Google (8.8.8.8)</option>
+                                <option value="quad9">Quad9 (9.9.9.9)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="timeoutInput">Query timeout (ms)</label>
+                            <input type="number" id="timeoutInput" min="1000" max="20000" step="500" value="6000">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Propagation Check</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoPropagation">
+                            <span><span class="setting-name">Auto-run propagation check with lookup</span><span class="setting-hint">Queries the first selected record type against every resolver below whenever you run a lookup</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagMismatch" checked>
+                            <span><span class="setting-name">Flag mismatched answers</span><span class="setting-hint">Highlights resolvers that disagree with the primary resolver's answer — a sign of incomplete propagation or split-horizon DNS</span></span>
+                        </label>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle"><input type="checkbox" class="resolver-toggle" value="cloudflare" checked><span><span class="setting-name">Cloudflare</span><span class="setting-hint">1.1.1.1 — global anycast</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" class="resolver-toggle" value="google" checked><span><span class="setting-name">Google</span><span class="setting-hint">8.8.8.8 — global anycast</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" class="resolver-toggle" value="quad9" checked><span><span class="setting-name">Quad9</span><span class="setting-hint">9.9.9.9 — security-filtered, Switzerland-based</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" class="resolver-toggle" value="opendns"><span><span class="setting-name">OpenDNS</span><span class="setting-hint">208.67.222.222 — Cisco-operated</span></span></label>
+                        <label class="setting-toggle"><input type="checkbox" class="resolver-toggle" value="adguard"><span><span class="setting-name">AdGuard</span><span class="setting-hint">94.140.14.14 — ad/tracker filtering</span></span></label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Email Authentication (SPF / DKIM / DMARC)</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCheckSPF" checked>
+                            <span><span class="setting-name">Parse SPF record</span><span class="setting-hint">Reads the v=spf1 TXT record and lists its mechanisms (ip4, include, ~all, etc.)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCheckDMARC" checked>
+                            <span><span class="setting-name">Parse DMARC record</span><span class="setting-hint">Reads _dmarc.&lt;domain&gt; TXT and reports policy (p=), pct, and reporting addresses</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCheckDKIM">
+                            <span><span class="setting-name">Check DKIM selector</span><span class="setting-hint">Looks up &lt;selector&gt;._domainkey.&lt;domain&gt; — enter the selector your provider uses below</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCheckMTASTS">
+                            <span><span class="setting-name">Check MTA-STS</span><span class="setting-hint">Looks up _mta-sts.&lt;domain&gt; TXT, indicating enforced TLS for inbound mail</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="dkimSelectorInput">DKIM selector</label>
+                            <input type="text" id="dkimSelectorInput" placeholder="google, selector1, k1, default…" value="default">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>NS Delegation & Trace</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optTraceNS">
+                            <span><span class="setting-name">Compare NS at registry vs. authoritative</span><span class="setting-hint">Flags when the resolver's NS answer differs from what the zone itself claims — a sign of a pending or broken nameserver migration</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optResolveGlue" checked>
+                            <span><span class="setting-name">Resolve NS/MX hostnames to IPs</span><span class="setting-hint">Follows up each nameserver / mail server name with its own A/AAAA lookup</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch & Output</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchIncludeEmail">
+                            <span><span class="setting-name">Include SPF/DMARC columns in batch table</span><span class="setting-hint">Adds email-auth presence flags to each domain row — slower for large lists</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxConcurrentInput">Max concurrent queries</label>
+                            <input type="number" id="maxConcurrentInput" min="1" max="20" value="6">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Domain Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <button class="btn-solid" id="lookupBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i> Lookup</button>
+                        </div>
+                    </div>
+                    <textarea id="domainInput" spellcheck="false" placeholder="example.com
+mail.example.com
+another-domain.org"></textarea>
+                    <div class="input-hint">One domain per line. The Summary / Records / Email Auth / Propagation / NS Trace tabs analyze the <strong>first</strong> line; the Batch Table tab covers every line. Queries run over DNS-over-HTTPS (RFC 8484) directly from your browser to the resolver(s) selected in settings — no data passes through any server of ours.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip">
+                        <span><strong id="lineCount">0</strong> domain(s)</span>
+                        <span><strong id="queryCount">0</strong> quer(y/ies) sent</span>
+                        <span id="lastRunTime"></span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyJsonBtn" type="button"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+                            <button class="btn-solid" id="downloadCsvBtn" type="button"><i class="fa-solid fa-download"></i> Download Batch CSV</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="summary" type="button">Summary</button>
+                        <button class="output-tab" data-tab="records" type="button">Records</button>
+                        <button class="output-tab" data-tab="email" type="button">Email Auth</button>
+                        <button class="output-tab" data-tab="propagation" type="button">Propagation</button>
+                        <button class="output-tab" data-tab="nstrace" type="button">NS Trace</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-summary"><div class="empty-pane">Enter a domain above and click Lookup to see results.</div></div>
+                    <div class="output-pane" id="pane-records"><div class="empty-pane">Enter a domain above and click Lookup to see results.</div></div>
+                    <div class="output-pane" id="pane-email"><div class="empty-pane">Enter a domain above and click Lookup to see results.</div></div>
+                    <div class="output-pane" id="pane-propagation"><div class="empty-pane">Enter a domain above and click Lookup to see results.</div></div>
+                    <div class="output-pane" id="pane-nstrace"><div class="empty-pane">Enter a domain above and click Lookup to see results.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Add lines and click Lookup to see the batch table.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter a domain above and click Lookup to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-arrows-rotate"></i> Manual Propagation Check</h3>
+                    <div class="utility-note">Compare one record type for one domain across every resolver toggled on in settings — the classic "why does the site still show the old IP for me" check.</div>
+                    <div class="field-group">
+                        <label for="propDomain">Domain</label>
+                        <input type="text" id="propDomain" placeholder="example.com">
+                    </div>
+                    <div class="field-group">
+                        <label for="propType">Record type</label>
+                        <select id="propType">
+                            <option value="A">A</option>
+                            <option value="AAAA">AAAA</option>
+                            <option value="MX">MX</option>
+                            <option value="NS">NS</option>
+                            <option value="TXT">TXT</option>
+                            <option value="CNAME">CNAME</option>
+                        </select>
+                    </div>
+                    <button class="btn-solid small" id="propCheckBtn" type="button">Check Propagation</button>
+                    <div class="utility-result" id="propResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-rotate-left"></i> Reverse DNS (PTR) Lookup</h3>
+                    <div class="utility-note">Look up the hostname(s) associated with an IPv4 or IPv6 address via its in-addr.arpa / ip6.arpa PTR record — useful for identifying mail servers, verifying rDNS on a mail-sending IP, or investigating a log entry.</div>
+                    <div class="field-group">
+                        <label for="ptrIp">IP address</label>
+                        <input type="text" id="ptrIp" placeholder="8.8.8.8 or 2606:4700:4700::1111">
+                    </div>
+                    <button class="btn-solid small" id="ptrCheckBtn" type="button">Reverse Lookup</button>
+                    <div class="utility-result" id="ptrResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-shield-halved"></i> DNSSEC Chain Check</h3>
+                    <div class="utility-note">Checks whether the resolver marks the answer as Authenticated Data (AD flag) — a quick signal that DNSSEC validation succeeded for that domain's chain of trust.</div>
+                    <div class="field-group">
+                        <label for="dnssecDomain">Domain</label>
+                        <input type="text" id="dnssecDomain" placeholder="example.com">
+                    </div>
+                    <button class="btn-solid small" id="dnssecCheckBtn" type="button">Check DNSSEC</button>
+                    <div class="utility-result" id="dnssecResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>Diagnosing a DNS issue usually means checking several record types, across several resolvers, then cross-referencing SPF/DKIM/DMARC by hand. This tool queries every enabled record type in one pass, compares answers across resolvers to catch incomplete propagation, parses email-authentication records into their actual mechanisms, and batch-audits a whole list of domains for the same checks.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does browser-based DNS lookup actually work?</h4>
+                        <p>The page sends standard DNS-over-HTTPS (RFC 8484) requests directly from your browser to the public resolver's JSON API (Cloudflare, Google, Quad9, etc.) — the same protocol your browser or OS may already use natively. No request passes through any server belonging to this site; each resolver only sees the query it directly received, exactly as if you'd queried it with <code>dig</code>.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why do different resolvers sometimes disagree?</h4>
+                        <p>A recent DNS change hasn't reached every resolver's cache yet (propagation), a record's TTL hasn't expired everywhere, or the zone genuinely serves different answers to different networks (GeoDNS or split-horizon DNS). The Propagation tab flags disagreement so you can tell which of these you're looking at.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the Email Auth tab actually check?</h4>
+                        <p>It fetches the domain's TXT record for SPF, the <code>_dmarc</code> subdomain's TXT record for DMARC, and — if you provide a selector — the <code>&lt;selector&gt;._domainkey</code> subdomain for a DKIM public key. It parses SPF mechanisms (ip4/ip6/include/all) and the DMARC policy tag (p=none/quarantine/reject) so you can see enforcement level at a glance, not just whether a record exists.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the DNSSEC check actually confirm?</h4>
+                        <p>It reads the Authenticated Data (AD) flag the resolver returns in its DoH JSON response. A resolver that performs DNSSEC validation sets this flag only when the full chain of signatures (from the root down through the zone) validates correctly — so a set AD flag is a strong signal, though it reflects the resolver's own validation, not a from-scratch chain walk done in the browser.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server or logged?</h4>
+                        <p>No server belonging to this site is involved at all — every lookup goes straight from your browser to the DoH endpoint of the resolver you selected (Cloudflare, Google, Quad9, OpenDNS, or AdGuard), each of which has its own privacy policy for query logging. Your draft input and settings persist only in this browser's local storage.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I audit a list of domains at once?</h4>
+                        <p>Yes — enter one domain per line and click Lookup. The Batch Table tab runs the enabled record types (and, if turned on, email-auth presence checks) against every line and lets you export the whole result set as CSV, with queries capped by the concurrency limit in settings to stay resolver-friendly.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // DNS LOOKUP & PROPAGATION CHECKER — ENGINE
+        // ============================================
+
+        const RESOLVERS = {
+            cloudflare: { name: 'Cloudflare', endpoint: 'https://cloudflare-dns.com/dns-query' },
+            google:     { name: 'Google',     endpoint: 'https://dns.google/resolve' },
+            quad9:      { name: 'Quad9',      endpoint: 'https://dns.quad9.net:5053/dns-query' },
+            opendns:    { name: 'OpenDNS',    endpoint: 'https://doh.opendns.com/dns-query' },
+            adguard:    { name: 'AdGuard',    endpoint: 'https://dns.adguard-dns.com/dns-query' }
+        };
+
+        const RCODE_NAMES = { 0: 'NOERROR', 1: 'FORMERR', 2: 'SERVFAIL', 3: 'NXDOMAIN', 4: 'NOTIMP', 5: 'REFUSED' };
+
+        function isLikelyDomain(str) {
+            if (typeof str !== 'string') return false;
+            const s = str.trim();
+            if (!s) return false;
+            if (s.length > 253) return false;
+            return /^(?!-)[a-zA-Z0-9-_]{1,63}(?<!-)(\.(?!-)[a-zA-Z0-9-_]{1,63}(?<!-))+$/.test(s) || /^[a-zA-Z0-9-_]{1,63}$/.test(s);
+        }
+
+        function isIPv4(str) {
+            return /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(str.trim()) &&
+                str.trim().split('.').every(o => parseInt(o, 10) >= 0 && parseInt(o, 10) <= 255);
+        }
+        function isIPv6(str) {
+            const s = str.trim();
+            return s.includes(':') && /^[0-9a-fA-F:]+$/.test(s);
+        }
+
+        function ipv4ToPtrName(ip) {
+            return ip.trim().split('.').reverse().join('.') + '.in-addr.arpa';
+        }
+        function ipv6ToPtrName(ip) {
+            // Expand IPv6 to full nibble form for PTR
+            const s = ip.trim();
+            const parts = s.split('::');
+            let head = parts[0] ? parts[0].split(':') : [];
+            let tail = parts.length > 1 && parts[1] ? parts[1].split(':') : [];
+            if (parts.length === 1) head = s.split(':');
+            const missing = 8 - (head.length + tail.length);
+            const groups = parts.length === 2 ? [...head, ...Array(Math.max(missing,0)).fill('0'), ...tail] : head;
+            if (groups.length !== 8) return null;
+            const hex = groups.map(g => (parseInt(g || '0', 16) || 0).toString(16).padStart(4, '0')).join('');
+            return hex.split('').reverse().join('.') + '.ip6.arpa';
+        }
+
+        async function dohQuery(resolverKey, name, type, opts) {
+            opts = opts || {};
+            const resolver = RESOLVERS[resolverKey];
+            const params = new URLSearchParams({ name, type });
+            if (opts.dnssec) params.set('do', '1');
+            if (opts.noCache) params.set('cd', '1');
+            const url = resolver.endpoint + '?' + params.toString();
+            const controller = new AbortController();
+            const timeoutMs = opts.timeoutMs || 6000;
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { headers: { 'accept': 'application/dns-json' }, signal: controller.signal });
+                clearTimeout(timer);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                return { ok: true, resolver: resolverKey, name, type, data };
+            } catch (err) {
+                clearTimeout(timer);
+                return { ok: false, resolver: resolverKey, name, type, error: (err && err.name === 'AbortError') ? 'Timed out' : (err.message || 'Query failed') };
+            }
+        }
+
+        const TYPE_NUM_TO_NAME = { 1:'A', 2:'NS', 5:'CNAME', 6:'SOA', 12:'PTR', 15:'MX', 16:'TXT', 28:'AAAA', 33:'SRV', 35:'NAPTR', 43:'DS', 48:'DNSKEY', 52:'TLSA', 257:'CAA' };
+
+        function formatRecordData(typeName, rrData, uppercaseUnused) {
+            // Cloudflare/Google DoH returns raw wire-ish strings per type; format common ones nicely.
+            if (typeName === 'MX') {
+                const m = rrData.match(/^(\d+)\s+(.+)$/);
+                if (m) return { pref: m[1], exchange: m[2].replace(/\.$/, ''), display: m[1] + ' ' + m[2].replace(/\.$/, '') };
+            }
+            if (typeName === 'SOA') {
+                return { display: rrData };
+            }
+            if (typeName === 'TXT') {
+                let v = rrData.trim();
+                if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+                return { display: v.replace(/""/g, '') };
+            }
+            if (typeName === 'CAA') {
+                return { display: rrData };
+            }
+            if (typeName === 'SRV') {
+                const m = rrData.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.+)$/);
+                if (m) return { priority: m[1], weight: m[2], port: m[3], target: m[4].replace(/\.$/, ''), display: rrData };
+            }
+            return { display: rrData.replace(/\.$/, typeName === 'NS' || typeName === 'CNAME' ? '' : rrData) };
+        }
+
+        function extractAnswers(dohResponseData, expectedTypeName) {
+            if (!dohResponseData || !Array.isArray(dohResponseData.Answer)) return [];
+            return dohResponseData.Answer
+                .map(a => ({ name: a.name, typeNum: a.type, typeName: TYPE_NUM_TO_NAME[a.type] || ('TYPE' + a.type), ttl: a.TTL, data: a.data }))
+                .filter(a => !expectedTypeName || a.typeName === expectedTypeName || expectedTypeName === 'ANY');
+        }
+
+        function getSelectedTypes() {
+            return Array.from(document.querySelectorAll('.rtype:checked')).map(el => el.value);
+        }
+        function getSelectedResolvers() {
+            return Array.from(document.querySelectorAll('.resolver-toggle:checked')).map(el => el.value);
+        }
+        function getOptions() {
+            return {
+                dnssec: document.getElementById('optDNSSEC').checked,
+                noCache: document.getElementById('optNoCache').checked,
+                showTTL: document.getElementById('optShowTTL').checked,
+                showRawJson: document.getElementById('optShowRawJson').checked,
+                primaryResolver: document.getElementById('primaryResolverSelect').value,
+                timeoutMs: parseInt(document.getElementById('timeoutInput').value, 10) || 6000,
+                autoPropagation: document.getElementById('optAutoPropagation').checked,
+                flagMismatch: document.getElementById('optFlagMismatch').checked,
+                checkSPF: document.getElementById('optCheckSPF').checked,
+                checkDMARC: document.getElementById('optCheckDMARC').checked,
+                checkDKIM: document.getElementById('optCheckDKIM').checked,
+                checkMTASTS: document.getElementById('optCheckMTASTS').checked,
+                dkimSelector: document.getElementById('dkimSelectorInput').value.trim() || 'default',
+                traceNS: document.getElementById('optTraceNS').checked,
+                resolveGlue: document.getElementById('optResolveGlue').checked,
+                batchIncludeEmail: document.getElementById('optBatchIncludeEmail').checked,
+                maxConcurrent: parseInt(document.getElementById('maxConcurrentInput').value, 10) || 6,
+                selectedTypes: getSelectedTypes(),
+                selectedResolvers: getSelectedResolvers()
+            };
+        }
+
+        function escapeHtml(str) { return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+        function paneLoading(id, msg) { document.getElementById(id).innerHTML = '<div class="loading-pane"><i class="fa-solid fa-spinner fa-spin"></i>' + escapeHtml(msg) + '</div>'; }
+
+        let queryCounter = 0;
+        function trackQuery() { queryCounter++; document.getElementById('queryCount').textContent = queryCounter; }
+
+        let lastResult = { primary: null, batch: [] };
+
+        // ---------- Per-domain full analysis ----------
+        async function analyzeDomain(domain, opts) {
+            const out = { domain, records: {}, errors: [], email: {}, propagation: null, nsTrace: null, raw: {} };
+            const typeQueries = opts.selectedTypes.map(async (t) => {
+                trackQuery();
+                const res = await dohQuery(opts.primaryResolver, domain, t, opts);
+                if (opts.showRawJson) out.raw[t] = res.ok ? res.data : { error: res.error };
+                if (!res.ok) { out.errors.push(t + ': ' + res.error); return; }
+                out.records[t] = {
+                    status: res.data.Status,
+                    rcode: RCODE_NAMES[res.data.Status] || ('CODE_' + res.data.Status),
+                    ad: !!res.data.AD,
+                    answers: extractAnswers(res.data, t).map(a => Object.assign({}, a, { formatted: formatRecordData(a.typeName, a.data) }))
+                };
+            });
+            await Promise.all(typeQueries);
+
+            // Email auth
+            if (opts.checkSPF) {
+                trackQuery();
+                const r = await dohQuery(opts.primaryResolver, domain, 'TXT', opts);
+                const spfAnswers = r.ok ? extractAnswers(r.data, 'TXT').filter(a => /v=spf1/i.test(a.data)) : [];
+                out.email.spf = spfAnswers.length ? spfAnswers.map(a => formatRecordData('TXT', a.data).display) : null;
+                if (out.email.spf) {
+                    const raw = out.email.spf[0];
+                    out.email.spfMechanisms = raw.split(/\s+/).filter(tok => tok && tok !== 'v=spf1');
+                    const allTok = out.email.spfMechanisms.find(t => /all$/i.test(t));
+                    out.email.spfAllQualifier = allTok || null;
+                }
+            }
+            if (opts.checkDMARC) {
+                trackQuery();
+                const r = await dohQuery(opts.primaryResolver, '_dmarc.' + domain, 'TXT', opts);
+                const dmarcAnswers = r.ok ? extractAnswers(r.data, 'TXT').filter(a => /v=dmarc1/i.test(a.data)) : [];
+                out.email.dmarc = dmarcAnswers.length ? formatRecordData('TXT', dmarcAnswers[0].data).display : null;
+                if (out.email.dmarc) {
+                    const pMatch = out.email.dmarc.match(/p=([a-z]+)/i);
+                    const pctMatch = out.email.dmarc.match(/pct=(\d+)/i);
+                    const rua = out.email.dmarc.match(/rua=([^;]+)/i);
+                    out.email.dmarcPolicy = pMatch ? pMatch[1].toLowerCase() : null;
+                    out.email.dmarcPct = pctMatch ? pctMatch[1] : '100';
+                    out.email.dmarcRua = rua ? rua[1].trim() : null;
+                }
+            }
+            if (opts.checkDKIM) {
+                trackQuery();
+                const name = opts.dkimSelector + '._domainkey.' + domain;
+                const r = await dohQuery(opts.primaryResolver, name, 'TXT', opts);
+                const dkimAnswers = r.ok ? extractAnswers(r.data, 'TXT') : [];
+                out.email.dkim = dkimAnswers.length ? formatRecordData('TXT', dkimAnswers[0].data).display : null;
+                out.email.dkimSelectorUsed = opts.dkimSelector;
+            }
+            if (opts.checkMTASTS) {
+                trackQuery();
+                const r = await dohQuery(opts.primaryResolver, '_mta-sts.' + domain, 'TXT', opts);
+                const mtaAnswers = r.ok ? extractAnswers(r.data, 'TXT').filter(a => /v=stsv1/i.test(a.data)) : [];
+                out.email.mtaSts = mtaAnswers.length ? formatRecordData('TXT', mtaAnswers[0].data).display : null;
+            }
+
+            // NS glue / resolve
+            if (opts.resolveGlue) {
+                const targets = [];
+                if (out.records.NS) out.records.NS.answers.forEach(a => targets.push(a.formatted.display));
+                if (out.records.MX) out.records.MX.answers.forEach(a => targets.push(a.formatted.exchange || a.formatted.display));
+                const uniqueTargets = [...new Set(targets)].slice(0, 12);
+                out.glue = {};
+                await Promise.all(uniqueTargets.map(async (host) => {
+                    trackQuery();
+                    const r4 = await dohQuery(opts.primaryResolver, host, 'A', opts);
+                    const a4 = r4.ok ? extractAnswers(r4.data, 'A').map(a => a.data) : [];
+                    out.glue[host] = a4;
+                }));
+            }
+
+            // Propagation
+            if (opts.autoPropagation && opts.selectedTypes.length) {
+                out.propagation = await runPropagation(domain, opts.selectedTypes[0], opts);
+            }
+
+            return out;
+        }
+
+        async function runPropagation(domain, type, opts) {
+            const resolvers = opts.selectedResolvers.length ? opts.selectedResolvers : ['cloudflare', 'google', 'quad9'];
+            const results = await Promise.all(resolvers.map(async (rk) => {
+                trackQuery();
+                const r = await dohQuery(rk, domain, type, opts);
+                if (!r.ok) return { resolver: rk, ok: false, error: r.error };
+                const answers = extractAnswers(r.data, type).map(a => a.data);
+                return { resolver: rk, ok: true, answers, rcode: RCODE_NAMES[r.data.Status] || r.data.Status };
+            }));
+            const primaryRes = results.find(r => r.resolver === opts.primaryResolver) || results[0];
+            const primaryKey = primaryRes && primaryRes.ok ? JSON.stringify([...primaryRes.answers].sort()) : null;
+            results.forEach(r => { r.matchesPrimary = r.ok && primaryKey !== null ? JSON.stringify([...r.answers].sort()) === primaryKey : null; });
+            const allMatch = results.every(r => r.matchesPrimary !== false);
+            return { type, results, allMatch };
+        }
+
+        // ---------- Rendering ----------
+        function renderSummary(r, opts) {
+            if (!r) { paneEmpty('pane-summary', 'Run a lookup to see results.'); return; }
+            let rows = [];
+            rows.push(['Domain', escapeHtml(r.domain)]);
+            const types = opts.selectedTypes;
+            const totalAnswers = types.reduce((sum, t) => sum + (r.records[t] ? r.records[t].answers.length : 0), 0);
+            rows.push(['Record types queried', types.join(', ') || '—']);
+            rows.push(['Total answers found', String(totalAnswers)]);
+            const anyAD = types.some(t => r.records[t] && r.records[t].ad);
+            if (opts.dnssec) rows.push(['DNSSEC (AD flag)', anyAD ? '<span class="badge public">Authenticated</span>' : '<span class="badge private">Not authenticated</span>']);
+            if (r.records.A && r.records.A.answers.length) rows.push(['A → ', r.records.A.answers.map(a => a.formatted.display).join(', ')]);
+            if (r.records.AAAA && r.records.AAAA.answers.length) rows.push(['AAAA → ', r.records.AAAA.answers.map(a => a.formatted.display).join(', ')]);
+            if (r.records.MX && r.records.MX.answers.length) rows.push(['MX → ', r.records.MX.answers.map(a => a.formatted.display).join('; ')]);
+            if (r.records.NS && r.records.NS.answers.length) rows.push(['NS → ', r.records.NS.answers.map(a => a.formatted.display).join(', ')]);
+            if (r.errors.length) rows.push(['Query errors', r.errors.join('; ')]);
+
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + v + '</td></tr>';
+            html += '</table>';
+            document.getElementById('pane-summary').innerHTML = html;
+        }
+
+        function renderRecords(r, opts) {
+            if (!r) { paneEmpty('pane-records', 'Run a lookup to see results.'); return; }
+            const types = opts.selectedTypes;
+            let html = '';
+            let any = false;
+            for (const t of types) {
+                const rec = r.records[t];
+                html += '<div style="margin-bottom:18px;">';
+                html += '<div style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">' + t + '</div>';
+                if (!rec) {
+                    html += '<div class="mono-box" style="opacity:0.5;">No response for this type.</div>';
+                } else if (!rec.answers.length) {
+                    html += '<div class="mono-box" style="opacity:0.6;">' + rec.rcode + ' — no records found.</div>';
+                } else {
+                    any = true;
+                    html += '<table class="data-table"><thead><tr><th>Name</th><th>Value</th>' + (opts.showTTL ? '<th>TTL</th>' : '') + '</tr></thead><tbody>';
+                    for (const a of rec.answers) {
+                        html += '<tr><td>' + escapeHtml(a.name) + '</td><td>' + escapeHtml(a.formatted.display) + '</td>' + (opts.showTTL ? '<td>' + a.ttl + 's</td>' : '') + '</tr>';
+                    }
+                    html += '</tbody></table>';
+                }
+                html += '</div>';
+            }
+            if (opts.resolveGlue && r.glue && Object.keys(r.glue).length) {
+                html += '<div style="margin-top:6px;"><div style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Resolved Glue (NS/MX → IP)</div>';
+                html += '<table class="data-table"><thead><tr><th>Host</th><th>A Records</th></tr></thead><tbody>';
+                for (const host in r.glue) html += '<tr><td>' + escapeHtml(host) + '</td><td>' + (r.glue[host].length ? escapeHtml(r.glue[host].join(', ')) : '<span style="opacity:0.5;">none</span>') + '</td></tr>';
+                html += '</tbody></table></div>';
+            }
+            if (opts.showRawJson) {
+                html += '<div style="margin-top:14px;"><div style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Raw DoH Responses</div><div class="mono-box">' + escapeHtml(JSON.stringify(r.raw, null, 2)) + '</div></div>';
+            }
+            if (!html) html = '<div class="empty-pane">No record types selected in settings.</div>';
+            document.getElementById('pane-records').innerHTML = html;
+        }
+
+        function renderEmail(r, opts) {
+            if (!r) { paneEmpty('pane-email', 'Run a lookup to see results.'); return; }
+            let html = '<table class="kv-table">';
+            if (opts.checkSPF) {
+                html += '<tr><td class="k">SPF</td><td class="v">' + (r.email.spf ? '<span class="badge public">Present</span>' : '<span class="badge private">Missing</span>') + '</td></tr>';
+                if (r.email.spf) {
+                    html += '<tr><td class="k">SPF record</td><td class="v">' + escapeHtml(r.email.spf[0]) + '</td></tr>';
+                    html += '<tr><td class="k">SPF mechanisms</td><td class="v">' + escapeHtml((r.email.spfMechanisms || []).join(' ')) + '</td></tr>';
+                    html += '<tr><td class="k">SPF "all" qualifier</td><td class="v">' + escapeHtml(r.email.spfAllQualifier || '—') + '</td></tr>';
+                }
+            }
+            if (opts.checkDMARC) {
+                html += '<tr><td class="k">DMARC</td><td class="v">' + (r.email.dmarc ? '<span class="badge public">Present</span>' : '<span class="badge private">Missing</span>') + '</td></tr>';
+                if (r.email.dmarc) {
+                    html += '<tr><td class="k">DMARC record</td><td class="v">' + escapeHtml(r.email.dmarc) + '</td></tr>';
+                    html += '<tr><td class="k">Policy (p=)</td><td class="v">' + escapeHtml(r.email.dmarcPolicy || '—') + '</td></tr>';
+                    html += '<tr><td class="k">Enforcement pct</td><td class="v">' + escapeHtml(r.email.dmarcPct || '100') + '%</td></tr>';
+                    if (r.email.dmarcRua) html += '<tr><td class="k">Aggregate reports to</td><td class="v">' + escapeHtml(r.email.dmarcRua) + '</td></tr>';
+                }
+            }
+            if (opts.checkDKIM) {
+                html += '<tr><td class="k">DKIM (selector: ' + escapeHtml(r.email.dkimSelectorUsed) + ')</td><td class="v">' + (r.email.dkim ? '<span class="badge public">Found</span>' : '<span class="badge private">Not found</span>') + '</td></tr>';
+                if (r.email.dkim) html += '<tr><td class="k">DKIM record</td><td class="v">' + escapeHtml(r.email.dkim) + '</td></tr>';
+            }
+            if (opts.checkMTASTS) {
+                html += '<tr><td class="k">MTA-STS</td><td class="v">' + (r.email.mtaSts ? '<span class="badge public">Present</span>' : '<span class="badge private">Not found</span>') + '</td></tr>';
+                if (r.email.mtaSts) html += '<tr><td class="k">MTA-STS record</td><td class="v">' + escapeHtml(r.email.mtaSts) + '</td></tr>';
+            }
+            html += '</table>';
+            document.getElementById('pane-email').innerHTML = html;
+        }
+
+        function renderPropagationResult(prop, container) {
+            if (!prop) { container.innerHTML = '<div class="empty-pane">Turn on "Auto-run propagation check" in settings, or use the Manual Propagation Check card below.</div>'; return; }
+            let html = '<div style="margin-bottom:10px;"><span class="badge ' + (prop.allMatch ? 'public' : 'invalid') + '">' + (prop.allMatch ? 'All resolvers agree' : 'Resolvers disagree') + '</span> <span style="font-size:11px;opacity:0.6;margin-left:8px;">Record type: ' + escapeHtml(prop.type) + '</span></div>';
+            html += '<div class="resolver-grid">';
+            for (const res of prop.results) {
+                const cls = res.ok ? (res.matchesPrimary === false ? 'mismatch' : (res.matchesPrimary === true ? 'match' : '')) : 'mismatch';
+                html += '<div class="resolver-cell ' + cls + '"><div class="rname">' + escapeHtml(RESOLVERS[res.resolver].name) + '</div><div class="rval">' + (res.ok ? (res.answers.length ? escapeHtml(res.answers.join(', ')) : escapeHtml(res.rcode)) : escapeHtml(res.error)) + '</div></div>';
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderNsTrace(r, opts) {
+            if (!r) { paneEmpty('pane-nstrace', 'Run a lookup to see results.'); return; }
+            if (!opts.traceNS) { paneEmpty('pane-nstrace', 'Turn on "Compare NS at registry vs. authoritative" in settings to populate this tab.'); return; }
+            const nsAnswers = r.records.NS ? r.records.NS.answers.map(a => a.formatted.display) : [];
+            if (!nsAnswers.length) { paneEmpty('pane-nstrace', 'No NS records found for this domain from the primary resolver.'); return; }
+            let html = '<div class="mono-box" style="margin-bottom:12px;">Nameservers reported by ' + escapeHtml(RESOLVERS[opts.primaryResolver].name) + ':\n' + escapeHtml(nsAnswers.join('\n')) + '</div>';
+            html += '<div style="font-size:11.5px;opacity:0.6;">To confirm these match what the domain\'s own zone serves, query the authoritative nameservers directly with a tool like <code style="font-family:var(--font-mono);">dig NS ' + escapeHtml(r.domain) + ' @' + escapeHtml(nsAnswers[0] || 'ns1.example.com') + '</code> — browser-based DoH always asks a recursive resolver, not the zone\'s own authoritative servers directly.</div>';
+            document.getElementById('pane-nstrace').innerHTML = html;
+        }
+
+        function buildJsonForDomain(r, opts) {
+            if (!r) return null;
+            return {
+                domain: r.domain,
+                records: Object.fromEntries(Object.entries(r.records).map(([t, rec]) => [t, { rcode: rec.rcode, ad: rec.ad, answers: rec.answers.map(a => ({ name: a.name, ttl: a.ttl, value: a.formatted.display })) }])),
+                email: r.email,
+                glue: r.glue || null,
+                propagation: r.propagation,
+                errors: r.errors
+            };
+        }
+
+        function renderJson(primary, batch) {
+            const out = { primary: primary ? buildJsonForDomain(primary) : null, batch: batch.map(b => buildJsonForDomain(b)) };
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        function renderBatch(batchResults, opts) {
+            if (!batchResults.length) { paneEmpty('pane-batch', 'Add lines and click Lookup to see the batch table.'); return; }
+            let cols = ['Domain', 'A', 'AAAA', 'MX', 'NS'];
+            if (opts.batchIncludeEmail) cols.push('SPF', 'DMARC');
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+            for (const r of batchResults) {
+                let cells = [escapeHtml(r.domain)];
+                cells.push(r.records.A && r.records.A.answers.length ? escapeHtml(r.records.A.answers.map(a=>a.formatted.display).join(', ')) : '<span style="opacity:0.4;">—</span>');
+                cells.push(r.records.AAAA && r.records.AAAA.answers.length ? escapeHtml(r.records.AAAA.answers.map(a=>a.formatted.display).join(', ')) : '<span style="opacity:0.4;">—</span>');
+                cells.push(r.records.MX && r.records.MX.answers.length ? escapeHtml(r.records.MX.answers.map(a=>a.formatted.display).join('; ')) : '<span style="opacity:0.4;">—</span>');
+                cells.push(r.records.NS && r.records.NS.answers.length ? escapeHtml(r.records.NS.answers.map(a=>a.formatted.display).join(', ')) : '<span style="opacity:0.4;">—</span>');
+                if (opts.batchIncludeEmail) {
+                    cells.push(r.email.spf ? '<span class="badge public">Yes</span>' : '<span class="badge private">No</span>');
+                    cells.push(r.email.dmarc ? '<span class="badge public">Yes</span>' : '<span class="badge private">No</span>');
+                }
+                html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('pane-batch').innerHTML = html;
+        }
+
+        // ---------- Main lookup runner ----------
+        async function runLookup() {
+            const opts = getOptions();
+            if (!opts.selectedTypes.length) { document.getElementById('errorBox').textContent = 'Select at least one record type in settings.'; document.getElementById('errorBox').classList.add('show'); return; }
+            const raw = document.getElementById('domainInput').value;
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+            const errorBox = document.getElementById('errorBox');
+
+            const invalidLines = lines.filter(l => !isLikelyDomain(l));
+            if (invalidLines.length) {
+                errorBox.textContent = '"' + invalidLines[0] + '" doesn\'t look like a valid domain name.';
+                errorBox.classList.add('show');
+            } else {
+                errorBox.classList.remove('show');
+            }
+            const validLines = lines.filter(l => isLikelyDomain(l));
+            if (!validLines.length) {
+                paneEmpty('pane-summary', 'Enter at least one valid domain.');
+                paneEmpty('pane-records', 'Enter at least one valid domain.');
+                paneEmpty('pane-email', 'Enter at least one valid domain.');
+                paneEmpty('pane-propagation', 'Enter at least one valid domain.');
+                paneEmpty('pane-nstrace', 'Enter at least one valid domain.');
+                paneEmpty('pane-batch', 'Enter at least one valid domain.');
+                return;
+            }
+
+            queryCounter = 0;
+            document.getElementById('queryCount').textContent = '0';
+            ['pane-summary','pane-records','pane-email','pane-propagation','pane-nstrace','pane-batch'].forEach(id => paneLoading(id, ' Querying DNS…'));
+            document.getElementById('lookupBtn').disabled = true;
+
+            const startTime = performance.now();
+
+            // Concurrency-limited batch processing
+            const results = [];
+            let idx = 0;
+            async function worker() {
+                while (idx < validLines.length) {
+                    const myIdx = idx++;
+                    const domain = validLines[myIdx];
+                    const res = await analyzeDomain(domain, opts);
+                    results[myIdx] = res;
+                }
+            }
+            const workerCount = Math.min(opts.maxConcurrent, validLines.length);
+            await Promise.all(Array.from({ length: workerCount }, worker));
+
+            const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+            document.getElementById('lastRunTime').textContent = elapsed + 's elapsed';
+
+            const primary = results[0];
+            lastResult = { primary, batch: results };
+
+            renderSummary(primary, opts);
+            renderRecords(primary, opts);
+            renderEmail(primary, opts);
+            renderPropagationResult(primary ? primary.propagation : null, document.getElementById('pane-propagation'));
+            renderNsTrace(primary, opts);
+            renderBatch(results, opts);
+            renderJson(primary, results);
+
+            document.getElementById('lookupBtn').disabled = false;
+        }
+
+        // ---------- Wiring ----------
+        document.getElementById('lookupBtn').addEventListener('click', runLookup);
+        document.getElementById('domainInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runLookup(); });
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('change', () => { document.getElementById('presetSelect').value = 'custom'; saveDraft(); });
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('domainInput').value = '';
+            document.getElementById('lineCount').textContent = '0';
+            ['pane-summary','pane-records','pane-email','pane-propagation','pane-nstrace','pane-batch'].forEach(id => paneEmpty(id, 'Enter a domain above and click Lookup to see results.'));
+            document.getElementById('jsonOut').textContent = 'Enter a domain above and click Lookup to see results.';
+            document.getElementById('domainInput').focus();
+        });
+
+        document.getElementById('copyJsonBtn').addEventListener('click', async () => {
+            const text = document.getElementById('jsonOut').textContent;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const rows = lastResult.batch;
+            if (!rows.length) return;
+            const header = ['domain', 'A', 'AAAA', 'MX', 'NS', 'SPF', 'DMARC'];
+            const lines = [header.join(',')];
+            for (const r of rows) {
+                const cell = (s) => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+                lines.push([
+                    cell(r.domain),
+                    cell(r.records.A ? r.records.A.answers.map(a=>a.formatted.display).join('; ') : ''),
+                    cell(r.records.AAAA ? r.records.AAAA.answers.map(a=>a.formatted.display).join('; ') : ''),
+                    cell(r.records.MX ? r.records.MX.answers.map(a=>a.formatted.display).join('; ') : ''),
+                    cell(r.records.NS ? r.records.NS.answers.map(a=>a.formatted.display).join('; ') : ''),
+                    cell(r.email.spf ? 'yes' : 'no'),
+                    cell(r.email.dmarc ? 'yes' : 'no')
+                ].join(','));
+            }
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'dns-batch-audit.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- Manual Propagation Check ----------
+        document.getElementById('propCheckBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const domain = document.getElementById('propDomain').value.trim();
+            const type = document.getElementById('propType').value;
+            const resultEl = document.getElementById('propResult');
+            if (!isLikelyDomain(domain)) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a valid domain.</div>'; return; }
+            resultEl.innerHTML = '<div class="loading-pane"><i class="fa-solid fa-spinner fa-spin"></i> Querying resolvers…</div>';
+            const prop = await runPropagation(domain, type, opts);
+            renderPropagationResult(prop, resultEl);
+        });
+
+        // ---------- Reverse DNS (PTR) ----------
+        document.getElementById('ptrCheckBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const ip = document.getElementById('ptrIp').value.trim();
+            const resultEl = document.getElementById('ptrResult');
+            let ptrName;
+            if (isIPv4(ip)) ptrName = ipv4ToPtrName(ip);
+            else if (isIPv6(ip)) ptrName = ipv6ToPtrName(ip);
+            else { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a valid IPv4 or IPv6 address.</div>'; return; }
+            if (!ptrName) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Could not parse that IPv6 address.</div>'; return; }
+            resultEl.innerHTML = '<div class="loading-pane"><i class="fa-solid fa-spinner fa-spin"></i> Looking up PTR…</div>';
+            const res = await dohQuery(opts.primaryResolver, ptrName, 'PTR', opts);
+            if (!res.ok) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">' + escapeHtml(res.error) + '</div>'; return; }
+            const answers = extractAnswers(res.data, 'PTR');
+            if (!answers.length) { resultEl.innerHTML = '<div class="mono-box">No PTR record found for ' + escapeHtml(ip) + ' (' + escapeHtml(ptrName) + ').</div>'; return; }
+            resultEl.innerHTML = '<div class="mono-box">' + escapeHtml(ptrName) + ' →\n' + escapeHtml(answers.map(a => a.data.replace(/\.$/, '')).join('\n')) + '</div>';
+        });
+
+        // ---------- DNSSEC Chain Check ----------
+        document.getElementById('dnssecCheckBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const domain = document.getElementById('dnssecDomain').value.trim();
+            const resultEl = document.getElementById('dnssecResult');
+            if (!isLikelyDomain(domain)) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a valid domain.</div>'; return; }
+            resultEl.innerHTML = '<div class="loading-pane"><i class="fa-solid fa-spinner fa-spin"></i> Checking DNSSEC…</div>';
+            const res = await dohQuery(opts.primaryResolver, domain, 'A', Object.assign({}, opts, { dnssec: true }));
+            if (!res.ok) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">' + escapeHtml(res.error) + '</div>'; return; }
+            const ad = !!res.data.AD;
+            resultEl.innerHTML = '<div style="margin-bottom:8px;"><span class="badge ' + (ad ? 'public' : 'private') + '">' + (ad ? 'AD flag set — validated' : 'AD flag not set') + '</span></div>' +
+                '<div class="mono-box" style="font-size:11.5px;">' + escapeHtml(RESOLVERS[opts.primaryResolver].name) + ' ' + (ad ? 'authenticated the DNSSEC chain for this answer.' : 'did not return an authenticated answer — the domain may not have DNSSEC enabled, or validation failed.') + '</div>';
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optDNSSEC', 'optNoCache', 'optShowTTL', 'optShowRawJson', 'optAutoPropagation', 'optFlagMismatch', 'optCheckSPF', 'optCheckDMARC', 'optCheckDKIM', 'optCheckMTASTS', 'optTraceNS', 'optResolveGlue', 'optBatchIncludeEmail'],
+            text: ['timeoutInput', 'dkimSelectorInput', 'maxConcurrentInput'],
+            select: ['primaryResolverSelect'],
+            groupCheckboxes: { rtype: '.rtype', resolverToggle: '.resolver-toggle' }
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            raw.rtype = Array.from(document.querySelectorAll('.rtype')).map(el => ({ value: el.value, checked: el.checked }));
+            raw.resolverToggle = Array.from(document.querySelectorAll('.resolver-toggle')).map(el => ({ value: el.value, checked: el.checked }));
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            if (Array.isArray(settings.rtype)) {
+                settings.rtype.forEach(item => { const el = document.querySelector('.rtype[value="' + item.value + '"]'); if (el) el.checked = !!item.checked; });
+            }
+            if (Array.isArray(settings.resolverToggle)) {
+                settings.resolverToggle.forEach(item => { const el = document.querySelector('.resolver-toggle[value="' + item.value + '"]'); if (el) el.checked = !!item.checked; });
+            }
+        }
+
+        function makePreset(types, resolvers, overrides) {
+            const base = {
+                optDNSSEC: false, optNoCache: false, optShowTTL: true, optShowRawJson: false,
+                timeoutInput: '6000', primaryResolverSelect: 'cloudflare',
+                optAutoPropagation: false, optFlagMismatch: true,
+                optCheckSPF: true, optCheckDMARC: true, optCheckDKIM: false, optCheckMTASTS: false, dkimSelectorInput: 'default',
+                optTraceNS: false, optResolveGlue: true, optBatchIncludeEmail: false, maxConcurrentInput: '6',
+                rtype: ['A','AAAA','MX','NS','TXT','CNAME','SOA','CAA','SRV','PTR','DNSKEY','DS','NAPTR','TLSA'].map(v => ({ value: v, checked: types.includes(v) })),
+                resolverToggle: ['cloudflare','google','quad9','opendns','adguard'].map(v => ({ value: v, checked: resolvers.includes(v) }))
+            };
+            return Object.assign(base, overrides || {});
+        }
+
+        const BUILTIN_PRESETS = {
+            quick: makePreset(['A','AAAA','MX','NS'], ['cloudflare','google','quad9'], { optCheckSPF: false, optCheckDMARC: false, optResolveGlue: false }),
+            full: makePreset(['A','AAAA','MX','NS','TXT','CNAME','SOA','CAA','SRV','DNSKEY','DS','NAPTR','TLSA'], ['cloudflare','google','quad9'], { optShowRawJson: false }),
+            email: makePreset(['MX','TXT'], ['cloudflare'], { optCheckSPF: true, optCheckDMARC: true, optCheckDKIM: true, optCheckMTASTS: true, optResolveGlue: true }),
+            propagation: makePreset(['A','AAAA','NS'], ['cloudflare','google','quad9','opendns','adguard'], { optAutoPropagation: true, optFlagMismatch: true, optCheckSPF: false, optCheckDMARC: false, optResolveGlue: false }),
+            security: makePreset(['A','AAAA','NS','CAA','DNSKEY','DS'], ['cloudflare','quad9'], { optDNSSEC: true, optNoCache: true, optCheckSPF: false, optCheckDMARC: false, optResolveGlue: false }),
+            batch: makePreset(['A','AAAA','MX','NS'], ['cloudflare'], { optBatchIncludeEmail: true, optCheckSPF: true, optCheckDMARC: true, optResolveGlue: false, maxConcurrentInput: '8' })
+        };
+
+        const CUSTOM_PRESETS_KEY = 'dnsLookupCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            saveDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'dns-lookup-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    saveDraft();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave (input + settings only, never query results) ----------
+        const DRAFT_KEY = 'dnsLookupDraft';
+        const DRAFT_SETTINGS_KEY = 'dnsLookupLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, document.getElementById('domainInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        document.getElementById('domainInput').addEventListener('input', () => {
+            document.getElementById('lineCount').textContent = document.getElementById('domainInput').value.split('\n').map(l=>l.trim()).filter(l=>l).length;
+            saveDraft();
+        });
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') document.getElementById('domainInput').value = savedDraft;
+                else document.getElementById('domainInput').value = 'example.com';
+            } catch (err) {
+                document.getElementById('domainInput').value = 'example.com';
+            }
+            document.getElementById('lineCount').textContent = document.getElementById('domainInput').value.split('\n').map(l=>l.trim()).filter(l=>l).length;
+        })();
+    </script>
+</body>
+</html>
