@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | Network Address Calculator — VLSM, Supernetting & Subnet Planner</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free network address calculator: VLSM subnet designer for uneven host requirements, supernet / route-summarization finder, single-network breakdown, ACL wildcard mask generator, and a full /1–/32 subnet reference table. 100% client-side." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/network-calculator.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/network-calculator.html" />
+<meta property="og:title" content="Network Address Calculator — VLSM, Supernetting & Subnet Planner — awjunaid" />
+<meta property="og:description" content="Design a VLSM subnetting plan from real host counts, find the smallest supernet that summarizes a list of routes, break down a single network, generate Cisco ACL wildcard masks, and browse a full /1–/32 reference table. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/network-calculator.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Network Address Calculator — VLSM, Supernetting & Subnet Planner — awjunaid" />
+<meta name="twitter:description" content="VLSM subnet designer, route-summarization / supernet finder, single-network breakdown, ACL wildcard generator, and a full subnet reference table — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/network-calculator.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 680px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           SHARED PANEL / BUTTON / TABLE STYLES
+           ============================================ */
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 30px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        .stat-strip { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; opacity: 0.75; }
+        .stat-strip strong { opacity: 1; }
+
+        /* Two-column layout for calculator panels */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+        /* VLSM requirement rows */
+        .vlsm-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+        .vlsm-row { display: grid; grid-template-columns: 1fr 140px 32px; gap: 10px; align-items: center; }
+        .vlsm-row input[type="text"], .vlsm-row input[type="number"] {
+            padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px; width: 100%;
+        }
+        .vlsm-row-remove {
+            width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color); background: transparent;
+            color: var(--text-color); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+        .vlsm-row-remove:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* Utility grid (ACL wildcard, single-address quick lookup) */
+        .utility-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 900px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item { border: 1px solid var(--border-light); border-radius: 16px; padding: 20px 22px; }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .vlsm-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">Network Address Calculator</h1>
+                <div class="tool-dek">Solve the network-design problems a plain subnet calculator can't: allocate address space across departments or sites with uneven host counts (VLSM), find the smallest supernet that summarizes a list of routes for a routing table or firewall rule, break down a single network into every field you'd need for documentation, generate Cisco-style ACL wildcard masks, and browse a full /1–/32 reference table. Entirely in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="office">Office / Branch VLSM (typical departments)</option>
+                    <option value="datacenter">Data Center (dense, point-to-point links)</option>
+                    <option value="isp">ISP Route Summarization</option>
+                    <option value="acl">Firewall / ACL Documentation</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Address Reservation Rules</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optReserveNetBcast" checked>
+                            <span><span class="setting-name">Reserve network &amp; broadcast address</span><span class="setting-hint">Standard behavior — subtracts 2 from every block's usable-host count</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAllowP2P31" checked>
+                            <span><span class="setting-name">Allow /31 for 2-host links (RFC 3021)</span><span class="setting-hint">Point-to-point WAN/router links can use a /31 with both addresses usable</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAllowHost32">
+                            <span><span class="setting-name">Allow /32 single-host routes</span><span class="setting-hint">For loopbacks or single-host static routes when a requirement asks for exactly 1 address</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGrowthMargin">
+                            <span><span class="setting-name">Add growth margin to host counts</span><span class="setting-hint">Pads each requirement before sizing, so the plan has headroom</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" id="growthMarginRow" style="display:none;">
+                        <div class="field-group">
+                            <label for="growthMarginPct">Growth margin (%)</label>
+                            <input type="number" id="growthMarginPct" min="0" max="500" value="20">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>VLSM Allocation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSortLargestFirst" checked>
+                            <span><span class="setting-name">Sort largest requirement first</span><span class="setting-hint">Standard VLSM packing order — avoids fragmentation from packing small-to-large</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowWaste" checked>
+                            <span><span class="setting-name">Show wasted addresses per block</span><span class="setting-hint">Requested hosts vs. block capacity, so oversized allocations are visible</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Supernet / Route Summarization</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optWarnOverInclusion" checked>
+                            <span><span class="setting-name">Warn on over-inclusion</span><span class="setting-hint">Flags when the minimal supernet would also cover address space outside the listed networks</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowEfficiency" checked>
+                            <span><span class="setting-name">Show summarization efficiency</span><span class="setting-hint">Requested address space as a percentage of the supernet's total size</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Display</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowWildcard" checked>
+                            <span><span class="setting-name">Show wildcard mask</span><span class="setting-hint">Inverse of the subnet mask, as used in Cisco ACLs and OSPF network statements</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowBinary">
+                            <span><span class="setting-name">Show binary mask / address</span><span class="setting-hint">Dotted 8-bit binary groups for the mask and the network address</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowHexInt" checked>
+                            <span><span class="setting-name">Show hex &amp; decimal integer</span><span class="setting-hint">32-bit hex and unsigned-decimal forms of the network address</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Netmask display format</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="netmaskFormat" value="both" checked> Dotted + CIDR</label>
+                                <label class="radio-opt"><input type="radio" name="netmaskFormat" value="dotted"> Dotted only</label>
+                                <label class="radio-opt"><input type="radio" name="netmaskFormat" value="cidr"> CIDR only</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Limits</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="maxVlsmRows">Max VLSM requirements</label>
+                            <input type="number" id="maxVlsmRows" min="2" max="64" value="24">
+                        </div>
+                        <div class="field-group">
+                            <label for="maxSupernetInputs">Max supernet input lines</label>
+                            <input type="number" id="maxSupernetInputs" min="2" max="256" value="64">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 TOOL 1: VLSM SUBNET DESIGNER
+                 ============================================ -->
+            <div class="panel-card">
+                <div class="panel-head">
+                    <h3><i class="fa-solid fa-sitemap"></i>&nbsp; VLSM Subnet Designer</h3>
+                    <div class="panel-actions">
+                        <button class="btn-ghost small" id="vlsmAddRowBtn" type="button"><i class="fa-solid fa-plus"></i> Add Requirement</button>
+                        <button class="btn-solid small" id="vlsmCalcBtn" type="button"><i class="fa-solid fa-calculator"></i> Allocate</button>
+                    </div>
+                </div>
+                <div class="panel-note">The real-world problem: you have one network block and several departments, sites, or VLANs that each need a different number of hosts. Enter a base network and each requirement's name + host count — this packs them into the smallest matching subnets, largest first, so nothing overlaps.</div>
+
+                <div class="field-row" style="margin-bottom:16px;">
+                    <div class="field-group">
+                        <label for="vlsmBaseNetwork">Base network / CIDR</label>
+                        <input type="text" id="vlsmBaseNetwork" placeholder="192.168.0.0/24">
+                    </div>
+                </div>
+
+                <div class="vlsm-rows" id="vlsmRows"></div>
+                <div class="error-box" id="vlsmErrorBox"></div>
+                <div id="vlsmResultWrap" style="margin-top:16px;"></div>
+            </div>
+
+            <!-- ============================================
+                 TOOL 2: SUPERNET / ROUTE SUMMARIZATION
+                 ============================================ -->
+            <div class="two-col">
+                <div class="panel-card" style="margin-bottom:0;">
+                    <div class="panel-head">
+                        <h3><i class="fa-solid fa-layer-group"></i>&nbsp; Supernet Finder</h3>
+                    </div>
+                    <div class="panel-note">The real-world problem: several routes clutter a routing table or a firewall rule set and you want to summarize them into one line. Paste the networks (one CIDR per line) and this finds the smallest single block that covers all of them.</div>
+                    <textarea id="supernetInput" spellcheck="false" placeholder="192.168.0.0/24
+192.168.1.0/24
+192.168.2.0/24
+192.168.3.0/24" style="width:100%; min-height:140px; background:var(--input-bg); border:1px solid var(--border-light); border-radius:16px; padding:16px 18px; font-family:var(--font-mono); color:var(--text-primary); font-size:13px; line-height:1.7; resize:vertical;"></textarea>
+                    <div class="error-box" id="supernetErrorBox"></div>
+                    <div style="margin-top:14px;">
+                        <button class="btn-solid small" id="supernetCalcBtn" type="button"><i class="fa-solid fa-compress"></i> Find Supernet</button>
+                    </div>
+                    <div id="supernetResultWrap" style="margin-top:16px;"></div>
+                </div>
+
+                <div class="panel-card" style="margin-bottom:0;">
+                    <div class="panel-head">
+                        <h3><i class="fa-solid fa-network-wired"></i>&nbsp; Single Network Breakdown</h3>
+                    </div>
+                    <div class="panel-note">The real-world problem: you need every field for one network — for documentation, a change ticket, or double-checking a config — in one place.</div>
+                    <div class="field-group">
+                        <label for="singleNetInput">Address / CIDR</label>
+                        <input type="text" id="singleNetInput" placeholder="10.20.30.0/27">
+                    </div>
+                    <div class="error-box" id="singleNetErrorBox"></div>
+                    <div style="margin-top:10px;">
+                        <button class="btn-solid small" id="singleNetCalcBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i> Break Down</button>
+                    </div>
+                    <div id="singleNetResultWrap" style="margin-top:16px;"></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-shield-halved"></i> ACL / OSPF Wildcard Generator</h3>
+                    <div class="utility-note">Cisco ACLs and OSPF network statements use a wildcard mask, not a subnet mask — the inverse of the mask, where 0 bits must match and 1 bits are "don't care." Enter a network/CIDR to get the exact line to paste into a config.</div>
+                    <div class="field-group">
+                        <label for="aclNetwork">Network / CIDR</label>
+                        <input type="text" id="aclNetwork" placeholder="172.16.4.0/22">
+                    </div>
+                    <button class="btn-solid small" id="aclCalcBtn" type="button">Generate</button>
+                    <div class="utility-result" id="aclResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-table"></i> Subnet Reference Table</h3>
+                    <div class="utility-note">Every IPv4 prefix from /1 to /32 with its netmask, wildcard, and usable host count — for when you just need to look one up.</div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="refFromPrefix">From /prefix</label>
+                            <input type="number" id="refFromPrefix" min="1" max="32" value="20">
+                        </div>
+                        <div class="field-group">
+                            <label for="refToPrefix">To /prefix</label>
+                            <input type="number" id="refToPrefix" min="1" max="32" value="32">
+                        </div>
+                    </div>
+                    <button class="btn-solid small" id="refTableBtn" type="button" style="margin-top:6px;">Show Table</button>
+                    <div class="utility-result" id="refTableResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does VLSM actually solve?</h4>
+                        <p>Fixed-length subnetting (giving every department the same size block) wastes address space when host counts differ wildly — a 5-person branch office doesn't need the same /24 as a 200-person one. VLSM sizes each block to its actual requirement and packs them together, largest-first, so the whole plan fits in the smallest possible base network with no overlap.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does the base network matter for VLSM?</h4>
+                        <p>Every requirement is allocated as a sub-block of the base network you provide, in order, starting from its first address. If your requirements don't fit inside the base network's total address space, the tool reports how much space is missing rather than silently overflowing into the next network.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "over-inclusion" mean for a supernet?</h4>
+                        <p>The smallest CIDR block that covers a set of networks is bound by binary alignment — it can only start on an address divisible by its own block size. That often means the resulting supernet also covers extra address space you didn't list. The warning tells you how much extra space is included so you don't accidentally summarize away a route you needed to keep separate.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why offer both /31 point-to-point and /32 host routes?</h4>
+                        <p>RFC 3021 allows a /31 to carry exactly two usable addresses with no network/broadcast reserved — the standard choice for router-to-router WAN links, since it doesn't waste a full /30 on a 2-host link. A /32 is for a single address, typically a loopback interface or an exact static route to one host.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's a wildcard mask, and why isn't it just the subnet mask?</h4>
+                        <p>A subnet mask marks which bits define the network (1) vs. the host (0). A wildcard mask is the bitwise inverse — 0 means "this bit must match," 1 means "don't care" — because Cisco ACLs and OSPF network statements were built around matching, not addressing. For a standard subnet the wildcard is simply 255.255.255.255 minus the netmask.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. Every calculation — VLSM allocation, supernet search, wildcard generation, the reference table — runs entirely in your browser. Your inputs and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // NETWORK ADDRESS CALCULATOR — ENGINE
+        // ============================================
+
+        // ---------- IPv4 primitives ----------
+        function parseIPv4(str) {
+            if (typeof str !== 'string') return null;
+            const s = str.trim();
+            const m = s.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+            if (!m) return null;
+            const octs = m.slice(1, 5).map(p => parseInt(p, 10));
+            if (octs.some(o => o < 0 || o > 255)) return null;
+            return octs;
+        }
+        function ipv4ToInt(o) { return ((o[0] * 16777216) + (o[1] * 65536) + (o[2] * 256) + o[3]) >>> 0; }
+        function intToIPv4(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
+        function prefixToNetmaskInt(prefix) {
+            if (prefix <= 0) return 0;
+            if (prefix >= 32) return 0xFFFFFFFF >>> 0;
+            return (0xFFFFFFFF << (32 - prefix)) >>> 0;
+        }
+        function toBinaryOctets(n) {
+            n = n >>> 0;
+            return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].map(x => x.toString(2).padStart(8, '0')).join('.');
+        }
+        function computeSubnet(ipInt, prefix, opts) {
+            const maskInt = prefixToNetmaskInt(prefix);
+            const network = (ipInt & maskInt) >>> 0;
+            const wildcard = (~maskInt) >>> 0;
+            const broadcast = (network | wildcard) >>> 0;
+            const total = Math.pow(2, 32 - prefix);
+            let firstHost, lastHost, usable;
+            const reserveEnabled = !opts || opts.reserveNetBcast !== false;
+            if (prefix === 32) { firstHost = network; lastHost = network; usable = 1; }
+            else if (prefix === 31 && opts && opts.allowP2P31) { firstHost = network; lastHost = broadcast; usable = 2; }
+            else if (!reserveEnabled) { firstHost = network; lastHost = broadcast; usable = total; }
+            else { firstHost = network + 1; lastHost = broadcast - 1; usable = Math.max(total - 2, 0); }
+            return { network, broadcast, wildcard, maskInt, total, firstHost, lastHost, usable, prefix };
+        }
+        function parseNetworkOrCidr(str, defaultPrefix) {
+            if (typeof str !== 'string') return null;
+            const s = str.trim();
+            if (!s) return null;
+            let ipPart = s, prefix = defaultPrefix != null ? defaultPrefix : 32, isCidr = false;
+            if (s.includes('/')) {
+                const idx = s.lastIndexOf('/');
+                ipPart = s.slice(0, idx);
+                const p = parseInt(s.slice(idx + 1), 10);
+                if (isNaN(p) || p < 0 || p > 32) return null;
+                prefix = p; isCidr = true;
+            }
+            const octs = parseIPv4(ipPart);
+            if (!octs) return null;
+            return { octets: octs, int: ipv4ToInt(octs), prefix, isCidr, raw: s };
+        }
+        function ipv4Ptr(o) { return [...o].reverse().join('.') + '.in-addr.arpa'; }
+
+        function netmaskCell(opts, prefix) {
+            const dotted = intToIPv4(prefixToNetmaskInt(prefix));
+            if (opts.netmaskFormat === 'dotted') return dotted;
+            if (opts.netmaskFormat === 'cidr') return '/' + prefix;
+            return dotted + '  (/' + prefix + ')';
+        }
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        function paneEmpty(el, msg) { el.innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function getOptions() {
+            return {
+                reserveNetBcast: document.getElementById('optReserveNetBcast').checked,
+                allowP2P31: document.getElementById('optAllowP2P31').checked,
+                allowHost32: document.getElementById('optAllowHost32').checked,
+                growthMargin: document.getElementById('optGrowthMargin').checked,
+                growthMarginPct: parseInt(document.getElementById('growthMarginPct').value, 10) || 0,
+                sortLargestFirst: document.getElementById('optSortLargestFirst').checked,
+                showWaste: document.getElementById('optShowWaste').checked,
+                warnOverInclusion: document.getElementById('optWarnOverInclusion').checked,
+                showEfficiency: document.getElementById('optShowEfficiency').checked,
+                showWildcard: document.getElementById('optShowWildcard').checked,
+                showBinary: document.getElementById('optShowBinary').checked,
+                showHexInt: document.getElementById('optShowHexInt').checked,
+                netmaskFormat: (document.querySelector('input[name="netmaskFormat"]:checked') || {}).value || 'both',
+                maxVlsmRows: parseInt(document.getElementById('maxVlsmRows').value, 10) || 24,
+                maxSupernetInputs: parseInt(document.getElementById('maxSupernetInputs').value, 10) || 64
+            };
+        }
+
+        document.getElementById('optGrowthMargin').addEventListener('change', (e) => {
+            document.getElementById('growthMarginRow').style.display = e.target.checked ? 'grid' : 'none';
+        });
+
+        // ---------- hosts -> required prefix ----------
+        function hostsToPrefix(hosts, opts) {
+            hosts = Math.max(1, Math.ceil(hosts));
+            if (hosts === 1 && opts.allowHost32) return 32;
+            if (hosts <= 2 && opts.allowP2P31) return 31;
+            for (let p = 30; p >= 0; p--) {
+                const total = Math.pow(2, 32 - p);
+                const usable = total - 2;
+                if (usable >= hosts) return p;
+            }
+            return 0;
+        }
+
+        // ============================================
+        // TOOL 1: VLSM SUBNET DESIGNER
+        // ============================================
+        let vlsmRowId = 0;
+        function addVlsmRow(name, hosts) {
+            const opts = getOptions();
+            const rows = document.getElementById('vlsmRows');
+            if (rows.children.length >= opts.maxVlsmRows) return;
+            vlsmRowId++;
+            const row = document.createElement('div');
+            row.className = 'vlsm-row';
+            row.dataset.id = vlsmRowId;
+            row.innerHTML =
+                '<input type="text" placeholder="Requirement name (e.g. Sales VLAN)" class="vlsm-name" value="' + (name ? escapeHtml(name) : '') + '">' +
+                '<input type="number" min="1" placeholder="Hosts needed" class="vlsm-hosts" value="' + (hosts != null ? hosts : '') + '">' +
+                '<button class="vlsm-row-remove" type="button" title="Remove"><i class="fa-solid fa-xmark"></i></button>';
+            row.querySelector('.vlsm-row-remove').addEventListener('click', () => row.remove());
+            rows.appendChild(row);
+        }
+        document.getElementById('vlsmAddRowBtn').addEventListener('click', () => addVlsmRow('', ''));
+
+        function vlsmAllocate() {
+            const opts = getOptions();
+            const errorBox = document.getElementById('vlsmErrorBox');
+            const wrap = document.getElementById('vlsmResultWrap');
+            errorBox.classList.remove('show');
+            const baseStr = document.getElementById('vlsmBaseNetwork').value.trim();
+            const base = parseNetworkOrCidr(baseStr, 24);
+            if (!base) { errorBox.textContent = 'Enter a valid base network / CIDR, e.g. 192.168.0.0/24.'; errorBox.classList.add('show'); wrap.innerHTML = ''; return; }
+            const basePrefix = base.isCidr ? base.prefix : 24;
+            const baseSubnet = computeSubnet(base.int, basePrefix, opts);
+
+            const rowEls = Array.from(document.getElementById('vlsmRows').children);
+            let requirements = [];
+            for (const el of rowEls) {
+                const name = el.querySelector('.vlsm-name').value.trim();
+                const hostsRaw = el.querySelector('.vlsm-hosts').value.trim();
+                if (!name && !hostsRaw) continue;
+                const hosts = parseInt(hostsRaw, 10);
+                if (!name || isNaN(hosts) || hosts < 1) { errorBox.textContent = 'Every requirement needs a name and a positive host count.'; errorBox.classList.add('show'); wrap.innerHTML = ''; return; }
+                requirements.push({ name, hosts });
+            }
+            if (requirements.length === 0) { errorBox.textContent = 'Add at least one requirement (name + host count).'; errorBox.classList.add('show'); wrap.innerHTML = ''; return; }
+
+            if (opts.growthMargin) {
+                requirements = requirements.map(r => ({ name: r.name, hosts: Math.ceil(r.hosts * (1 + opts.growthMarginPct / 100)), originalHosts: r.hosts }));
+            } else {
+                requirements = requirements.map(r => ({ name: r.name, hosts: r.hosts, originalHosts: r.hosts }));
+            }
+
+            let ordered = requirements.map((r, i) => ({ ...r, origIndex: i, prefix: hostsToPrefix(r.hosts, opts) }));
+            if (opts.sortLargestFirst) ordered = ordered.slice().sort((a, b) => a.prefix - b.prefix || a.origIndex - b.origIndex);
+
+            let cursor = baseSubnet.network;
+            const baseEnd = baseSubnet.broadcast;
+            const allocations = [];
+            let overflow = false;
+            for (const req of ordered) {
+                const size = Math.pow(2, 32 - req.prefix);
+                const aligned = Math.ceil(cursor / size) * size;
+                if (aligned + size - 1 > baseEnd) { overflow = true; break; }
+                const s = computeSubnet(aligned, req.prefix, opts);
+                allocations.push({ req, subnet: s });
+                cursor = aligned + size;
+            }
+
+            if (overflow) {
+                const totalNeeded = ordered.reduce((sum, r) => sum + Math.pow(2, 32 - r.prefix), 0);
+                errorBox.innerHTML = 'These requirements need at least ' + totalNeeded.toLocaleString() + ' addresses of block space (with alignment padding), which does not fit inside ' + escapeHtml(baseStr) + ' (' + baseSubnet.total.toLocaleString() + ' addresses). Use a larger base network or reduce host counts.';
+                errorBox.classList.add('show');
+                wrap.innerHTML = '';
+                return;
+            }
+
+            // restore original input order for display
+            allocations.sort((a, b) => a.req.origIndex - b.req.origIndex);
+
+            let cols = ['Requirement', 'Hosts Needed', 'CIDR', 'Netmask'];
+            if (opts.showWildcard) cols.push('Wildcard');
+            cols.push('Network', 'Broadcast', 'Usable Range', 'Usable Hosts');
+            if (opts.showWaste) cols.push('Wasted Addresses');
+
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+            let totalUsed = 0;
+            for (const a of allocations) {
+                const s = a.subnet;
+                totalUsed += s.total;
+                let cells = [escapeHtml(a.req.name), a.req.originalHosts.toLocaleString() + (opts.growthMargin ? ' (+margin → ' + a.req.hosts.toLocaleString() + ')' : ''), intToIPv4(s.network) + '/' + s.prefix, intToIPv4(s.maskInt)];
+                if (opts.showWildcard) cells.push(intToIPv4(s.wildcard));
+                cells.push(intToIPv4(s.network), s.prefix >= 31 ? '—' : intToIPv4(s.broadcast), intToIPv4(s.firstHost) + ' – ' + intToIPv4(s.lastHost), s.usable.toLocaleString());
+                if (opts.showWaste) cells.push((s.usable - a.req.hosts).toLocaleString());
+                html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+
+            const remaining = baseSubnet.total - totalUsed;
+            html = '<div class="stat-strip"><span><strong>' + allocations.length + '</strong> subnet(s) allocated</span><span><strong>' + totalUsed.toLocaleString() + '</strong> addresses used of <strong>' + baseSubnet.total.toLocaleString() + '</strong></span><span><strong>' + remaining.toLocaleString() + '</strong> addresses remaining in ' + escapeHtml(baseStr) + '</span></div>' + html;
+
+            wrap.innerHTML = html;
+        }
+        document.getElementById('vlsmCalcBtn').addEventListener('click', vlsmAllocate);
+
+        // ============================================
+        // TOOL 2: SUPERNET FINDER
+        // ============================================
+        function supernetFind() {
+            const opts = getOptions();
+            const errorBox = document.getElementById('supernetErrorBox');
+            const wrap = document.getElementById('supernetResultWrap');
+            errorBox.classList.remove('show');
+            const raw = document.getElementById('supernetInput').value;
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l !== '').slice(0, opts.maxSupernetInputs);
+            if (lines.length < 1) { errorBox.textContent = 'Enter at least one network / CIDR, one per line.'; errorBox.classList.add('show'); wrap.innerHTML = ''; return; }
+
+            const nets = [];
+            for (const line of lines) {
+                const n = parseNetworkOrCidr(line, 32);
+                if (!n) { errorBox.textContent = '"' + line + '" is not a valid IPv4 address or CIDR.'; errorBox.classList.add('show'); wrap.innerHTML = ''; return; }
+                const prefix = n.isCidr ? n.prefix : 32;
+                const s = computeSubnet(n.int, prefix, opts);
+                nets.push({ raw: line, network: s.network, broadcast: s.broadcast, prefix });
+            }
+
+            const minAddr = Math.min(...nets.map(n => n.network));
+            const maxAddr = Math.max(...nets.map(n => n.broadcast));
+            let supernetPrefix = 32;
+            for (let p = 0; p <= 32; p++) {
+                const size = Math.pow(2, 32 - p);
+                const network = (Math.floor(minAddr / size) * size) >>> 0;
+                if (network + size - 1 >= maxAddr) { supernetPrefix = p; break; }
+            }
+            const size = Math.pow(2, 32 - supernetPrefix);
+            const supernetNetwork = (Math.floor(minAddr / size) * size) >>> 0;
+            const supernetBroadcast = (supernetNetwork + size - 1) >>> 0;
+
+            const requestedSpace = nets.reduce((sum, n) => sum + (n.broadcast - n.network + 1), 0);
+            const efficiency = ((requestedSpace / size) * 100);
+            const overIncluded = (supernetNetwork < minAddr) || (supernetBroadcast > maxAddr) || (size > (maxAddr - minAddr + 1));
+
+            let html = '<table class="kv-table">';
+            html += '<tr><td class="k">Supernet</td><td class="v"><strong>' + intToIPv4(supernetNetwork) + '/' + supernetPrefix + '</strong></td></tr>';
+            html += '<tr><td class="k">Netmask</td><td class="v">' + netmaskCell(opts, supernetPrefix) + '</td></tr>';
+            if (opts.showWildcard) html += '<tr><td class="k">Wildcard</td><td class="v">' + intToIPv4((~prefixToNetmaskInt(supernetPrefix)) >>> 0) + '</td></tr>';
+            html += '<tr><td class="k">Covers range</td><td class="v">' + intToIPv4(supernetNetwork) + ' – ' + intToIPv4(supernetBroadcast) + '</td></tr>';
+            html += '<tr><td class="k">Total addresses in supernet</td><td class="v">' + size.toLocaleString() + '</td></tr>';
+            html += '<tr><td class="k">Addresses actually requested</td><td class="v">' + requestedSpace.toLocaleString() + ' (' + nets.length + ' network' + (nets.length > 1 ? 's' : '') + ')</td></tr>';
+            if (opts.showEfficiency) html += '<tr><td class="k">Summarization efficiency</td><td class="v">' + efficiency.toFixed(1) + '%</td></tr>';
+            html += '</table>';
+
+            if (opts.warnOverInclusion && overIncluded) {
+                const extra = size - requestedSpace;
+                html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>This supernet also covers ' + extra.toLocaleString() + ' address(es) outside the ' + nets.length + ' network(s) you listed, because the smallest covering block must start on a boundary divisible by its own size. Double-check nothing else lives in ' + intToIPv4(supernetNetwork) + '/' + supernetPrefix + ' before using it as a summary route or firewall rule.</span></div>';
+            }
+
+            html += '<div style="margin-top:14px;"><div style="font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Input networks (normalized)</div><div class="table-scroll"><table class="data-table"><thead><tr><th>Input</th><th>Normalized CIDR</th></tr></thead><tbody>' +
+                nets.map(n => '<tr><td>' + escapeHtml(n.raw) + '</td><td>' + intToIPv4(n.network) + '/' + n.prefix + '</td></tr>').join('') +
+                '</tbody></table></div></div>';
+
+            wrap.innerHTML = html;
+        }
+        document.getElementById('supernetCalcBtn').addEventListener('click', supernetFind);
+
+        // ============================================
+        // TOOL 3: SINGLE NETWORK BREAKDOWN
+        // ============================================
+        function singleNetBreakdown() {
+            const opts = getOptions();
+            const errorBox = document.getElementById('singleNetErrorBox');
+            const wrap = document.getElementById('singleNetResultWrap');
+            errorBox.classList.remove('show');
+            const raw = document.getElementById('singleNetInput').value.trim();
+            const n = parseNetworkOrCidr(raw, 24);
+            if (!n) { errorBox.textContent = 'Enter a valid IPv4 address or CIDR, e.g. 10.20.30.0/27.'; errorBox.classList.add('show'); wrap.innerHTML = ''; return; }
+            const prefix = n.isCidr ? n.prefix : 24;
+            const s = computeSubnet(n.int, prefix, opts);
+
+            let rows = [];
+            rows.push(['Input', escapeHtml(raw)]);
+            rows.push(['Network address', intToIPv4(s.network) + '/' + s.prefix]);
+            rows.push(['Netmask', netmaskCell(opts, s.prefix)]);
+            if (opts.showWildcard) rows.push(['Wildcard mask', intToIPv4(s.wildcard)]);
+            rows.push(['Broadcast address', s.prefix >= 31 ? 'N/A (' + s.prefix + ' has no broadcast)' : intToIPv4(s.broadcast)]);
+            rows.push(['Usable host range', intToIPv4(s.firstHost) + ' – ' + intToIPv4(s.lastHost)]);
+            rows.push(['Usable hosts', s.usable.toLocaleString()]);
+            rows.push(['Total addresses', s.total.toLocaleString()]);
+            rows.push(['PTR (reverse DNS)', ipv4Ptr([(s.network >>> 24) & 255, (s.network >>> 16) & 255, (s.network >>> 8) & 255, s.network & 255])]);
+            if (opts.showHexInt) {
+                rows.push(['Network as hex', '0x' + s.network.toString(16).padStart(8, '0')]);
+                rows.push(['Network as decimal integer', s.network.toLocaleString()]);
+            }
+            if (opts.showBinary) {
+                rows.push(['Network (binary)', toBinaryOctets(s.network)]);
+                rows.push(['Netmask (binary)', toBinaryOctets(s.maskInt)]);
+            }
+
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + v + '</td></tr>';
+            html += '</table>';
+            wrap.innerHTML = html;
+        }
+        document.getElementById('singleNetCalcBtn').addEventListener('click', singleNetBreakdown);
+
+        // ============================================
+        // UTILITY: ACL / OSPF WILDCARD GENERATOR
+        // ============================================
+        document.getElementById('aclCalcBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('aclResult');
+            const raw = document.getElementById('aclNetwork').value.trim();
+            const n = parseNetworkOrCidr(raw, 24);
+            if (!n) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a valid network / CIDR.</div>'; return; }
+            const prefix = n.isCidr ? n.prefix : 24;
+            const s = computeSubnet(n.int, prefix, opts);
+            const wildcard = intToIPv4(s.wildcard);
+            const network = intToIPv4(s.network);
+            resultEl.innerHTML =
+                '<table class="kv-table">' +
+                '<tr><td class="k">Network</td><td class="v">' + network + '</td></tr>' +
+                '<tr><td class="k">Wildcard</td><td class="v">' + wildcard + '</td></tr>' +
+                '</table>' +
+                '<div style="margin-top:10px;font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Ready to paste</div>' +
+                '<div class="mono-box">access-list 100 permit ip ' + network + ' ' + wildcard + ' any\nnetwork ' + network + ' ' + wildcard + ' area 0</div>';
+        });
+
+        // ============================================
+        // UTILITY: SUBNET REFERENCE TABLE
+        // ============================================
+        document.getElementById('refTableBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('refTableResult');
+            let from = parseInt(document.getElementById('refFromPrefix').value, 10);
+            let to = parseInt(document.getElementById('refToPrefix').value, 10);
+            if (isNaN(from) || isNaN(to)) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter valid prefix bounds.</div>'; return; }
+            if (from > to) { const t = from; from = to; to = t; }
+            from = Math.max(1, from); to = Math.min(32, to);
+            let rowsHtml = '';
+            for (let p = from; p <= to; p++) {
+                const mask = intToIPv4(prefixToNetmaskInt(p));
+                const wildcard = intToIPv4((~prefixToNetmaskInt(p)) >>> 0);
+                const total = Math.pow(2, 32 - p);
+                let usable;
+                if (p === 32) usable = 1;
+                else if (p === 31 && opts.allowP2P31) usable = 2;
+                else usable = Math.max(total - 2, 0);
+                rowsHtml += '<tr><td>/' + p + '</td><td>' + mask + '</td><td>' + wildcard + '</td><td>' + total.toLocaleString() + '</td><td>' + usable.toLocaleString() + '</td></tr>';
+            }
+            resultEl.innerHTML = '<div class="table-scroll"><table class="data-table"><thead><tr><th>Prefix</th><th>Netmask</th><th>Wildcard</th><th>Total</th><th>Usable</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            office: {
+                base: '192.168.0.0/22',
+                rows: [['Sales VLAN', 60], ['Engineering VLAN', 110], ['Guest Wi-Fi', 25], ['Voice VLAN', 40], ['Servers', 10], ['Management', 6]],
+                settings: { optReserveNetBcast: true, optAllowP2P31: true, optAllowHost32: false, optGrowthMargin: true, growthMarginPct: '20', optSortLargestFirst: true, optShowWaste: true, optWarnOverInclusion: true, optShowEfficiency: true, optShowWildcard: true, optShowBinary: false, optShowHexInt: true, netmaskFormat: 'both' }
+            },
+            datacenter: {
+                base: '10.10.0.0/24',
+                rows: [['Core-to-Dist Link A', 2], ['Core-to-Dist Link B', 2], ['Firewall HA Pair', 2], ['Loopback R1', 1], ['Loopback R2', 1], ['Server Rack A', 28]],
+                settings: { optReserveNetBcast: true, optAllowP2P31: true, optAllowHost32: true, optGrowthMargin: false, growthMarginPct: '0', optSortLargestFirst: true, optShowWaste: true, optWarnOverInclusion: true, optShowEfficiency: true, optShowWildcard: true, optShowBinary: true, optShowHexInt: true, netmaskFormat: 'cidr' }
+            },
+            isp: {
+                base: '',
+                supernetLines: '192.168.0.0/24\n192.168.1.0/24\n192.168.2.0/24\n192.168.3.0/24\n192.168.4.0/24',
+                settings: { optReserveNetBcast: true, optAllowP2P31: false, optAllowHost32: false, optGrowthMargin: false, growthMarginPct: '0', optSortLargestFirst: true, optShowWaste: false, optWarnOverInclusion: true, optShowEfficiency: true, optShowWildcard: true, optShowBinary: false, optShowHexInt: false, netmaskFormat: 'both' }
+            },
+            acl: {
+                singleNet: '172.16.4.0/22',
+                settings: { optReserveNetBcast: true, optAllowP2P31: true, optAllowHost32: false, optGrowthMargin: false, growthMarginPct: '0', optSortLargestFirst: true, optShowWaste: false, optWarnOverInclusion: false, optShowEfficiency: false, optShowWildcard: true, optShowBinary: true, optShowHexInt: true, netmaskFormat: 'both' }
+            }
+        };
+        const SETTING_IDS = {
+            checkboxes: ['optReserveNetBcast', 'optAllowP2P31', 'optAllowHost32', 'optGrowthMargin', 'optSortLargestFirst', 'optShowWaste', 'optWarnOverInclusion', 'optShowEfficiency', 'optShowWildcard', 'optShowBinary', 'optShowHexInt'],
+            text: ['growthMarginPct', 'maxVlsmRows', 'maxSupernetInputs'],
+            radio: ['netmaskFormat']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+            document.getElementById('growthMarginRow').style.display = document.getElementById('optGrowthMargin').checked ? 'grid' : 'none';
+        }
+
+        function applyPreset(key) {
+            const preset = BUILTIN_PRESETS[key];
+            if (!preset) return;
+            applySettingsObject(preset.settings);
+            if (preset.base !== undefined) {
+                document.getElementById('vlsmBaseNetwork').value = preset.base;
+                document.getElementById('vlsmRows').innerHTML = '';
+                (preset.rows || []).forEach(([name, hosts]) => addVlsmRow(name, hosts));
+                vlsmAllocate();
+            }
+            if (preset.supernetLines !== undefined) {
+                document.getElementById('supernetInput').value = preset.supernetLines;
+                supernetFind();
+            }
+            if (preset.singleNet !== undefined) {
+                document.getElementById('singleNetInput').value = preset.singleNet;
+                singleNetBreakdown();
+            }
+        }
+
+        const CUSTOM_PRESETS_KEY = 'netCalcCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applyPreset(val);
+            }
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this settings preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'network-calculator-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- persistence of settings across visits ----------
+        const SETTINGS_KEY = 'netCalcLastSettings';
+        function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist())); } catch (err) { /* ignore */ } }
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; saveSettings(); });
+        });
+        (function restoreSettings() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+
+        // ---------- initial demo state ----------
+        document.getElementById('vlsmBaseNetwork').value = '192.168.0.0/24';
+        addVlsmRow('Sales', 50);
+        addVlsmRow('Engineering', 25);
+        addVlsmRow('Guest Wi-Fi', 12);
+        addVlsmRow('Point-to-Point Link', 2);
+        vlsmAllocate();
+
+        document.getElementById('supernetInput').value = '192.168.0.0/24\n192.168.1.0/24\n192.168.2.0/24\n192.168.3.0/24';
+        supernetFind();
+
+        document.getElementById('singleNetInput').value = '10.20.30.0/27';
+        singleNetBreakdown();
+    </script>
+</body>
+</html>
