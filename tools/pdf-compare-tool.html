@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Compare Tool</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF compare tool: diff two PDFs page by page — text changes, added/removed/moved pages, visual pixel differences, metadata changes, and page count/size drift. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-compare-tool.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-compare-tool.html" />
+<meta property="og:title" content="PDF Compare Tool — awjunaid" />
+<meta property="og:description" content="Diff two PDFs side by side — text changes, added/removed/moved pages, visual pixel differences, metadata drift. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-compare-tool.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Compare Tool — awjunaid" />
+<meta name="twitter:description" content="Diff two PDFs side by side — text changes, added/removed/moved pages, visual pixel differences, metadata drift. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-compare-tool.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+            --add: #10b981;
+            --del: #ef4444;
+            --move: #3b82f6;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           RISK / INFO BANNER
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--move); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--move) 8%, transparent);
+        }
+        .risk-banner i { font-size: 18px; color: var(--move); margin-top: 2px; flex-shrink: 0; }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .risk-tag.info { background: color-mix(in srgb, var(--move) 18%, transparent); color: var(--move); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        .slider-row { display: flex; align-items: center; gap: 12px; }
+        .slider-row input[type="range"] { flex: 1; accent-color: var(--text-primary); }
+        .slider-row .slider-val { font-family: var(--font-mono); font-size: 12px; font-weight: 700; min-width: 42px; text-align: right; }
+
+        /* ============================================
+           DUAL FILE UPLOAD LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .panel-head h3 .side-tag {
+            font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+            padding: 2px 9px; border-radius: 20px; border: 1px solid var(--border-color);
+        }
+        .panel-head h3 .side-tag.a { color: var(--del); border-color: var(--del); }
+        .panel-head h3 .side-tag.b { color: var(--add); border-color: var(--add); }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        .swap-btn-wrap { display: flex; align-items: center; justify-content: center; }
+        .swap-btn {
+            border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;
+        }
+        .swap-btn:hover { background: var(--hover-bg); color: var(--hover-text); transform: rotate(180deg); }
+
+        /* ============================================
+           RUN BAR + SUMMARY
+           ============================================ */
+        .run-bar {
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 18px 22px; margin: 0 0 24px;
+        }
+        .run-bar .spacer { flex: 1; }
+
+        .summary-strip {
+            display: none;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin: 0 0 24px;
+        }
+        .summary-strip.show { display: grid; }
+        @media (max-width: 900px) { .summary-strip { grid-template-columns: repeat(2, 1fr); } }
+        .summary-tile {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px; text-align: center;
+        }
+        .summary-tile .st-num { font-family: var(--font-inter); font-size: 1.7rem; font-weight: 900; }
+        .summary-tile .st-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.7px; opacity: 0.6; margin-top: 4px; font-weight: 700; }
+        .summary-tile.added .st-num { color: var(--add); }
+        .summary-tile.removed .st-num { color: var(--del); }
+        .summary-tile.moved .st-num { color: var(--move); }
+        .summary-tile.match .st-num { color: var(--accent); }
+
+        .similarity-bar-wrap { margin: 0 0 24px; border: 1px solid var(--border-light); border-radius: 20px; padding: 18px 22px; display: none; }
+        .similarity-bar-wrap.show { display: block; }
+        .similarity-bar-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+        .similarity-bar-head strong { font-family: var(--font-inter); font-size: 1.3rem; font-weight: 900; }
+        .similarity-bar-head span { font-size: 11px; opacity: 0.6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .similarity-track { height: 10px; border-radius: 20px; background: var(--border-light); overflow: hidden; display: flex; }
+        .similarity-fill { height: 100%; background: var(--accent); transition: width 0.4s ease; }
+
+        /* ============================================
+           OUTPUT AREA — TABS
+           ============================================ */
+        .output-shell { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; margin-bottom: 40px; }
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 9px 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        /* Page map (added/removed/matched/moved) */
+        .page-map-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+        .page-map-toolbar .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; opacity: 0.75; margin-left: auto; }
+        .page-map-toolbar .legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .legend-dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+        .legend-dot.match { background: var(--accent); }
+        .legend-dot.added { background: var(--add); }
+        .legend-dot.removed { background: var(--del); }
+        .legend-dot.moved { background: var(--move); }
+        .legend-dot.edited { background: var(--warn); }
+
+        .page-map { border: 1px solid var(--border-light); border-radius: 16px; max-height: 460px; overflow-y: auto; }
+        .pm-row {
+            display: grid; grid-template-columns: 60px 1fr 24px 1fr 90px; align-items: center; gap: 10px;
+            padding: 10px 16px; border-bottom: 1px solid var(--border-light); font-size: 12px; cursor: pointer;
+        }
+        .pm-row:last-child { border-bottom: none; }
+        .pm-row:hover { background: var(--input-bg); }
+        .pm-row .pm-side { font-family: var(--font-mono); font-weight: 700; }
+        .pm-row .pm-side.empty { opacity: 0.3; font-style: italic; font-weight: 400; }
+        .pm-row .pm-arrow { text-align: center; opacity: 0.4; }
+        .pm-status { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 9px; border-radius: 20px; text-align: center; }
+        .pm-status.match { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .pm-status.added { background: color-mix(in srgb, var(--add) 18%, transparent); color: var(--add); }
+        .pm-status.removed { background: color-mix(in srgb, var(--del) 18%, transparent); color: var(--del); }
+        .pm-status.moved { background: color-mix(in srgb, var(--move) 18%, transparent); color: var(--move); }
+        .pm-status.edited { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+
+        /* Text diff viewer */
+        .diff-page-select { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .diff-page-select select { padding: 8px 14px; border-radius: 60px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12px; font-weight: 600; }
+        .diff-view {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 18px 20px;
+            font-family: var(--font-mono); font-size: 12.5px; line-height: 1.75; max-height: 460px; overflow-y: auto;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        .diff-view .info-empty { font-family: var(--font-body); font-size: 12px; opacity: 0.5; }
+        .diff-add { background: color-mix(in srgb, var(--add) 22%, transparent); text-decoration: none; border-radius: 3px; padding: 1px 2px; }
+        .diff-del { background: color-mix(in srgb, var(--del) 22%, transparent); text-decoration: line-through; opacity: 0.8; border-radius: 3px; padding: 1px 2px; }
+        .diff-eq { opacity: 0.85; }
+        .diff-block-head { font-family: var(--font-header); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.5; margin: 14px 0 6px; }
+        .diff-block-head:first-child { margin-top: 0; }
+
+        /* Visual diff (side by side canvases) */
+        .visual-diff-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .visual-diff-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+        @media (max-width: 900px) { .visual-diff-grid { grid-template-columns: 1fr; } }
+        .visual-diff-col { border: 1px solid var(--border-light); border-radius: 14px; padding: 10px; text-align: center; }
+        .visual-diff-col h5 { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.55; margin-bottom: 8px; font-weight: 800; }
+        .visual-diff-col canvas { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border-light); background: #fff; }
+        .visual-diff-col .vd-score { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; opacity: 0.7; }
+
+        /* Metadata diff */
+        .meta-diff-row { display: grid; grid-template-columns: 130px 1fr 20px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 11.5px; align-items: center; }
+        .meta-diff-row:last-child { border-bottom: none; }
+        .meta-diff-row .md-key { font-weight: 700; opacity: 0.7; }
+        .meta-diff-row .md-val { font-family: var(--font-mono); word-break: break-word; }
+        .meta-diff-row .md-val.diff { color: var(--warn); font-weight: 600; }
+        .meta-diff-row .md-arrow { text-align: center; opacity: 0.4; }
+
+        .stat-strip { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; opacity: 0.75; }
+        .stat-strip strong { opacity: 1; }
+
+        /* Report export bar */
+        .export-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border-light); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .output-shell { padding: 18px; border-radius: 18px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .pm-row { grid-template-columns: 1fr; gap: 3px; text-align: left; }
+            .pm-row .pm-arrow { display: none; }
+            .meta-diff-row { grid-template-columns: 1fr; gap: 3px; }
+            .meta-diff-row .md-arrow { display: none; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+            .summary-strip { grid-template-columns: repeat(2, 1fr); }
+            .run-bar { flex-direction: column; align-items: stretch; }
+            .run-bar .spacer { display: none; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Compare Tool</h1>
+                <div class="tool-dek">Two contracts, two invoice batches, two exported reports — which pages actually changed? Diff two PDFs page by page: text insertions and deletions inline, pages that were added, removed, or reordered, pixel-level visual differences for scanned/image pages, and metadata drift — all matched intelligently even when page counts don't line up.</div>
+            </div>
+
+            <div class="risk-banner">
+                <i class="fa-solid fa-circle-info"></i>
+                <div>
+                    <strong>Why a real diff beats "eyeballing it"</strong>
+                    <p>Contract redlines, regenerated reports, and re-exported invoices rarely diff 1:1 by page number — a single inserted page shifts everything after it. This tool aligns pages by content similarity first, so an inserted or deleted page doesn't cascade into false mismatches on every page that follows it.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="quickText">Quick Text Diff (fast)</option>
+                    <option value="legalRedline">Legal Redline (strict, word-level)</option>
+                    <option value="visualScan">Visual Scan Compare (image-heavy)</option>
+                    <option value="fullAudit">Full Audit (everything)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>What To Compare</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cmpText" checked>
+                            <span><span class="setting-name">Text content <span class="risk-tag info">Core</span></span><span class="setting-hint">Word-level insertions and deletions per matched page</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cmpStructure" checked>
+                            <span><span class="setting-name">Page structure <span class="risk-tag info">Core</span></span><span class="setting-hint">Detect added, removed, and reordered pages</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cmpVisual">
+                            <span><span class="setting-name">Visual / pixel diff <span class="risk-tag med">Slower</span></span><span class="setting-hint">Renders pages to canvas and highlights pixel-level differences — catches image/scan changes text diff misses</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cmpMetadata" checked>
+                            <span><span class="setting-name">Metadata</span><span class="setting-hint">Author, Producer, Title, dates, and page count/size</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cmpFonts">
+                            <span><span class="setting-name">Fonts & page dimensions <span class="risk-tag med">Slower</span></span><span class="setting-hint">Flag font family/size changes and page size/orientation changes per page</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cmpAnnotations">
+                            <span><span class="setting-name">Comments & annotations</span><span class="setting-hint">Flag added/removed comments, highlights, and form field values</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Text Diff Sensitivity</h4>
+                    <div class="settings-grid">
+                        <div class="field-group">
+                            <label for="diffGranularity">Diff granularity</label>
+                            <select id="diffGranularity">
+                                <option value="word" selected>Word-level</option>
+                                <option value="char">Character-level (precise, slower)</option>
+                                <option value="line">Line-level (fast, coarse)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="pageMatchThreshold">Page match threshold</label>
+                            <div class="slider-row">
+                                <input type="range" id="pageMatchThreshold" min="10" max="95" value="55">
+                                <span class="slider-val" id="pageMatchThresholdVal">55%</span>
+                            </div>
+                            <div class="field-note">Minimum text similarity for two pages to be matched as "the same page" across files</div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top: 4px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="ignoreWhitespace" checked>
+                            <span><span class="setting-name">Ignore whitespace differences</span><span class="setting-hint">Collapse repeated spaces/line breaks before diffing</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="ignoreCase">
+                            <span><span class="setting-name">Ignore case</span><span class="setting-hint">Treat "Total" and "TOTAL" as identical</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="ignoreNumericDrift">
+                            <span><span class="setting-name">Ignore numeric-only changes <span class="risk-tag med">Caution</span></span><span class="setting-hint">Skip diffs where only digits changed (e.g. page numbers) — don't use for financial docs</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="detectMovedPages" checked>
+                            <span><span class="setting-name">Detect reordered pages</span><span class="setting-hint">Distinguish a moved page from an added+removed pair</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Visual Diff Settings</h4>
+                    <div class="settings-grid">
+                        <div class="field-group">
+                            <label for="visualRenderScale">Render scale</label>
+                            <div class="slider-row">
+                                <input type="range" id="visualRenderScale" min="0.5" max="2.5" step="0.1" value="1.2">
+                                <span class="slider-val" id="visualRenderScaleVal">1.2x</span>
+                            </div>
+                            <div class="field-note">Higher = sharper diff, slower render</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="visualDiffThreshold">Pixel diff sensitivity</label>
+                            <div class="slider-row">
+                                <input type="range" id="visualDiffThreshold" min="1" max="100" value="20">
+                                <span class="slider-val" id="visualDiffThresholdVal">20</span>
+                            </div>
+                            <div class="field-note">Lower = flags smaller pixel-color differences as changed</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="visualDiffColor">Highlight color</label>
+                            <select id="visualDiffColor">
+                                <option value="magenta" selected>Magenta</option>
+                                <option value="red">Red</option>
+                                <option value="yellow">Yellow</option>
+                                <option value="cyan">Cyan</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Performance & Limits</h4>
+                    <div class="settings-grid">
+                        <div class="field-group">
+                            <label for="maxPagesToCompare">Max pages to compare</label>
+                            <select id="maxPagesToCompare">
+                                <option value="25">25 pages</option>
+                                <option value="50" selected>50 pages</option>
+                                <option value="100">100 pages</option>
+                                <option value="0">No limit</option>
+                            </select>
+                            <div class="field-note">Caps processing time for very large documents</div>
+                        </div>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="skipIdenticalPages" checked>
+                            <span><span class="setting-name">Skip re-render of identical pages</span><span class="setting-hint">Uses text hash to short-circuit visual diff on exact matches</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="autoScrollToFirstDiff" checked>
+                            <span><span class="setting-name">Jump to first difference</span><span class="setting-hint">Auto-selects the first changed page when results are ready</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Report Export</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="reportIncludeSummary" checked>
+                            <span><span class="setting-name">Include summary counts</span><span class="setting-hint">Added/removed/moved/changed page totals</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="reportIncludeTextDiff" checked>
+                            <span><span class="setting-name">Include text diff per page</span><span class="setting-hint">Full word-level changes in the exported report</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="reportIncludeMetadata" checked>
+                            <span><span class="setting-name">Include metadata diff</span><span class="setting-hint">Author/Producer/date/page-count changes</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="reportFormat">Export format</label>
+                            <select id="reportFormat">
+                                <option value="html" selected>HTML report</option>
+                                <option value="json">JSON (machine-readable)</option>
+                                <option value="txt">Plain text</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="reportFilename">Report filename</label>
+                            <input type="text" id="reportFilename" value="pdf-compare-report">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dual Upload Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3><span class="side-tag a">A · Original</span></h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtnA" type="button"><i class="fa-solid fa-upload"></i> Choose PDF</button>
+                            <input type="file" id="fileInputA" accept="application/pdf,.pdf" style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZoneA">Drag & drop the original PDF here, or use "Choose PDF" above.</div>
+                    <div class="loaded-file-card" id="loadedFileCardA">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfNameA"></div>
+                            <div class="lf-meta" id="lfMetaA"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemoveA" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3><span class="side-tag b">B · Revised</span></h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtnB" type="button"><i class="fa-solid fa-upload"></i> Choose PDF</button>
+                            <input type="file" id="fileInputB" accept="application/pdf,.pdf" style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZoneB">Drag & drop the revised PDF here, or use "Choose PDF" above.</div>
+                    <div class="loaded-file-card" id="loadedFileCardB">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfNameB"></div>
+                            <div class="lf-meta" id="lfMetaB"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemoveB" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="error-banner" id="errorBanner"></div>
+
+            <!-- Run bar -->
+            <div class="run-bar">
+                <button class="btn-ghost" id="swapBtn" type="button"><i class="fa-solid fa-right-left"></i> Swap A / B</button>
+                <div class="spacer"></div>
+                <span class="stat-strip" id="runStatus" style="margin:0;"><strong id="runStatusText">Load both files to compare</strong></span>
+                <button class="btn-solid" id="compareBtn" type="button" disabled><i class="fa-solid fa-code-compare"></i> Compare PDFs</button>
+            </div>
+
+            <!-- Similarity + Summary -->
+            <div class="similarity-bar-wrap" id="similarityBarWrap">
+                <div class="similarity-bar-head">
+                    <strong id="similarityPct">0%</strong>
+                    <span id="similarityLabel">Overall Similarity</span>
+                </div>
+                <div class="similarity-track"><div class="similarity-fill" id="similarityFill" style="width:0%;"></div></div>
+            </div>
+
+            <div class="summary-strip" id="summaryStrip">
+                <div class="summary-tile match"><div class="st-num" id="sumMatch">0</div><div class="st-label">Matched Pages</div></div>
+                <div class="summary-tile"><div class="st-num" id="sumEdited">0</div><div class="st-label">Edited Pages</div></div>
+                <div class="summary-tile added"><div class="st-num" id="sumAdded">0</div><div class="st-label">Added Pages</div></div>
+                <div class="summary-tile removed"><div class="st-num" id="sumRemoved">0</div><div class="st-label">Removed Pages</div></div>
+                <div class="summary-tile moved"><div class="st-num" id="sumMoved">0</div><div class="st-label">Moved Pages</div></div>
+            </div>
+
+            <!-- Output -->
+            <div class="output-shell">
+                <div class="output-tabs">
+                    <button class="output-tab active" data-tab="pagemap" type="button">Page Map</button>
+                    <button class="output-tab" data-tab="textdiff" type="button">Text Diff</button>
+                    <button class="output-tab" data-tab="visual" type="button">Visual Diff</button>
+                    <button class="output-tab" data-tab="metadata" type="button">Metadata</button>
+                    <button class="output-tab" data-tab="log" type="button">Log</button>
+                </div>
+
+                <div class="output-pane active" id="pane-pagemap">
+                    <div class="page-map-toolbar">
+                        <div class="legend">
+                            <span><span class="legend-dot match"></span>Match</span>
+                            <span><span class="legend-dot edited"></span>Edited</span>
+                            <span><span class="legend-dot added"></span>Added</span>
+                            <span><span class="legend-dot removed"></span>Removed</span>
+                            <span><span class="legend-dot moved"></span>Moved</span>
+                        </div>
+                    </div>
+                    <div class="page-map" id="pageMap"><p class="info-empty" style="padding:20px;opacity:0.5;font-size:12px;">Compare two PDFs to see how their pages align.</p></div>
+                </div>
+
+                <div class="output-pane" id="pane-textdiff">
+                    <div class="diff-page-select">
+                        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.65;">Page pair</label>
+                        <select id="diffPageSelect"><option>—</option></select>
+                    </div>
+                    <div class="diff-view" id="diffView"><p class="info-empty">Run a compare to see word-level text differences per matched page pair.</p></div>
+                </div>
+
+                <div class="output-pane" id="pane-visual">
+                    <div class="visual-diff-controls">
+                        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.65;">Page pair</label>
+                        <select id="visualPageSelect"><option>—</option></select>
+                        <button class="btn-ghost" id="renderVisualBtn" type="button"><i class="fa-solid fa-image"></i> Render Visual Diff</button>
+                    </div>
+                    <div class="visual-diff-grid" id="visualDiffGrid">
+                        <div class="visual-diff-col"><h5>A · Original</h5><canvas id="canvasA"></canvas></div>
+                        <div class="visual-diff-col"><h5>Diff Overlay</h5><canvas id="canvasDiff"></canvas><div class="vd-score" id="vdScore">—</div></div>
+                        <div class="visual-diff-col"><h5>B · Revised</h5><canvas id="canvasB"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="output-pane" id="pane-metadata">
+                    <div id="metadataDiffView"><p class="info-empty" style="opacity:0.5;font-size:12px;">Run a compare to see Author, Producer, dates, and page count/size differences.</p></div>
+                </div>
+
+                <div class="output-pane" id="pane-log">
+                    <div class="diff-view" id="logPane"><p class="info-empty">Compare activity will be logged here.</p></div>
+                </div>
+
+                <div class="stat-strip" id="outputStats">
+                    <span><strong id="statPagesA">0</strong> pages in A</span>
+                    <span><strong id="statPagesB">0</strong> pages in B</span>
+                    <span><strong id="statTimeTaken">—</strong> processing time</span>
+                </div>
+
+                <div class="export-bar">
+                    <button class="btn-solid" id="exportReportBtn" type="button" disabled><i class="fa-solid fa-download"></i> Export Report</button>
+                    <button class="btn-ghost" id="copyReportBtn" type="button" disabled><i class="fa-solid fa-copy"></i> Copy Summary</button>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How are pages matched between the two files?</h4>
+                        <p>Each page's extracted text is compared against every page in the other file using a similarity score. The highest-scoring pairs above your match threshold are linked first, so an inserted page in the middle of the document doesn't shift every page after it out of alignment.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between "Edited" and "Moved"?</h4>
+                        <p>An edited page matched to the same relative position but its text content changed. A moved page matched with high similarity — meaning it's essentially the same content — but appears at a different page number, which usually means the document was reordered.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>When should I use Visual Diff instead of Text Diff?</h4>
+                        <p>Text diff only sees extractable text — it's blind to scanned pages, embedded images, charts, or logo changes. Visual diff renders both pages to canvas and highlights pixel regions that differ, which catches layout shifts and image changes text-only comparison would miss entirely.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does "Ignore numeric-only changes" carry a warning?</h4>
+                        <p>It's built for skipping noise like shifting page footers or auto-generated timestamps, but the same logic would hide a changed dollar amount, quantity, or date inside contract or invoice text. Leave it off for anything where a number itself is the thing you need to catch.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the similarity percentage mean?</h4>
+                        <p>It's a weighted score across matched-page text similarity, plus penalties for added, removed, and reordered pages — a single-word typo fix scores near 100%, while a document with several rewritten sections and a few extra pages will score much lower.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Both PDFs are loaded, rendered, and diffed entirely in your browser — nothing is sent anywhere, which matters most for exactly the contracts and confidential documents this tool is built to compare. Reload the page and everything is cleared except your settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
+    <script>
+// ============================================
+// PDF COMPARE TOOL — ENGINE
+// ============================================
+const errorBanner = document.getElementById('errorBanner');
+const compareBtn = document.getElementById('compareBtn');
+const runStatusText = document.getElementById('runStatusText');
+const exportReportBtn = document.getElementById('exportReportBtn');
+const copyReportBtn = document.getElementById('copyReportBtn');
+const logPane = document.getElementById('logPane');
+
+let fileA = null; // { name, bytes, pdfjsDoc, pages: [{index, text, width, height}], meta }
+let fileB = null;
+let result = null; // last compare result
+
+// ============================================
+// SETTINGS
+// ============================================
+const CHECK_IDS = [
+    'cmpText','cmpStructure','cmpVisual','cmpMetadata','cmpFonts','cmpAnnotations',
+    'ignoreWhitespace','ignoreCase','ignoreNumericDrift','detectMovedPages',
+    'skipIdenticalPages','autoScrollToFirstDiff',
+    'reportIncludeSummary','reportIncludeTextDiff','reportIncludeMetadata'
+];
+const SELECT_IDS = ['diffGranularity','maxPagesToCompare','visualDiffColor','reportFormat'];
+const TEXT_IDS = ['reportFilename'];
+const RANGE_IDS = ['pageMatchThreshold','visualRenderScale','visualDiffThreshold'];
+
+function getOptions() {
+    const o = {};
+    CHECK_IDS.forEach(id => o[id] = document.getElementById(id).checked);
+    SELECT_IDS.forEach(id => o[id] = document.getElementById(id).value);
+    TEXT_IDS.forEach(id => o[id] = document.getElementById(id).value);
+    RANGE_IDS.forEach(id => o[id] = parseFloat(document.getElementById(id).value));
+    return o;
+}
+function applySettingsObject(s) {
+    if (!s) return;
+    CHECK_IDS.forEach(id => { if (id in s) document.getElementById(id).checked = !!s[id]; });
+    SELECT_IDS.forEach(id => { if (id in s) document.getElementById(id).value = s[id]; });
+    TEXT_IDS.forEach(id => { if (id in s) document.getElementById(id).value = s[id]; });
+    RANGE_IDS.forEach(id => { if (id in s) document.getElementById(id).value = s[id]; });
+    syncSliderLabels();
+}
+function syncSliderLabels() {
+    document.getElementById('pageMatchThresholdVal').textContent = document.getElementById('pageMatchThreshold').value + '%';
+    document.getElementById('visualRenderScaleVal').textContent = parseFloat(document.getElementById('visualRenderScale').value).toFixed(1) + 'x';
+    document.getElementById('visualDiffThresholdVal').textContent = document.getElementById('visualDiffThreshold').value;
+}
+RANGE_IDS.forEach(id => document.getElementById(id).addEventListener('input', () => { syncSliderLabels(); markCustom(); }));
+document.querySelectorAll('.settings-card input[type="checkbox"], .settings-card select, .settings-card input[type="text"]').forEach(el => {
+    el.addEventListener('input', markCustom);
+});
+function markCustom() {
+    document.getElementById('presetSelect').value = 'custom';
+    saveSettingsDraft();
+}
+syncSliderLabels();
+
+// ============================================
+// PRESETS
+// ============================================
+const BUILTIN_PRESETS = {
+    quickText: {
+        cmpText: true, cmpStructure: true, cmpVisual: false, cmpMetadata: false, cmpFonts: false, cmpAnnotations: false,
+        diffGranularity: 'line', pageMatchThreshold: 50, ignoreWhitespace: true, ignoreCase: false, ignoreNumericDrift: false,
+        detectMovedPages: true, visualRenderScale: 1.0, visualDiffThreshold: 25, visualDiffColor: 'magenta',
+        maxPagesToCompare: '50', skipIdenticalPages: true, autoScrollToFirstDiff: true,
+        reportIncludeSummary: true, reportIncludeTextDiff: true, reportIncludeMetadata: false, reportFormat: 'txt'
+    },
+    legalRedline: {
+        cmpText: true, cmpStructure: true, cmpVisual: false, cmpMetadata: true, cmpFonts: false, cmpAnnotations: true,
+        diffGranularity: 'char', pageMatchThreshold: 65, ignoreWhitespace: true, ignoreCase: false, ignoreNumericDrift: false,
+        detectMovedPages: true, visualRenderScale: 1.2, visualDiffThreshold: 20, visualDiffColor: 'magenta',
+        maxPagesToCompare: '100', skipIdenticalPages: true, autoScrollToFirstDiff: true,
+        reportIncludeSummary: true, reportIncludeTextDiff: true, reportIncludeMetadata: true, reportFormat: 'html'
+    },
+    visualScan: {
+        cmpText: true, cmpStructure: true, cmpVisual: true, cmpMetadata: false, cmpFonts: true, cmpAnnotations: false,
+        diffGranularity: 'word', pageMatchThreshold: 45, ignoreWhitespace: true, ignoreCase: true, ignoreNumericDrift: false,
+        detectMovedPages: true, visualRenderScale: 1.8, visualDiffThreshold: 15, visualDiffColor: 'magenta',
+        maxPagesToCompare: '25', skipIdenticalPages: false, autoScrollToFirstDiff: true,
+        reportIncludeSummary: true, reportIncludeTextDiff: false, reportIncludeMetadata: false, reportFormat: 'html'
+    },
+    fullAudit: {
+        cmpText: true, cmpStructure: true, cmpVisual: true, cmpMetadata: true, cmpFonts: true, cmpAnnotations: true,
+        diffGranularity: 'word', pageMatchThreshold: 55, ignoreWhitespace: true, ignoreCase: false, ignoreNumericDrift: false,
+        detectMovedPages: true, visualRenderScale: 1.5, visualDiffThreshold: 20, visualDiffColor: 'magenta',
+        maxPagesToCompare: '0', skipIdenticalPages: true, autoScrollToFirstDiff: true,
+        reportIncludeSummary: true, reportIncludeTextDiff: true, reportIncludeMetadata: true, reportFormat: 'html'
+    }
+};
+const CUSTOM_PRESETS_KEY = 'pdfCompareCustomPresets';
+function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (e) { return {}; } }
+function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (e) {} }
+function refreshPresetOptions() {
+    const select = document.getElementById('presetSelect');
+    document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+    const custom = loadCustomPresets();
+    Object.keys(custom).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = 'custom:' + name;
+        opt.textContent = name + ' (saved)';
+        opt.dataset.custom = '1';
+        select.appendChild(opt);
+    });
+}
+refreshPresetOptions();
+document.getElementById('presetSelect').addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (val === 'custom') return;
+    if (val.startsWith('custom:')) {
+        const name = val.slice(7);
+        const custom = loadCustomPresets();
+        if (custom[name]) applySettingsObject(custom[name]);
+    } else if (BUILTIN_PRESETS[val]) {
+        applySettingsObject(BUILTIN_PRESETS[val]);
+    }
+    saveSettingsDraft();
+});
+document.getElementById('savePresetBtn').addEventListener('click', () => {
+    const name = prompt('Name this preset:');
+    if (!name) return;
+    const custom = loadCustomPresets();
+    custom[name] = getOptions();
+    saveCustomPresets(custom);
+    refreshPresetOptions();
+    document.getElementById('presetSelect').value = 'custom:' + name;
+});
+document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'pdf-compare-config.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+});
+const importSettingsInput = document.getElementById('importSettingsInput');
+document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+importSettingsInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            applySettingsObject(JSON.parse(ev.target.result));
+            document.getElementById('presetSelect').value = 'custom';
+            saveSettingsDraft();
+        } catch (err) { alert('That file is not a valid config JSON.'); }
+    };
+    reader.readAsText(file);
+    importSettingsInput.value = '';
+});
+const SETTINGS_DRAFT_KEY = 'pdfCompareLastSettings';
+let settingsDraftTimer;
+function saveSettingsDraft() {
+    clearTimeout(settingsDraftTimer);
+    settingsDraftTimer = setTimeout(() => {
+        try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (e) {}
+    }, 400);
+}
+(function restoreDraft() {
+    try {
+        const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+        if (saved) applySettingsObject(JSON.parse(saved));
+    } catch (e) {}
+})();
+
+// ============================================
+// HELPERS
+// ============================================
+function showError(msg) { errorBanner.textContent = msg; errorBanner.classList.add('show'); }
+function clearError() { errorBanner.classList.remove('show'); errorBanner.textContent = ''; }
+let logLines = [];
+function logMsg(msg, level) {
+    logLines.push({ msg, level: level || 'info' });
+    if (logLines.length === 1) logPane.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'log-line ' + (level || '');
+    div.style.cssText = 'padding:4px 0;border-bottom:1px solid var(--border-light);font-size:12px;' +
+        (level === 'error' ? 'color:var(--danger);' : level === 'warn' ? 'color:var(--warn);' : level === 'success' ? 'color:var(--accent);' : '');
+    div.textContent = msg;
+    logPane.appendChild(div);
+    logPane.scrollTop = logPane.scrollHeight;
+}
+function clearLog() { logLines = []; logPane.innerHTML = '<p class="info-empty">Compare activity will be logged here.</p>'; }
+function escapeHtmlStr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function truncate(str, n) { str = String(str); return str.length > n ? str.slice(0, n) + '…' : str; }
+
+// ============================================
+// FILE LOADING
+// ============================================
+async function loadPdfFile(file) {
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+    const pages = [];
+    const numPages = doc.numPages;
+    for (let i = 1; i <= numPages; i++) {
+        const page = await doc.getPage(i);
+        const textContent = await page.getTextContent();
+        const text = textContent.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+        const viewport = page.getViewport({ scale: 1 });
+        pages.push({ index: i, text, width: viewport.width, height: viewport.height });
+    }
+    let meta = {};
+    try {
+        const m = await doc.getMetadata();
+        meta = (m && m.info) ? m.info : {};
+    } catch (e) { meta = {}; }
+    return { name: file.name, bytes, pdfjsDoc: doc, pages, meta, size: bytes.length };
+}
+
+function setupUploadSlot(side) {
+    const fileInput = document.getElementById('fileInput' + side);
+    const dropZone = document.getElementById('dropZone' + side);
+    const card = document.getElementById('loadedFileCard' + side);
+    const nameEl = document.getElementById('lfName' + side);
+    const metaEl = document.getElementById('lfMeta' + side);
+    const removeBtn = document.getElementById('lfRemove' + side);
+    document.getElementById('uploadBtn' + side).addEventListener('click', () => fileInput.click());
+
+    async function handleFile(file) {
+        if (!file || (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf')) {
+            showError('Please choose a valid PDF file for side ' + side + '.');
+            return;
+        }
+        clearError();
+        try {
+            logMsg(`Loading "${file.name}" (side ${side})…`);
+            const loaded = await loadPdfFile(file);
+            if (side === 'A') fileA = loaded; else fileB = loaded;
+            nameEl.textContent = loaded.name;
+            metaEl.textContent = `${loaded.pages.length} page(s) · ${(loaded.size / 1024).toFixed(1)} KB`;
+            card.classList.add('show');
+            logMsg(`Loaded "${loaded.name}" — ${loaded.pages.length} page(s).`, 'success');
+        } catch (err) {
+            showError('Could not read PDF (side ' + side + '): ' + (err.message || err));
+            logMsg('Failed to load side ' + side + ': ' + (err.message || err), 'error');
+        }
+        updateRunState();
+    }
+
+    fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); fileInput.value = ''; });
+    ['dragenter', 'dragover'].forEach(evt => dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border-color)'; dropZone.style.opacity = '1'; }));
+    ['dragleave', 'drop'].forEach(evt => dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = ''; dropZone.style.opacity = ''; }));
+    dropZone.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+    removeBtn.addEventListener('click', () => {
+        if (side === 'A') fileA = null; else fileB = null;
+        card.classList.remove('show');
+        updateRunState();
+    });
+}
+setupUploadSlot('A');
+setupUploadSlot('B');
+
+document.getElementById('swapBtn').addEventListener('click', () => {
+    const tmp = fileA; fileA = fileB; fileB = tmp;
+    ['A', 'B'].forEach(side => {
+        const f = side === 'A' ? fileA : fileB;
+        const card = document.getElementById('loadedFileCard' + side);
+        if (f) {
+            document.getElementById('lfName' + side).textContent = f.name;
+            document.getElementById('lfMeta' + side).textContent = `${f.pages.length} page(s) · ${(f.size / 1024).toFixed(1)} KB`;
+            card.classList.add('show');
+        } else {
+            card.classList.remove('show');
+        }
+    });
+    logMsg('Swapped A and B.', 'info');
+});
+
+function updateRunState() {
+    compareBtn.disabled = !(fileA && fileB);
+    runStatusText.textContent = (fileA && fileB) ? 'Ready to compare' : 'Load both files to compare';
+}
+
+// ============================================
+// TEXT SIMILARITY (token-based Jaccard-ish + LCS length ratio)
+// ============================================
+function normalizeForCompare(str, opts) {
+    let s = str || '';
+    if (opts.ignoreWhitespace) s = s.replace(/\s+/g, ' ').trim();
+    if (opts.ignoreCase) s = s.toLowerCase();
+    return s;
+}
+function tokenize(str, granularity) {
+    if (!str) return [];
+    if (granularity === 'char') return str.split('');
+    if (granularity === 'line') return str.split(/\n+/).filter(Boolean);
+    return str.split(/\s+/).filter(Boolean);
+}
+function quickSimilarity(a, b) {
+    if (!a && !b) return 1;
+    if (!a || !b) return 0;
+    const setA = new Set(a.toLowerCase().split(/\s+/).filter(Boolean));
+    const setB = new Set(b.toLowerCase().split(/\s+/).filter(Boolean));
+    if (setA.size === 0 && setB.size === 0) return 1;
+    let inter = 0;
+    setA.forEach(w => { if (setB.has(w)) inter++; });
+    const union = new Set([...setA, ...setB]).size;
+    return union === 0 ? 1 : inter / union;
+}
+
+// Myers-ish LCS diff over token arrays -> list of {type:'eq'|'add'|'del', value}
+function diffTokens(tokensA, tokensB) {
+    const n = tokensA.length, m = tokensB.length;
+    // DP LCS table (guard against huge inputs)
+    const MAX_CELLS = 4_000_000;
+    if (n * m > MAX_CELLS) {
+        // fallback: coarse — whole-block compare
+        return [
+            ...(n ? [{ type: 'del', value: tokensA.join(' ') }] : []),
+            ...(m ? [{ type: 'add', value: tokensB.join(' ') }] : [])
+        ];
+    }
+    const dp = new Array(n + 1);
+    for (let i = 0; i <= n; i++) dp[i] = new Int32Array(m + 1);
+    for (let i = n - 1; i >= 0; i--) {
+        for (let j = m - 1; j >= 0; j--) {
+            dp[i][j] = tokensA[i] === tokensB[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+        }
+    }
+    const ops = [];
+    let i = 0, j = 0;
+    while (i < n && j < m) {
+        if (tokensA[i] === tokensB[j]) { ops.push({ type: 'eq', value: tokensA[i] }); i++; j++; }
+        else if (dp[i + 1][j] >= dp[i][j + 1]) { ops.push({ type: 'del', value: tokensA[i] }); i++; }
+        else { ops.push({ type: 'add', value: tokensB[j] }); j++; }
+    }
+    while (i < n) { ops.push({ type: 'del', value: tokensA[i] }); i++; }
+    while (j < m) { ops.push({ type: 'add', value: tokensB[j] }); j++; }
+    // merge consecutive same-type ops for readability
+    const merged = [];
+    ops.forEach(op => {
+        const sep = (op.type === 'eq') ? ' ' : ' ';
+        if (merged.length && merged[merged.length - 1].type === op.type) merged[merged.length - 1].value += sep + op.value;
+        else merged.push({ type: op.type, value: op.value });
+    });
+    return merged;
+}
+
+function isNumericOnlyChange(delVal, addVal) {
+    const stripNum = s => (s || '').replace(/[0-9]/g, '#');
+    return stripNum(delVal) === stripNum(addVal);
+}
+
+// ============================================
+// PAGE MATCHING (greedy best-similarity assignment, order-aware for "moved" detection)
+// ============================================
+function matchPages(pagesA, pagesB, threshold) {
+    const scores = [];
+    for (let i = 0; i < pagesA.length; i++) {
+        for (let j = 0; j < pagesB.length; j++) {
+            const sim = quickSimilarity(pagesA[i].text, pagesB[j].text);
+            if (sim * 100 >= threshold) scores.push({ i, j, sim });
+        }
+    }
+    scores.sort((x, y) => y.sim - x.sim);
+    const usedA = new Set(), usedB = new Set();
+    const pairs = [];
+    scores.forEach(s => {
+        if (usedA.has(s.i) || usedB.has(s.j)) return;
+        usedA.add(s.i); usedB.add(s.j);
+        pairs.push(s);
+    });
+    pairs.sort((x, y) => x.i - y.i);
+
+    const rows = [];
+    let ai = 0, bi = 0;
+    const pairsByA = new Map(pairs.map(p => [p.i, p]));
+    // Walk through both sequences, emitting matched/added/removed rows in document order
+    let lastMatchedB = -1;
+    for (let i = 0; i < pagesA.length; i++) {
+        if (pairsByA.has(i)) {
+            const p = pairsByA.get(i);
+            // any unmatched B pages between lastMatchedB and p.j are "added" (appear before this match)
+            for (let j = lastMatchedB + 1; j < p.j; j++) {
+                if (!usedB.has(j)) continue; // shouldn't happen
+            }
+        }
+    }
+    // Simpler: build rows by walking A in order; interleave B-only pages by their index order
+    const matchedBSet = new Set(pairs.map(p => p.j));
+    const bConsumed = new Array(pagesB.length).fill(false);
+    let bCursor = 0;
+
+    function flushUnmatchedBUntil(targetJ) {
+        while (bCursor < (targetJ === null ? pagesB.length : targetJ)) {
+            if (!matchedBSet.has(bCursor)) {
+                rows.push({ status: 'added', a: null, b: pagesB[bCursor], sim: 0 });
+            }
+            bCursor++;
+        }
+    }
+
+    for (let i = 0; i < pagesA.length; i++) {
+        if (pairsByA.has(i)) {
+            const p = pairsByA.get(i);
+            flushUnmatchedBUntil(p.j);
+            const moved = p.j < bCursor - 1 ? false : false; // position compare done after full pass
+            rows.push({ status: p.sim >= 0.995 ? 'match' : 'edited', a: pagesA[i], b: pagesB[p.j], sim: p.sim, aOrigIndex: i, bOrigIndex: p.j });
+            bCursor = p.j + 1;
+        } else {
+            rows.push({ status: 'removed', a: pagesA[i], b: null, sim: 0, aOrigIndex: i });
+        }
+    }
+    flushUnmatchedBUntil(null);
+
+    // Detect moved pages: matched pair where b index order relative to other matches is out of sequence
+    const matchedRowsInOrder = rows.filter(r => r.status === 'match' || r.status === 'edited');
+    let expectedB = -1;
+    matchedRowsInOrder.forEach(r => {
+        if (r.bOrigIndex < expectedB) r.moved = true;
+        expectedB = Math.max(expectedB, r.bOrigIndex);
+    });
+    // re-sort rows: added rows should slot near their b position; keep simple document-order-by-A then trailing added
+    return rows;
+}
+
+// ============================================
+// METADATA DIFF
+// ============================================
+const META_FIELDS = ['Title', 'Author', 'Subject', 'Keywords', 'Creator', 'Producer', 'CreationDate', 'ModDate'];
+function buildMetaDiff() {
+    const rows = [];
+    META_FIELDS.forEach(k => {
+        const va = (fileA.meta && fileA.meta[k]) || '';
+        const vb = (fileB.meta && fileB.meta[k]) || '';
+        if (!va && !vb) return;
+        rows.push({ key: k, a: va, b: vb, changed: va !== vb });
+    });
+    rows.push({ key: 'Page Count', a: String(fileA.pages.length), b: String(fileB.pages.length), changed: fileA.pages.length !== fileB.pages.length });
+    rows.push({ key: 'File Size', a: (fileA.size / 1024).toFixed(1) + ' KB', b: (fileB.size / 1024).toFixed(1) + ' KB', changed: fileA.size !== fileB.size });
+    const pA = fileA.pages[0], pB = fileB.pages[0];
+    if (pA && pB) {
+        const dimA = `${Math.round(pA.width)}×${Math.round(pA.height)}`;
+        const dimB = `${Math.round(pB.width)}×${Math.round(pB.height)}`;
+        rows.push({ key: 'Page 1 Size (pt)', a: dimA, b: dimB, changed: dimA !== dimB });
+    }
+    return rows;
+}
+
+// ============================================
+// RUN COMPARE
+// ============================================
+compareBtn.addEventListener('click', runCompare);
+
+async function runCompare() {
+    if (!fileA || !fileB) { showError('Load both PDF files before comparing.'); return; }
+    clearError(); clearLog();
+    compareBtn.disabled = true;
+    runStatusText.textContent = 'Comparing…';
+    const t0 = performance.now();
+    const opts = getOptions();
+
+    try {
+        let pagesA = fileA.pages, pagesB = fileB.pages;
+        const cap = parseInt(opts.maxPagesToCompare, 10);
+        if (cap > 0) {
+            if (pagesA.length > cap) logMsg(`File A has ${pagesA.length} pages, capping comparison to first ${cap}.`, 'warn');
+            if (pagesB.length > cap) logMsg(`File B has ${pagesB.length} pages, capping comparison to first ${cap}.`, 'warn');
+            pagesA = pagesA.slice(0, cap);
+            pagesB = pagesB.slice(0, cap);
+        }
+
+        logMsg(`Matching ${pagesA.length} page(s) in A against ${pagesB.length} page(s) in B (threshold ${opts.pageMatchThreshold}%)…`);
+        const rows = opts.cmpStructure !== false
+            ? matchPages(pagesA, pagesB, opts.pageMatchThreshold)
+            : pagesA.map((p, i) => ({ status: 'edited', a: p, b: pagesB[i] || null, sim: pagesB[i] ? quickSimilarity(p.text, pagesB[i].text) : 0, aOrigIndex: i, bOrigIndex: i }));
+
+        if (!opts.detectMovedPages) rows.forEach(r => { delete r.moved; });
+
+        // Per-page text diffs for matched/edited pairs
+        rows.forEach(r => {
+            if ((r.status === 'match' || r.status === 'edited') && opts.cmpText !== false) {
+                const na = normalizeForCompare(r.a.text, opts);
+                const nb = normalizeForCompare(r.b.text, opts);
+                let ops = diffTokens(tokenize(na, opts.diffGranularity), tokenize(nb, opts.diffGranularity));
+                if (opts.ignoreNumericDrift) {
+                    // collapse adjacent del/add pairs that differ only numerically into 'eq'
+                    for (let k = 0; k < ops.length - 1; k++) {
+                        if (ops[k].type === 'del' && ops[k + 1].type === 'add' && isNumericOnlyChange(ops[k].value, ops[k + 1].value)) {
+                            ops[k] = { type: 'eq', value: ops[k + 1].value };
+                            ops.splice(k + 1, 1);
+                        }
+                    }
+                }
+                r.diffOps = ops;
+                const changedTokens = ops.filter(o => o.type !== 'eq').length;
+                r.hasTextDiff = changedTokens > 0;
+                if (r.status === 'match' && r.hasTextDiff) r.status = 'edited';
+            }
+        });
+
+        result = { rows, opts, timestamp: new Date() };
+        renderSummary(rows);
+        renderPageMap(rows);
+        renderTextDiffSelector(rows);
+        renderVisualDiffSelector(rows);
+        if (opts.cmpMetadata !== false) renderMetadataDiff(); else document.getElementById('metadataDiffView').innerHTML = '<p class="info-empty" style="opacity:0.5;font-size:12px;">Metadata comparison was disabled for this run.</p>';
+
+        document.getElementById('statPagesA').textContent = fileA.pages.length;
+        document.getElementById('statPagesB').textContent = fileB.pages.length;
+        const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+        document.getElementById('statTimeTaken').textContent = elapsed + 's';
+
+        exportReportBtn.disabled = false;
+        copyReportBtn.disabled = false;
+        runStatusText.textContent = 'Compare complete';
+        logMsg(`Compare complete in ${elapsed}s.`, 'success');
+
+        if (opts.autoScrollToFirstDiff) {
+            const firstDiff = rows.find(r => r.status !== 'match');
+            if (firstDiff) {
+                document.querySelector('.output-tab[data-tab="pagemap"]').click();
+            }
+        }
+    } catch (err) {
+        showError('Compare failed: ' + (err.message || err));
+        logMsg('Compare failed: ' + (err.message || err), 'error');
+    } finally {
+        compareBtn.disabled = false;
+    }
+}
+
+// ============================================
+// RENDER: SUMMARY / SIMILARITY
+// ============================================
+function renderSummary(rows) {
+    const match = rows.filter(r => r.status === 'match').length;
+    const edited = rows.filter(r => r.status === 'edited').length;
+    const added = rows.filter(r => r.status === 'added').length;
+    const removed = rows.filter(r => r.status === 'removed').length;
+    const moved = rows.filter(r => r.moved).length;
+
+    document.getElementById('sumMatch').textContent = match;
+    document.getElementById('sumEdited').textContent = edited;
+    document.getElementById('sumAdded').textContent = added;
+    document.getElementById('sumRemoved').textContent = removed;
+    document.getElementById('sumMoved').textContent = moved;
+    document.getElementById('summaryStrip').classList.add('show');
+
+    const total = rows.length || 1;
+    let simSum = 0;
+    rows.forEach(r => {
+        if (r.status === 'match') simSum += 1;
+        else if (r.status === 'edited') simSum += (r.sim || 0);
+        // added/removed contribute 0
+    });
+    const pct = Math.round((simSum / total) * 100);
+    document.getElementById('similarityPct').textContent = pct + '%';
+    document.getElementById('similarityFill').style.width = pct + '%';
+    document.getElementById('similarityFill').style.background = pct >= 85 ? 'var(--accent)' : pct >= 50 ? 'var(--warn)' : 'var(--danger)';
+    document.getElementById('similarityBarWrap').classList.add('show');
+}
+
+// ============================================
+// RENDER: PAGE MAP
+// ============================================
+function renderPageMap(rows) {
+    const wrap = document.getElementById('pageMap');
+    if (!rows.length) { wrap.innerHTML = '<p class="info-empty" style="padding:20px;opacity:0.5;font-size:12px;">No pages to compare.</p>'; return; }
+    let html = '';
+    rows.forEach((r, idx) => {
+        const aLabel = r.a ? `Page ${r.aOrigIndex != null ? r.aOrigIndex + 1 : r.a.index}` : '';
+        const bLabel = r.b ? `Page ${r.bOrigIndex != null ? r.bOrigIndex + 1 : r.b.index}` : '';
+        const status = r.moved ? 'moved' : r.status;
+        const label = r.moved ? 'moved' : r.status;
+        html += `<div class="pm-row" data-idx="${idx}">
+            <span class="pm-side ${aLabel ? '' : 'empty'}">${aLabel || '—'}</span>
+            <span>${aLabel ? escapeHtmlStr(truncate(r.a.text, 70) || '(empty page)') : ''}</span>
+            <span class="pm-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            <span>${bLabel ? escapeHtmlStr(truncate(r.b.text, 70) || '(empty page)') : ''}</span>
+            <span class="pm-status ${status}">${label}</span>
+        </div>`;
+    });
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.pm-row').forEach(row => {
+        row.addEventListener('click', () => {
+            const idx = parseInt(row.dataset.idx, 10);
+            const r = rows[idx];
+            if (r.status === 'match' || r.status === 'edited') {
+                document.querySelector('.output-tab[data-tab="textdiff"]').click();
+                document.getElementById('diffPageSelect').value = String(idx);
+                document.getElementById('diffPageSelect').dispatchEvent(new Event('change'));
+            }
+        });
+    });
+}
+
+// ============================================
+// RENDER: TEXT DIFF
+// ============================================
+function renderTextDiffSelector(rows) {
+    const select = document.getElementById('diffPageSelect');
+    select.innerHTML = '';
+    const comparable = rows.map((r, idx) => ({ r, idx })).filter(x => x.r.status === 'match' || x.r.status === 'edited');
+    if (!comparable.length) {
+        select.innerHTML = '<option>No matched pages</option>';
+        document.getElementById('diffView').innerHTML = '<p class="info-empty">No matched page pairs to show — pages may all be added/removed, or text comparison was disabled.</p>';
+        return;
+    }
+    comparable.forEach(({ r, idx }) => {
+        const opt = document.createElement('option');
+        opt.value = String(idx);
+        const aL = r.aOrigIndex != null ? r.aOrigIndex + 1 : r.a.index;
+        const bL = r.bOrigIndex != null ? r.bOrigIndex + 1 : r.b.index;
+        opt.textContent = `A p.${aL} → B p.${bL}  (${r.status}${r.moved ? ', moved' : ''})`;
+        select.appendChild(opt);
+    });
+    select.onchange = () => renderDiffForRow(rows[parseInt(select.value, 10)]);
+    const firstEdited = comparable.find(x => x.r.status === 'edited') || comparable[0];
+    select.value = String(firstEdited.idx);
+    renderDiffForRow(rows[firstEdited.idx]);
+}
+function renderDiffForRow(r) {
+    const view = document.getElementById('diffView');
+    if (!r || !r.diffOps) {
+        view.innerHTML = '<p class="info-empty">Text comparison was not run for this page pair (enable "Text content" in settings).</p>';
+        return;
+    }
+    if (!r.hasTextDiff) {
+        view.innerHTML = '<p class="info-empty" style="opacity:0.8;">No text differences on this page pair.</p>';
+        return;
+    }
+    let html = '';
+    r.diffOps.forEach(op => {
+        const cls = op.type === 'add' ? 'diff-add' : op.type === 'del' ? 'diff-del' : 'diff-eq';
+        html += `<span class="${cls}">${escapeHtmlStr(op.value)}</span> `;
+    });
+    view.innerHTML = html;
+}
+
+// ============================================
+// RENDER: VISUAL DIFF
+// ============================================
+function renderVisualDiffSelector(rows) {
+    const select = document.getElementById('visualPageSelect');
+    select.innerHTML = '';
+    const comparable = rows.map((r, idx) => ({ r, idx })).filter(x => x.r.status === 'match' || x.r.status === 'edited');
+    if (!comparable.length) { select.innerHTML = '<option>No matched pages</option>'; return; }
+    comparable.forEach(({ r, idx }) => {
+        const opt = document.createElement('option');
+        opt.value = String(idx);
+        const aL = r.aOrigIndex != null ? r.aOrigIndex + 1 : r.a.index;
+        const bL = r.bOrigIndex != null ? r.bOrigIndex + 1 : r.b.index;
+        opt.textContent = `A p.${aL} → B p.${bL}`;
+        select.appendChild(opt);
+    });
+    select.value = String(comparable[0].idx);
+}
+document.getElementById('renderVisualBtn').addEventListener('click', async () => {
+    const select = document.getElementById('visualPageSelect');
+    if (!select.value || !result) return;
+    const r = result.rows[parseInt(select.value, 10)];
+    if (!r || !r.a || !r.b) return;
+    const opts = getOptions();
+    const scoreEl = document.getElementById('vdScore');
+    scoreEl.textContent = 'Rendering…';
+    try {
+        const pageA = await fileA.pdfjsDoc.getPage(r.aOrigIndex != null ? r.aOrigIndex + 1 : r.a.index);
+        const pageB = await fileB.pdfjsDoc.getPage(r.bOrigIndex != null ? r.bOrigIndex + 1 : r.b.index);
+        const scale = opts.visualRenderScale;
+        const vpA = pageA.getViewport({ scale });
+        const vpB = pageB.getViewport({ scale });
+        const w = Math.max(vpA.width, vpB.width);
+        const h = Math.max(vpA.height, vpB.height);
+
+        const canvasA = document.getElementById('canvasA');
+        const canvasB = document.getElementById('canvasB');
+        const canvasDiff = document.getElementById('canvasDiff');
+        [canvasA, canvasB, canvasDiff].forEach(c => { c.width = w; c.height = h; });
+
+        const ctxA = canvasA.getContext('2d');
+        const ctxB = canvasB.getContext('2d');
+        ctxA.fillStyle = '#fff'; ctxA.fillRect(0, 0, w, h);
+        ctxB.fillStyle = '#fff'; ctxB.fillRect(0, 0, w, h);
+        await pageA.render({ canvasContext: ctxA, viewport: vpA }).promise;
+        await pageB.render({ canvasContext: ctxB, viewport: vpB }).promise;
+
+        const imgA = ctxA.getImageData(0, 0, w, h);
+        const imgB = ctxB.getImageData(0, 0, w, h);
+        const diffImg = ctxA.createImageData(w, h);
+        const threshold = opts.visualDiffThreshold;
+        const colorMap = { magenta: [255, 0, 255], red: [255, 0, 0], yellow: [255, 230, 0], cyan: [0, 230, 255] };
+        const [hr, hg, hb] = colorMap[opts.visualDiffColor] || colorMap.magenta;
+        let diffPixels = 0;
+        const total = w * h;
+        for (let p = 0; p < total; p++) {
+            const o = p * 4;
+            const dr = Math.abs(imgA.data[o] - imgB.data[o]);
+            const dg = Math.abs(imgA.data[o + 1] - imgB.data[o + 1]);
+            const db = Math.abs(imgA.data[o + 2] - imgB.data[o + 2]);
+            const delta = dr + dg + db;
+            if (delta > threshold * 3) {
+                diffImg.data[o] = hr; diffImg.data[o + 1] = hg; diffImg.data[o + 2] = hb; diffImg.data[o + 3] = 255;
+                diffPixels++;
+            } else {
+                // dim grayscale background so highlighted diffs pop
+                const gray = (imgB.data[o] + imgB.data[o + 1] + imgB.data[o + 2]) / 3;
+                diffImg.data[o] = gray; diffImg.data[o + 1] = gray; diffImg.data[o + 2] = gray; diffImg.data[o + 3] = 90;
+            }
+        }
+        canvasDiff.getContext('2d').putImageData(diffImg, 0, 0);
+        const pct = ((diffPixels / total) * 100).toFixed(2);
+        scoreEl.textContent = `${pct}% of pixels differ`;
+        logMsg(`Visual diff rendered — ${pct}% pixel difference.`, 'success');
+    } catch (err) {
+        scoreEl.textContent = 'Render failed';
+        logMsg('Visual diff render failed: ' + (err.message || err), 'error');
+    }
+});
+
+// ============================================
+// RENDER: METADATA DIFF
+// ============================================
+function renderMetadataDiff() {
+    const rows = buildMetaDiff();
+    const view = document.getElementById('metadataDiffView');
+    if (!rows.length) { view.innerHTML = '<p class="info-empty" style="opacity:0.5;font-size:12px;">No metadata fields found in either file.</p>'; return; }
+    let html = '';
+    rows.forEach(r => {
+        html += `<div class="meta-diff-row">
+            <span class="md-key">${escapeHtmlStr(r.key)}</span>
+            <span class="md-val ${r.changed ? 'diff' : ''}">${escapeHtmlStr(truncate(r.a || '(empty)', 60))}</span>
+            <span class="md-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            <span class="md-val ${r.changed ? 'diff' : ''}">${escapeHtmlStr(truncate(r.b || '(empty)', 60))}</span>
+        </div>`;
+    });
+    view.innerHTML = html;
+}
+
+// ============================================
+// TABS
+// ============================================
+document.querySelectorAll('.output-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+    });
+});
+
+// ============================================
+// REPORT EXPORT
+// ============================================
+function buildReportData() {
+    const opts = getOptions();
+    const rows = result.rows;
+    const match = rows.filter(r => r.status === 'match').length;
+    const edited = rows.filter(r => r.status === 'edited').length;
+    const added = rows.filter(r => r.status === 'added').length;
+    const removed = rows.filter(r => r.status === 'removed').length;
+    const moved = rows.filter(r => r.moved).length;
+    const data = {
+        generatedAt: result.timestamp.toISOString(),
+        fileA: fileA.name, fileB: fileB.name,
+        pagesA: fileA.pages.length, pagesB: fileB.pages.length,
+        similarity: document.getElementById('similarityPct').textContent,
+        summary: { matched: match, edited, added, removed, moved }
+    };
+    if (opts.reportIncludeTextDiff) {
+        data.pages = rows.map(r => ({
+            status: r.moved ? 'moved' : r.status,
+            aPage: r.a ? (r.aOrigIndex != null ? r.aOrigIndex + 1 : r.a.index) : null,
+            bPage: r.b ? (r.bOrigIndex != null ? r.bOrigIndex + 1 : r.b.index) : null,
+            similarity: r.sim != null ? Math.round(r.sim * 100) : null,
+            diff: r.diffOps || null
+        }));
+    }
+    if (opts.reportIncludeMetadata) data.metadata = buildMetaDiff();
+    return data;
+}
+
+function reportToText(data) {
+    let out = `PDF COMPARE REPORT\nGenerated: ${data.generatedAt}\nFile A: ${data.fileA} (${data.pagesA} pages)\nFile B: ${data.fileB} (${data.pagesB} pages)\nSimilarity: ${data.similarity}\n\n`;
+    out += `SUMMARY\nMatched: ${data.summary.matched}\nEdited: ${data.summary.edited}\nAdded: ${data.summary.added}\nRemoved: ${data.summary.removed}\nMoved: ${data.summary.moved}\n\n`;
+    if (data.pages) {
+        out += `PAGE-BY-PAGE\n`;
+        data.pages.forEach(p => {
+            out += `A p.${p.aPage ?? '—'} -> B p.${p.bPage ?? '—'}  [${p.status}]${p.similarity != null ? ' sim=' + p.similarity + '%' : ''}\n`;
+            if (p.diff) {
+                p.diff.forEach(op => {
+                    if (op.type === 'add') out += `  + ${op.value}\n`;
+                    else if (op.type === 'del') out += `  - ${op.value}\n`;
+                });
+            }
+        });
+        out += '\n';
+    }
+    if (data.metadata) {
+        out += `METADATA\n`;
+        data.metadata.forEach(m => { out += `${m.key}: "${m.a}" -> "${m.b}"${m.changed ? '  [CHANGED]' : ''}\n`; });
+    }
+    return out;
+}
+
+function reportToHtml(data) {
+    const esc = escapeHtmlStr;
+    let out = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>PDF Compare Report</title>
+    <style>body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;color:#111;}
+    h1{font-size:22px;} h2{font-size:16px;border-bottom:1px solid #ddd;padding-bottom:6px;margin-top:28px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;} td,th{padding:6px 10px;border-bottom:1px solid #eee;text-align:left;}
+    .add{background:#dcfce7;} .del{background:#fee2e2;text-decoration:line-through;} .status{font-weight:700;text-transform:uppercase;font-size:11px;}
+    .diffline{font-family:monospace;font-size:12px;margin:2px 0;}
+    </style></head><body>`;
+    out += `<h1>PDF Compare Report</h1><p>Generated: ${esc(data.generatedAt)}</p>`;
+    out += `<p><strong>A:</strong> ${esc(data.fileA)} (${data.pagesA} pages) &nbsp; <strong>B:</strong> ${esc(data.fileB)} (${data.pagesB} pages)</p>`;
+    out += `<p><strong>Similarity:</strong> ${esc(data.similarity)}</p>`;
+    out += `<h2>Summary</h2><table><tr><td>Matched</td><td>${data.summary.matched}</td></tr><tr><td>Edited</td><td>${data.summary.edited}</td></tr><tr><td>Added</td><td>${data.summary.added}</td></tr><tr><td>Removed</td><td>${data.summary.removed}</td></tr><tr><td>Moved</td><td>${data.summary.moved}</td></tr></table>`;
+    if (data.pages) {
+        out += `<h2>Page-by-Page</h2>`;
+        data.pages.forEach(p => {
+            out += `<p><span class="status">${esc(p.status)}</span> — A p.${p.aPage ?? '—'} → B p.${p.bPage ?? '—'}${p.similarity != null ? ' (' + p.similarity + '% similar)' : ''}</p>`;
+            if (p.diff) {
+                p.diff.forEach(op => {
+                    if (op.type === 'add') out += `<div class="diffline add">+ ${esc(op.value)}</div>`;
+                    else if (op.type === 'del') out += `<div class="diffline del">- ${esc(op.value)}</div>`;
+                });
+            }
+        });
+    }
+    if (data.metadata) {
+        out += `<h2>Metadata</h2><table><tr><th>Field</th><th>A</th><th>B</th></tr>`;
+        data.metadata.forEach(m => { out += `<tr><td>${esc(m.key)}</td><td>${esc(m.a)}</td><td>${esc(m.b)}</td></tr>`; });
+        out += `</table>`;
+    }
+    out += `</body></html>`;
+    return out;
+}
+
+exportReportBtn.addEventListener('click', () => {
+    if (!result) return;
+    const opts = getOptions();
+    const data = buildReportData();
+    let content, mime, ext;
+    if (opts.reportFormat === 'json') { content = JSON.stringify(data, null, 2); mime = 'application/json'; ext = 'json'; }
+    else if (opts.reportFormat === 'txt') { content = reportToText(data); mime = 'text/plain'; ext = 'txt'; }
+    else { content = reportToHtml(data); mime = 'text/html'; ext = 'html'; }
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (opts.reportFilename || 'pdf-compare-report') + '.' + ext;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logMsg(`Exported report as ${ext.toUpperCase()}.`, 'success');
+});
+
+copyReportBtn.addEventListener('click', async () => {
+    if (!result) return;
+    const data = buildReportData();
+    const text = reportToText(data);
+    try {
+        await navigator.clipboard.writeText(text);
+        logMsg('Summary copied to clipboard.', 'success');
+    } catch (e) {
+        logMsg('Clipboard copy failed: ' + (e.message || e), 'error');
+    }
+});
+
+updateRunState();
+
+</script>
+</body>
+</html>
