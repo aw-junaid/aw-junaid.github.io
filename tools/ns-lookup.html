@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | NS Record Lookup & DNS Delegation Checker</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free NS record lookup and DNS delegation checker. Look up authoritative nameservers, compare results across Cloudflare, Google and Quad9 to catch propagation lag, resolve NS hostnames to A/AAAA to catch missing glue records, check SOA serial consistency, and batch-audit a list of domains — runs in your browser via public DNS-over-HTTPS." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/ns-lookup.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/ns-lookup.html" />
+<meta property="og:title" content="NS Record Lookup & DNS Delegation Checker — awjunaid" />
+<meta property="og:description" content="Look up authoritative nameservers, cross-check propagation across multiple public resolvers, find missing glue records, verify SOA serial consistency, and batch-audit domains. Free, runs client-side over DNS-over-HTTPS." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ns-lookup.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="NS Record Lookup & DNS Delegation Checker — awjunaid" />
+<meta name="twitter:description" content="NS lookup with multi-resolver propagation checks, missing-glue detection, SOA serial comparison, and batch domain auditing. Free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ns-lookup.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-primary: #ffffff; --bg-secondary: #f5f5f5; --bg-color: #ffffff;
+            --text-primary: #000000; --text-secondary: #333333; --text-color: #000000;
+            --border-color: #000000; --border-light: #e0e0e0; --input-bg: #ffffff;
+            --hover-bg: #000000; --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif; --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4; --note-bg: #fff9c4; --content-width: 1280px;
+            --accent: #10b981; --danger: #ef4444; --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000; --bg-secondary: #0a0a0a; --bg-color: #000000;
+            --text-primary: #ffffff; --text-secondary: #aaaaaa; --text-color: #ffffff;
+            --border-color: #ffffff; --border-light: #2a2a2a; --input-bg: #111111;
+            --hover-bg: #ffffff; --hover-text: #000000; --code-bg: #111111; --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-body);
+            display: flex; flex-direction: column; min-height: 100vh; transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased; overflow-x: hidden; line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        header { border-bottom: 1px solid var(--border-color); padding: 16px 0; width: 100%; z-index: 1000; position: sticky; top: 0; background-color: var(--bg-color); transition: all 0.3s ease; }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content { display: none; position: absolute; background-color: var(--bg-color); min-width: 200px; border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0; box-shadow: 0 6px 12px rgba(0,0,0,0.05); }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700; text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap; }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        .tool-hero { margin: 48px 0 32px; border-bottom: 2px solid var(--border-color); padding-bottom: 28px; }
+        .tool-eyebrow { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800; margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .tool-title { font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px; }
+        .tool-dek { font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px; border-left: 2px solid var(--border-color); padding-left: 20px; }
+
+        .preset-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0; }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select { padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600; }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        .settings-card { border: 1px solid var(--border-light); border-radius: 20px; padding: 26px 26px 8px; margin: 16px 0 32px; }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 { font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 20px; }
+        .setting-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; cursor: pointer; user-select: none; }
+        .setting-toggle input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0; }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px; }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        .tool-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0 0 24px; align-items: start; }
+        @media (max-width: 900px) { .tool-layout { grid-template-columns: 1fr; } }
+
+        .panel-card { background: var(--code-bg); border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+        .panel-head h3 { font-family: var(--font-inter); font-size: 1.15rem; font-weight: 800; }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid { border-radius: 60px; padding: 9px 18px; font-weight: 700; font-family: var(--font-header); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border-color); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #ipInput { width: 100%; min-height: 140px; background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 16px; padding: 18px 20px; font-family: var(--font-mono); color: var(--text-primary); font-size: 13.5px; line-height: 1.7; resize: vertical; transition: border-color 0.2s; }
+        #ipInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box { border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px; font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none; }
+        .error-box.show { display: block; }
+
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab { border: 1px solid var(--border-light); border-radius: 60px; padding: 8px 16px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; background: transparent; color: var(--text-color); font-family: var(--font-header); transition: all 0.2s; }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge { display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        .mono-box { font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap; }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning { border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
+        .net-warning i { margin-top: 2px; }
+
+        .stat-strip { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; opacity: 0.75; }
+        .stat-strip strong { opacity: 1; }
+
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading { font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase; margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px; }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item { border: 1px solid var(--border-light); border-radius: 16px; padding: 20px 22px; }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        .email-signup { background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center; margin: 48px 0 40px; border: 1px solid var(--border-light); }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input { flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); }
+        .signup-form button { background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px; border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s; }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; padding: 20px 0; border-top: 1px solid var(--border-light); }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) { .footer-middle { flex-direction: column; text-align: center; } .signup-form { flex-direction: column; } }
+
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #ipInput { min-height: 120px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+
+        /* NS-lookup specific */
+        .resolver-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; }
+        .resolver-row:last-child { border-bottom: none; }
+        .resolver-name { font-weight: 700; font-size: 12.5px; }
+        .resolver-ns-list { font-family: var(--font-mono); font-size: 12px; opacity: 0.85; }
+        .pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; border: 1px solid var(--border-color); }
+        .pill.ok { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .pill.mismatch { background: var(--warn); color: #000; border-color: var(--warn); }
+        .pill.fail { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .spinner-text { font-size: 12.5px; opacity: 0.6; padding: 10px 0; }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">NS Record Lookup & Delegation Checker</h1>
+                <div class="tool-dek">Look up a domain's authoritative nameservers, compare the answer across Cloudflare, Google, and Quad9 to catch propagation lag or mismatched glue, resolve each NS hostname to A/AAAA to spot missing glue records, check SOA serial consistency across resolvers, and batch-audit a whole list of domains — all over public DNS-over-HTTPS, straight from your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="quick">Quick NS Lookup</option>
+                    <option value="propagation">Propagation Check</option>
+                    <option value="glue">Glue Record Audit</option>
+                    <option value="migration">Registrar Migration Check</option>
+                    <option value="batch">Batch Domain Audit</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Query & Domain Parsing</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripProtocol" checked>
+                            <span><span class="setting-name">Strip protocol / path / trailing dot</span><span class="setting-hint">Lets you paste a full URL and still get a clean domain, e.g. "https://example.com/page" \u2192 "example.com"</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIdnaConvert" checked>
+                            <span><span class="setting-name">Convert IDN to punycode</span><span class="setting-hint">Internationalized domain names (non-ASCII) are converted to their xn-- form before querying</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFetchSoa" checked>
+                            <span><span class="setting-name">Also fetch SOA record</span><span class="setting-hint">Serial, refresh, retry, expire, and minimum TTL for the zone</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optResolveGlue" checked>
+                            <span><span class="setting-name">Resolve NS hostnames (glue check)</span><span class="setting-hint">Looks up A/AAAA for each advertised nameserver to confirm it actually resolves</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="timeoutInput">Request timeout (ms)</label>
+                            <input type="number" id="timeoutInput" min="500" max="20000" step="500" value="5000">
+                        </div>
+                        <div class="field-group">
+                            <label for="batchDelayInput">Delay between batch domains (ms)</label>
+                            <input type="number" id="batchDelayInput" min="0" max="5000" step="50" value="150">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Resolvers (Propagation Check)</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseCloudflare" checked>
+                            <span><span class="setting-name">Cloudflare (1.1.1.1)</span><span class="setting-hint">cloudflare-dns.com/dns-query</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseGoogle" checked>
+                            <span><span class="setting-name">Google Public DNS (8.8.8.8)</span><span class="setting-hint">dns.google/resolve</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseQuad9" checked>
+                            <span><span class="setting-name">Quad9 (9.9.9.9)</span><span class="setting-hint">dns.quad9.net/dns-query \u2014 may fail to load in some browsers due to that provider's CORS policy</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUseCustom">
+                            <span><span class="setting-name">Custom DoH JSON endpoint</span><span class="setting-hint">Any resolver exposing the same GET-based JSON API (Accept: application/dns-json)</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="customResolverInput">Custom resolver URL</label>
+                            <input type="text" id="customResolverInput" placeholder="https://doh.example.com/dns-query">
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:4px;">
+                        <div class="field-group full-width">
+                            <label>Primary resolver (used for Summary / NS Records / Glue / SOA tabs)</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="primaryResolver" value="cloudflare" checked> Cloudflare</label>
+                                <label class="radio-opt"><input type="radio" name="primaryResolver" value="google"> Google</label>
+                                <label class="radio-opt"><input type="radio" name="primaryResolver" value="quad9"> Quad9</label>
+                                <label class="radio-opt"><input type="radio" name="primaryResolver" value="custom"> Custom</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Glue & Delegation Checks</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagMissingGlue" checked>
+                            <span><span class="setting-name">Flag NS with no A/AAAA</span><span class="setting-hint">An advertised nameserver that doesn't resolve is a lame or broken delegation</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagOutOfBailiwick" checked>
+                            <span><span class="setting-name">Flag out-of-bailiwick NS</span><span class="setting-hint">Nameservers hosted on a different parent domain than the zone itself \u2014 informational, not necessarily a problem</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagDuplicateNs">
+                            <span><span class="setting-name">Flag duplicate NS entries</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGeoLookupGlue">
+                            <span><span class="setting-name">Show approximate location of NS IPs</span><span class="setting-hint">Opt-in third-party call to ipapi.co for the first glue IP of each nameserver, to eyeball network diversity</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="minNsInput">Minimum recommended NS count</label>
+                            <input type="number" id="minNsInput" min="1" max="10" value="2">
+                        </div>
+                        <div class="field-group">
+                            <label for="maxNsInput">Maximum recommended NS count</label>
+                            <input type="number" id="maxNsInput" min="1" max="13" value="7">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output / Display</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSortNs" checked>
+                            <span><span class="setting-name">Sort NS hostnames alphabetically</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optLowercase" checked>
+                            <span><span class="setting-name">Lowercase hostnames</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowTtl" checked>
+                            <span><span class="setting-name">Show TTL</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowRawJson">
+                            <span><span class="setting-name">Include raw resolver responses in JSON tab</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchColPropagation" checked>
+                            <span><span class="setting-name">Include propagation status column</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchColGlue" checked>
+                            <span><span class="setting-name">Include glue status column</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxDomainsInput">Max domains per batch run</label>
+                            <input type="number" id="maxDomainsInput" min="1" max="100" value="25">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Domain Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="ipInput" spellcheck="false" placeholder="example.com
+cloudflare.com
+github.com"></textarea>
+                    <div class="input-hint">One domain per line. The Summary / NS Records / Glue / SOA tabs analyze the <strong>first</strong> line; the Batch Table covers every line (up to the max above). Nothing runs automatically \u2014 click "Run Lookup" to query the selected resolvers.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip">
+                        <span><strong id="lineCount">0</strong> line(s)</span>
+                        <button class="btn-solid small" id="runLookupBtn" type="button" style="margin-left:auto;"><i class="fa-solid fa-magnifying-glass"></i> Run Lookup</button>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyJsonBtn" type="button"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+                            <button class="btn-solid" id="downloadCsvBtn" type="button"><i class="fa-solid fa-download"></i> Download Batch CSV</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="summary" type="button">Summary</button>
+                        <button class="output-tab" data-tab="ns" type="button">NS Records</button>
+                        <button class="output-tab" data-tab="glue" type="button">Glue / Hosts</button>
+                        <button class="output-tab" data-tab="soa" type="button">SOA</button>
+                        <button class="output-tab" data-tab="propagation" type="button">Propagation</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-summary"><div class="empty-pane">Enter a domain above and click Run Lookup.</div></div>
+                    <div class="output-pane" id="pane-ns"><div class="empty-pane">Enter a domain above and click Run Lookup.</div></div>
+                    <div class="output-pane" id="pane-glue"><div class="empty-pane">Enter a domain above and click Run Lookup.</div></div>
+                    <div class="output-pane" id="pane-soa"><div class="empty-pane">Enter a domain above and click Run Lookup.</div></div>
+                    <div class="output-pane" id="pane-propagation"><div class="empty-pane">Enter a domain above and click Run Lookup.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Add lines and click Run Lookup to see the batch table.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter a domain above and click Run Lookup.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-globe"></i> Multi-Resolver Propagation Check</h3>
+                    <div class="utility-note">After changing nameservers, different resolvers around the internet catch up at different speeds. Query Cloudflare, Google, and Quad9 side by side and see instantly if they still disagree.</div>
+                    <div class="field-group">
+                        <label for="propDomain">Domain</label>
+                        <input type="text" id="propDomain" placeholder="example.com">
+                    </div>
+                    <button class="btn-solid small" id="propBtn" type="button">Check Propagation</button>
+                    <div class="utility-result" id="propResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-link-slash"></i> Glue Record / Missing-Glue Finder</h3>
+                    <div class="utility-note">Every advertised nameserver needs its own working A or AAAA record. This resolves each one and flags any that come back empty \u2014 a common cause of intermittent resolution failures.</div>
+                    <div class="field-group">
+                        <label for="glueDomain">Domain</label>
+                        <input type="text" id="glueDomain" placeholder="example.com">
+                    </div>
+                    <button class="btn-solid small" id="glueBtn" type="button">Find Missing Glue</button>
+                    <div class="utility-result" id="glueResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-code-compare"></i> SOA Serial Consistency Check</h3>
+                    <div class="utility-note">If a zone's secondary nameservers haven't picked up the latest transfer, resolvers can return different SOA serial numbers for the same domain. Compare serials across resolvers to catch stale replicas.</div>
+                    <div class="field-group">
+                        <label for="soaDomain">Domain</label>
+                        <input type="text" id="soaDomain" placeholder="example.com">
+                    </div>
+                    <button class="btn-solid small" id="soaBtn" type="button">Compare SOA Serials</button>
+                    <div class="utility-result" id="soaResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How does a browser do a DNS lookup?</h4>
+                        <p>Browsers can't send raw DNS packets, so this tool uses DNS-over-HTTPS (DoH): a plain HTTPS GET request to a public resolver's JSON API (Cloudflare, Google, Quad9). The resolver does the actual recursive DNS lookup and returns the answer as JSON, which is parsed and displayed here \u2014 no server of ours is involved.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why compare multiple resolvers instead of trusting one?</h4>
+                        <p>Right after you change nameservers at your registrar, different resolvers around the world are still caching the old answer for varying lengths of time (bounded by the previous record's TTL). Querying several public resolvers at once shows you the same "some people see the old servers, some see the new ones" picture your visitors experience during a migration.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What counts as a "missing glue" record?</h4>
+                        <p>A nameserver is only useful if its own hostname resolves to an IP address. This tool queries A and AAAA for each advertised NS hostname through the primary resolver; if both come back empty, that nameserver can't actually be reached, which is a frequent cause of slow or failed resolution for part of your traffic.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can this check delegation at the parent zone (registrar) directly?</h4>
+                        <p>Not quite \u2014 public DoH JSON APIs always answer through their own recursive resolver rather than letting you target a specific authoritative server, so this tool can't replicate a command like <code>dig NS example.com @a.gtld-servers.net</code> from the browser. What it can do is compare several independent resolvers' cached answers, which surfaces the same propagation and mismatch issues in practice.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does NS count have a recommended minimum and maximum?</h4>
+                        <p>A single nameserver is a single point of failure; industry guidance generally recommends at least two for redundancy. Very large NS lists (beyond roughly seven) rarely add reliability and can slow down resolution, since a resolver may need to try more servers before finding one that responds. The thresholds here are configurable rules of thumb, not hard protocol limits.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>Only to the public resolvers you select (Cloudflare, Google, Quad9, or a custom endpoint) to perform the actual DNS queries, and optionally to ipapi.co if you turn on the geolocation toggle for NS glue IPs. Nothing is sent to any server we operate, and no query results are stored anywhere \u2014 they exist only in your browser tab.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // NS RECORD LOOKUP & DELEGATION CHECKER — ENGINE
+        // ============================================
+
+        const RESOLVER_DEFS = {
+            cloudflare: { label: 'Cloudflare', url: 'https://cloudflare-dns.com/dns-query' },
+            google: { label: 'Google', url: 'https://dns.google/resolve' },
+            quad9: { label: 'Quad9', url: 'https://dns.quad9.net/dns-query' },
+            custom: { label: 'Custom', url: null }
+        };
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function getOptions() {
+            return {
+                stripProtocol: document.getElementById('optStripProtocol').checked,
+                idnaConvert: document.getElementById('optIdnaConvert').checked,
+                fetchSoa: document.getElementById('optFetchSoa').checked,
+                resolveGlue: document.getElementById('optResolveGlue').checked,
+                timeoutMs: parseInt(document.getElementById('timeoutInput').value, 10) || 5000,
+                batchDelayMs: parseInt(document.getElementById('batchDelayInput').value, 10) || 150,
+                useCloudflare: document.getElementById('optUseCloudflare').checked,
+                useGoogle: document.getElementById('optUseGoogle').checked,
+                useQuad9: document.getElementById('optUseQuad9').checked,
+                useCustom: document.getElementById('optUseCustom').checked,
+                customUrl: document.getElementById('customResolverInput').value.trim(),
+                primaryResolver: (document.querySelector('input[name="primaryResolver"]:checked') || {}).value || 'cloudflare',
+                flagMissingGlue: document.getElementById('optFlagMissingGlue').checked,
+                flagOutOfBailiwick: document.getElementById('optFlagOutOfBailiwick').checked,
+                flagDuplicateNs: document.getElementById('optFlagDuplicateNs').checked,
+                geoLookupGlue: document.getElementById('optGeoLookupGlue').checked,
+                minNs: parseInt(document.getElementById('minNsInput').value, 10) || 2,
+                maxNs: parseInt(document.getElementById('maxNsInput').value, 10) || 7,
+                sortNs: document.getElementById('optSortNs').checked,
+                lowercase: document.getElementById('optLowercase').checked,
+                showTtl: document.getElementById('optShowTtl').checked,
+                showRawJson: document.getElementById('optShowRawJson').checked,
+                batchColPropagation: document.getElementById('optBatchColPropagation').checked,
+                batchColGlue: document.getElementById('optBatchColGlue').checked,
+                maxDomains: parseInt(document.getElementById('maxDomainsInput').value, 10) || 25
+            };
+        }
+
+        function activeResolvers(opts) {
+            const list = [];
+            if (opts.useCloudflare) list.push('cloudflare');
+            if (opts.useGoogle) list.push('google');
+            if (opts.useQuad9) list.push('quad9');
+            if (opts.useCustom && opts.customUrl) list.push('custom');
+            return list;
+        }
+        function resolverUrl(key, opts) {
+            if (key === 'custom') return opts.customUrl;
+            return RESOLVER_DEFS[key].url;
+        }
+
+        function normalizeDomain(raw, opts) {
+            let s = raw.trim();
+            if (opts.stripProtocol) {
+                s = s.replace(/^[a-zA-Z]+:\/\//, '');
+                s = s.split('/')[0];
+                s = s.split('?')[0];
+                s = s.replace(/\.$/, '');
+            }
+            if (opts.idnaConvert) {
+                try { s = new URL('http://' + s).hostname; } catch (err) { /* leave as-is */ }
+            }
+            return s.toLowerCase();
+        }
+
+        async function dohQuery(url, name, type, timeoutMs) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const qs = '?name=' + encodeURIComponent(name) + '&type=' + encodeURIComponent(type);
+                const res = await fetch(url + qs, { headers: { 'Accept': 'application/dns-json' }, signal: controller.signal });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                return data;
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        function extractRecords(dohResponse, type) {
+            if (!dohResponse || !Array.isArray(dohResponse.Answer)) return [];
+            const typeNum = { A: 1, NS: 2, SOA: 6, AAAA: 28 }[type];
+            return dohResponse.Answer.filter(a => a.type === typeNum).map(a => ({ data: a.data, ttl: a.TTL }));
+        }
+        function parseSoaData(data) {
+            // format: "mname rname serial refresh retry expire minimum"
+            const parts = data.trim().split(/\s+/);
+            if (parts.length < 7) return null;
+            return { mname: parts[0], rname: parts[1], serial: parts[2], refresh: parts[3], retry: parts[4], expire: parts[5], minimum: parts[6] };
+        }
+
+        async function queryOneResolver(resolverKey, domain, opts) {
+            const url = resolverUrl(resolverKey, opts);
+            if (!url) return { resolver: resolverKey, error: 'No URL configured' };
+            try {
+                const nsResp = await dohQuery(url, domain, 'NS', opts.timeoutMs);
+                let ns = extractRecords(nsResp, 'NS').map(r => ({ host: r.data.replace(/\.$/, ''), ttl: r.ttl }));
+                if (opts.lowercase) ns = ns.map(r => ({ host: r.host.toLowerCase(), ttl: r.ttl }));
+                if (opts.sortNs) ns = ns.slice().sort((a, b) => a.host.localeCompare(b.host));
+                let soa = null;
+                if (opts.fetchSoa) {
+                    try {
+                        const soaResp = await dohQuery(url, domain, 'SOA', opts.timeoutMs);
+                        const recs = extractRecords(soaResp, 'SOA');
+                        if (recs.length) soa = Object.assign({ ttl: recs[0].ttl }, parseSoaData(recs[0].data));
+                    } catch (err) { /* leave soa null */ }
+                }
+                return { resolver: resolverKey, status: nsResp.Status, ns, soa, raw: opts.showRawJson ? nsResp : undefined };
+            } catch (err) {
+                return { resolver: resolverKey, error: (err && err.name === 'AbortError') ? 'Timed out' : (err.message || 'Request failed') };
+            }
+        }
+
+        async function resolveGlueForHosts(hosts, opts) {
+            const url = resolverUrl(opts.primaryResolver, opts) || resolverUrl('cloudflare', opts);
+            const out = {};
+            for (const host of hosts) {
+                let a = [], aaaa = [];
+                try { a = extractRecords(await dohQuery(url, host, 'A', opts.timeoutMs), 'A').map(r => r.data); } catch (err) { /* ignore */ }
+                try { aaaa = extractRecords(await dohQuery(url, host, 'AAAA', opts.timeoutMs), 'AAAA').map(r => r.data); } catch (err) { /* ignore */ }
+                out[host] = { a, aaaa, hasGlue: (a.length + aaaa.length) > 0 };
+            }
+            return out;
+        }
+
+        function registrableSuffix(domain) {
+            const parts = domain.split('.').filter(Boolean);
+            if (parts.length <= 2) return domain;
+            return parts.slice(-2).join('.');
+        }
+        function isOutOfBailiwick(nsHost, domain) {
+            const domSuffix = registrableSuffix(domain);
+            const nsSuffix = registrableSuffix(nsHost);
+            return domSuffix !== nsSuffix;
+        }
+
+        async function geoLookupIp(ip) {
+            try {
+                const res = await fetch('https://ipapi.co/' + ip + '/json/');
+                const data = await res.json();
+                return [data.city, data.region, data.country_name].filter(Boolean).join(', ') || (data.org || null);
+            } catch (err) { return null; }
+        }
+
+        let lastAnalysis = { primary: null, batch: [], perResolver: {}, glue: {} };
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+        function paneLoading(id, msg) { document.getElementById(id).innerHTML = '<div class="spinner-text"><i class="fa-solid fa-spinner fa-spin"></i> ' + escapeHtml(msg) + '</div>'; }
+
+        async function analyzeDomain(domain, opts) {
+            const resolvers = activeResolvers(opts);
+            if (resolvers.length === 0) return { domain, error: 'No resolvers enabled in settings' };
+            const perResolver = {};
+            for (const key of resolvers) {
+                perResolver[key] = await queryOneResolver(key, domain, opts);
+            }
+            const primaryKey = resolvers.includes(opts.primaryResolver) ? opts.primaryResolver : resolvers[0];
+            const primary = perResolver[primaryKey];
+            let glue = {};
+            if (opts.resolveGlue && primary && primary.ns && primary.ns.length) {
+                glue = await resolveGlueForHosts(primary.ns.map(r => r.host), opts);
+                if (opts.geoLookupGlue) {
+                    for (const host of Object.keys(glue)) {
+                        const ip = glue[host].a[0] || glue[host].aaaa[0];
+                        if (ip) glue[host].geo = await geoLookupIp(ip);
+                    }
+                }
+            }
+            const nsSets = resolvers.map(k => (perResolver[k].ns || []).map(r => r.host).slice().sort().join(','));
+            const consistent = nsSets.every(s => s === nsSets[0]) && nsSets[0] !== undefined && nsSets[0] !== '';
+            return { domain, perResolver, primaryKey, primary, glue, consistent };
+        }
+
+        async function runLookup() {
+            const opts = getOptions();
+            const raw = document.getElementById('ipInput').value;
+            let lines = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+
+            const errorBox = document.getElementById('errorBox');
+            errorBox.classList.remove('show');
+            if (activeResolvers(opts).length === 0) {
+                errorBox.textContent = 'Enable at least one resolver in settings before running a lookup.';
+                errorBox.classList.add('show');
+                return;
+            }
+            if (lines.length === 0) {
+                paneEmpty('pane-summary', 'Enter a domain above and click Run Lookup.');
+                return;
+            }
+            if (lines.length > opts.maxDomains) lines = lines.slice(0, opts.maxDomains);
+
+            const domains = lines.map(l => normalizeDomain(l, opts));
+
+            ['pane-summary', 'pane-ns', 'pane-glue', 'pane-soa', 'pane-propagation'].forEach(id => paneLoading(id, 'Querying resolvers\u2026'));
+            paneLoading('pane-batch', 'Querying ' + domains.length + ' domain(s)\u2026');
+            document.getElementById('jsonOut').textContent = 'Querying resolvers\u2026';
+
+            const results = [];
+            for (let i = 0; i < domains.length; i++) {
+                const r = await analyzeDomain(domains[i], opts);
+                results.push(r);
+                if (i === 0) {
+                    lastAnalysis.primary = r;
+                    renderSummary(r, opts);
+                    renderNs(r, opts);
+                    renderGlue(r, opts);
+                    renderSoa(r, opts);
+                    renderPropagation(r, opts);
+                }
+                if (opts.batchDelayMs > 0 && i < domains.length - 1) await new Promise(res => setTimeout(res, opts.batchDelayMs));
+            }
+            lastAnalysis.batch = results;
+            renderBatch(results, opts);
+            renderJson(results, opts);
+        }
+
+        function nsCountBadge(count, opts) {
+            if (count === 0) return '<span class="pill fail">No NS found</span>';
+            if (count < opts.minNs) return '<span class="pill mismatch">Below minimum (' + count + ')</span>';
+            if (count > opts.maxNs) return '<span class="pill mismatch">Above recommended max (' + count + ')</span>';
+            return '<span class="pill ok">OK (' + count + ')</span>';
+        }
+
+        function renderSummary(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-summary', r ? r.error : 'Enter a domain above and click Run Lookup.'); return; }
+            const primary = r.primary || {};
+            const nsCount = (primary.ns || []).length;
+            let rows = [];
+            rows.push(['Domain', escapeHtml(r.domain)]);
+            rows.push(['Primary resolver', RESOLVER_DEFS[r.primaryKey] ? RESOLVER_DEFS[r.primaryKey].label : r.primaryKey]);
+            rows.push(['Query status', primary.error ? ('Error: ' + primary.error) : ('DNS status ' + primary.status)]);
+            rows.push(['NS count', nsCountBadge(nsCount, opts)]);
+            rows.push(['Cross-resolver propagation', r.consistent ? '<span class="pill ok">Consistent</span>' : '<span class="pill mismatch">Mismatch detected</span>']);
+            if (opts.resolveGlue && primary.ns) {
+                const missing = (primary.ns || []).filter(n => r.glue[n.host] && !r.glue[n.host].hasGlue);
+                rows.push(['Missing glue', missing.length ? ('<span class="pill fail">' + missing.length + ' host(s)</span>') : '<span class="pill ok">None</span>']);
+            }
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + v + '</td></tr>';
+            html += '</table>';
+            document.getElementById('pane-summary').innerHTML = html;
+        }
+
+        function renderNs(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-ns', r ? r.error : 'Enter a domain above and click Run Lookup.'); return; }
+            const primary = r.primary || {};
+            if (primary.error) { paneEmpty('pane-ns', 'Primary resolver error: ' + primary.error); return; }
+            const ns = primary.ns || [];
+            if (ns.length === 0) { paneEmpty('pane-ns', 'No NS records found for this domain.'); return; }
+            let seen = {}, dupes = [];
+            if (opts.flagDuplicateNs) { for (const n of ns) { if (seen[n.host]) dupes.push(n.host); seen[n.host] = true; } }
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr><th>Nameserver</th>' + (opts.showTtl ? '<th>TTL</th>' : '') + '<th>Bailiwick</th></tr></thead><tbody>';
+            for (const n of ns) {
+                const oob = opts.flagOutOfBailiwick && isOutOfBailiwick(n.host, r.domain);
+                const isDup = opts.flagDuplicateNs && dupes.includes(n.host);
+                html += '<tr><td>' + escapeHtml(n.host) + (isDup ? ' <span class="pill mismatch">Duplicate</span>' : '') + '</td>' +
+                    (opts.showTtl ? '<td>' + n.ttl + '</td>' : '') +
+                    '<td>' + (oob ? '<span class="pill mismatch">External</span>' : '<span class="pill ok">In-zone</span>') + '</td></tr>';
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('pane-ns').innerHTML = html;
+        }
+
+        function renderGlue(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-glue', r ? r.error : 'Enter a domain above and click Run Lookup.'); return; }
+            if (!opts.resolveGlue) { paneEmpty('pane-glue', 'Glue resolution is turned off in settings.'); return; }
+            const primary = r.primary || {};
+            const ns = primary.ns || [];
+            if (ns.length === 0) { paneEmpty('pane-glue', 'No NS records to resolve.'); return; }
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr><th>Nameserver</th><th>A</th><th>AAAA</th><th>Status</th>' + (opts.geoLookupGlue ? '<th>Approx. Location</th>' : '') + '</tr></thead><tbody>';
+            for (const n of ns) {
+                const g = r.glue[n.host] || { a: [], aaaa: [], hasGlue: false };
+                const missing = opts.flagMissingGlue && !g.hasGlue;
+                html += '<tr><td>' + escapeHtml(n.host) + '</td><td>' + (g.a.length ? g.a.map(escapeHtml).join('<br>') : '\u2014') + '</td><td>' + (g.aaaa.length ? g.aaaa.map(escapeHtml).join('<br>') : '\u2014') + '</td><td>' + (missing ? '<span class="pill fail">Missing glue</span>' : '<span class="pill ok">OK</span>') + '</td>' + (opts.geoLookupGlue ? '<td>' + (g.geo ? escapeHtml(g.geo) : '\u2014') + '</td>' : '') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('pane-glue').innerHTML = html;
+        }
+
+        function renderSoa(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-soa', r ? r.error : 'Enter a domain above and click Run Lookup.'); return; }
+            if (!opts.fetchSoa) { paneEmpty('pane-soa', 'SOA fetching is turned off in settings.'); return; }
+            const soa = (r.primary || {}).soa;
+            if (!soa) { paneEmpty('pane-soa', 'No SOA record returned.'); return; }
+            let rows = [['MNAME (primary NS)', soa.mname], ['RNAME (admin contact)', soa.rname], ['Serial', soa.serial], ['Refresh', soa.refresh + 's'], ['Retry', soa.retry + 's'], ['Expire', soa.expire + 's'], ['Minimum TTL', soa.minimum + 's']];
+            if (opts.showTtl) rows.push(['Record TTL', soa.ttl + 's']);
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+            html += '</table>';
+            document.getElementById('pane-soa').innerHTML = html;
+        }
+
+        function renderPropagation(r, opts) {
+            if (!r || r.error) { paneEmpty('pane-propagation', r ? r.error : 'Enter a domain above and click Run Lookup.'); return; }
+            const keys = Object.keys(r.perResolver);
+            if (keys.length === 0) { paneEmpty('pane-propagation', 'No resolvers enabled.'); return; }
+            let html = '<div style="margin-bottom:10px;">' + (r.consistent ? '<span class="pill ok">All resolvers agree</span>' : '<span class="pill mismatch">Resolvers disagree</span>') + '</div>';
+            for (const key of keys) {
+                const res = r.perResolver[key];
+                const label = RESOLVER_DEFS[key] ? RESOLVER_DEFS[key].label : key;
+                if (res.error) {
+                    html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="pill fail">' + escapeHtml(res.error) + '</span></div>';
+                } else {
+                    const nsList = (res.ns || []).map(n => n.host).join(', ') || '(none)';
+                    html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="resolver-ns-list">' + escapeHtml(nsList) + '</span></div>';
+                }
+            }
+            document.getElementById('pane-propagation').innerHTML = html;
+        }
+
+        function renderBatch(results, opts) {
+            if (!results || results.length === 0) { paneEmpty('pane-batch', 'Add lines and click Run Lookup to see the batch table.'); return; }
+            let cols = ['Domain', 'NS Count'];
+            if (opts.batchColPropagation) cols.push('Propagation');
+            if (opts.batchColGlue) cols.push('Glue');
+            cols.push('Primary Nameservers');
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+            for (const r of results) {
+                if (r.error) { html += '<tr><td>' + escapeHtml(r.domain) + '</td><td colspan="' + (cols.length - 1) + '" style="color:var(--danger);">' + escapeHtml(r.error) + '</td></tr>'; continue; }
+                const primary = r.primary || {};
+                const nsList = (primary.ns || []).map(n => n.host);
+                let cells = [escapeHtml(r.domain), nsCountBadge(nsList.length, opts)];
+                if (opts.batchColPropagation) cells.push(r.consistent ? '<span class="pill ok">Consistent</span>' : '<span class="pill mismatch">Mismatch</span>');
+                if (opts.batchColGlue) {
+                    const missing = nsList.filter(h => r.glue[h] && !r.glue[h].hasGlue);
+                    cells.push(missing.length ? ('<span class="pill fail">' + missing.length + ' missing</span>') : '<span class="pill ok">OK</span>');
+                }
+                cells.push(escapeHtml(nsList.join(', ') || '\u2014'));
+                html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('pane-batch').innerHTML = html;
+        }
+
+        function csvCell(s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; }
+
+        function renderJson(results, opts) {
+            const out = results.map(r => {
+                if (r.error) return { domain: r.domain, error: r.error };
+                const primary = r.primary || {};
+                return {
+                    domain: r.domain,
+                    primaryResolver: r.primaryKey,
+                    ns: (primary.ns || []).map(n => ({ host: n.host, ttl: n.ttl })),
+                    soa: primary.soa || null,
+                    consistentAcrossResolvers: r.consistent,
+                    glue: r.glue,
+                    perResolver: opts.showRawJson ? r.perResolver : Object.fromEntries(Object.entries(r.perResolver).map(([k, v]) => [k, { status: v.status, ns: v.ns, soa: v.soa, error: v.error }]))
+                };
+            });
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring ----------
+        document.getElementById('runLookupBtn').addEventListener('click', runLookup);
+        document.getElementById('ipInput').addEventListener('input', () => {
+            const lines = document.getElementById('ipInput').value.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+            saveDraft();
+        });
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; saveDraft(); });
+        });
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('ipInput').value = '';
+            document.getElementById('lineCount').textContent = '0';
+            document.getElementById('ipInput').focus();
+        });
+        document.getElementById('copyJsonBtn').addEventListener('click', async () => {
+            const text = document.getElementById('jsonOut').textContent;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const rows = lastAnalysis.batch || [];
+            if (rows.length === 0) return;
+            const header = ['domain', 'nsCount', 'nameservers', 'consistent', 'missingGlueCount', 'error'];
+            const lines = [header.join(',')];
+            for (const r of rows) {
+                if (r.error) { lines.push([csvCell(r.domain), '', '', '', '', csvCell(r.error)].join(',')); continue; }
+                const primary = r.primary || {};
+                const nsList = (primary.ns || []).map(n => n.host);
+                const missing = nsList.filter(h => r.glue[h] && !r.glue[h].hasGlue);
+                lines.push([csvCell(r.domain), nsList.length, csvCell(nsList.join('; ')), r.consistent, missing.length, ''].join(','));
+            }
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ns-lookup-batch.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- Utility: Multi-Resolver Propagation Check ----------
+        document.getElementById('propBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('propResult');
+            const domain = normalizeDomain(document.getElementById('propDomain').value.trim(), opts);
+            if (!domain) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a domain.</div>'; return; }
+            resultEl.innerHTML = '<div class="spinner-text"><i class="fa-solid fa-spinner fa-spin"></i> Querying resolvers\u2026</div>';
+            const resolvers = activeResolvers(opts);
+            if (resolvers.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enable at least one resolver in settings.</div>'; return; }
+            let html = '';
+            const sets = [];
+            for (const key of resolvers) {
+                const res = await queryOneResolver(key, domain, Object.assign({}, opts, { fetchSoa: false }));
+                const label = RESOLVER_DEFS[key].label;
+                if (res.error) { html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="pill fail">' + escapeHtml(res.error) + '</span></div>'; }
+                else {
+                    const list = (res.ns || []).map(n => n.host);
+                    sets.push(list.slice().sort().join(','));
+                    html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="resolver-ns-list">' + escapeHtml(list.join(', ') || '(none)') + '</span></div>';
+                }
+            }
+            const consistent = sets.every(s => s === sets[0]) && sets.length > 0 && sets[0] !== '';
+            resultEl.innerHTML = '<div style="margin-bottom:8px;">' + (consistent ? '<span class="pill ok">Consistent across resolvers</span>' : '<span class="pill mismatch">Mismatch detected</span>') + '</div>' + html;
+        });
+
+        // ---------- Utility: Glue Record Finder ----------
+        document.getElementById('glueBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('glueResult');
+            const domain = normalizeDomain(document.getElementById('glueDomain').value.trim(), opts);
+            if (!domain) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a domain.</div>'; return; }
+            resultEl.innerHTML = '<div class="spinner-text"><i class="fa-solid fa-spinner fa-spin"></i> Resolving nameservers\u2026</div>';
+            const url = resolverUrl(opts.primaryResolver, opts) || resolverUrl('cloudflare', opts);
+            try {
+                const nsResp = await dohQuery(url, domain, 'NS', opts.timeoutMs);
+                const ns = extractRecords(nsResp, 'NS').map(r => r.data.replace(/\.$/, '').toLowerCase());
+                if (ns.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">No NS records found.</div>'; return; }
+                const glue = await resolveGlueForHosts(ns, opts);
+                let rowsHtml = ns.map(h => {
+                    const g = glue[h];
+                    return '<tr><td>' + escapeHtml(h) + '</td><td>' + (g.a.length ? g.a.join(', ') : '\u2014') + '</td><td>' + (g.aaaa.length ? g.aaaa.join(', ') : '\u2014') + '</td><td>' + (g.hasGlue ? '<span class="pill ok">OK</span>' : '<span class="pill fail">Missing</span>') + '</td></tr>';
+                }).join('');
+                const missingCount = ns.filter(h => !glue[h].hasGlue).length;
+                resultEl.innerHTML = '<div style="font-size:11.5px;opacity:0.6;margin-bottom:8px;">' + missingCount + ' of ' + ns.length + ' nameserver(s) missing glue</div><div class="table-scroll"><table class="data-table"><thead><tr><th>Nameserver</th><th>A</th><th>AAAA</th><th>Status</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+            } catch (err) {
+                resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Lookup failed: ' + escapeHtml(err.message || 'unknown error') + '</div>';
+            }
+        });
+
+        // ---------- Utility: SOA Serial Consistency ----------
+        document.getElementById('soaBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('soaResult');
+            const domain = normalizeDomain(document.getElementById('soaDomain').value.trim(), opts);
+            if (!domain) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a domain.</div>'; return; }
+            resultEl.innerHTML = '<div class="spinner-text"><i class="fa-solid fa-spinner fa-spin"></i> Querying SOA records\u2026</div>';
+            const resolvers = activeResolvers(opts);
+            if (resolvers.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enable at least one resolver in settings.</div>'; return; }
+            let html = '';
+            const serials = [];
+            for (const key of resolvers) {
+                const url = resolverUrl(key, opts);
+                const label = RESOLVER_DEFS[key].label;
+                try {
+                    const soaResp = await dohQuery(url, domain, 'SOA', opts.timeoutMs);
+                    const recs = extractRecords(soaResp, 'SOA');
+                    if (!recs.length) { html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="pill fail">No SOA</span></div>'; continue; }
+                    const soa = parseSoaData(recs[0].data);
+                    serials.push(soa.serial);
+                    html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="resolver-ns-list">Serial ' + escapeHtml(soa.serial) + '</span></div>';
+                } catch (err) {
+                    html += '<div class="resolver-row"><span class="resolver-name">' + escapeHtml(label) + '</span><span class="pill fail">' + escapeHtml(err.message || 'Request failed') + '</span></div>';
+                }
+            }
+            const consistent = serials.length > 0 && serials.every(s => s === serials[0]);
+            resultEl.innerHTML = '<div style="margin-bottom:8px;">' + (consistent ? '<span class="pill ok">Serials match</span>' : '<span class="pill mismatch">Serials differ</span>') + '</div>' + html;
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optStripProtocol', 'optIdnaConvert', 'optFetchSoa', 'optResolveGlue', 'optUseCloudflare', 'optUseGoogle', 'optUseQuad9', 'optUseCustom', 'optFlagMissingGlue', 'optFlagOutOfBailiwick', 'optFlagDuplicateNs', 'optGeoLookupGlue', 'optSortNs', 'optLowercase', 'optShowTtl', 'optShowRawJson', 'optBatchColPropagation', 'optBatchColGlue'],
+            text: ['timeoutInput', 'batchDelayInput', 'customResolverInput', 'minNsInput', 'maxNsInput', 'maxDomainsInput'],
+            radio: ['primaryResolver']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) { const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]'); if (el) el.checked = true; }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            quick: {
+                optStripProtocol: true, optIdnaConvert: true, optFetchSoa: false, optResolveGlue: false,
+                timeoutInput: '5000', batchDelayInput: '150',
+                optUseCloudflare: true, optUseGoogle: false, optUseQuad9: false, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optFlagMissingGlue: false, optFlagOutOfBailiwick: false, optFlagDuplicateNs: false, optGeoLookupGlue: false, minNsInput: '2', maxNsInput: '7',
+                optSortNs: true, optLowercase: true, optShowTtl: true, optShowRawJson: false,
+                optBatchColPropagation: false, optBatchColGlue: false, maxDomainsInput: '25'
+            },
+            propagation: {
+                optStripProtocol: true, optIdnaConvert: true, optFetchSoa: false, optResolveGlue: false,
+                timeoutInput: '6000', batchDelayInput: '150',
+                optUseCloudflare: true, optUseGoogle: true, optUseQuad9: true, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optFlagMissingGlue: false, optFlagOutOfBailiwick: false, optFlagDuplicateNs: false, optGeoLookupGlue: false, minNsInput: '2', maxNsInput: '7',
+                optSortNs: true, optLowercase: true, optShowTtl: false, optShowRawJson: false,
+                optBatchColPropagation: true, optBatchColGlue: false, maxDomainsInput: '25'
+            },
+            glue: {
+                optStripProtocol: true, optIdnaConvert: true, optFetchSoa: false, optResolveGlue: true,
+                timeoutInput: '6000', batchDelayInput: '150',
+                optUseCloudflare: true, optUseGoogle: false, optUseQuad9: false, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optFlagMissingGlue: true, optFlagOutOfBailiwick: true, optFlagDuplicateNs: true, optGeoLookupGlue: true, minNsInput: '2', maxNsInput: '7',
+                optSortNs: true, optLowercase: true, optShowTtl: true, optShowRawJson: false,
+                optBatchColPropagation: false, optBatchColGlue: true, maxDomainsInput: '25'
+            },
+            migration: {
+                optStripProtocol: true, optIdnaConvert: true, optFetchSoa: true, optResolveGlue: true,
+                timeoutInput: '6000', batchDelayInput: '200',
+                optUseCloudflare: true, optUseGoogle: true, optUseQuad9: true, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optFlagMissingGlue: true, optFlagOutOfBailiwick: true, optFlagDuplicateNs: true, optGeoLookupGlue: false, minNsInput: '2', maxNsInput: '7',
+                optSortNs: true, optLowercase: true, optShowTtl: true, optShowRawJson: false,
+                optBatchColPropagation: true, optBatchColGlue: true, maxDomainsInput: '25'
+            },
+            batch: {
+                optStripProtocol: true, optIdnaConvert: true, optFetchSoa: false, optResolveGlue: true,
+                timeoutInput: '4000', batchDelayInput: '250',
+                optUseCloudflare: true, optUseGoogle: true, optUseQuad9: false, optUseCustom: false, customResolverInput: '', primaryResolver: 'cloudflare',
+                optFlagMissingGlue: true, optFlagOutOfBailiwick: false, optFlagDuplicateNs: false, optGeoLookupGlue: false, minNsInput: '2', maxNsInput: '7',
+                optSortNs: true, optLowercase: true, optShowTtl: false, optShowRawJson: false,
+                optBatchColPropagation: true, optBatchColGlue: true, maxDomainsInput: '50'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'nsLookupCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) { applySettingsObject(BUILTIN_PRESETS[val]); }
+            saveDraft();
+        });
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ns-lookup-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    saveDraft();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave (input text + settings only; no query results persisted) ----------
+        const DRAFT_KEY = 'nsLookupDraft';
+        const DRAFT_SETTINGS_KEY = 'nsLookupLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, document.getElementById('ipInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') document.getElementById('ipInput').value = savedDraft;
+                else document.getElementById('ipInput').value = 'example.com\ncloudflare.com\ngithub.com';
+            } catch (err) {
+                document.getElementById('ipInput').value = 'example.com\ncloudflare.com\ngithub.com';
+            }
+            const lines = document.getElementById('ipInput').value.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+        })();
+    </script>
+</body>
+</html>
