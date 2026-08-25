@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | IP Address Lookup & Subnet Toolkit</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free bulk IP address lookup tool. Get geolocation, ISP/ASN, timezone, and network details for any IPv4 or IPv6 address, flag private/reserved ranges instantly, run a CIDR/subnet calculator, and export results to CSV or JSON. Runs in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/ip-lookup.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/ip-lookup.html" />
+<meta property="og:title" content="IP Address Lookup & Subnet Toolkit — awjunaid" />
+<meta property="og:description" content="Bulk IP geolocation, ISP/ASN, and timezone lookup with private-range detection, a CIDR/subnet calculator, and CSV/JSON export — built for abuse reports, firewall planning, and log triage." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ip-lookup.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="IP Address Lookup & Subnet Toolkit — awjunaid" />
+<meta name="twitter:description" content="Look up IPv4/IPv6 geolocation, ISP, ASN and timezone in bulk, flag private ranges, calculate subnets, and export to CSV/JSON. Free, browser-based." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ip-lookup.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        #ipInput {
+            width: 100%;
+            min-height: 200px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #ipInput:focus { outline: none; border-color: var(--border-color); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* IP validity chips under the textarea */
+        .ip-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; max-height: 110px; overflow-y: auto; }
+        .ip-chip {
+            font-family: var(--font-mono); font-size: 11px; font-weight: 600; padding: 4px 10px;
+            border-radius: 30px; border: 1px solid var(--border-light); display: inline-flex; align-items: center; gap: 6px;
+        }
+        .ip-chip .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .ip-chip.valid-public .dot { background: var(--accent); }
+        .ip-chip.valid-private .dot { background: var(--warn); }
+        .ip-chip.invalid { opacity: 0.5; }
+        .ip-chip.invalid .dot { background: var(--danger); }
+
+        /* Progress bar for batch lookups */
+        .progress-track { height: 6px; border-radius: 6px; background: var(--border-light); overflow: hidden; margin-top: 12px; display: none; }
+        .progress-track.active { display: block; }
+        .progress-fill { height: 100%; width: 0%; background: var(--text-primary); transition: width 0.15s ease; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .results-list { display: flex; flex-direction: column; gap: 12px; max-height: 460px; overflow-y: auto; padding-right: 4px; }
+        .result-card { border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; background: var(--input-bg); }
+        .result-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .result-ip { font-family: var(--font-mono); font-weight: 700; font-size: 14px; }
+        .badge {
+            font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px;
+            padding: 3px 9px; border-radius: 30px; border: 1px solid currentColor; white-space: nowrap;
+        }
+        .badge-public { color: var(--accent); }
+        .badge-private { color: var(--warn); }
+        .badge-error { color: var(--danger); }
+        .result-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 14px; font-size: 12px; }
+        .result-fields dt { opacity: 0.55; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+        .result-fields dd { font-weight: 600; word-break: break-word; }
+        .result-card-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+        .mini-btn {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 6px 12px;
+            border-radius: 30px; border: 1px solid var(--border-light); background: transparent; color: var(--text-color); cursor: pointer;
+        }
+        .mini-btn:hover { background: var(--hover-bg); color: var(--hover-text); border-color: var(--hover-bg); }
+        .results-empty { font-size: 12px; opacity: 0.5; padding: 20px 4px; }
+
+        #jsonOutput {
+            width: 100%;
+            min-height: 460px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 12px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        .map-select-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+        .map-select-row select { padding: 8px 12px; border-radius: 30px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); font-size: 12px; font-family: var(--font-body); flex: 1; min-width: 160px; }
+        .map-frame-wrap { border: 1px solid var(--border-light); border-radius: 16px; overflow: hidden; height: 400px; }
+        .map-frame-wrap iframe { width: 100%; height: 100%; border: 0; filter: grayscale(0.15); }
+        .map-empty { font-size: 12px; opacity: 0.5; padding: 40px 20px; text-align: center; border: 1px dashed var(--border-light); border-radius: 16px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* ============================================
+           SUBNET / CIDR CALCULATOR
+           ============================================ */
+        .subnet-section { margin: 0 0 40px; }
+        .subnet-input-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+        .subnet-input-row input {
+            flex: 1; min-width: 220px; padding: 12px 16px; border-radius: 30px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-mono); font-size: 13px;
+        }
+        .subnet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+        .subnet-item { border: 1px solid var(--border-light); border-radius: 14px; padding: 14px 16px; }
+        .subnet-item .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.55; margin-bottom: 6px; }
+        .subnet-item .value { font-family: var(--font-mono); font-weight: 700; font-size: 14px; word-break: break-all; }
+        .subnet-error { font-size: 12.5px; color: var(--danger); margin-top: 4px; }
+
+        /* History chips */
+        .history-section { margin: 0 0 40px; }
+        .history-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .history-chip {
+            font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; padding: 7px 14px;
+            border-radius: 30px; border: 1px solid var(--border-light); cursor: pointer; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .history-chip:hover { background: var(--hover-bg); color: var(--hover-text); border-color: var(--hover-bg); }
+        .history-chip .h-meta { opacity: 0.6; font-family: var(--font-body); font-weight: 500; }
+        .history-empty { font-size: 12px; opacity: 0.5; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #ipInput { min-height: 160px; }
+            .results-list, #jsonOutput, .map-frame-wrap { max-height: 320px; height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">IP Address Lookup & Subnet Toolkit</h1>
+                <div class="tool-dek">Paste one IP per line — IPv4 or IPv6 — to bulk-resolve geolocation, ISP/ASN, and timezone data, with private and reserved ranges flagged automatically before you burn an API call on them. Includes a standalone CIDR/subnet calculator for firewall and VLAN planning, plus CSV/JSON export for tickets and incident reports.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="quick">Quick Single Lookup</option>
+                    <option value="abuse">Abuse Report Investigation</option>
+                    <option value="migration">Server Migration Audit</option>
+                    <option value="firewall">Firewall / ACL Planning</option>
+                    <option value="support">Support Ticket Triage</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Data Fields to Show</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowLocation" checked>
+                            <span><span class="setting-name">Location</span><span class="setting-hint">City, region, country, postal code and continent</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowCoordinates" checked>
+                            <span><span class="setting-name">Coordinates</span><span class="setting-hint">Latitude / longitude, used to render the Map tab</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowNetwork" checked>
+                            <span><span class="setting-name">Network / ASN</span><span class="setting-hint">Owning organization, ASN, and the announced network block</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowTimezone" checked>
+                            <span><span class="setting-name">Timezone & UTC offset</span><span class="setting-hint">Local timezone name and offset from UTC</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowCurrency">
+                            <span><span class="setting-name">Currency</span><span class="setting-hint">Local currency code and name</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowCallingCode">
+                            <span><span class="setting-name">Calling code & languages</span><span class="setting-hint">Country dial code and spoken languages</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowPopulation">
+                            <span><span class="setting-name">Country area & population</span><span class="setting-hint">Useful context when triaging unfamiliar country codes</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Lookup Behavior</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optValidateBeforeLookup" checked>
+                            <span><span class="setting-name">Validate before lookup</span><span class="setting-hint">Skips API calls for malformed addresses</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSkipInvalid" checked>
+                            <span><span class="setting-name">Skip invalid lines silently</span><span class="setting-hint">Otherwise invalid lines are shown as error cards</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDedupeIPs" checked>
+                            <span><span class="setting-name">De-duplicate input</span><span class="setting-hint">Repeated addresses in the list are only looked up once</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowPrivateBadge" checked>
+                            <span><span class="setting-name">Flag private / reserved ranges</span><span class="setting-hint">Detected locally — RFC1918, loopback, link-local, CGNAT, multicast; skips the API call entirely</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optExpandIPv6">
+                            <span><span class="setting-name">Expand shorthand IPv6</span><span class="setting-hint">Displays the fully expanded 8-group form alongside the input</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optCacheResults" checked>
+                            <span><span class="setting-name">Cache results this session</span><span class="setting-hint">Re-looking up the same IP reuses the earlier response instead of a new call</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="batchDelayInput">Delay between requests (ms)</label>
+                            <input type="number" id="batchDelayInput" min="0" max="5000" value="300" placeholder="e.g. 300">
+                        </div>
+                        <div class="field-group">
+                            <label for="historyLimitInput">History entries to keep</label>
+                            <input type="number" id="historyLimitInput" min="0" max="200" value="20" placeholder="e.g. 20">
+                        </div>
+                        <div class="field-group full-width">
+                            <label>Result order</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="outputSort" value="input" checked> Input order</label>
+                                <label class="radio-opt"><input type="radio" name="outputSort" value="country"> Group by country</label>
+                                <label class="radio-opt"><input type="radio" name="outputSort" value="asn"> Group by network / ASN</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Copy & Export</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Single-field copy format</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="copyFormat" value="plain" checked> Plain value</label>
+                                <label class="radio-opt"><input type="radio" name="copyFormat" value="labeled"> Labeled ("Country: Pakistan")</label>
+                                <label class="radio-opt"><input type="radio" name="copyFormat" value="json"> Single-line JSON</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>IP Addresses</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="useMyIpBtn" type="button"><i class="fa-solid fa-location-crosshairs"></i> Use My IP</button>
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".txt,.csv,.log" style="display:none;">
+                        </div>
+                    </div>
+                    <textarea id="ipInput" spellcheck="false" placeholder="One IP address per line, e.g.
+
+8.8.8.8
+1.1.1.1
+2606:4700:4700::1111
+192.168.1.1"></textarea>
+                    <div class="file-drop" id="dropZone">Drag & drop a .txt/.csv/.log file of IPs here, or paste log lines directly — addresses are extracted automatically</div>
+                    <div class="ip-chip-row" id="ipChipRow"></div>
+                    <div class="progress-track" id="progressTrack"><div class="progress-fill" id="progressFill"></div></div>
+                    <div class="stat-strip">
+                        <span><strong id="statTotal">0</strong> lines</span>
+                        <span><span class="stat-dot" style="background:var(--accent)"></span><strong id="statPublic">0</strong> public</span>
+                        <span><span class="stat-dot" style="background:var(--warn)"></span><strong id="statPrivate">0</strong> private</span>
+                        <span><span class="stat-dot" style="background:var(--danger)"></span><strong id="statInvalid">0</strong> invalid</span>
+                    </div>
+                    <div class="panel-actions" style="margin-top:16px;">
+                        <button class="btn-solid" id="lookupBtn" type="button"><i class="fa-solid fa-magnifying-glass-location"></i> Lookup All</button>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Results</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyAllBtn" type="button"><i class="fa-solid fa-copy"></i> Copy Table<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadCsvBtn" type="button"><i class="fa-solid fa-file-csv"></i> CSV</button>
+                            <button class="btn-solid" id="downloadJsonBtn" type="button"><i class="fa-solid fa-download"></i> JSON</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="table" type="button">Results</button>
+                        <button class="output-tab" data-tab="json" type="button">Raw JSON</button>
+                        <button class="output-tab" data-tab="map" type="button">Map</button>
+                    </div>
+                    <div class="output-pane active" id="pane-table">
+                        <div class="results-list" id="resultsList"><div class="results-empty">Add IP addresses and click "Lookup All" to see results here.</div></div>
+                    </div>
+                    <div class="output-pane" id="pane-json">
+                        <textarea id="jsonOutput" readonly placeholder="Raw JSON for every looked-up address appears here."></textarea>
+                    </div>
+                    <div class="output-pane" id="pane-map">
+                        <div class="map-select-row">
+                            <select id="mapIpSelect"><option value="">Select a looked-up IP…</option></select>
+                        </div>
+                        <div id="mapContainer"><div class="map-empty">Look up an address with coordinates to preview it on a map.</div></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="resultCount">0</strong> resolved</span>
+                        <span><strong id="errorCount">0</strong> failed</span>
+                        <span><strong id="cacheCount">0</strong> from cache</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subnet / CIDR Calculator -->
+            <div class="subnet-section">
+                <div class="section-heading">✦ CIDR / Subnet Calculator</div>
+                <div class="panel-card">
+                    <div class="subnet-input-row">
+                        <input type="text" id="subnetInput" placeholder="e.g. 192.168.1.0/24 or 10.0.4.130/22" spellcheck="false">
+                        <button class="btn-solid" id="subnetCalcBtn" type="button"><i class="fa-solid fa-calculator"></i> Calculate</button>
+                    </div>
+                    <div id="subnetError" class="subnet-error" style="display:none;"></div>
+                    <div class="subnet-grid" id="subnetResults" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="history-section">
+                <div class="section-heading">✦ Recent Lookups (this session)</div>
+                <div class="history-row" id="historyRow"><span class="history-empty">Lookups you run will appear here so you can re-check them quickly — cleared when you leave the page.</span></div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>Abuse reports, firewall logs, and server migration checklists all hand you raw IP addresses with no context. This tool bulk-resolves them to geolocation, ISP, and network ownership, flags anything internal or reserved before you waste a lookup on it, and gets the results into a CSV or ticket-ready format fast.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why flag private and reserved ranges locally?</h4>
+                        <p>Addresses like 10.x, 172.16–31.x, 192.168.x, loopback, link-local, and CGNAT ranges will never resolve to a real-world location — sending them to a geolocation API just burns your request quota for a useless answer. Detecting these entirely in your browser catches them instantly and for free.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Where does the geolocation data come from?</h4>
+                        <p>Public IP lookups call a third-party geolocation API directly from your browser. Accuracy for city-level data varies by provider and by ISP — treat it as a strong starting point for triage, not a precise physical address.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the CIDR/Subnet Calculator do?</h4>
+                        <p>Enter any IPv4 address with a CIDR prefix (like 192.168.1.0/24) and it works out the network and broadcast addresses, the usable host range, total host count, subnet mask, and wildcard mask — entirely offline, no lookup required. Handy for firewall rules, VLAN planning, and sanity-checking log entries.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I look up more than one IP at once?</h4>
+                        <p>Yes — paste one address per line, or drop in a raw log file and IPv4/IPv6 addresses are extracted automatically. Requests run sequentially with a configurable delay between them so you don't trip the geolocation provider's rate limit on large batches.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything saved or sent anywhere else?</h4>
+                        <p>The page itself runs entirely in your browser. The only outbound traffic is the geolocation request for each public IP you look up, sent straight from your browser to the lookup provider — nothing is proxied through or stored on this site, and your list resets when you leave the page.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        let isDarkMode = true;
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            isDarkMode = document.body.classList.contains('dark-mode');
+        }
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // STATE (in-memory only — resets on reload)
+        // ============================================
+        const ipInputEl = document.getElementById('ipInput');
+        const resultsCache = {};      // ip -> normalized result object
+        let lookupResults = [];       // ordered array of normalized result objects for current run
+        let historyList = [];         // { ip, summary, ts }
+        let lookupRunning = false;
+
+        ipInputEl.value = `8.8.8.8
+1.1.1.1
+2606:4700:4700::1111
+192.168.1.1
+10.0.0.5`;
+
+        // ============================================
+        // SETTINGS
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optShowLocation','optShowCoordinates','optShowNetwork','optShowTimezone','optShowCurrency','optShowCallingCode','optShowPopulation','optValidateBeforeLookup','optSkipInvalid','optDedupeIPs','optShowPrivateBadge','optExpandIPv6','optCacheResults'],
+            text: ['batchDelayInput','historyLimitInput'],
+            radio: ['outputSort','copyFormat']
+        };
+
+        function getOptions() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return {
+                ...raw,
+                batchDelay: Math.max(0, parseInt(raw.batchDelayInput, 10) || 0),
+                historyLimit: Math.max(0, parseInt(raw.historyLimitInput, 10) || 0),
+                _raw: raw
+            };
+        }
+
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            quick: {
+                optShowLocation: true, optShowCoordinates: false, optShowNetwork: false, optShowTimezone: false,
+                optShowCurrency: false, optShowCallingCode: false, optShowPopulation: false,
+                optValidateBeforeLookup: true, optSkipInvalid: true, optDedupeIPs: true, optShowPrivateBadge: true,
+                optExpandIPv6: false, optCacheResults: true, batchDelayInput: '150', historyLimitInput: '10',
+                outputSort: 'input', copyFormat: 'plain'
+            },
+            abuse: {
+                optShowLocation: true, optShowCoordinates: true, optShowNetwork: true, optShowTimezone: true,
+                optShowCurrency: false, optShowCallingCode: false, optShowPopulation: false,
+                optValidateBeforeLookup: true, optSkipInvalid: false, optDedupeIPs: true, optShowPrivateBadge: true,
+                optExpandIPv6: true, optCacheResults: true, batchDelayInput: '400', historyLimitInput: '50',
+                outputSort: 'input', copyFormat: 'labeled'
+            },
+            migration: {
+                optShowLocation: true, optShowCoordinates: false, optShowNetwork: true, optShowTimezone: true,
+                optShowCurrency: false, optShowCallingCode: false, optShowPopulation: false,
+                optValidateBeforeLookup: true, optSkipInvalid: true, optDedupeIPs: true, optShowPrivateBadge: true,
+                optExpandIPv6: false, optCacheResults: true, batchDelayInput: '300', historyLimitInput: '100',
+                outputSort: 'asn', copyFormat: 'json'
+            },
+            firewall: {
+                optShowLocation: false, optShowCoordinates: false, optShowNetwork: true, optShowTimezone: false,
+                optShowCurrency: false, optShowCallingCode: false, optShowPopulation: false,
+                optValidateBeforeLookup: true, optSkipInvalid: true, optDedupeIPs: true, optShowPrivateBadge: true,
+                optExpandIPv6: true, optCacheResults: true, batchDelayInput: '300', historyLimitInput: '20',
+                outputSort: 'input', copyFormat: 'plain'
+            },
+            support: {
+                optShowLocation: true, optShowCoordinates: false, optShowNetwork: false, optShowTimezone: true,
+                optShowCurrency: false, optShowCallingCode: false, optShowPopulation: false,
+                optValidateBeforeLookup: true, optSkipInvalid: true, optDedupeIPs: true, optShowPrivateBadge: true,
+                optExpandIPv6: false, optCacheResults: true, batchDelayInput: '150', historyLimitInput: '15',
+                outputSort: 'input', copyFormat: 'labeled'
+            }
+        };
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (BUILTIN_PRESETS[val]) applySettingsObject(BUILTIN_PRESETS[val]);
+        });
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; });
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions()._raw, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ip-lookup-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    applySettingsObject(JSON.parse(ev.target.result));
+                    document.getElementById('presetSelect').value = 'custom';
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // IP VALIDATION & CLASSIFICATION
+        // ============================================
+        const IPV4_RE = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+        const IPV6_RE = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$/;
+
+        function isValidIPv4(ip) { return IPV4_RE.test(ip); }
+        function isValidIPv6(ip) { return IPV6_RE.test(ip); }
+        function ipVersion(ip) {
+            if (isValidIPv4(ip)) return 4;
+            if (isValidIPv6(ip)) return 6;
+            return 0;
+        }
+
+        function ipToLong(ip) {
+            const parts = ip.split('.').map(Number);
+            return ((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+        }
+        function longToIp(n) {
+            return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+        }
+
+        function isPrivateIPv4(ip) {
+            const n = ipToLong(ip);
+            const inRange = (base, bits) => {
+                const mask = bits === 0 ? 0 : (~0 << (32 - bits)) >>> 0;
+                return (n & mask) === (ipToLong(base) & mask);
+            };
+            if (inRange('10.0.0.0', 8)) return 'Private (RFC1918)';
+            if (inRange('172.16.0.0', 12)) return 'Private (RFC1918)';
+            if (inRange('192.168.0.0', 16)) return 'Private (RFC1918)';
+            if (inRange('127.0.0.0', 8)) return 'Loopback';
+            if (inRange('169.254.0.0', 16)) return 'Link-local';
+            if (inRange('100.64.0.0', 10)) return 'Carrier-grade NAT';
+            if (inRange('224.0.0.0', 4)) return 'Multicast';
+            if (inRange('240.0.0.0', 4)) return 'Reserved';
+            if (inRange('0.0.0.0', 8)) return 'Reserved';
+            return null;
+        }
+
+        function isPrivateIPv6(ip) {
+            const low = ip.toLowerCase();
+            if (low === '::1') return 'Loopback';
+            if (/^f[cd][0-9a-f]{2}:/.test(low) || /^f[cd]:/.test(low)) return 'Unique local (private)';
+            if (/^fe[89ab][0-9a-f]:/.test(low)) return 'Link-local';
+            if (/^ff/.test(low)) return 'Multicast';
+            return null;
+        }
+
+        function classifyIP(ip) {
+            const v = ipVersion(ip);
+            if (v === 0) return { valid: false, version: 0, privateLabel: null };
+            const privateLabel = v === 4 ? isPrivateIPv4(ip) : isPrivateIPv6(ip);
+            return { valid: true, version: v, privateLabel };
+        }
+
+        function expandIPv6(ip) {
+            if (!isValidIPv6(ip)) return ip;
+            let [head, tail] = ip.includes('::') ? ip.split('::') : [ip, null];
+            let headParts = head ? head.split(':').filter(Boolean) : [];
+            let tailParts = tail ? tail.split(':').filter(Boolean) : [];
+            if (tail !== null) {
+                const missing = 8 - headParts.length - tailParts.length;
+                headParts = headParts.concat(new Array(Math.max(0, missing)).fill('0'));
+            }
+            const full = headParts.concat(tailParts);
+            while (full.length < 8) full.push('0');
+            return full.map(p => p.padStart(4, '0')).join(':');
+        }
+
+        function extractIPsFromText(text) {
+            const matches = text.match(/\b((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b|[0-9a-fA-F:]{3,}:[0-9a-fA-F:]*/g) || [];
+            return matches.map(m => m.trim());
+        }
+
+        // ============================================
+        // INPUT PARSING & CHIP RENDER
+        // ============================================
+        function parseInputLines() {
+            const opts = getOptions();
+            let lines = ipInputEl.value.split('\n').map(l => l.trim()).filter(Boolean);
+            if (opts.optDedupeIPs) lines = [...new Set(lines)];
+            return lines.map(line => {
+                const cls = classifyIP(line);
+                return { raw: line, ...cls };
+            });
+        }
+
+        function renderChipsAndStats() {
+            const items = parseInputLines();
+            const chipRow = document.getElementById('ipChipRow');
+            chipRow.innerHTML = '';
+            let pub = 0, priv = 0, inv = 0;
+            items.forEach(item => {
+                const chip = document.createElement('span');
+                if (!item.valid) { chip.className = 'ip-chip invalid'; inv++; }
+                else if (item.privateLabel) { chip.className = 'ip-chip valid-private'; priv++; }
+                else { chip.className = 'ip-chip valid-public'; pub++; }
+                chip.innerHTML = `<span class="dot"></span>${escapeHtml(item.raw)}`;
+                if (item.privateLabel) chip.title = item.privateLabel;
+                chipRow.appendChild(chip);
+            });
+            document.getElementById('statTotal').textContent = items.length;
+            document.getElementById('statPublic').textContent = pub;
+            document.getElementById('statPrivate').textContent = priv;
+            document.getElementById('statInvalid').textContent = inv;
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        ipInputEl.addEventListener('input', renderChipsAndStats);
+
+        // ============================================
+        // LOOKUP ENGINE
+        // ============================================
+        async function fetchIPInfo(ip) {
+            const resp = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/json/`);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            if (data && data.error) throw new Error(data.reason || 'Lookup failed');
+            return data;
+        }
+
+        async function fetchMyIP() {
+            const resp = await fetch('https://ipapi.co/json/');
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return await resp.json();
+        }
+
+        function normalizeResult(ip, cls, apiData, errorMsg) {
+            return {
+                ip,
+                version: cls.version,
+                expanded: cls.version === 6 ? expandIPv6(ip) : null,
+                privateLabel: cls.privateLabel,
+                error: errorMsg || null,
+                data: apiData || null,
+                fromCache: false
+            };
+        }
+
+        function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+        async function lookupAll() {
+            if (lookupRunning) return;
+            const opts = getOptions();
+            let items = parseInputLines();
+
+            if (opts.optValidateBeforeLookup && opts.optSkipInvalid) {
+                items = items.filter(i => i.valid);
+            }
+            if (items.length === 0) {
+                alert('No valid IP addresses to look up.');
+                return;
+            }
+
+            lookupRunning = true;
+            document.getElementById('lookupBtn').disabled = true;
+            const progressTrack = document.getElementById('progressTrack');
+            const progressFill = document.getElementById('progressFill');
+            progressTrack.classList.add('active');
+            progressFill.style.width = '0%';
+
+            const results = [];
+            let cacheHits = 0;
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                progressFill.style.width = Math.round(((i) / items.length) * 100) + '%';
+
+                if (!item.valid) {
+                    results.push(normalizeResult(item.raw, item, null, 'Invalid IP address'));
+                    continue;
+                }
+                if (item.privateLabel) {
+                    results.push(normalizeResult(item.raw, item, null, null));
+                    continue;
+                }
+                if (opts.optCacheResults && resultsCache[item.raw]) {
+                    const cached = { ...resultsCache[item.raw], fromCache: true };
+                    results.push(cached);
+                    cacheHits++;
+                    continue;
+                }
+                try {
+                    const data = await fetchIPInfo(item.raw);
+                    const normalized = normalizeResult(item.raw, item, data, null);
+                    if (opts.optCacheResults) resultsCache[item.raw] = normalized;
+                    results.push(normalized);
+                } catch (err) {
+                    results.push(normalizeResult(item.raw, item, null, err.message || 'Lookup failed'));
+                }
+                if (i < items.length - 1 && opts.batchDelay > 0) await sleep(opts.batchDelay);
+            }
+
+            progressFill.style.width = '100%';
+            setTimeout(() => progressTrack.classList.remove('active'), 400);
+
+            lookupResults = sortResults(results, opts.outputSort);
+            renderResults(opts, cacheHits);
+            pushHistory(lookupResults);
+
+            lookupRunning = false;
+            document.getElementById('lookupBtn').disabled = false;
+        }
+
+        function sortResults(results, mode) {
+            if (mode === 'country') {
+                return [...results].sort((a, b) => {
+                    const ca = (a.data && a.data.country_name) || (a.privateLabel ? 'zzz-private' : 'zzz-unknown');
+                    const cb = (b.data && b.data.country_name) || (b.privateLabel ? 'zzz-private' : 'zzz-unknown');
+                    return ca.localeCompare(cb);
+                });
+            }
+            if (mode === 'asn') {
+                return [...results].sort((a, b) => {
+                    const ca = (a.data && (a.data.asn || a.data.org)) || (a.privateLabel ? 'zzz-private' : 'zzz-unknown');
+                    const cb = (b.data && (b.data.asn || b.data.org)) || (b.privateLabel ? 'zzz-private' : 'zzz-unknown');
+                    return String(ca).localeCompare(String(cb));
+                });
+            }
+            return results;
+        }
+
+        // ============================================
+        // RENDERING — RESULTS LIST / JSON / MAP
+        // ============================================
+        function fieldRowsFor(opts, r) {
+            const rows = [];
+            const d = r.data || {};
+            if (opts.optShowLocation) {
+                rows.push(['City', d.city || '—']);
+                rows.push(['Region', d.region || '—']);
+                rows.push(['Country', d.country_name ? `${d.country_name} (${d.country_code || ''})` : '—']);
+                rows.push(['Postal', d.postal || '—']);
+                rows.push(['Continent', d.continent_code || '—']);
+            }
+            if (opts.optShowCoordinates) {
+                rows.push(['Latitude', d.latitude != null ? d.latitude : '—']);
+                rows.push(['Longitude', d.longitude != null ? d.longitude : '—']);
+            }
+            if (opts.optShowNetwork) {
+                rows.push(['ASN', d.asn || '—']);
+                rows.push(['Organization', d.org || '—']);
+                rows.push(['Network', d.network || '—']);
+            }
+            if (opts.optShowTimezone) {
+                rows.push(['Timezone', d.timezone || '—']);
+                rows.push(['UTC offset', d.utc_offset || '—']);
+            }
+            if (opts.optShowCurrency) {
+                rows.push(['Currency', d.currency ? `${d.currency}${d.currency_name ? ' — ' + d.currency_name : ''}` : '—']);
+            }
+            if (opts.optShowCallingCode) {
+                rows.push(['Calling code', d.country_calling_code || '—']);
+                rows.push(['Languages', d.languages || '—']);
+            }
+            if (opts.optShowPopulation) {
+                rows.push(['Population', d.country_population != null ? Number(d.country_population).toLocaleString() : '—']);
+                rows.push(['Area (km²)', d.country_area != null ? Number(d.country_area).toLocaleString() : '—']);
+            }
+            return rows;
+        }
+
+        function renderResults(opts, cacheHits) {
+            const list = document.getElementById('resultsList');
+            list.innerHTML = '';
+            let ok = 0, failed = 0;
+
+            if (lookupResults.length === 0) {
+                list.innerHTML = '<div class="results-empty">No results yet.</div>';
+            }
+
+            lookupResults.forEach((r, idx) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+
+                let badge = '';
+                if (r.error) { badge = `<span class="badge badge-error">Error</span>`; failed++; }
+                else if (r.privateLabel) { badge = `<span class="badge badge-private">${escapeHtml(r.privateLabel)}</span>`; }
+                else { badge = `<span class="badge badge-public">Public</span>`; ok++; }
+
+                const cacheTag = r.fromCache ? ' <span style="opacity:.5;font-size:10px;">(cached)</span>' : '';
+                const expandedLine = (opts.optExpandIPv6 && r.expanded) ? `<div style="font-family:var(--font-mono);font-size:11px;opacity:.55;margin-top:2px;">${escapeHtml(r.expanded)}</div>` : '';
+
+                let body = '';
+                if (r.error) {
+                    body = `<div style="font-size:12px;opacity:.7;">${escapeHtml(r.error)}</div>`;
+                } else if (r.privateLabel) {
+                    body = `<div style="font-size:12px;opacity:.7;">Skipped — this is a ${escapeHtml(r.privateLabel.toLowerCase())} address, not routable on the public internet.</div>`;
+                } else {
+                    const rows = fieldRowsFor(opts, r);
+                    body = `<dl class="result-fields">${rows.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(String(v))}</dd></div>`).join('')}</dl>`;
+                }
+
+                let actions = `<button class="mini-btn" data-copy-idx="${idx}" type="button">Copy</button>`;
+                if (!r.error && !r.privateLabel && r.data && r.data.latitude != null) {
+                    actions += `<button class="mini-btn" data-map-idx="${idx}" type="button">View on Map</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="result-card-head">
+                        <span class="result-ip">${escapeHtml(r.ip)}${cacheTag}</span>
+                        ${badge}
+                    </div>
+                    ${expandedLine}
+                    ${body}
+                    <div class="result-card-actions">${actions}</div>
+                `;
+                list.appendChild(card);
+            });
+
+            document.getElementById('resultCount').textContent = ok;
+            document.getElementById('errorCount').textContent = failed;
+            document.getElementById('cacheCount').textContent = cacheHits || 0;
+
+            list.querySelectorAll('[data-copy-idx]').forEach(btn => {
+                btn.addEventListener('click', () => copyResultRow(parseInt(btn.dataset.copyIdx, 10)));
+            });
+            list.querySelectorAll('[data-map-idx]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    switchTab('map');
+                    document.getElementById('mapIpSelect').value = String(btn.dataset.mapIdx);
+                    showMapFor(parseInt(btn.dataset.mapIdx, 10));
+                });
+            });
+
+            renderJSON();
+            renderMapSelect();
+        }
+
+        function copyResultRow(idx) {
+            const r = lookupResults[idx];
+            const opts = getOptions();
+            let text;
+            if (opts.copyFormat === 'json') {
+                text = JSON.stringify({ ip: r.ip, private: r.privateLabel, error: r.error, ...(r.data || {}) });
+            } else if (opts.copyFormat === 'labeled') {
+                const rows = r.data ? fieldRowsFor(opts, r) : [];
+                text = `IP: ${r.ip}\n` + (r.privateLabel ? `Type: ${r.privateLabel}\n` : '') + (r.error ? `Error: ${r.error}\n` : '') + rows.map(([k, v]) => `${k}: ${v}`).join('\n');
+            } else {
+                text = r.data ? (r.data.country_name || r.ip) : r.ip;
+            }
+            copyText(text);
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).catch(() => {});
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        }
+
+        function renderJSON() {
+            const payload = lookupResults.map(r => ({
+                ip: r.ip, version: r.version, private: r.privateLabel, error: r.error, data: r.data
+            }));
+            document.getElementById('jsonOutput').value = JSON.stringify(payload, null, 2);
+        }
+
+        function renderMapSelect() {
+            const select = document.getElementById('mapIpSelect');
+            select.innerHTML = '<option value="">Select a looked-up IP…</option>';
+            lookupResults.forEach((r, idx) => {
+                if (!r.error && !r.privateLabel && r.data && r.data.latitude != null) {
+                    const opt = document.createElement('option');
+                    opt.value = String(idx);
+                    opt.textContent = `${r.ip} — ${r.data.city || r.data.country_name || ''}`;
+                    select.appendChild(opt);
+                }
+            });
+        }
+
+        function showMapFor(idx) {
+            const container = document.getElementById('mapContainer');
+            const r = lookupResults[idx];
+            if (!r || !r.data || r.data.latitude == null) {
+                container.innerHTML = '<div class="map-empty">No coordinates available for this address.</div>';
+                return;
+            }
+            const lat = r.data.latitude, lon = r.data.longitude;
+            const d = 0.15;
+            const bbox = `${lon - d}%2C${lat - d}%2C${lon + d}%2C${lat + d}`;
+            container.innerHTML = `<div class="map-frame-wrap"><iframe loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}" title="Map for ${escapeHtml(r.ip)}"></iframe></div>`;
+        }
+
+        document.getElementById('mapIpSelect').addEventListener('change', (e) => {
+            if (e.target.value === '') {
+                document.getElementById('mapContainer').innerHTML = '<div class="map-empty">Look up an address with coordinates to preview it on a map.</div>';
+                return;
+            }
+            showMapFor(parseInt(e.target.value, 10));
+        });
+
+        // Tabs
+        function switchTab(name) {
+            document.querySelectorAll('.output-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+            document.querySelectorAll('.output-pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + name));
+        }
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+        });
+
+        // ============================================
+        // HISTORY (in-memory, session only)
+        // ============================================
+        function pushHistory(results) {
+            const opts = getOptions();
+            results.forEach(r => {
+                if (r.error) return;
+                const summary = r.privateLabel ? r.privateLabel : (r.data ? [r.data.city, r.data.country_name].filter(Boolean).join(', ') : '');
+                historyList.unshift({ ip: r.ip, summary, ts: Date.now() });
+            });
+            const seen = new Set();
+            historyList = historyList.filter(h => (seen.has(h.ip) ? false : (seen.add(h.ip), true)));
+            if (opts.historyLimit > 0) historyList = historyList.slice(0, opts.historyLimit);
+            else historyList = [];
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const row = document.getElementById('historyRow');
+            if (historyList.length === 0) {
+                row.innerHTML = '<span class="history-empty">Lookups you run will appear here so you can re-check them quickly — cleared when you leave the page.</span>';
+                return;
+            }
+            row.innerHTML = '';
+            historyList.forEach(h => {
+                const chip = document.createElement('span');
+                chip.className = 'history-chip';
+                chip.innerHTML = `${escapeHtml(h.ip)}${h.summary ? `<span class="h-meta">${escapeHtml(h.summary)}</span>` : ''}`;
+                chip.addEventListener('click', () => {
+                    const current = ipInputEl.value.split('\n').map(l => l.trim()).filter(Boolean);
+                    if (!current.includes(h.ip)) current.unshift(h.ip);
+                    ipInputEl.value = current.join('\n');
+                    renderChipsAndStats();
+                    lookupAll();
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        // ============================================
+        // EXPORT — CSV / JSON
+        // ============================================
+        function csvEscape(val) {
+            const s = String(val == null ? '' : val);
+            return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        }
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            if (lookupResults.length === 0) { alert('Run a lookup first.'); return; }
+            const opts = getOptions();
+            const headers = ['ip', 'type', 'error', 'city', 'region', 'country', 'postal', 'latitude', 'longitude', 'asn', 'org', 'timezone'];
+            const rows = [headers.join(',')];
+            lookupResults.forEach(r => {
+                const d = r.data || {};
+                rows.push([
+                    r.ip, r.privateLabel || (r.error ? 'error' : 'public'), r.error || '',
+                    d.city || '', d.region || '', d.country_name || '', d.postal || '',
+                    d.latitude != null ? d.latitude : '', d.longitude != null ? d.longitude : '',
+                    d.asn || '', d.org || '', d.timezone || ''
+                ].map(csvEscape).join(','));
+            });
+            const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ip-lookup-results.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+            if (lookupResults.length === 0) { alert('Run a lookup first.'); return; }
+            const payload = lookupResults.map(r => ({ ip: r.ip, version: r.version, private: r.privateLabel, error: r.error, data: r.data }));
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ip-lookup-results.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('copyAllBtn').addEventListener('click', () => {
+            if (lookupResults.length === 0) return;
+            const lines = lookupResults.map(r => {
+                const d = r.data || {};
+                const loc = r.privateLabel || [d.city, d.country_name].filter(Boolean).join(', ') || (r.error || '—');
+                return `${r.ip}\t${loc}`;
+            });
+            copyText(lines.join('\n'));
+        });
+
+        // ============================================
+        // INPUT ACTIONS — upload, drag/drop, clear, use my IP
+        // ============================================
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            ipInputEl.value = '';
+            renderChipsAndStats();
+            ipInputEl.focus();
+        });
+
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            readIPFile(file);
+            fileInput.value = '';
+        });
+
+        function readIPFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const found = extractIPsFromText(e.target.result);
+                const unique = [...new Set(found)];
+                ipInputEl.value = unique.join('\n');
+                renderChipsAndStats();
+            };
+            reader.readAsText(file);
+        }
+
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border-color)'; dropZone.style.opacity = '1'; });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = ''; dropZone.style.opacity = ''; });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files && files.length) readIPFile(files[0]);
+        });
+
+        document.getElementById('useMyIpBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('useMyIpBtn');
+            btn.disabled = true;
+            try {
+                const data = await fetchMyIP();
+                if (data && data.ip) {
+                    const current = ipInputEl.value.split('\n').map(l => l.trim()).filter(Boolean);
+                    if (!current.includes(data.ip)) current.unshift(data.ip);
+                    ipInputEl.value = current.join('\n');
+                    renderChipsAndStats();
+                    if (getOptions().optCacheResults) {
+                        resultsCache[data.ip] = normalizeResult(data.ip, { version: 4, privateLabel: null }, data, null);
+                    }
+                }
+            } catch (err) {
+                alert('Could not detect your IP right now: ' + (err.message || 'unknown error'));
+            }
+            btn.disabled = false;
+        });
+
+        document.getElementById('lookupBtn').addEventListener('click', lookupAll);
+
+        // ============================================
+        // SUBNET / CIDR CALCULATOR
+        // ============================================
+        function calcSubnet(input) {
+            const m = input.trim().match(/^(\d{1,3}(?:\.\d{1,3}){3})\/(\d{1,2})$/);
+            if (!m) throw new Error('Enter an IPv4 address with a CIDR prefix, like 192.168.1.0/24.');
+            const ip = m[1];
+            const prefix = parseInt(m[2], 10);
+            if (!isValidIPv4(ip)) throw new Error('That is not a valid IPv4 address.');
+            if (prefix < 0 || prefix > 32) throw new Error('CIDR prefix must be between /0 and /32.');
+
+            const ipLong = ipToLong(ip);
+            const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+            const wildcard = (~mask) >>> 0;
+            const network = (ipLong & mask) >>> 0;
+            const broadcast = (network | wildcard) >>> 0;
+            const totalHosts = Math.pow(2, 32 - prefix);
+            const usableHosts = prefix >= 31 ? totalHosts : Math.max(0, totalHosts - 2);
+            const firstHost = prefix >= 31 ? network : network + 1;
+            const lastHost = prefix >= 31 ? broadcast : broadcast - 1;
+
+            const firstOctet = parseInt(ip.split('.')[0], 10);
+            let ipClass = 'N/A';
+            if (firstOctet < 128) ipClass = 'A';
+            else if (firstOctet < 192) ipClass = 'B';
+            else if (firstOctet < 224) ipClass = 'C';
+            else if (firstOctet < 240) ipClass = 'D (multicast)';
+            else ipClass = 'E (reserved)';
+
+            const privateLabel = isPrivateIPv4(ip);
+
+            return {
+                network: longToIp(network) + '/' + prefix,
+                broadcast: longToIp(broadcast),
+                mask: longToIp(mask),
+                wildcard: longToIp(wildcard),
+                firstHost: prefix >= 31 ? '—' : longToIp(firstHost),
+                lastHost: prefix >= 31 ? '—' : longToIp(lastHost),
+                totalHosts: totalHosts.toLocaleString(),
+                usableHosts: usableHosts.toLocaleString(),
+                ipClass,
+                type: privateLabel || 'Public'
+            };
+        }
+
+        function renderSubnet() {
+            const input = document.getElementById('subnetInput').value;
+            const errorEl = document.getElementById('subnetError');
+            const grid = document.getElementById('subnetResults');
+            try {
+                const r = calcSubnet(input);
+                errorEl.style.display = 'none';
+                grid.style.display = 'grid';
+                const items = [
+                    ['Network address', r.network],
+                    ['Broadcast address', r.broadcast],
+                    ['Subnet mask', r.mask],
+                    ['Wildcard mask', r.wildcard],
+                    ['First usable host', r.firstHost],
+                    ['Last usable host', r.lastHost],
+                    ['Total addresses', r.totalHosts],
+                    ['Usable hosts', r.usableHosts],
+                    ['Address class', r.ipClass],
+                    ['Address type', r.type]
+                ];
+                grid.innerHTML = items.map(([label, value]) => `<div class="subnet-item"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div></div>`).join('');
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.style.display = 'block';
+                grid.style.display = 'none';
+            }
+        }
+
+        document.getElementById('subnetCalcBtn').addEventListener('click', renderSubnet);
+        document.getElementById('subnetInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') renderSubnet(); });
+        document.getElementById('subnetInput').value = '192.168.1.0/24';
+
+        // Initial render
+        renderChipsAndStats();
+        renderSubnet();
+    </script>
+</body>
+</html>
