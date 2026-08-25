@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | IPv6 Calculator — Subnetting, EUI-64 & Reverse DNS Toolkit</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free IPv6 calculator. Expand/compress addresses, subnet and split prefixes, generate EUI-64 interface IDs from a MAC, build solicited-node multicast and reverse-DNS (ip6.arpa) records, compare/contain subnets, and batch-process a whole list — 100% client-side." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/ipv6-calculator.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/ipv6-calculator.html" />
+<meta property="og:title" content="IPv6 Calculator — Subnetting, EUI-64 & Reverse DNS Toolkit — awjunaid" />
+<meta property="og:description" content="Subnet and split IPv6 prefixes, expand/compress addresses, generate EUI-64 and solicited-node multicast addresses, build ip6.arpa PTR records, check containment/overlap, and batch-convert a whole list. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ipv6-calculator.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="IPv6 Calculator — Subnetting, EUI-64 & Reverse DNS Toolkit — awjunaid" />
+<meta name="twitter:description" content="Subnet, split, and audit IPv6 prefixes with live subnetting, EUI-64 generation, reverse DNS, containment checks, and batch export. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ipv6-calculator.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        #ipInput {
+            width: 100%;
+            min-height: 200px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #ipInput:focus { outline: none; border-color: var(--border-color); }
+
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .compare-box { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .result-scroll {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 18px 20px; min-height: 420px; max-height: 480px; overflow-y: auto;
+            background: var(--input-bg);
+        }
+
+        .summary-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+        .summary-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 12.5px; flex-wrap: wrap; }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-row .k { font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; font-size: 10.5px; opacity: 0.55; min-width: 170px; }
+        .summary-row .v { font-family: var(--font-mono); text-align: right; word-break: break-all; flex: 1; }
+
+        .type-badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+        }
+
+        .empty-note { font-size: 12px; opacity: 0.5; text-align: center; padding: 40px 10px; }
+
+        .binary-line { font-family: var(--font-mono); font-size: 12px; line-height: 2.1; word-break: break-all; margin-bottom: 4px; }
+        .bit-net { background: var(--text-primary); color: var(--bg-primary); border-radius: 2px; padding: 0 1px; }
+        .bit-host { opacity: 0.5; padding: 0 1px; }
+        .binary-legend { font-size: 10.5px; opacity: 0.6; margin-top: 10px; display: flex; gap: 16px; }
+
+        .subnet-list { font-family: var(--font-mono); font-size: 12px; }
+        .subnet-item { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-light); }
+        .subnet-item:last-child { border-bottom: none; }
+        .subnet-idx { opacity: 0.4; min-width: 34px; }
+        .subnet-truncate-note { font-size: 11px; opacity: 0.6; padding-top: 10px; font-family: var(--font-body); }
+
+        .compare-result { border: 1px solid var(--border-color); border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; font-size: 13px; }
+        .compare-result.pass { background: var(--text-primary); color: var(--bg-primary); }
+
+        table.batch-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11.5px; }
+        table.batch-table th, table.batch-table td { border: 1px solid var(--border-light); padding: 8px 10px; text-align: left; word-break: break-all; }
+        table.batch-table th { text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.4px; font-family: var(--font-body); font-weight: 700; opacity: 0.6; }
+        .batch-error { opacity: 0.6; font-style: italic; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        .copy-toast { font-size: 11px; font-weight: 700; color: var(--accent); margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+        .copy-toast.show { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            #ipInput, .result-scroll { min-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">IPv6 Calculator</h1>
+                <div class="tool-dek">Paste one or more IPv6 addresses or CIDRs and get full subnetting: expand/compress, network & host range, address-type detection, EUI-64 from a MAC, solicited-node multicast, reverse-DNS (ip6.arpa) records, bit-level binary view, subnet splitting, and containment/overlap checks — batch-process a whole list and export the results.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="home">Home / ULA Network (/64 from fd00::/8)</option>
+                    <option value="enterprise">Enterprise Subnetting (/48 → /64s)</option>
+                    <option value="datacenter">Data Center Allocation (/32 → /48s)</option>
+                    <option value="docs">Documentation & Testing (2001:db8::/32)</option>
+                    <option value="transition">NAT64 / 6to4 Transition Audit</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Address Display</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Preferred notation</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="notationMode" value="compressed" checked> Compressed ( :: )</label>
+                                <label class="radio-opt"><input type="radio" name="notationMode" value="expanded"> Fully expanded</label>
+                                <label class="radio-opt"><input type="radio" name="notationMode" value="both"> Show both</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUppercase">
+                            <span><span class="setting-name">Uppercase hex digits</span><span class="setting-hint">2001:DB8:: instead of 2001:db8::</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowType" checked>
+                            <span><span class="setting-name">Detect & show address type</span><span class="setting-hint">Global unicast, link-local, ULA, multicast, loopback, documentation, etc.</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optExtractIPv4" checked>
+                            <span><span class="setting-name">Extract embedded IPv4</span><span class="setting-hint">For IPv4-mapped, NAT64 and 6to4 addresses</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Subnet & Network Details</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="defaultPrefixInput">Default prefix (used if not given)</label>
+                            <input type="number" id="defaultPrefixInput" min="0" max="128" value="64">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowNetwork" checked>
+                            <span><span class="setting-name">Show network address</span><span class="setting-hint">The address with all host bits set to zero</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowRange" checked>
+                            <span><span class="setting-name">Show first / last address in range</span><span class="setting-hint">Lowest and highest address the prefix covers</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowTotal" checked>
+                            <span><span class="setting-name">Show total address count</span><span class="setting-hint">2^(128 − prefix), formatted with separators</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRandomHost">
+                            <span><span class="setting-name">Generate a random example host</span><span class="setting-hint">One valid address picked at random from the range</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Subnet Splitting</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Split by</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="splitMode" value="prefix" checked> New prefix length</label>
+                                <label class="radio-opt"><input type="radio" name="splitMode" value="count"> Number of subnets</label>
+                                <label class="radio-opt"><input type="radio" name="splitMode" value="off"> Don't split</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="splitPrefixInput">New prefix length</label>
+                            <input type="number" id="splitPrefixInput" min="0" max="128" value="80">
+                        </div>
+                        <div class="field-group">
+                            <label for="splitCountInput">Number of subnets needed</label>
+                            <input type="number" id="splitCountInput" min="1" value="16">
+                        </div>
+                        <div class="field-group">
+                            <label for="splitCapInput">Max subnets to list</label>
+                            <input type="number" id="splitCapInput" min="1" max="10000" value="256">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Interface Identifiers</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optEui64">
+                            <span><span class="setting-name">Generate EUI-64 from a MAC</span><span class="setting-hint">Inserts FFFE and flips the U/L bit to build a 64-bit interface ID</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSolicitedNode" checked>
+                            <span><span class="setting-name">Generate solicited-node multicast</span><span class="setting-hint">ff02::1:ffXX:XXXX derived from the low-order 24 bits</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="macInput">MAC address (for EUI-64)</label>
+                            <input type="text" id="macInput" value="02:1A:2B:3C:4D:5E" placeholder="AA:BB:CC:DD:EE:FF">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Reverse DNS & Binary</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optReverseDns" checked>
+                            <span><span class="setting-name">Generate ip6.arpa PTR name</span><span class="setting-hint">Full nibble-reversed reverse-lookup zone name</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBinaryView" checked>
+                            <span><span class="setting-name">Show 128-bit binary breakdown</span><span class="setting-hint">Grouped into 16-bit blocks matching each hex group</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optHighlightBits" checked>
+                            <span><span class="setting-name">Highlight network vs. host bits</span><span class="setting-hint">Network bits shown solid, host bits dimmed</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Compare / Containment</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Comparison mode</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="compareMode" value="off" checked> Off</label>
+                                <label class="radio-opt"><input type="radio" name="compareMode" value="contains"> Does subnet A contain B?</label>
+                                <label class="radio-opt"><input type="radio" name="compareMode" value="overlap"> Do A and B overlap?</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="compareInput">Address/CIDR B to compare against the first line above (A)</label>
+                            <input type="text" id="compareInput" placeholder="e.g. 2001:db8:0:1::/64">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch & Export</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="batchCapInput">Max rows to process</label>
+                            <input type="number" id="batchCapInput" min="1" max="5000" value="200">
+                        </div>
+                        <div class="field-group full-width">
+                            <label>Export format</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="exportFormat" value="csv" checked> CSV</label>
+                                <label class="radio-opt"><input type="radio" name="exportFormat" value="json"> JSON</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Addresses / CIDRs</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Upload</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                            <input type="file" id="fileInput" accept=".txt,.csv" style="display:none;">
+                        </div>
+                    </div>
+                    <textarea id="ipInput" spellcheck="false" placeholder="2001:db8::1/64
+fe80::1a2b:3cff:fe4d:5e6f
+::ffff:192.168.1.10"></textarea>
+                    <div class="file-drop" id="dropZone">Drag & drop a .txt / .csv list here (one address or CIDR per line), or use Upload above</div>
+                    <div class="stat-strip">
+                        <span><strong id="lineCount">0</strong> lines</span>
+                        <span><strong id="validCount">0</strong> valid</span>
+                        <span><strong id="invalidCount">0</strong> invalid</span>
+                    </div>
+                    <div class="compare-box">
+                        <div class="field-group full-width">
+                            <label>The first valid line above is treated as address / subnet <strong>A</strong> everywhere in this tool</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Results</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy<span class="copy-toast" id="copyToast">Copied!</span></button>
+                            <button class="btn-solid" id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Export Batch</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="summary" type="button">Summary</button>
+                        <button class="output-tab" data-tab="subnets" type="button">Subnetting</button>
+                        <button class="output-tab" data-tab="binary" type="button">Binary</button>
+                        <button class="output-tab" data-tab="compare" type="button">Compare</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                    </div>
+                    <div class="output-pane active" id="pane-summary"><div class="result-scroll" id="summaryOut"><p class="empty-note">Enter an address above to see the full breakdown.</p></div></div>
+                    <div class="output-pane" id="pane-subnets"><div class="result-scroll" id="subnetsOut"><p class="empty-note">Enable subnet splitting in the settings to list child subnets.</p></div></div>
+                    <div class="output-pane" id="pane-binary"><div class="result-scroll" id="binaryOut"><p class="empty-note">Enable the binary breakdown in settings to see it here.</p></div></div>
+                    <div class="output-pane" id="pane-compare"><div class="result-scroll" id="compareOut"><p class="empty-note">Set a comparison mode and value B in settings to check containment or overlap.</p></div></div>
+                    <div class="output-pane" id="pane-batch"><div class="result-scroll" id="batchOut"><p class="empty-note">Add more than one line above to see every entry processed as a table.</p></div></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>IPv6's 128-bit addresses are unwieldy by hand: compressing and expanding notation, carving a /48 allocation into /64 links, or checking whether a customer's block overlaps another all require exact binary math. This tool does that math with full 128-bit precision and shows every derived value at once.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does subnet splitting decide the new prefix?</h4>
+                        <p>Choose "new prefix length" to fix the child size directly, or "number of subnets" to have the tool round up to the nearest power of two automatically. Both modes cap the number of subnets actually listed, since a large prefix difference can generate more rows than a browser tab should render.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How is EUI-64 generated from a MAC address?</h4>
+                        <p>The 48-bit MAC is split down the middle, the fixed bytes FF:FE are inserted in the gap, and the universal/local bit in the first byte is flipped. The resulting 64-bit interface ID is then combined with the network portion of the address to form a full autoconfigured address.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is the solicited-node multicast address for?</h4>
+                        <p>Every unicast or anycast address maps to a corresponding ff02::1:ff00:0/104 multicast group, built from its low-order 24 bits. Neighbor Discovery uses this group instead of broadcast, so this tool derives it automatically for the address you enter.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What do "contains" and "overlap" check?</h4>
+                        <p>"Does A contain B?" tests whether every address in subnet B falls inside subnet A's range — useful for confirming a customer allocation sits inside your issued block. "Overlap" instead checks whether A and B share any addresses at all, which is what you want when auditing for conflicting assignments.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every calculation — parsing, subnetting, EUI-64, reverse DNS, comparisons — runs locally in your browser with native 128-bit integer math. Nothing you type or upload is sent anywhere, and your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // IPv6 CALCULATOR — CORE ENGINE (128-bit via BigInt)
+        // ============================================
+        const ipInputEl = document.getElementById('ipInput');
+
+        const sampleIps =
+`2001:db8::1/64
+2001:db8:0:1::/64
+fe80::1a2b:3cff:fe4d:5e6f
+::ffff:192.168.1.10
+ff02::1`;
+        ipInputEl.value = sampleIps;
+
+        function parseIPv6(str) {
+            str = (str || '').trim();
+            if (!str) return null;
+            const ipv4Match = str.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+            if (ipv4Match) {
+                const parts = ipv4Match[1].split('.').map(Number);
+                if (parts.length !== 4 || !parts.every(p => p >= 0 && p <= 255)) return null;
+                const g1 = ((parts[0] << 8) | parts[1]).toString(16);
+                const g2 = ((parts[2] << 8) | parts[3]).toString(16);
+                str = str.slice(0, str.length - ipv4Match[1].length) + g1 + ':' + g2;
+            }
+            if (!/^[0-9a-fA-F:]+$/.test(str)) return null;
+            if ((str.match(/::/g) || []).length > 1) return null;
+            let parts;
+            if (str.includes('::')) {
+                const idx = str.indexOf('::');
+                const head = str.slice(0, idx);
+                const tail = str.slice(idx + 2);
+                const headParts = head ? head.split(':').filter(x => x !== '') : [];
+                const tailParts = tail ? tail.split(':').filter(x => x !== '') : [];
+                const missing = 8 - headParts.length - tailParts.length;
+                if (missing < 0) return null;
+                parts = [...headParts, ...Array(missing).fill('0'), ...tailParts];
+            } else {
+                parts = str.split(':');
+            }
+            if (parts.length !== 8) return null;
+            const groups = [];
+            for (const p of parts) {
+                if (!/^[0-9a-fA-F]{1,4}$/.test(p)) return null;
+                groups.push(parseInt(p, 16));
+            }
+            return groups;
+        }
+
+        function parseEntry(entryRaw) {
+            const entry = (entryRaw || '').trim();
+            if (!entry) return null;
+            let addrPart = entry, prefixPart = null;
+            if (entry.includes('/')) {
+                const bits = entry.split('/');
+                if (bits.length !== 2) return { error: 'Malformed CIDR (more than one "/")' };
+                addrPart = bits[0];
+                prefixPart = bits[1];
+            }
+            const groups = parseIPv6(addrPart);
+            if (!groups) return { error: 'Could not parse as an IPv6 address' };
+            let prefix = null;
+            if (prefixPart !== null) {
+                if (!/^\d+$/.test(prefixPart)) return { error: 'Prefix length must be a whole number' };
+                prefix = parseInt(prefixPart, 10);
+                if (prefix < 0 || prefix > 128) return { error: 'Prefix length must be between 0 and 128' };
+            }
+            return { groups, big: groupsToBig(groups), prefix, raw: entry, hadPrefix: prefix !== null };
+        }
+
+        function groupsToBig(groups) {
+            let big = 0n;
+            for (const g of groups) big = (big << 16n) | BigInt(g);
+            return big;
+        }
+        function bigToGroups(big) {
+            const groups = new Array(8);
+            for (let i = 7; i >= 0; i--) { groups[i] = Number((big >> BigInt((7 - i) * 16)) & 0xFFFFn); }
+            return groups;
+        }
+
+        function compressAddress(groups, uppercase) {
+            const hexGroups = groups.map(g => g.toString(16));
+            let bestStart = -1, bestLen = 0, curStart = -1, curLen = 0;
+            for (let i = 0; i < 8; i++) {
+                if (groups[i] === 0) {
+                    if (curStart === -1) curStart = i;
+                    curLen++;
+                    if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+                } else { curStart = -1; curLen = 0; }
+            }
+            let result;
+            if (bestLen >= 2) {
+                const before = hexGroups.slice(0, bestStart).join(':');
+                const after = hexGroups.slice(bestStart + bestLen).join(':');
+                result = (before === '' && after === '') ? '::' : (before + '::' + after);
+            } else {
+                result = hexGroups.join(':');
+            }
+            return uppercase ? result.toUpperCase() : result;
+        }
+        function expandAddress(groups, uppercase) {
+            const s = groups.map(g => g.toString(16).padStart(4, '0')).join(':');
+            return uppercase ? s.toUpperCase() : s;
+        }
+
+        const TYPE_RANGES = [
+            ['::', 128, 'Unspecified Address'],
+            ['::1', 128, 'Loopback Address'],
+            ['::ffff:0:0', 96, 'IPv4-mapped Address'],
+            ['64:ff9b::', 96, 'NAT64 Well-Known Prefix'],
+            ['100::', 64, 'Discard-Only Address Block'],
+            ['2001:db8::', 32, 'Documentation Address (RFC 3849)'],
+            ['2001::', 32, 'Teredo Tunneling Address'],
+            ['2002::', 16, '6to4 Address'],
+            ['fc00::', 7, 'Unique Local Address (ULA)'],
+            ['fe80::', 10, 'Link-Local Address'],
+            ['ff00::', 8, 'Multicast Address'],
+            ['2000::', 3, 'Global Unicast Address'],
+        ];
+        function maskForPrefix(prefix) {
+            if (prefix <= 0) return 0n;
+            if (prefix >= 128) return (1n << 128n) - 1n;
+            const full = (1n << 128n) - 1n;
+            return full ^ ((1n << BigInt(128 - prefix)) - 1n);
+        }
+        function detectType(big) {
+            for (const [addr, plen, label] of TYPE_RANGES) {
+                const g = parseIPv6(addr);
+                const netBig = groupsToBig(g);
+                const mask = maskForPrefix(plen);
+                if ((big & mask) === (netBig & mask)) return label;
+            }
+            return 'Reserved / Unassigned Range';
+        }
+
+        function groupsToIPv4(hi, lo) {
+            return [(hi >> 8) & 0xFF, hi & 0xFF, (lo >> 8) & 0xFF, lo & 0xFF].join('.');
+        }
+        function extractEmbeddedIPv4(groups, typeLabel) {
+            if (typeLabel.indexOf('IPv4-mapped') !== -1 || typeLabel.indexOf('NAT64') !== -1) {
+                return groupsToIPv4(groups[6], groups[7]);
+            }
+            if (typeLabel.indexOf('6to4') !== -1) {
+                return groupsToIPv4(groups[1], groups[2]);
+            }
+            return null;
+        }
+
+        function commaBig(big) {
+            let s = big.toString();
+            let out = '';
+            for (let i = 0; i < s.length; i++) {
+                if (i > 0 && (s.length - i) % 3 === 0) out += ',';
+                out += s[i];
+            }
+            return out;
+        }
+
+        function networkOf(big, prefix) { return big & maskForPrefix(prefix); }
+        function lastOf(big, prefix) {
+            const hostMask = prefix >= 128 ? 0n : ((1n << BigInt(128 - prefix)) - 1n);
+            return networkOf(big, prefix) | hostMask;
+        }
+        function totalAddresses(prefix) { return 1n << BigInt(128 - prefix); }
+
+        function reverseDnsName(groups, uppercase) {
+            const hex = groups.map(g => g.toString(16).padStart(4, '0')).join('');
+            const nibbles = hex.split('');
+            nibbles.reverse();
+            const joined = nibbles.join('.') + '.ip6.arpa.';
+            return uppercase ? joined.toUpperCase() : joined;
+        }
+
+        function macToEui64(mac, prefix64Groups) {
+            const clean = mac.trim().replace(/[\s.]/g, '').replace(/-/g, ':');
+            const bytesHex = clean.split(':').filter(x => x !== '');
+            if (bytesHex.length !== 6 || !bytesHex.every(b => /^[0-9a-fA-F]{1,2}$/.test(b))) return { error: 'MAC must have 6 hex byte pairs, e.g. AA:BB:CC:DD:EE:FF' };
+            const b = bytesHex.map(x => parseInt(x, 16));
+            const flipped = b[0] ^ 0x02;
+            const idBytes = [flipped, b[1], b[2], 0xFF, 0xFE, b[3], b[4], b[5]];
+            const idGroups = [
+                (idBytes[0] << 8) | idBytes[1],
+                (idBytes[2] << 8) | idBytes[3],
+                (idBytes[4] << 8) | idBytes[5],
+                (idBytes[6] << 8) | idBytes[7],
+            ];
+            const fullGroups = [...prefix64Groups.slice(0, 4), ...idGroups];
+            return { groups: fullGroups, interfaceId: idGroups.map(g => g.toString(16).padStart(4, '0')).join(':') };
+        }
+
+        function solicitedNodeMulticast(groups) {
+            const low24hi = groups[6] & 0xFF;
+            const low24lo = groups[7];
+            return [0xff02, 0, 0, 0, 0, 1, 0xff00 | low24hi, low24lo];
+        }
+
+        function randomHostIn(networkBig, prefix) {
+            const hostBits = 128 - prefix;
+            if (hostBits <= 0) return networkBig;
+            const byteLen = Math.ceil(hostBits / 8);
+            const arr = new Uint8Array(byteLen);
+            if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(arr);
+            else for (let i = 0; i < byteLen; i++) arr[i] = Math.floor(Math.random() * 256);
+            let rand = 0n;
+            for (const byte of arr) rand = (rand << 8n) | BigInt(byte);
+            const hostMask = (1n << BigInt(hostBits)) - 1n;
+            rand = rand & hostMask;
+            return networkOf(networkBig, prefix) | rand;
+        }
+
+        function splitSubnets(networkBig, prefix, newPrefix, cap) {
+            const diff = newPrefix - prefix;
+            const totalCount = 1n << BigInt(diff);
+            const step = 1n << BigInt(128 - newPrefix);
+            const limit = totalCount < BigInt(cap) ? Number(totalCount) : cap;
+            const list = [];
+            for (let i = 0; i < limit; i++) { list.push(networkBig + BigInt(i) * step); }
+            return { list, totalCount, truncated: totalCount > BigInt(cap) };
+        }
+
+        function ceilLog2(n) {
+            if (n <= 1) return 0;
+            let bits = 0, v = n - 1;
+            while (v > 0) { bits++; v >>= 1; }
+            return bits;
+        }
+
+        // ============================================
+        // SETTINGS
+        // ============================================
+        function getOptions() {
+            return {
+                notationMode: document.querySelector('input[name="notationMode"]:checked').value,
+                uppercase: document.getElementById('optUppercase').checked,
+                showType: document.getElementById('optShowType').checked,
+                extractIPv4: document.getElementById('optExtractIPv4').checked,
+                defaultPrefix: parseInt(document.getElementById('defaultPrefixInput').value, 10) || 64,
+                showNetwork: document.getElementById('optShowNetwork').checked,
+                showRange: document.getElementById('optShowRange').checked,
+                showTotal: document.getElementById('optShowTotal').checked,
+                randomHost: document.getElementById('optRandomHost').checked,
+                splitMode: document.querySelector('input[name="splitMode"]:checked').value,
+                splitPrefix: parseInt(document.getElementById('splitPrefixInput').value, 10) || 0,
+                splitCount: parseInt(document.getElementById('splitCountInput').value, 10) || 1,
+                splitCap: parseInt(document.getElementById('splitCapInput').value, 10) || 256,
+                eui64: document.getElementById('optEui64').checked,
+                solicitedNode: document.getElementById('optSolicitedNode').checked,
+                mac: document.getElementById('macInput').value,
+                reverseDns: document.getElementById('optReverseDns').checked,
+                binaryView: document.getElementById('optBinaryView').checked,
+                highlightBits: document.getElementById('optHighlightBits').checked,
+                compareMode: document.querySelector('input[name="compareMode"]:checked').value,
+                compareValue: document.getElementById('compareInput').value,
+                batchCap: parseInt(document.getElementById('batchCapInput').value, 10) || 200,
+                exportFormat: document.querySelector('input[name="exportFormat"]:checked').value,
+            };
+        }
+
+        function formatAddr(groups, opts) {
+            if (opts.notationMode === 'expanded') return expandAddress(groups, opts.uppercase);
+            if (opts.notationMode === 'both') return compressAddress(groups, opts.uppercase) + '  (' + expandAddress(groups, opts.uppercase) + ')';
+            return compressAddress(groups, opts.uppercase);
+        }
+
+        // ============================================
+        // BUILD A FULL RECORD FOR ONE ENTRY
+        // ============================================
+        function buildRecord(parsed, opts) {
+            const prefix = parsed.hadPrefix ? parsed.prefix : opts.defaultPrefix;
+            const type = detectType(parsed.big);
+            const networkBig = networkOf(parsed.big, prefix);
+            const lastBig = lastOf(parsed.big, prefix);
+            const networkGroups = bigToGroups(networkBig);
+            const lastGroups = bigToGroups(lastBig);
+            const rec = {
+                raw: parsed.raw, groups: parsed.groups, big: parsed.big, prefix, type,
+                networkBig, lastBig, networkGroups, lastGroups,
+                display: formatAddr(parsed.groups, opts),
+                networkDisplay: formatAddr(networkGroups, opts),
+                lastDisplay: formatAddr(lastGroups, opts),
+                total: totalAddresses(prefix),
+            };
+            if (opts.extractIPv4) rec.ipv4 = extractEmbeddedIPv4(parsed.groups, type);
+            if (opts.reverseDns) rec.ptr = reverseDnsName(parsed.groups, false);
+            return rec;
+        }
+
+        // ============================================
+        // RENDER: SUMMARY TAB
+        // ============================================
+        function renderSummary(rec, opts) {
+            if (!rec) return '<p class="empty-note">Enter an address above to see the full breakdown.</p>';
+            const rows = [];
+            rows.push(['Input', escapeHtml(rec.raw)]);
+            rows.push(['Compressed', escapeHtml(compressAddress(rec.groups, opts.uppercase))]);
+            rows.push(['Expanded', escapeHtml(expandAddress(rec.groups, opts.uppercase))]);
+            if (opts.showType) rows.push(['Address type', '<span class="type-badge">' + escapeHtml(rec.type) + '</span>']);
+            if (opts.extractIPv4 && rec.ipv4) rows.push(['Embedded IPv4', escapeHtml(rec.ipv4)]);
+            rows.push(['Prefix length', '/' + rec.prefix]);
+            if (opts.showNetwork) rows.push(['Network address', escapeHtml(rec.networkDisplay) + '/' + rec.prefix]);
+            if (opts.showRange) {
+                rows.push(['First address', escapeHtml(formatAddr(rec.networkGroups, opts))]);
+                rows.push(['Last address', escapeHtml(rec.lastDisplay)]);
+            }
+            if (opts.showTotal) rows.push(['Total addresses', commaBig(rec.total)]);
+            if (opts.randomHost) rows.push(['Random example host', escapeHtml(formatAddr(bigToGroups(randomHostIn(rec.networkBig, rec.prefix)), opts))]);
+            if (opts.reverseDns) rows.push(['Reverse DNS (PTR)', escapeHtml(rec.ptr)]);
+            if (opts.solicitedNode) {
+                const sn = solicitedNodeMulticast(rec.groups);
+                rows.push(['Solicited-node multicast', escapeHtml(formatAddr(sn, opts))]);
+            }
+            if (opts.eui64) {
+                const eui = macToEui64(opts.mac, rec.networkGroups);
+                if (eui.error) rows.push(['EUI-64', '<span style="opacity:.6">' + escapeHtml(eui.error) + '</span>']);
+                else {
+                    rows.push(['EUI-64 interface ID', escapeHtml(eui.interfaceId)]);
+                    rows.push(['EUI-64 full address', escapeHtml(formatAddr(eui.groups, opts))]);
+                }
+            }
+            return '<div class="summary-grid">' + rows.map(r => '<div class="summary-row"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>').join('') + '</div>';
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ============================================
+        // RENDER: SUBNETTING TAB
+        // ============================================
+        function renderSubnets(rec, opts) {
+            if (!rec) return '<p class="empty-note">Enable subnet splitting in the settings to list child subnets.</p>';
+            if (opts.splitMode === 'off') return '<p class="empty-note">Subnet splitting is turned off. Choose "new prefix length" or "number of subnets" in settings.</p>';
+            let newPrefix;
+            if (opts.splitMode === 'prefix') newPrefix = opts.splitPrefix;
+            else newPrefix = rec.prefix + ceilLog2(Math.max(1, opts.splitCount));
+            if (newPrefix < rec.prefix) return '<p class="empty-note">The new prefix (/' + newPrefix + ') must be longer than the base prefix (/' + rec.prefix + ').</p>';
+            if (newPrefix > 128) return '<p class="empty-note">The new prefix cannot exceed /128.</p>';
+            const { list, totalCount, truncated } = splitSubnets(rec.networkBig, rec.prefix, newPrefix, opts.splitCap);
+            let html = '<div class="subnet-list">';
+            html += '<div class="summary-row"><span class="k">Splitting</span><span class="v">/' + rec.prefix + ' → /' + newPrefix + ' (' + commaBig(totalCount) + ' subnets, each with ' + commaBig(totalAddresses(newPrefix)) + ' addresses)</span></div>';
+            list.forEach((big, i) => {
+                const g = bigToGroups(big);
+                html += '<div class="subnet-item"><span class="subnet-idx">' + (i + 1) + '</span><span>' + escapeHtml(formatAddr(g, opts)) + '/' + newPrefix + '</span></div>';
+            });
+            html += '</div>';
+            if (truncated) html += '<div class="subnet-truncate-note">Showing the first ' + list.length + ' of ' + commaBig(totalCount) + ' subnets. Raise "Max subnets to list" in settings to see more.</div>';
+            return html;
+        }
+
+        // ============================================
+        // RENDER: BINARY TAB
+        // ============================================
+        function renderBinary(rec, opts) {
+            if (!rec) return '<p class="empty-note">Enable the binary breakdown in settings to see it here.</p>';
+            if (!opts.binaryView) return '<p class="empty-note">Binary breakdown is turned off in settings.</p>';
+            let bitIndex = 0;
+            let html = '<div class="binary-line">';
+            rec.groups.forEach((g, gi) => {
+                const bin = g.toString(2).padStart(16, '0');
+                for (let i = 0; i < 16; i++) {
+                    const isNet = bitIndex < rec.prefix;
+                    const cls = opts.highlightBits ? (isNet ? 'bit-net' : 'bit-host') : '';
+                    html += '<span class="' + cls + '">' + bin[i] + '</span>';
+                    bitIndex++;
+                }
+                if (gi < 7) html += ' ';
+            });
+            html += '</div>';
+            if (opts.highlightBits) html += '<div class="binary-legend"><span><span class="bit-net">&nbsp;&nbsp;</span> network bits (/' + rec.prefix + ')</span><span><span class="bit-host">&nbsp;&nbsp;</span> host bits</span></div>';
+            return html;
+        }
+
+        // ============================================
+        // RENDER: COMPARE TAB
+        // ============================================
+        function renderCompare(rec, opts) {
+            if (!rec) return '<p class="empty-note">Set a comparison mode and value B in settings to check containment or overlap.</p>';
+            if (opts.compareMode === 'off') return '<p class="empty-note">Comparison is off. Pick "contains" or "overlap" in settings and enter subnet B.</p>';
+            const parsedB = parseEntry(opts.compareValue);
+            if (!parsedB) return '<p class="empty-note">Enter address/CIDR B in settings to compare against A.</p>';
+            if (parsedB.error) return '<p class="empty-note">B: ' + escapeHtml(parsedB.error) + '</p>';
+            const prefixB = parsedB.hadPrefix ? parsedB.prefix : opts.defaultPrefix;
+            const netB = networkOf(parsedB.big, prefixB);
+            const lastB = lastOf(parsedB.big, prefixB);
+            let html = '';
+            html += '<div class="summary-row"><span class="k">Subnet A</span><span class="v">' + escapeHtml(formatAddr(rec.networkGroups, opts)) + '/' + rec.prefix + '</span></div>';
+            html += '<div class="summary-row"><span class="k">Subnet B</span><span class="v">' + escapeHtml(formatAddr(bigToGroups(netB), opts)) + '/' + prefixB + '</span></div>';
+            let pass, label;
+            if (opts.compareMode === 'contains') {
+                pass = (netB >= rec.networkBig) && (lastB <= rec.lastBig);
+                label = pass ? 'A contains B — every address in B falls inside A.' : 'A does not fully contain B.';
+            } else {
+                pass = !(lastB < rec.networkBig || netB > rec.lastBig);
+                label = pass ? 'A and B overlap — they share at least one address.' : 'A and B do not overlap.';
+            }
+            html = '<div class="compare-result ' + (pass ? 'pass' : '') + '">' + label + '</div>' + '<div class="summary-grid">' + html + '</div>';
+            return html;
+        }
+
+        // ============================================
+        // RENDER: BATCH TABLE
+        // ============================================
+        function renderBatch(entries, opts) {
+            const valid = entries.filter(e => e.rec);
+            if (entries.length <= 1) return '<p class="empty-note">Add more than one line above to see every entry processed as a table.</p>';
+            let rowsHtml = '';
+            entries.slice(0, opts.batchCap).forEach(e => {
+                if (e.rec) {
+                    const r = e.rec;
+                    rowsHtml += '<tr><td>' + escapeHtml(e.raw) + '</td><td>' + escapeHtml(r.type) + '</td><td>' + escapeHtml(compressAddress(r.groups, opts.uppercase)) + '</td><td>/' + r.prefix + '</td><td>' + escapeHtml(r.networkDisplay) + '</td><td>' + escapeHtml(r.lastDisplay) + '</td><td>' + commaBig(r.total) + '</td></tr>';
+                } else {
+                    rowsHtml += '<tr><td>' + escapeHtml(e.raw) + '</td><td class="batch-error" colspan="6">' + escapeHtml(e.error) + '</td></tr>';
+                }
+            });
+            let note = entries.length > opts.batchCap ? '<div class="subnet-truncate-note">Showing the first ' + opts.batchCap + ' of ' + entries.length + ' lines. Raise "Max rows to process" in settings to see more.</div>' : '';
+            return '<table class="batch-table"><thead><tr><th>Input</th><th>Type</th><th>Compressed</th><th>Prefix</th><th>Network</th><th>Last</th><th>Total</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>' + note;
+        }
+
+        // ============================================
+        // MAIN CONVERT
+        // ============================================
+        let lastBatchEntries = [];
+        let lastPrimaryRec = null;
+
+        function convert() {
+            const opts = getOptions();
+            const lines = ipInputEl.value.split('\n').map(l => l.trim()).filter(l => l !== '');
+            const entries = lines.map(raw => {
+                const parsed = parseEntry(raw);
+                if (!parsed) return { raw, error: 'Empty entry' };
+                if (parsed.error) return { raw, error: parsed.error };
+                return { raw, rec: buildRecord(parsed, opts) };
+            });
+            lastBatchEntries = entries;
+
+            const validEntries = entries.filter(e => e.rec);
+            const primary = validEntries.length ? validEntries[0].rec : null;
+            lastPrimaryRec = primary;
+
+            document.getElementById('summaryOut').innerHTML = renderSummary(primary, opts);
+            document.getElementById('subnetsOut').innerHTML = renderSubnets(primary, opts);
+            document.getElementById('binaryOut').innerHTML = renderBinary(primary, opts);
+            document.getElementById('compareOut').innerHTML = renderCompare(primary, opts);
+            document.getElementById('batchOut').innerHTML = renderBatch(entries, opts);
+
+            document.getElementById('lineCount').textContent = lines.length.toLocaleString();
+            document.getElementById('validCount').textContent = validEntries.length.toLocaleString();
+            document.getElementById('invalidCount').textContent = (entries.length - validEntries.length).toLocaleString();
+
+            saveDraft();
+        }
+
+        // Live conversion
+        ipInputEl.addEventListener('input', convert);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; convert(); });
+        });
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optUppercase','optShowType','optExtractIPv4','optShowNetwork','optShowRange','optShowTotal','optRandomHost','optEui64','optSolicitedNode','optReverseDns','optBinaryView','optHighlightBits'],
+            text: ['defaultPrefixInput','splitPrefixInput','splitCountInput','splitCapInput','macInput','compareInput','batchCapInput'],
+            radio: ['notationMode','splitMode','compareMode','exportFormat']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                raw[name] = checked ? checked.value : null;
+            });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector(`input[name="${name}"][value="${settings[name]}"]`);
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            home: {
+                defaultPrefixInput: '64', splitPrefixInput: '64', splitCountInput: '8', splitCapInput: '32',
+                notationMode: 'compressed', splitMode: 'off', compareMode: 'off', exportFormat: 'csv',
+                optUppercase: false, optShowType: true, optExtractIPv4: true, optShowNetwork: true, optShowRange: true,
+                optShowTotal: true, optRandomHost: true, optEui64: true, optSolicitedNode: true, optReverseDns: true,
+                optBinaryView: true, optHighlightBits: true, macInput: '02:1A:2B:3C:4D:5E', compareInput: ''
+            },
+            enterprise: {
+                defaultPrefixInput: '48', splitPrefixInput: '64', splitCountInput: '256', splitCapInput: '512',
+                notationMode: 'compressed', splitMode: 'prefix', compareMode: 'off', exportFormat: 'csv',
+                optUppercase: false, optShowType: true, optExtractIPv4: false, optShowNetwork: true, optShowRange: true,
+                optShowTotal: true, optRandomHost: false, optEui64: false, optSolicitedNode: false, optReverseDns: true,
+                optBinaryView: true, optHighlightBits: true, macInput: '02:1A:2B:3C:4D:5E', compareInput: ''
+            },
+            datacenter: {
+                defaultPrefixInput: '32', splitPrefixInput: '48', splitCountInput: '1024', splitCapInput: '512',
+                notationMode: 'both', splitMode: 'prefix', compareMode: 'contains', exportFormat: 'json',
+                optUppercase: false, optShowType: true, optExtractIPv4: false, optShowNetwork: true, optShowRange: true,
+                optShowTotal: true, optRandomHost: false, optEui64: false, optSolicitedNode: false, optReverseDns: false,
+                optBinaryView: false, optHighlightBits: true, macInput: '02:1A:2B:3C:4D:5E', compareInput: '2001:db8:1::/48'
+            },
+            docs: {
+                defaultPrefixInput: '32', splitPrefixInput: '48', splitCountInput: '16', splitCapInput: '256',
+                notationMode: 'both', splitMode: 'prefix', compareMode: 'off', exportFormat: 'csv',
+                optUppercase: false, optShowType: true, optExtractIPv4: false, optShowNetwork: true, optShowRange: true,
+                optShowTotal: true, optRandomHost: false, optEui64: false, optSolicitedNode: false, optReverseDns: true,
+                optBinaryView: true, optHighlightBits: true, macInput: '02:1A:2B:3C:4D:5E', compareInput: ''
+            },
+            transition: {
+                defaultPrefixInput: '96', splitPrefixInput: '96', splitCountInput: '1', splitCapInput: '32',
+                notationMode: 'compressed', splitMode: 'off', compareMode: 'off', exportFormat: 'csv',
+                optUppercase: false, optShowType: true, optExtractIPv4: true, optShowNetwork: true, optShowRange: true,
+                optShowTotal: false, optRandomHost: false, optEui64: false, optSolicitedNode: false, optReverseDns: false,
+                optBinaryView: false, optHighlightBits: false, macInput: '02:1A:2B:3C:4D:5E', compareInput: ''
+            }
+        };
+        const PRESET_SAMPLES = {
+            home: 'fd00:1234:5678::1/64\nfd00:1234:5678:1::/64',
+            enterprise: '2001:db8:abcd::/48',
+            datacenter: '2001:db8::/32\n2001:db8:1::/48',
+            docs: '2001:db8::1/32\n2001:db8:beef::/48',
+            transition: '64:ff9b::192.0.2.33\n2002:c000:0204::/16\n::ffff:203.0.113.9'
+        };
+
+        const CUSTOM_PRESETS_KEY = 'ipv6CalcCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(presets) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ } }
+
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+                if (PRESET_SAMPLES[val]) ipInputEl.value = PRESET_SAMPLES[val];
+            }
+            convert();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ipv6-calculator-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    convert();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // UPLOAD / DRAG & DROP
+        // ============================================
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            readIntoInput(file);
+            fileInput.value = '';
+        });
+        function readIntoInput(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => { ipInputEl.value = e.target.result; convert(); };
+            reader.readAsText(file);
+        }
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border-color)'; dropZone.style.opacity = '1'; });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = ''; dropZone.style.opacity = ''; });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length) readIntoInput(files[0]);
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            ipInputEl.value = '';
+            convert();
+            ipInputEl.focus();
+        });
+
+        // ============================================
+        // COPY / EXPORT
+        // ============================================
+        function activeTabId() {
+            const active = document.querySelector('.output-tab.active');
+            return active ? active.dataset.tab : 'summary';
+        }
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            const tab = activeTabId();
+            const el = document.getElementById(tab + 'Out');
+            const text = el ? el.innerText : '';
+            try { await navigator.clipboard.writeText(text); }
+            catch (err) { /* clipboard unavailable */ }
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1200);
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const rows = lastBatchEntries.map(e => {
+                if (e.rec) {
+                    const r = e.rec;
+                    return { input: e.raw, type: r.type, compressed: compressAddress(r.groups, opts.uppercase), expanded: expandAddress(r.groups, opts.uppercase), prefix: r.prefix, network: r.networkDisplay, last: r.lastDisplay, total: r.total.toString(), reverseDns: r.ptr || '' };
+                }
+                return { input: e.raw, error: e.error };
+            });
+            let blob, filename;
+            if (opts.exportFormat === 'json') {
+                blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+                filename = 'ipv6-calculator-results.json';
+            } else {
+                const headers = ['input','type','compressed','expanded','prefix','network','last','total','reverseDns','error'];
+                const csvLines = [headers.join(',')];
+                rows.forEach(r => {
+                    csvLines.push(headers.map(h => {
+                        const v = r[h] === undefined ? '' : String(r[h]);
+                        return v.includes(',') ? '"' + v.replace(/"/g, '""') + '"' : v;
+                    }).join(','));
+                });
+                blob = new Blob([csvLines.join('\n')], { type: 'text/csv' });
+                filename = 'ipv6-calculator-results.csv';
+            }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ============================================
+        // AUTOSAVE DRAFT + SETTINGS (localStorage, this browser only)
+        // ============================================
+        const DRAFT_KEY = 'ipv6CalcDraft';
+        const DRAFT_SETTINGS_KEY = 'ipv6CalcLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, ipInputEl.value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') ipInputEl.value = savedDraft;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        convert();
+    </script>
+</body>
+</html>
