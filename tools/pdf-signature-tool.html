@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Signature Tool</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF signature tool: draw, type, or upload a signature, place it (and initials, a date stamp, or a CONFIDENTIAL/APPROVED watermark) on any page, then embed it, sign every page in one click, attach a signer certificate with a SHA-256 document hash, and download — 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-signature-tool.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-signature-tool.html" />
+<meta property="og:title" content="PDF Signature Tool — awjunaid" />
+<meta property="og:description" content="Draw, type, or upload a signature, place it and initials/date/stamps on any page, embed a signer certificate with a SHA-256 hash, and download. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-signature-tool.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Signature Tool — awjunaid" />
+<meta name="twitter:description" content="Draw, type, or upload a signature, place it and initials/date/stamps on any page, embed a signer certificate with a SHA-256 hash, and download. Free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-signature-tool.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&family=Great+Vibes&family=Pacifico&family=Sacramento&family=Alex+Brush&family=Caveat:wght@500;700&family=Allura&family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           INFO / RISK BANNERS
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--border-color); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+        }
+        .risk-banner.warn-tone { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); }
+        .risk-banner i { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
+        .risk-banner.warn-tone i { color: var(--warn); }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .risk-tag.good { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group input[type="color"], .field-group select, .field-group textarea {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group input[type="color"] { padding: 4px; height: 40px; cursor: pointer; }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+        .field-group input[type="range"] { width: 100%; accent-color: var(--text-primary); }
+        .range-readout { font-family: var(--font-mono); font-size: 11px; opacity: 0.7; float: right; }
+
+        /* Source tabs (Draw / Type / Upload) */
+        .source-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .source-tab {
+            border: 1px solid var(--border-light); border-radius: 60px; padding: 8px 16px; font-size: 11px;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; background: transparent;
+            color: var(--text-color); font-family: var(--font-header); transition: all 0.2s;
+        }
+        .source-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+        .source-pane { display: none; }
+        .source-pane.active { display: block; }
+
+        .sigpad-wrap { border: 1px solid var(--border-light); border-radius: 14px; padding: 10px; background: var(--input-bg); }
+        #sigPadCanvas { width: 100%; height: 180px; touch-action: none; cursor: crosshair; border-radius: 8px; background: var(--input-bg); display: block; }
+        .sigpad-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+        .sigpad-toolbar label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; opacity: 0.6; }
+        .sigpad-toolbar input[type="color"] { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--border-light); padding: 2px; cursor: pointer; }
+        .sigpad-toolbar input[type="range"] { width: 90px; accent-color: var(--text-primary); }
+
+        .type-preview {
+            border: 1px solid var(--border-light); border-radius: 14px; padding: 24px; min-height: 100px;
+            display: flex; align-items: center; justify-content: center; text-align: center; background: var(--input-bg);
+            font-size: 40px; word-break: break-word; overflow: hidden;
+        }
+        .font-swatch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 12px; }
+        .font-swatch {
+            border: 1px solid var(--border-light); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer;
+            font-size: 20px; transition: all 0.2s; background: var(--input-bg);
+        }
+        .font-swatch.selected { border-color: var(--text-primary); border-width: 2px; background: color-mix(in srgb, var(--text-primary) 6%, transparent); }
+
+        .upload-drop {
+            border: 1px dashed var(--border-light); border-radius: 12px; padding: 24px; text-align: center; font-size: 12px; opacity: 0.65;
+        }
+        .transparency-preview { display: flex; gap: 14px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+        .transparency-preview .tp-swatch {
+            width: 140px; height: 90px; border: 1px solid var(--border-light); border-radius: 10px;
+            background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 14px 14px; background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .transparency-preview .tp-swatch img { max-width: 100%; max-height: 100%; }
+
+        .saved-sig-gallery { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+        .saved-sig-item {
+            border: 1px solid var(--border-light); border-radius: 10px; padding: 8px; width: 110px; text-align: center; cursor: pointer; position: relative;
+        }
+        .saved-sig-item.active { border-color: var(--text-primary); border-width: 2px; }
+        .saved-sig-item img { width: 100%; height: 44px; object-fit: contain; }
+        .saved-sig-item .ssi-name { font-size: 10px; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7; }
+        .saved-sig-item .ssi-del { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--danger); color: #fff; font-size: 10px; cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 6px 12px; font-size: 9.5px; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Page nav + preview stage */
+        .page-nav { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 10px; }
+        .page-nav span { font-family: var(--font-mono); font-size: 12px; opacity: 0.75; }
+        .stage-wrap { display: none; }
+        .stage-wrap.show { display: block; }
+        .preview-stage {
+            position: relative; border: 1px solid var(--border-light); border-radius: 14px; overflow: hidden;
+            background: var(--input-bg); margin: 0 auto; max-width: 100%;
+        }
+        .preview-stage canvas { display: block; width: 100%; height: auto; cursor: crosshair; }
+        .preview-stage.disarmed canvas { cursor: default; }
+        .placed-marker {
+            position: absolute; pointer-events: none; border: 1px dashed color-mix(in srgb, var(--accent) 70%, transparent);
+        }
+        .placed-marker img { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .placed-marker .pm-remove {
+            position: absolute; top: -9px; right: -9px; width: 18px; height: 18px; border-radius: 50%; border: none;
+            background: var(--danger); color: #fff; font-size: 9px; cursor: pointer; pointer-events: all;
+        }
+
+        .arm-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .arm-btn {
+            border: 1px solid var(--border-light); border-radius: 60px; padding: 8px 14px; font-size: 11px;
+            font-weight: 700; cursor: pointer; background: transparent; color: var(--text-color); font-family: var(--font-header);
+            text-transform: uppercase; letter-spacing: 0.3px; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .arm-btn.armed { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+
+        /* Risk score strip re-used as "Signing status strip" */
+        .risk-score-strip {
+            display: none;
+            align-items: center; gap: 14px;
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 14px 18px; margin-bottom: 14px;
+        }
+        .risk-score-strip.show { display: flex; }
+        .risk-score-ring {
+            width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-header); font-weight: 800; font-size: 15px;
+            border: 3px solid var(--border-light);
+        }
+        .risk-score-ring.high { border-color: var(--accent); color: var(--accent); }
+        .risk-score-ring.med { border-color: var(--warn); color: var(--warn); }
+        .risk-score-ring.low { border-color: var(--border-light); color: var(--text-color); opacity: 0.5; }
+        .risk-score-text strong { display: block; font-size: 13px; }
+        .risk-score-text span { font-size: 11px; opacity: 0.65; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        .elem-row {
+            display: grid; grid-template-columns: auto 1fr auto auto auto auto auto; align-items: center; gap: 8px;
+            padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 11px;
+        }
+        .elem-row:last-child { border-bottom: none; }
+        .elem-row img.elem-thumb { width: 34px; height: 26px; object-fit: contain; border: 1px solid var(--border-light); border-radius: 4px; background: #fff; }
+        .elem-row input[type="number"] { width: 52px; padding: 4px 6px; font-size: 10.5px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-primary); }
+        .elem-row .elem-del { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 24px; height: 24px; border-radius: 6px; cursor: pointer; }
+        .elem-row .elem-page-badge { font-family: var(--font-mono); font-size: 10px; opacity: 0.7; white-space: nowrap; }
+
+        .hash-box {
+            font-family: var(--font-mono); font-size: 11px; word-break: break-all; border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 10px 12px; margin-top: 6px; background: var(--input-bg);
+        }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .elem-row { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Signature Tool</h1>
+                <div class="tool-dek">Draw, type, or upload your signature — place it, your initials, a date stamp, or a CONFIDENTIAL/APPROVED watermark anywhere on any page. Sign every page in one click, attach a signer certificate with a SHA-256 document hash for an audit trail, and download the finished PDF. Nothing is uploaded to a server.</div>
+            </div>
+
+            <div class="risk-banner warn-tone">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <div>
+                    <strong>A note on legal validity</strong>
+                    <p>Electronic signatures are legally recognized in many jurisdictions (e.g. under the US ESIGN Act/UETA or the EU eIDAS regulation), but requirements vary by country, document type, and use case. This tool embeds a visual signature and an optional certificate/hash record for your own audit trail — it does not issue a qualified digital certificate. For contracts, deeds, or regulated filings, confirm what your jurisdiction and counterparty require.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="quickPersonal">Quick Personal Sign</option>
+                    <option value="businessContract">Business Contract (sign + initial every page)</option>
+                    <option value="ndaFast">NDA Fast Sign</option>
+                    <option value="reviewStamp">Review Stamp Only (no signature)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>1 · Create Your Signature</h4>
+                    <div class="source-tabs">
+                        <button class="source-tab active" data-src="draw" type="button">Draw</button>
+                        <button class="source-tab" data-src="type" type="button">Type</button>
+                        <button class="source-tab" data-src="upload" type="button">Upload Image</button>
+                    </div>
+
+                    <div class="source-pane active" id="src-draw">
+                        <div class="sigpad-wrap">
+                            <canvas id="sigPadCanvas"></canvas>
+                            <div class="sigpad-toolbar">
+                                <label>Ink</label><input type="color" id="sigPenColor" value="#1a1aff">
+                                <label>Thickness</label><input type="range" id="sigPenWidth" min="1" max="8" value="3">
+                                <div class="spacer" style="flex:1;"></div>
+                                <button class="btn-ghost small" id="sigPadClearBtn" type="button">Clear</button>
+                                <button class="btn-solid small" id="sigPadUseBtn" type="button">Use This Signature</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="source-pane" id="src-type">
+                        <div class="field-row">
+                            <div class="field-group full-width">
+                                <label for="typeSigText">Type your name</label>
+                                <input type="text" id="typeSigText" placeholder="e.g. Abdul Wahab Junaid" value="Your Name">
+                            </div>
+                        </div>
+                        <div class="type-preview" id="typeSigPreview">Your Name</div>
+                        <div class="font-swatch-grid" id="fontSwatchGrid"></div>
+                        <div class="field-row" style="margin-top:12px;">
+                            <div class="field-group">
+                                <label for="typeSigColor">Ink color</label>
+                                <input type="color" id="typeSigColor" value="#1a1aff">
+                            </div>
+                            <div class="field-group">
+                                <label for="typeSigSize">Size <span class="range-readout" id="typeSigSizeOut">54px</span></label>
+                                <input type="range" id="typeSigSize" min="28" max="90" value="54">
+                            </div>
+                        </div>
+                        <button class="btn-solid small" id="typeSigUseBtn" type="button" style="margin-top:10px;">Use This Signature</button>
+                    </div>
+
+                    <div class="source-pane" id="src-upload">
+                        <div class="upload-drop" id="sigUploadDrop">Drag & drop a signature image (PNG/JPG), or click to choose one.</div>
+                        <input type="file" id="sigUploadInput" accept="image/png,image/jpeg" style="display:none;">
+                        <div class="settings-grid" style="margin-top:14px;">
+                            <label class="setting-toggle">
+                                <input type="checkbox" id="uploadRemoveBg" checked>
+                                <span><span class="setting-name">Remove white background</span><span class="setting-hint">Makes near-white pixels transparent — ideal for a photo of an ink signature on paper</span></span>
+                            </label>
+                        </div>
+                        <div class="field-row" id="uploadThresholdRow" style="margin-top:8px;">
+                            <div class="field-group full-width">
+                                <label for="uploadThreshold">Whiteness threshold <span class="range-readout" id="uploadThresholdOut">225</span></label>
+                                <input type="range" id="uploadThreshold" min="150" max="254" value="225">
+                            </div>
+                        </div>
+                        <div class="transparency-preview" id="uploadPreviewWrap" style="display:none;">
+                            <div class="tp-swatch"><img id="uploadPreviewImg" alt="signature preview"></div>
+                            <button class="btn-solid small" id="uploadSigUseBtn" type="button">Use This Signature</button>
+                        </div>
+                    </div>
+
+                    <div class="saved-sig-gallery" id="savedSigGallery"></div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>2 · Initials, Date Stamp & Watermark <span class="mini-link" id="regenExtrasBtn">refresh previews</span></h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="initialsText">Initials text</label>
+                            <input type="text" id="initialsText" placeholder="e.g. AWJ" value="AWJ">
+                        </div>
+                        <div class="field-group">
+                            <label for="initialsFont">Initials font</label>
+                            <select id="initialsFont"></select>
+                        </div>
+                        <div class="field-group">
+                            <label for="dateFormat">Date stamp format</label>
+                            <select id="dateFormat">
+                                <option value="long">Aug 25, 2026</option>
+                                <option value="iso">2026-08-25</option>
+                                <option value="dmy">25/08/2026</option>
+                                <option value="withTime">Aug 25, 2026, 14:05</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="stampPreset">Watermark stamp text</label>
+                            <select id="stampPreset">
+                                <option value="CONFIDENTIAL">CONFIDENTIAL</option>
+                                <option value="APPROVED">APPROVED</option>
+                                <option value="DRAFT">DRAFT</option>
+                                <option value="VOID">VOID</option>
+                                <option value="COPY">COPY</option>
+                                <option value="custom">Custom…</option>
+                            </select>
+                        </div>
+                        <div class="field-group" id="stampCustomTextRow" style="display:none;">
+                            <label for="stampCustomText">Custom stamp text</label>
+                            <input type="text" id="stampCustomText" placeholder="e.g. RECEIVED">
+                        </div>
+                        <div class="field-group">
+                            <label for="stampColor">Stamp color</label>
+                            <input type="color" id="stampColor" value="#cc0000">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>3 · Placement Defaults (applied when you place a new item)</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="defaultWidthPct">Default width <span class="range-readout" id="defaultWidthPctOut">22%</span></label>
+                            <input type="range" id="defaultWidthPct" min="6" max="60" value="22">
+                        </div>
+                        <div class="field-group">
+                            <label for="defaultRotation">Rotation (deg) <span class="range-readout" id="defaultRotationOut">0°</span></label>
+                            <input type="range" id="defaultRotation" min="-90" max="90" value="0">
+                        </div>
+                        <div class="field-group">
+                            <label for="defaultOpacity">Opacity <span class="range-readout" id="defaultOpacityOut">100%</span></label>
+                            <input type="range" id="defaultOpacity" min="10" max="100" value="100">
+                        </div>
+                        <div class="field-group">
+                            <label for="quickCorner">Quick "apply to every page" position</label>
+                            <select id="quickCorner">
+                                <option value="br">Bottom right</option>
+                                <option value="bl">Bottom left</option>
+                                <option value="tr">Top right</option>
+                                <option value="tl">Top left</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>4 · Signer & Audit Info</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="signerName">Signer name</label>
+                            <input type="text" id="signerName" placeholder="Full name">
+                        </div>
+                        <div class="field-group">
+                            <label for="signerReason">Reason for signing</label>
+                            <input type="text" id="signerReason" placeholder="e.g. I agree to the terms of this document">
+                        </div>
+                        <div class="field-group">
+                            <label for="signerLocation">Location</label>
+                            <input type="text" id="signerLocation" placeholder="e.g. Lahore, Pakistan">
+                        </div>
+                        <div class="field-group">
+                            <label for="signerContact">Contact / email</label>
+                            <input type="text" id="signerContact" placeholder="e.g. name@email.com">
+                        </div>
+                    </div>
+                    <div class="settings-grid" style="margin-top:14px;">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optEmbedMetadata" checked>
+                            <span><span class="setting-name">Embed signer info in PDF metadata <span class="risk-tag good">Audit</span></span><span class="setting-hint">Writes Signer, Reason, Location, Contact and SignedDate into the Document Info dictionary</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAppendCert" checked>
+                            <span><span class="setting-name">Append signature certificate page <span class="risk-tag good">Audit</span></span><span class="setting-hint">Adds a final page summarizing who signed, when, and the document's SHA-256 hash before signing</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIncludeHashOnCert" checked>
+                            <span><span class="setting-name">Include document hash on certificate</span><span class="setting-hint">Lets any recipient verify the original file wasn't altered besides the signature itself</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>5 · Output Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOptimize" checked>
+                            <span><span class="setting-name">Optimize output</span><span class="setting-hint">Uses object streams for a smaller signed file</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMultiPlace">
+                            <span><span class="setting-name">Multi-place mode</span><span class="setting-hint">Keep an item "armed" after placing it, so you can click multiple spots without re-selecting</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="signed.pdf">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source PDF & Placement</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Choose PDF</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop a .pdf file here, or use "Choose PDF" above.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="risk-score-strip" id="statusStrip">
+                        <div class="risk-score-ring low" id="statusRing">0</div>
+                        <div class="risk-score-text">
+                            <strong id="statusLabel">Nothing placed yet</strong>
+                            <span id="statusSub">Arm an item below, then click on the page to place it</span>
+                        </div>
+                    </div>
+
+                    <div class="stage-wrap" id="stageWrap">
+                        <div class="arm-toolbar">
+                            <button class="arm-btn" data-arm="signature" type="button"><i class="fa-solid fa-signature"></i> Place Signature</button>
+                            <button class="arm-btn" data-arm="initials" type="button"><i class="fa-solid fa-i-cursor"></i> Place Initials</button>
+                            <button class="arm-btn" data-arm="date" type="button"><i class="fa-solid fa-calendar"></i> Place Date</button>
+                            <button class="arm-btn" data-arm="stamp" type="button"><i class="fa-solid fa-stamp"></i> Place Stamp</button>
+                        </div>
+                        <div class="arm-toolbar">
+                            <button class="btn-ghost small" id="applySigEveryPageBtn" type="button">Sign every page</button>
+                            <button class="btn-ghost small" id="applyInitialsEveryPageBtn" type="button">Initial every page</button>
+                            <button class="btn-ghost small" id="applyDateEveryPageBtn" type="button">Date every page</button>
+                            <button class="btn-ghost small" id="undoPlacementBtn" type="button">Undo last</button>
+                            <button class="btn-ghost small" id="clearPlacementsBtn" type="button">Clear all</button>
+                        </div>
+                        <div class="page-nav">
+                            <button class="btn-ghost small" id="prevPageBtn" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+                            <span id="pageIndicator">Page 1 of 1</span>
+                            <button class="btn-ghost small" id="nextPageBtn" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <div class="preview-stage disarmed" id="previewStage">
+                            <canvas id="previewCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalPages">0</strong> page(s)</span>
+                        <span><strong id="totalPlaced">0</strong> item(s) placed</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Sign & Download</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="signBtn" type="button"><i class="fa-solid fa-file-signature"></i> Sign PDF</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Sign Plan</button>
+                        <button class="output-tab" data-tab="elements" type="button">Placed Items</button>
+                        <button class="output-tab" data-tab="cert" type="button">Certificate</button>
+                        <button class="output-tab" data-tab="files" type="button">Output</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Load a PDF and place at least one item — the signing plan appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-elements">
+                        <div class="info-pane" id="elementsPane"><p class="info-empty">Items you place on the page (signature, initials, date, stamp) will be listed here for fine adjustment.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-cert">
+                        <div class="info-pane" id="certPane"><p class="info-empty">Signer info and the document hash will appear here once a PDF is loaded.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">The signed file will be listed here after processing.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Signing activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputItemCount">0</strong> item(s) embedded</span>
+                        <span><strong id="outputPageCount">0</strong> page(s) signed</span>
+                        <span><strong id="outputStatus">Not signed yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How do I place my signature exactly where I want it?</h4>
+                        <p>Create your signature (draw, type, or upload), then press "Place Signature" to arm it and click anywhere on the page preview — that's where it lands. Fine-tune the exact X/Y position, width, rotation, and opacity afterward in the "Placed Items" tab, or turn on multi-place mode to drop several copies without re-arming.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I sign a 40-page contract without clicking 40 times?</h4>
+                        <p>Yes — "Sign every page" or "Initial every page" adds one instance of the item to every page automatically at the corner you choose in Placement Defaults, which is the common real-world need for initialing each page of a long agreement.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the signature certificate page actually prove?</h4>
+                        <p>It lists the signer's name, stated reason and location, the exact timestamp, and a SHA-256 hash computed from the original file before any signature was applied. Anyone can recompute that hash from the original to confirm it matches, giving a simple integrity record — not a substitute for a qualified digital certificate authority.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>My uploaded signature photo has a white background — will that show as a box?</h4>
+                        <p>Turn on "Remove white background" before using it. The tool walks every pixel and makes near-white ones transparent based on the whiteness threshold you set, so a phone photo of an ink signature on paper drops onto the page cleanly.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between a stamp and a signature?</h4>
+                        <p>A signature/initials item is meant to represent your identity on the document. A stamp (CONFIDENTIAL, APPROVED, DRAFT, VOID, COPY, or custom text) is a status marker, typically placed diagonally with some transparency across a page — useful for routing and review workflows rather than signing.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is my document or signature ever uploaded anywhere?</h4>
+                        <p>No. The PDF is rendered and signed entirely in your browser using pdf.js and pdf-lib; nothing is sent to a server. Saved signatures are kept only in this browser's local storage so you can reuse them next time — reload on a different device and you'll need to recreate them.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // PDF SIGNATURE TOOL
+        // ============================================
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const elementsPane = document.getElementById('elementsPane');
+        const certPane = document.getElementById('certPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const signBtn = document.getElementById('signBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const stageWrap = document.getElementById('stageWrap');
+        const previewStage = document.getElementById('previewStage');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const statusStrip = document.getElementById('statusStrip');
+
+        const FONT_OPTIONS = [
+            { id: 'Dancing Script', label: 'Dancing Script', weight: 700 },
+            { id: 'Great Vibes', label: 'Great Vibes', weight: 400 },
+            { id: 'Pacifico', label: 'Pacifico', weight: 400 },
+            { id: 'Sacramento', label: 'Sacramento', weight: 400 },
+            { id: 'Alex Brush', label: 'Alex Brush', weight: 400 },
+            { id: 'Caveat', label: 'Caveat', weight: 700 },
+            { id: 'Allura', label: 'Allura', weight: 400 }
+        ];
+        let selectedFont = FONT_OPTIONS[0];
+
+        let pdfBytesOriginal = null;   // Uint8Array, never mutated
+        let pdfFileName = 'document.pdf';
+        let pdfJsDoc = null;           // pdf.js proxy for preview
+        let currentPage = 1;
+        let totalPages = 0;
+        let pageViewportCache = {};    // pageNum -> {width, height} at scale 1
+
+        let currentSignature = null;   // { dataUrl, w, h }
+        let currentInitials = null;
+        let currentDate = null;
+        let currentStamp = null;
+
+        let armedType = null;          // 'signature' | 'initials' | 'date' | 'stamp' | null
+        let placedElements = [];       // { id, type, page (1-based) | 'all', xPct, yPct, wPct, rotation, opacity, dataUrl, w, h }
+        let elemIdCounter = 0;
+
+        let signedBytes = null;
+        let signedHash = '';
+        let originalHash = '';
+
+        // ---------- misc helpers ----------
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function truncate(str, n) {
+            str = String(str);
+            return str.length > n ? str.slice(0, n) + '…' : str;
+        }
+        function showError(msg) { errorBanner.textContent = msg; errorBanner.classList.add('show'); }
+        function clearError() { errorBanner.classList.remove('show'); errorBanner.textContent = ''; }
+        let logLines = [];
+        function logMsg(msg, level) { logLines.push({ msg, level: level || 'info' }); renderLog(); }
+        function clearLog() { logLines = []; renderLog(); }
+        function renderLog() {
+            if (logLines.length === 0) { logPane.innerHTML = '<p class="info-empty">Signing activity will be logged here.</p>'; return; }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        async function sha256Hex(bytes) {
+            const digest = await crypto.subtle.digest('SHA-256', bytes);
+            return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        function loadCanvasImage(dataUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = dataUrl;
+            });
+        }
+
+        // ============================================
+        // FONT SWATCHES (for typed signature + initials font select)
+        // ============================================
+        function buildFontSwatches() {
+            const grid = document.getElementById('fontSwatchGrid');
+            grid.innerHTML = '';
+            FONT_OPTIONS.forEach((f, i) => {
+                const el = document.createElement('div');
+                el.className = 'font-swatch' + (i === 0 ? ' selected' : '');
+                el.style.fontFamily = `"${f.id}", cursive`;
+                el.textContent = f.label;
+                el.dataset.fontId = f.id;
+                el.addEventListener('click', () => {
+                    grid.querySelectorAll('.font-swatch').forEach(s => s.classList.remove('selected'));
+                    el.classList.add('selected');
+                    selectedFont = f;
+                    updateTypePreview();
+                });
+                grid.appendChild(el);
+            });
+            const initialsFontSel = document.getElementById('initialsFont');
+            initialsFontSel.innerHTML = FONT_OPTIONS.map(f => `<option value="${f.id}">${f.label}</option>`).join('');
+        }
+        buildFontSwatches();
+
+        function updateTypePreview() {
+            const text = document.getElementById('typeSigText').value || 'Your Name';
+            const color = document.getElementById('typeSigColor').value;
+            const size = document.getElementById('typeSigSize').value;
+            const preview = document.getElementById('typeSigPreview');
+            preview.style.fontFamily = `"${selectedFont.id}", cursive`;
+            preview.style.color = color;
+            preview.style.fontSize = size + 'px';
+            preview.textContent = text;
+        }
+        ['typeSigText', 'typeSigColor'].forEach(id => document.getElementById(id).addEventListener('input', updateTypePreview));
+        document.getElementById('typeSigSize').addEventListener('input', (e) => {
+            document.getElementById('typeSigSizeOut').textContent = e.target.value + 'px';
+            updateTypePreview();
+        });
+        updateTypePreview();
+
+        // ============================================
+        // SOURCE TABS
+        // ============================================
+        document.querySelectorAll('.source-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.source-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('src-' + tab.dataset.src).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // DRAW SIGNATURE PAD
+        // ============================================
+        const sigCanvas = document.getElementById('sigPadCanvas');
+        const sigCtx = sigCanvas.getContext('2d');
+        let sigDrawing = false, sigHasInk = false, sigLastX = 0, sigLastY = 0;
+        function resizeSigCanvas() {
+            const rect = sigCanvas.getBoundingClientRect();
+            const ratio = window.devicePixelRatio || 1;
+            sigCanvas.width = rect.width * ratio;
+            sigCanvas.height = 180 * ratio;
+            sigCtx.scale(ratio, ratio);
+            sigCtx.lineCap = 'round';
+            sigCtx.lineJoin = 'round';
+        }
+        setTimeout(resizeSigCanvas, 50);
+        window.addEventListener('resize', () => { const had = sigHasInk; resizeSigCanvas(); sigHasInk = false; });
+
+        function sigPos(e) {
+            const rect = sigCanvas.getBoundingClientRect();
+            const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+            return { x: cx, y: cy };
+        }
+        function sigStart(e) { e.preventDefault(); sigDrawing = true; const p = sigPos(e); sigLastX = p.x; sigLastY = p.y; }
+        function sigMove(e) {
+            if (!sigDrawing) return;
+            e.preventDefault();
+            const p = sigPos(e);
+            sigCtx.strokeStyle = document.getElementById('sigPenColor').value;
+            sigCtx.lineWidth = document.getElementById('sigPenWidth').value;
+            sigCtx.beginPath();
+            sigCtx.moveTo(sigLastX, sigLastY);
+            sigCtx.lineTo(p.x, p.y);
+            sigCtx.stroke();
+            sigLastX = p.x; sigLastY = p.y;
+            sigHasInk = true;
+        }
+        function sigEnd() { sigDrawing = false; }
+        sigCanvas.addEventListener('mousedown', sigStart);
+        sigCanvas.addEventListener('mousemove', sigMove);
+        window.addEventListener('mouseup', sigEnd);
+        sigCanvas.addEventListener('touchstart', sigStart, { passive: false });
+        sigCanvas.addEventListener('touchmove', sigMove, { passive: false });
+        sigCanvas.addEventListener('touchend', sigEnd);
+
+        document.getElementById('sigPadClearBtn').addEventListener('click', () => {
+            sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+            sigHasInk = false;
+        });
+        document.getElementById('sigPadUseBtn').addEventListener('click', () => {
+            if (!sigHasInk) { showError('Draw a signature first, or switch to Type / Upload.'); return; }
+            clearError();
+            const dataUrl = sigCanvas.toDataURL('image/png');
+            setCurrentSignature(dataUrl, 'Drawn');
+        });
+
+        // ============================================
+        // TYPED SIGNATURE -> render to offscreen canvas -> PNG
+        // ============================================
+        document.getElementById('typeSigUseBtn').addEventListener('click', async () => {
+            const text = document.getElementById('typeSigText').value.trim();
+            if (!text) { showError('Type a name before using it as a signature.'); return; }
+            clearError();
+            const color = document.getElementById('typeSigColor').value;
+            const size = parseInt(document.getElementById('typeSigSize').value, 10);
+            try {
+                await document.fonts.load(`${size}px "${selectedFont.id}"`);
+            } catch (e) { /* font may already be loaded */ }
+            const measureCanvas = document.createElement('canvas');
+            const mctx = measureCanvas.getContext('2d');
+            mctx.font = `${size}px "${selectedFont.id}"`;
+            const textWidth = Math.max(50, mctx.measureText(text).width);
+            const padding = size * 0.35;
+            const canvas = document.createElement('canvas');
+            canvas.width = textWidth + padding * 2;
+            canvas.height = size * 1.6;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${size}px "${selectedFont.id}"`;
+            ctx.fillStyle = color;
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, padding, canvas.height / 2);
+            setCurrentSignature(canvas.toDataURL('image/png'), 'Typed: ' + text);
+        });
+
+        // ============================================
+        // UPLOAD SIGNATURE IMAGE (with white-background removal)
+        // ============================================
+        const sigUploadInput = document.getElementById('sigUploadInput');
+        document.getElementById('sigUploadDrop').addEventListener('click', () => sigUploadInput.click());
+        ['dragenter', 'dragover'].forEach(evt => document.getElementById('sigUploadDrop').addEventListener(evt, (e) => e.preventDefault()));
+        document.getElementById('sigUploadDrop').addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length) handleSigUpload(e.dataTransfer.files[0]);
+        });
+        sigUploadInput.addEventListener('change', (e) => { if (e.target.files.length) handleSigUpload(e.target.files[0]); sigUploadInput.value = ''; });
+
+        let uploadedRawDataUrl = null;
+        async function handleSigUpload(file) {
+            if (!/^image\/(png|jpeg)$/.test(file.type)) { showError('Please upload a PNG or JPG image.'); return; }
+            clearError();
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                uploadedRawDataUrl = ev.target.result;
+                await refreshUploadPreview();
+            };
+            reader.readAsDataURL(file);
+        }
+        async function makeTransparent(dataUrl, threshold) {
+            const img = await loadCanvasImage(dataUrl);
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                if (d[i] >= threshold && d[i + 1] >= threshold && d[i + 2] >= threshold) d[i + 3] = 0;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas.toDataURL('image/png');
+        }
+        async function refreshUploadPreview() {
+            if (!uploadedRawDataUrl) return;
+            const removeBg = document.getElementById('uploadRemoveBg').checked;
+            const threshold = parseInt(document.getElementById('uploadThreshold').value, 10);
+            const finalUrl = removeBg ? await makeTransparent(uploadedRawDataUrl, threshold) : uploadedRawDataUrl;
+            document.getElementById('uploadPreviewImg').src = finalUrl;
+            document.getElementById('uploadPreviewWrap').style.display = 'flex';
+            document.getElementById('uploadPreviewWrap').dataset.currentUrl = finalUrl;
+        }
+        document.getElementById('uploadRemoveBg').addEventListener('change', refreshUploadPreview);
+        document.getElementById('uploadThreshold').addEventListener('input', (e) => {
+            document.getElementById('uploadThresholdOut').textContent = e.target.value;
+            refreshUploadPreview();
+        });
+        document.getElementById('uploadSigUseBtn').addEventListener('click', () => {
+            const url = document.getElementById('uploadPreviewWrap').dataset.currentUrl;
+            if (!url) return;
+            setCurrentSignature(url, 'Uploaded');
+        });
+
+        // ============================================
+        // CURRENT SIGNATURE + SAVED SIGNATURE LIBRARY (localStorage)
+        // ============================================
+        const SAVED_SIG_KEY = 'pdfSignatureToolSavedSignatures';
+        function loadSavedSignatures() {
+            try { return JSON.parse(localStorage.getItem(SAVED_SIG_KEY) || '[]'); } catch (e) { return []; }
+        }
+        function saveSavedSignatures(list) {
+            try { localStorage.setItem(SAVED_SIG_KEY, JSON.stringify(list)); } catch (e) { /* ignore quota errors */ }
+        }
+        async function setCurrentSignature(dataUrl, label) {
+            const img = await loadCanvasImage(dataUrl);
+            currentSignature = { dataUrl, w: img.width, h: img.height };
+            let list = loadSavedSignatures();
+            list.unshift({ id: 'sig' + Date.now(), name: label, dataUrl });
+            list = list.slice(0, 8);
+            saveSavedSignatures(list);
+            renderSavedSigGallery();
+            logMsg(`Signature ready: ${label}.`, 'success');
+            renderStatusStrip();
+        }
+        function renderSavedSigGallery() {
+            const gallery = document.getElementById('savedSigGallery');
+            const list = loadSavedSignatures();
+            if (!list.length) { gallery.innerHTML = ''; return; }
+            gallery.innerHTML = list.map(s => `
+                <div class="saved-sig-item${currentSignature && currentSignature.dataUrl === s.dataUrl ? ' active' : ''}" data-id="${s.id}">
+                    <img src="${s.dataUrl}" alt="${escapeHtmlStr(s.name)}">
+                    <div class="ssi-name">${escapeHtmlStr(s.name)}</div>
+                    <button class="ssi-del" type="button" data-del="${s.id}"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `).join('');
+            gallery.querySelectorAll('.saved-sig-item').forEach(el => {
+                el.addEventListener('click', async (e) => {
+                    if (e.target.closest('.ssi-del')) return;
+                    const s = list.find(x => x.id === el.dataset.id);
+                    if (s) { const img = await loadCanvasImage(s.dataUrl); currentSignature = { dataUrl: s.dataUrl, w: img.width, h: img.height }; renderSavedSigGallery(); renderStatusStrip(); }
+                });
+            });
+            gallery.querySelectorAll('.ssi-del').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.del;
+                    saveSavedSignatures(loadSavedSignatures().filter(s => s.id !== id));
+                    renderSavedSigGallery();
+                });
+            });
+        }
+        renderSavedSigGallery();
+
+        // ============================================
+        // INITIALS / DATE / STAMP RENDERERS
+        // ============================================
+        async function regenInitials() {
+            const text = document.getElementById('initialsText').value.trim() || 'AB';
+            const fontId = document.getElementById('initialsFont').value;
+            const size = 54;
+            try { await document.fonts.load(`${size}px "${fontId}"`); } catch (e) {}
+            const measureCanvas = document.createElement('canvas');
+            const mctx = measureCanvas.getContext('2d');
+            mctx.font = `${size}px "${fontId}"`;
+            const textWidth = Math.max(40, mctx.measureText(text).width);
+            const canvas = document.createElement('canvas');
+            canvas.width = textWidth + size * 0.7;
+            canvas.height = size * 1.6;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${size}px "${fontId}"`;
+            ctx.fillStyle = document.getElementById('typeSigColor').value || '#1a1aff';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, size * 0.35, canvas.height / 2);
+            const dataUrl = canvas.toDataURL('image/png');
+            const img = await loadCanvasImage(dataUrl);
+            currentInitials = { dataUrl, w: img.width, h: img.height };
+        }
+        function formatDate(mode) {
+            const d = new Date();
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const pad = n => String(n).padStart(2, '0');
+            if (mode === 'iso') return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+            if (mode === 'dmy') return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+            if (mode === 'withTime') return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+        }
+        async function regenDate() {
+            const mode = document.getElementById('dateFormat').value;
+            const text = formatDate(mode);
+            const size = 26;
+            const canvas = document.createElement('canvas');
+            const mctx = canvas.getContext('2d');
+            mctx.font = `600 ${size}px 'JetBrains Mono', monospace`;
+            const textWidth = mctx.measureText(text).width;
+            canvas.width = textWidth + 24;
+            canvas.height = size * 1.8;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `600 ${size}px 'JetBrains Mono', monospace`;
+            ctx.fillStyle = '#000000';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 12, canvas.height / 2);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+            const dataUrl = canvas.toDataURL('image/png');
+            const img = await loadCanvasImage(dataUrl);
+            currentDate = { dataUrl, w: img.width, h: img.height, text };
+        }
+        function currentStampText() {
+            const preset = document.getElementById('stampPreset').value;
+            return preset === 'custom' ? (document.getElementById('stampCustomText').value.trim() || 'STAMP') : preset;
+        }
+        async function regenStamp() {
+            const text = currentStampText();
+            const color = document.getElementById('stampColor').value;
+            const size = 40;
+            const canvas = document.createElement('canvas');
+            const mctx = canvas.getContext('2d');
+            mctx.font = `800 ${size}px 'League Spartan', sans-serif`;
+            const textWidth = mctx.measureText(text).width;
+            const padX = 30, padY = 20;
+            canvas.width = textWidth + padX * 2;
+            canvas.height = size + padY * 2;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `800 ${size}px 'League Spartan', sans-serif`;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.textBaseline = 'middle';
+            ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
+            ctx.fillText(text, padX, canvas.height / 2 + 2);
+            const dataUrl = canvas.toDataURL('image/png');
+            const img = await loadCanvasImage(dataUrl);
+            currentStamp = { dataUrl, w: img.width, h: img.height, text };
+        }
+        async function regenAllExtras() { await regenInitials(); await regenDate(); await regenStamp(); }
+        document.getElementById('regenExtrasBtn').addEventListener('click', regenAllExtras);
+        ['initialsText','initialsFont'].forEach(id => document.getElementById(id).addEventListener('change', regenInitials));
+        document.getElementById('dateFormat').addEventListener('change', regenDate);
+        document.getElementById('stampPreset').addEventListener('change', (e) => {
+            document.getElementById('stampCustomTextRow').style.display = e.target.value === 'custom' ? 'block' : 'none';
+            regenStamp();
+        });
+        document.getElementById('stampCustomText').addEventListener('input', regenStamp);
+        document.getElementById('stampColor').addEventListener('input', regenStamp);
+        regenAllExtras();
+
+        // ============================================
+        // PLACEMENT DEFAULTS
+        // ============================================
+        document.getElementById('defaultWidthPct').addEventListener('input', (e) => document.getElementById('defaultWidthPctOut').textContent = e.target.value + '%');
+        document.getElementById('defaultRotation').addEventListener('input', (e) => document.getElementById('defaultRotationOut').textContent = e.target.value + '°');
+        document.getElementById('defaultOpacity').addEventListener('input', (e) => document.getElementById('defaultOpacityOut').textContent = e.target.value + '%');
+
+        // ============================================
+        // PDF LOADING + PREVIEW (pdf.js)
+        // ============================================
+        async function loadPdfFile(file) {
+            clearError(); clearLog();
+            if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { showError('Please choose a PDF file.'); return; }
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                pdfBytesOriginal = new Uint8Array(arrayBuffer);
+                pdfFileName = file.name;
+                originalHash = await sha256Hex(pdfBytesOriginal);
+                pdfJsDoc = await pdfjsLib.getDocument({ data: pdfBytesOriginal.slice() }).promise;
+                totalPages = pdfJsDoc.numPages;
+                currentPage = 1;
+                pageViewportCache = {};
+                placedElements = [];
+                signedBytes = null;
+                downloadBtn.disabled = true;
+
+                document.getElementById('lfName').textContent = pdfFileName;
+                document.getElementById('lfMeta').textContent = `${totalPages} page(s)`;
+                loadedFileCard.classList.add('show');
+                document.getElementById('totalPages').textContent = totalPages;
+                const base = pdfFileName.replace(/\.pdf$/i, '');
+                document.getElementById('outputFilename').value = base + '-signed.pdf';
+
+                stageWrap.classList.add('show');
+                await renderPage();
+                renderCert();
+                renderElementsList();
+                renderPlan();
+                renderStatusStrip();
+                logMsg(`Loaded "${pdfFileName}" — ${totalPages} page(s). Document hash computed.`, 'success');
+            } catch (err) {
+                showError('Could not read this PDF: ' + (err.message || err));
+                logMsg('Failed to load PDF: ' + (err.message || err), 'error');
+            }
+        }
+
+        async function renderPage() {
+            if (!pdfJsDoc) return;
+            const page = await pdfJsDoc.getPage(currentPage);
+            const baseViewport = page.getViewport({ scale: 1 });
+            pageViewportCache[currentPage] = { width: baseViewport.width, height: baseViewport.height };
+            const containerWidth = Math.min(640, previewStage.parentElement.clientWidth || 560);
+            const scale = containerWidth / baseViewport.width;
+            const viewport = page.getViewport({ scale });
+            previewCanvas.width = viewport.width;
+            previewCanvas.height = viewport.height;
+            const ctx = previewCanvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            document.getElementById('pageIndicator').textContent = `Page ${currentPage} of ${totalPages}`;
+            renderOverlayMarkers();
+        }
+
+        document.getElementById('prevPageBtn').addEventListener('click', async () => { if (currentPage > 1) { currentPage--; await renderPage(); } });
+        document.getElementById('nextPageBtn').addEventListener('click', async () => { if (currentPage < totalPages) { currentPage++; await renderPage(); } });
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            pdfBytesOriginal = null; pdfJsDoc = null; totalPages = 0; placedElements = [];
+            loadedFileCard.classList.remove('show');
+            stageWrap.classList.remove('show');
+            statusStrip.classList.remove('show');
+            document.getElementById('totalPages').textContent = '0';
+            document.getElementById('totalPlaced').textContent = '0';
+            planPane.innerHTML = '<p class="info-empty">Load a PDF and place at least one item — the signing plan appears here.</p>';
+            elementsPane.innerHTML = '<p class="info-empty">Items you place on the page (signature, initials, date, stamp) will be listed here for fine adjustment.</p>';
+            certPane.innerHTML = '<p class="info-empty">Signer info and the document hash will appear here once a PDF is loaded.</p>';
+        });
+
+        // ============================================
+        // ARM / PLACE ELEMENTS
+        // ============================================
+        function currentAssetFor(type) {
+            if (type === 'signature') return currentSignature;
+            if (type === 'initials') return currentInitials;
+            if (type === 'date') return currentDate;
+            if (type === 'stamp') return currentStamp;
+            return null;
+        }
+        document.querySelectorAll('.arm-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.arm;
+                const asset = currentAssetFor(type);
+                if (!asset) { showError(`No ${type} is ready yet — create one in the settings above first.`); return; }
+                clearError();
+                if (armedType === type) { armedType = null; } else { armedType = type; }
+                document.querySelectorAll('.arm-btn').forEach(b => b.classList.toggle('armed', b.dataset.arm === armedType));
+                previewStage.classList.toggle('disarmed', !armedType);
+            });
+        });
+
+        previewCanvas.addEventListener('click', (e) => {
+            if (!armedType || !pdfJsDoc) return;
+            const asset = currentAssetFor(armedType);
+            if (!asset) return;
+            const rect = previewCanvas.getBoundingClientRect();
+            const xPct = (e.clientX - rect.left) / rect.width;
+            const yPct = (e.clientY - rect.top) / rect.height;
+            placeElement(armedType, asset, currentPage, xPct, yPct);
+            if (!document.getElementById('optMultiPlace').checked) {
+                armedType = null;
+                document.querySelectorAll('.arm-btn').forEach(b => b.classList.remove('armed'));
+                previewStage.classList.add('disarmed');
+            }
+        });
+
+        function placeElement(type, asset, page, xPct, yPct) {
+            const wPct = parseInt(document.getElementById('defaultWidthPct').value, 10) / 100;
+            const rotation = parseInt(document.getElementById('defaultRotation').value, 10);
+            const opacity = parseInt(document.getElementById('defaultOpacity').value, 10) / 100;
+            const aspect = asset.h / asset.w;
+            const el = {
+                id: 'el' + (++elemIdCounter), type, page,
+                xPct: Math.max(0, Math.min(1, xPct - wPct / 2)),
+                yPct: Math.max(0, Math.min(1, yPct - (wPct * aspect) / 2)),
+                wPct, aspect, rotation, opacity, dataUrl: asset.dataUrl
+            };
+            placedElements.push(el);
+            renderOverlayMarkers();
+            renderElementsList();
+            renderPlan();
+            renderStatusStrip();
+            logMsg(`Placed ${type} on page ${page === 'all' ? 'every page' : page}.`, 'success');
+        }
+
+        function cornerToXY(corner, wPct, hPct) {
+            const margin = 0.04;
+            if (corner === 'br') return { x: 1 - wPct - margin, y: 1 - hPct - margin };
+            if (corner === 'bl') return { x: margin, y: 1 - hPct - margin };
+            if (corner === 'tr') return { x: 1 - wPct - margin, y: margin };
+            return { x: margin, y: margin };
+        }
+        function applyEveryPage(type) {
+            const asset = currentAssetFor(type);
+            if (!asset) { showError(`No ${type} is ready yet — create one in the settings above first.`); return; }
+            if (!totalPages) { showError('Load a PDF first.'); return; }
+            clearError();
+            const wPct = parseInt(document.getElementById('defaultWidthPct').value, 10) / 100;
+            const rotation = parseInt(document.getElementById('defaultRotation').value, 10);
+            const opacity = parseInt(document.getElementById('defaultOpacity').value, 10) / 100;
+            const aspect = asset.h / asset.w;
+            const corner = document.getElementById('quickCorner').value;
+            const pos = cornerToXY(corner, wPct, wPct * aspect);
+            for (let p = 1; p <= totalPages; p++) {
+                placedElements.push({
+                    id: 'el' + (++elemIdCounter), type, page: p,
+                    xPct: pos.x, yPct: pos.y, wPct, aspect, rotation, opacity, dataUrl: asset.dataUrl
+                });
+            }
+            renderOverlayMarkers(); renderElementsList(); renderPlan(); renderStatusStrip();
+            logMsg(`Applied ${type} to all ${totalPages} page(s) at the ${corner} corner.`, 'success');
+        }
+        document.getElementById('applySigEveryPageBtn').addEventListener('click', () => applyEveryPage('signature'));
+        document.getElementById('applyInitialsEveryPageBtn').addEventListener('click', () => applyEveryPage('initials'));
+        document.getElementById('applyDateEveryPageBtn').addEventListener('click', () => applyEveryPage('date'));
+
+        document.getElementById('undoPlacementBtn').addEventListener('click', () => {
+            placedElements.pop();
+            renderOverlayMarkers(); renderElementsList(); renderPlan(); renderStatusStrip();
+        });
+        document.getElementById('clearPlacementsBtn').addEventListener('click', () => {
+            placedElements = [];
+            renderOverlayMarkers(); renderElementsList(); renderPlan(); renderStatusStrip();
+        });
+
+        function renderOverlayMarkers() {
+            previewStage.querySelectorAll('.placed-marker').forEach(m => m.remove());
+            const stageRect = previewCanvas.getBoundingClientRect();
+            const w = previewCanvas.clientWidth || previewCanvas.width;
+            const h = previewCanvas.clientHeight || previewCanvas.height;
+            placedElements.filter(el => el.page === currentPage || el.page === 'all').forEach(el => {
+                const div = document.createElement('div');
+                div.className = 'placed-marker';
+                const widthPx = el.wPct * w;
+                const heightPx = el.wPct * el.aspect * w;
+                div.style.left = (el.xPct * w) + 'px';
+                div.style.top = (el.yPct * h) + 'px';
+                div.style.width = widthPx + 'px';
+                div.style.height = heightPx + 'px';
+                div.style.transform = `rotate(${-el.rotation}deg)`;
+                div.style.opacity = el.opacity;
+                div.innerHTML = `<img src="${el.dataUrl}" alt=""><button class="pm-remove" type="button" data-id="${el.id}"><i class="fa-solid fa-xmark"></i></button>`;
+                previewStage.appendChild(div);
+            });
+            previewStage.querySelectorAll('.pm-remove').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    placedElements = placedElements.filter(e => e.id !== btn.dataset.id);
+                    renderOverlayMarkers(); renderElementsList(); renderPlan(); renderStatusStrip();
+                });
+            });
+        }
+        window.addEventListener('resize', () => { if (pdfJsDoc) renderPage(); });
+
+        // ============================================
+        // STATUS STRIP
+        // ============================================
+        function renderStatusStrip() {
+            if (!totalPages) { statusStrip.classList.remove('show'); return; }
+            const count = placedElements.length;
+            const ring = document.getElementById('statusRing');
+            const label = document.getElementById('statusLabel');
+            const sub = document.getElementById('statusSub');
+            ring.textContent = count;
+            ring.className = 'risk-score-ring ' + (count === 0 ? 'low' : count >= totalPages ? 'high' : 'med');
+            label.textContent = count === 0 ? 'Nothing placed yet' : `${count} item(s) ready to embed`;
+            const byType = {};
+            placedElements.forEach(el => byType[el.type] = (byType[el.type] || 0) + 1);
+            sub.textContent = count === 0 ? 'Arm an item below, then click on the page to place it'
+                : Object.entries(byType).map(([t, n]) => `${n} ${t}`).join(' · ');
+            statusStrip.classList.add('show');
+            document.getElementById('totalPlaced').textContent = count;
+        }
+
+        // ============================================
+        // PLACED ITEMS LIST (fine adjustment)
+        // ============================================
+        function renderElementsList() {
+            if (!placedElements.length) {
+                elementsPane.innerHTML = '<p class="info-empty">Items you place on the page (signature, initials, date, stamp) will be listed here for fine adjustment.</p>';
+                return;
+            }
+            elementsPane.innerHTML = placedElements.map(el => `
+                <div class="elem-row" data-id="${el.id}">
+                    <img class="elem-thumb" src="${el.dataUrl}" alt="">
+                    <span>${el.type}</span>
+                    <span class="elem-page-badge">${el.page === 'all' ? 'all pages' : 'p.' + el.page}</span>
+                    <input type="number" class="e-x" value="${Math.round(el.xPct * 100)}" min="0" max="100" title="X %">
+                    <input type="number" class="e-y" value="${Math.round(el.yPct * 100)}" min="0" max="100" title="Y %">
+                    <input type="number" class="e-w" value="${Math.round(el.wPct * 100)}" min="2" max="90" title="Width %">
+                    <button class="elem-del" type="button"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `).join('');
+            elementsPane.querySelectorAll('.elem-row').forEach(row => {
+                const id = row.dataset.id;
+                const el = placedElements.find(e => e.id === id);
+                row.querySelector('.e-x').addEventListener('input', (e) => { el.xPct = Math.max(0, Math.min(1, e.target.value / 100)); renderOverlayMarkers(); });
+                row.querySelector('.e-y').addEventListener('input', (e) => { el.yPct = Math.max(0, Math.min(1, e.target.value / 100)); renderOverlayMarkers(); });
+                row.querySelector('.e-w').addEventListener('input', (e) => { el.wPct = Math.max(0.02, Math.min(0.9, e.target.value / 100)); renderOverlayMarkers(); });
+                row.querySelector('.elem-del').addEventListener('click', () => {
+                    placedElements = placedElements.filter(e => e.id !== id);
+                    renderOverlayMarkers(); renderElementsList(); renderPlan(); renderStatusStrip();
+                });
+            });
+        }
+
+        // ============================================
+        // SIGN PLAN / CERTIFICATE PREVIEW
+        // ============================================
+        function renderPlan() {
+            if (!totalPages) { planPane.innerHTML = '<p class="info-empty">Load a PDF and place at least one item — the signing plan appears here.</p>'; return; }
+            const byType = {};
+            const pagesTouched = new Set();
+            placedElements.forEach(el => {
+                byType[el.type] = (byType[el.type] || 0) + 1;
+                if (el.page === 'all') { for (let p = 1; p <= totalPages; p++) pagesTouched.add(p); }
+                else pagesTouched.add(el.page);
+            });
+            let html = `<div class="meta-row"><span>Total pages</span><span>${totalPages}</span></div>`;
+            html += `<div class="meta-row"><span>Items to embed</span><span>${placedElements.length}</span></div>`;
+            Object.entries(byType).forEach(([t, n]) => { html += `<div class="meta-row"><span>&nbsp;&nbsp;· ${t}</span><span>${n}</span></div>`; });
+            html += `<div class="meta-row"><span>Pages affected</span><span>${pagesTouched.size} of ${totalPages}</span></div>`;
+            html += `<div class="meta-row"><span>Embed metadata</span><span>${document.getElementById('optEmbedMetadata').checked ? 'Yes' : 'No'}</span></div>`;
+            html += `<div class="meta-row"><span>Append certificate page</span><span>${document.getElementById('optAppendCert').checked ? 'Yes' : 'No'}</span></div>`;
+            html += `<div class="meta-row"><span>Output filename</span><span>${escapeHtmlStr(document.getElementById('outputFilename').value)}</span></div>`;
+            planPane.innerHTML = html;
+        }
+        function renderCert() {
+            if (!pdfBytesOriginal) { certPane.innerHTML = '<p class="info-empty">Signer info and the document hash will appear here once a PDF is loaded.</p>'; return; }
+            const name = document.getElementById('signerName').value || '(not set)';
+            const reason = document.getElementById('signerReason').value || '(not set)';
+            const location = document.getElementById('signerLocation').value || '(not set)';
+            const contact = document.getElementById('signerContact').value || '(not set)';
+            let html = `<div class="meta-row"><span>Signer</span><span>${escapeHtmlStr(name)}</span></div>`;
+            html += `<div class="meta-row"><span>Reason</span><span>${escapeHtmlStr(reason)}</span></div>`;
+            html += `<div class="meta-row"><span>Location</span><span>${escapeHtmlStr(location)}</span></div>`;
+            html += `<div class="meta-row"><span>Contact</span><span>${escapeHtmlStr(contact)}</span></div>`;
+            html += `<div class="meta-row"><span>Signing timestamp</span><span>${new Date().toLocaleString()}</span></div>`;
+            html += `<div style="margin-top:10px;font-size:11px;opacity:0.6;">Original document SHA-256 (computed before signing)</div>`;
+            html += `<div class="hash-box">${originalHash || '(computing…)'}</div>`;
+            if (signedHash) {
+                html += `<div style="margin-top:10px;font-size:11px;opacity:0.6;">Signed document SHA-256 (after embedding)</div>`;
+                html += `<div class="hash-box">${signedHash}</div>`;
+            }
+            certPane.innerHTML = html;
+        }
+        ['signerName','signerReason','signerLocation','signerContact','optEmbedMetadata','optAppendCert','outputFilename'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => { renderPlan(); renderCert(); });
+        });
+
+        // ============================================
+        // SIGNING ENGINE (pdf-lib)
+        // ============================================
+        function getInfoDict(doc) {
+            const { PDFDict } = PDFLib;
+            let infoRef = doc.context.trailerInfo.Info;
+            let info = infoRef ? doc.context.lookup(infoRef) : undefined;
+            if (!info || !(info instanceof PDFDict)) {
+                info = doc.context.obj({});
+                doc.context.trailerInfo.Info = doc.context.register(info);
+            }
+            return info;
+        }
+
+        async function signPdf() {
+            if (!pdfBytesOriginal) { showError('Load a PDF before signing.'); return; }
+            if (!placedElements.length) { showError('Place at least one signature, initials, date, or stamp first.'); return; }
+            clearError(); clearLog();
+            signBtn.disabled = true;
+            downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Signing…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+
+            try {
+                const { PDFName, PDFHexString, degrees } = PDFLib;
+                const doc = await PDFLib.PDFDocument.load(pdfBytesOriginal, { ignoreEncryption: true, updateMetadata: false });
+                const pages = doc.getPages();
+
+                const imageCache = {};
+                async function getEmbedded(dataUrl) {
+                    if (imageCache[dataUrl]) return imageCache[dataUrl];
+                    const resp = await fetch(dataUrl);
+                    const buf = new Uint8Array(await resp.arrayBuffer());
+                    const img = await doc.embedPng(buf);
+                    imageCache[dataUrl] = img;
+                    return img;
+                }
+
+                let embeddedCount = 0;
+                const touchedPages = new Set();
+                for (const el of placedElements) {
+                    const targetPages = el.page === 'all' ? pages.map((_, i) => i) : [el.page - 1];
+                    const img = await getEmbedded(el.dataUrl);
+                    for (const pIdx of targetPages) {
+                        const page = pages[pIdx];
+                        if (!page) continue;
+                        const { width: pw, height: ph } = page.getSize();
+                        const drawW = el.wPct * pw;
+                        const drawH = el.wPct * el.aspect * pw;
+                        const drawX = el.xPct * pw;
+                        const drawY = ph - (el.yPct * ph) - drawH;
+                        page.drawImage(img, { x: drawX, y: drawY, width: drawW, height: drawH, rotate: degrees(el.rotation), opacity: el.opacity });
+                        touchedPages.add(pIdx);
+                        embeddedCount++;
+                    }
+                }
+                logMsg(`Embedded ${embeddedCount} image instance(s) across ${touchedPages.size} page(s).`, 'success');
+
+                const signerName = document.getElementById('signerName').value;
+                const signerReason = document.getElementById('signerReason').value;
+                const signerLocation = document.getElementById('signerLocation').value;
+                const signerContact = document.getElementById('signerContact').value;
+                const signedAt = new Date();
+
+                if (document.getElementById('optEmbedMetadata').checked) {
+                    const info = getInfoDict(doc);
+                    if (signerName) info.set(PDFName.of('Signer'), PDFHexString.fromText(signerName));
+                    if (signerReason) info.set(PDFName.of('SigningReason'), PDFHexString.fromText(signerReason));
+                    if (signerLocation) info.set(PDFName.of('SigningLocation'), PDFHexString.fromText(signerLocation));
+                    if (signerContact) info.set(PDFName.of('SigningContact'), PDFHexString.fromText(signerContact));
+                    info.set(PDFName.of('SignedDate'), PDFHexString.fromText(signedAt.toISOString()));
+                    info.set(PDFName.of('OriginalDocumentSHA256'), PDFHexString.fromText(originalHash));
+                    logMsg('Embedded signer info into the Document Info dictionary.', 'success');
+                }
+
+                if (document.getElementById('optAppendCert').checked) {
+                    const { StandardFonts, rgb } = PDFLib;
+                    const font = await doc.embedFont(StandardFonts.Helvetica);
+                    const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+                    const certPageSize = pages[0] ? [pages[0].getWidth(), pages[0].getHeight()] : [612, 792];
+                    const certPage = doc.addPage(certPageSize);
+                    const margin = 56;
+                    let y = certPageSize[1] - margin;
+                    const lineGap = 22;
+                    certPage.drawText('Signature Certificate', { x: margin, y, size: 20, font: boldFont, color: rgb(0, 0, 0) });
+                    y -= lineGap * 1.6;
+                    const rows = [
+                        ['Signer', signerName || '(not provided)'],
+                        ['Reason for signing', signerReason || '(not provided)'],
+                        ['Location', signerLocation || '(not provided)'],
+                        ['Contact', signerContact || '(not provided)'],
+                        ['Signed at', signedAt.toLocaleString()],
+                        ['Source document', pdfFileName],
+                        ['Pages signed', Array.from(touchedPages).map(i => i + 1).join(', ') || '(none)']
+                    ];
+                    rows.forEach(([label, val]) => {
+                        certPage.drawText(`${label}:`, { x: margin, y, size: 11, font: boldFont, color: rgb(0.2, 0.2, 0.2) });
+                        certPage.drawText(String(val), { x: margin + 150, y, size: 11, font, color: rgb(0, 0, 0), maxWidth: certPageSize[0] - margin * 2 - 150 });
+                        y -= lineGap;
+                    });
+                    if (document.getElementById('optIncludeHashOnCert').checked) {
+                        y -= lineGap * 0.5;
+                        certPage.drawText('Original document SHA-256 (before signing):', { x: margin, y, size: 11, font: boldFont, color: rgb(0.2, 0.2, 0.2) });
+                        y -= lineGap;
+                        certPage.drawText(originalHash, { x: margin, y, size: 9, font, color: rgb(0, 0, 0) });
+                        y -= lineGap * 1.4;
+                        certPage.drawText('Recompute this hash from the original file to verify nothing else was altered.', { x: margin, y, size: 9, font, color: rgb(0.4, 0.4, 0.4) });
+                    }
+                    logMsg('Appended signature certificate page.', 'success');
+                }
+
+                const opts = { useObjectStreams: document.getElementById('optOptimize').checked };
+                const bytes = await doc.save(opts);
+                signedBytes = bytes;
+                signedHash = await sha256Hex(bytes);
+
+                document.getElementById('outputItemCount').textContent = embeddedCount;
+                document.getElementById('outputPageCount').textContent = touchedPages.size;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Signed';
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add('success');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                renderCert();
+                logMsg(`Signing complete. Signed document hash: ${signedHash}`, 'success');
+            } catch (err) {
+                showError('Signing failed: ' + (err.message || err));
+                logMsg('Signing failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Signing failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                signedBytes = null;
+                downloadBtn.disabled = true;
+            } finally {
+                signBtn.disabled = false;
+            }
+        }
+        signBtn.addEventListener('click', signPdf);
+
+        function renderFilesPane() {
+            if (!signedBytes) { filesPane.innerHTML = '<p class="info-empty">The signed file will be listed here after processing.</p>'; return; }
+            const name = (document.getElementById('outputFilename').value || 'signed.pdf').replace(/\.pdf$/i, '') + '.pdf';
+            filesPane.innerHTML = `
+                <div class="output-list-item">
+                    <span class="oli-name" title="${escapeHtmlStr(name)}">${escapeHtmlStr(name)}</span>
+                    <span class="oli-meta">${signedBytes.length.toLocaleString()}b</span>
+                    <button class="oli-dl" type="button" id="oliDlBtn">Save</button>
+                </div>
+            `;
+            document.getElementById('oliDlBtn').addEventListener('click', downloadSigned);
+        }
+        function downloadSigned() {
+            if (!signedBytes) return;
+            const name = (document.getElementById('outputFilename').value || 'signed.pdf').replace(/\.pdf$/i, '') + '.pdf';
+            const blob = new Blob([signedBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = name;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        downloadBtn.addEventListener('click', downloadSigned);
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const PRESETS = {
+            quickPersonal: { optEmbedMetadata: false, optAppendCert: false, quickCorner: 'br', defaultWidthPct: 22 },
+            businessContract: { optEmbedMetadata: true, optAppendCert: true, quickCorner: 'br', defaultWidthPct: 20 },
+            ndaFast: { optEmbedMetadata: true, optAppendCert: false, quickCorner: 'br', defaultWidthPct: 24 },
+            reviewStamp: { optEmbedMetadata: false, optAppendCert: false, quickCorner: 'tr', defaultWidthPct: 30 }
+        };
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom' || !PRESETS[val]) return;
+            const p = PRESETS[val];
+            document.getElementById('optEmbedMetadata').checked = p.optEmbedMetadata;
+            document.getElementById('optAppendCert').checked = p.optAppendCert;
+            document.getElementById('quickCorner').value = p.quickCorner;
+            document.getElementById('defaultWidthPct').value = p.defaultWidthPct;
+            document.getElementById('defaultWidthPctOut').textContent = p.defaultWidthPct + '%';
+            renderPlan();
+        });
+
+        const CUSTOM_PRESETS_KEY = 'pdfSignatureToolCustomPresets';
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            let custom = {};
+            try { custom = JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (e) {}
+            custom[name] = {
+                optEmbedMetadata: document.getElementById('optEmbedMetadata').checked,
+                optAppendCert: document.getElementById('optAppendCert').checked,
+                quickCorner: document.getElementById('quickCorner').value,
+                defaultWidthPct: document.getElementById('defaultWidthPct').value
+            };
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(custom)); } catch (e) {}
+            alert(`Preset "${name}" saved locally in this browser.`);
+        });
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const settings = {
+                optEmbedMetadata: document.getElementById('optEmbedMetadata').checked,
+                optAppendCert: document.getElementById('optAppendCert').checked,
+                optIncludeHashOnCert: document.getElementById('optIncludeHashOnCert').checked,
+                quickCorner: document.getElementById('quickCorner').value,
+                defaultWidthPct: document.getElementById('defaultWidthPct').value,
+                defaultRotation: document.getElementById('defaultRotation').value,
+                defaultOpacity: document.getElementById('defaultOpacity').value,
+                outputFilename: document.getElementById('outputFilename').value
+            };
+            const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'pdf-signature-tool-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const s = JSON.parse(ev.target.result);
+                    if ('optEmbedMetadata' in s) document.getElementById('optEmbedMetadata').checked = !!s.optEmbedMetadata;
+                    if ('optAppendCert' in s) document.getElementById('optAppendCert').checked = !!s.optAppendCert;
+                    if ('optIncludeHashOnCert' in s) document.getElementById('optIncludeHashOnCert').checked = !!s.optIncludeHashOnCert;
+                    if ('quickCorner' in s) document.getElementById('quickCorner').value = s.quickCorner;
+                    if ('defaultWidthPct' in s) { document.getElementById('defaultWidthPct').value = s.defaultWidthPct; document.getElementById('defaultWidthPctOut').textContent = s.defaultWidthPct + '%'; }
+                    if ('defaultRotation' in s) { document.getElementById('defaultRotation').value = s.defaultRotation; document.getElementById('defaultRotationOut').textContent = s.defaultRotation + '°'; }
+                    if ('defaultOpacity' in s) { document.getElementById('defaultOpacity').value = s.defaultOpacity; document.getElementById('defaultOpacityOut').textContent = s.defaultOpacity + '%'; }
+                    if ('outputFilename' in s) document.getElementById('outputFilename').value = s.outputFilename;
+                    document.getElementById('presetSelect').value = 'custom';
+                    renderPlan();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // OUTPUT TABS
+        // ============================================
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // PDF UPLOAD (button + drag & drop)
+        // ============================================
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) loadPdfFile(e.target.files[0]); fileInput.value = ''; });
+        ['dragenter', 'dragover'].forEach(evt => dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border-color)'; dropZone.style.opacity = '1'; }));
+        ['dragleave', 'drop'].forEach(evt => dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.style.borderColor = ''; dropZone.style.opacity = ''; }));
+        dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) loadPdfFile(e.dataTransfer.files[0]); });
+    </script>
+</body>
+</html>
