@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | HTTP Headers Checker & Security Audit Tool</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free HTTP response header checker and security auditor. Paste raw headers to detect missing security headers (CSP, HSTS, X-Frame-Options, Referrer-Policy), audit Set-Cookie flags, analyze caching and CORS policies, flag information-disclosure headers, diff two responses, batch-audit multiple endpoints, and get a quick security grade — 100% client-side." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/http-headers-checker.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/http-headers-checker.html" />
+<meta property="og:title" content="HTTP Headers Checker & Security Audit Tool — awjunaid" />
+<meta property="og:description" content="Paste raw HTTP response headers to audit security headers (CSP, HSTS, X-Frame-Options), check Set-Cookie flags, inspect caching and CORS behavior, flag server/version disclosure, diff two responses, batch-audit multiple endpoints, and get a quick A–F security grade. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/http-headers-checker.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="HTTP Headers Checker & Security Audit Tool — awjunaid" />
+<meta name="twitter:description" content="Audit security headers, cookie flags, caching, and CORS from raw HTTP responses. Diff two responses, batch-audit endpoints, and get a quick security grade — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/http-headers-checker.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select, .field-group textarea {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #headersInput {
+            width: 100%;
+            min-height: 220px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #headersInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .badge.grade { font-size: 15px; padding: 6px 18px; }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        .issue-list { list-style: none; margin-top: 6px; }
+        .issue-list li { font-size: 12.5px; padding: 6px 0; border-bottom: 1px solid var(--border-light); display: flex; gap: 8px; align-items: flex-start; }
+        .issue-list li:last-child { border-bottom: none; }
+        .issue-list li i { margin-top: 3px; opacity: 0.6; }
+        .cookie-block { border: 1px solid var(--border-light); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+        .cookie-block:last-child { margin-bottom: 0; }
+        .cookie-name { font-family: var(--font-mono); font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+        .flag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+
+        /* Utility grid (fetch, diff, cookie checker) */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+        .diff-textarea { min-height: 100px; font-family: var(--font-mono); font-size: 11.5px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #headersInput { min-height: 180px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">HTTP Headers Checker & Security Audit</h1>
+                <div class="tool-dek">Paste a raw HTTP response (from <code>curl -I</code>, browser DevTools, or Postman) to audit security headers like CSP, HSTS, and X-Frame-Options, check Set-Cookie flags, inspect caching and CORS behavior, flag server/version disclosure, diff two responses, batch-audit multiple endpoints at once, and get a quick A–F security grade — entirely in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="fullaudit">Full Security Audit</option>
+                    <option value="cookies">Cookie Security Focus</option>
+                    <option value="caching">Caching & Performance Focus</option>
+                    <option value="cors">CORS Focus</option>
+                    <option value="disclosure">Information Disclosure Focus</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Input & Parsing</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictParsing">
+                            <span><span class="setting-name">Strict line parsing</span><span class="setting-hint">Flags any line that isn't valid "Name: Value" as an error instead of silently skipping it</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectStatusLine" checked>
+                            <span><span class="setting-name">Auto-detect status line</span><span class="setting-hint">Recognizes a leading "HTTP/1.1 200 OK" line and separates it from the header list</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchMode">
+                            <span><span class="setting-name">Batch mode</span><span class="setting-hint">Treats lines containing only "===" as separators between multiple pasted responses, for auditing several endpoints at once</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Header name display case</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="headerCaseFormat" value="asis" checked> As provided</label>
+                                <label class="radio-opt"><input type="radio" name="headerCaseFormat" value="title"> Title-Case</label>
+                                <label class="radio-opt"><input type="radio" name="headerCaseFormat" value="lower"> lowercase</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Security Headers Audit</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secCSP" checked>
+                            <span><span class="setting-name">Content-Security-Policy</span><span class="setting-hint">Restricts which scripts, styles, and resources the page can load</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secHSTS" checked>
+                            <span><span class="setting-name">Strict-Transport-Security</span><span class="setting-hint">Forces HTTPS for future visits within max-age</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secXFO" checked>
+                            <span><span class="setting-name">X-Frame-Options</span><span class="setting-hint">Prevents the page from being framed (clickjacking)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secXCTO" checked>
+                            <span><span class="setting-name">X-Content-Type-Options</span><span class="setting-hint">Blocks MIME-type sniffing when set to "nosniff"</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secReferrer" checked>
+                            <span><span class="setting-name">Referrer-Policy</span><span class="setting-hint">Controls how much of the URL is sent in the Referer header</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secPermissions" checked>
+                            <span><span class="setting-name">Permissions-Policy</span><span class="setting-hint">Restricts browser features (camera, geolocation, etc.) available to the page and its frames</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secCOOP" checked>
+                            <span><span class="setting-name">Cross-Origin-Opener-Policy</span><span class="setting-hint">Isolates the browsing context from cross-origin windows</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secCOEP" checked>
+                            <span><span class="setting-name">Cross-Origin-Embedder-Policy</span><span class="setting-hint">Required alongside COOP for cross-origin isolation (e.g. SharedArrayBuffer)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secCORP" checked>
+                            <span><span class="setting-name">Cross-Origin-Resource-Policy</span><span class="setting-hint">Controls whether this resource can be loaded cross-origin</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="secXXSS" checked>
+                            <span><span class="setting-name">X-XSS-Protection (legacy)</span><span class="setting-hint">Deprecated in modern browsers — shown for informational purposes only, not scored</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagCspUnsafe" checked>
+                            <span><span class="setting-name">Flag risky CSP directives</span><span class="setting-hint">Warns if the policy allows 'unsafe-inline', 'unsafe-eval', or a wildcard (*) source</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="hstsMinMaxAgeInput">Minimum HSTS max-age (seconds)</label>
+                            <input type="number" id="hstsMinMaxAgeInput" min="0" value="31536000">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Information Disclosure</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="discServer" checked>
+                            <span><span class="setting-name">Flag Server header</span><span class="setting-hint">Version strings help attackers target known vulnerabilities</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="discPoweredBy" checked>
+                            <span><span class="setting-name">Flag X-Powered-By header</span><span class="setting-hint">Reveals the backend framework (Express, PHP, ASP.NET, etc.)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="discOther" checked>
+                            <span><span class="setting-name">Flag other fingerprinting headers</span><span class="setting-hint">X-AspNet-Version, X-Generator, X-Drupal-Cache, Via, X-Runtime, and similar</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Caching & Performance</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowCacheControl" checked>
+                            <span><span class="setting-name">Parse Cache-Control directives</span><span class="setting-hint">Breaks max-age, no-store, no-cache, public/private, immutable, and similar into a readable table</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagCacheConflicts" checked>
+                            <span><span class="setting-name">Flag conflicting cache directives</span><span class="setting-hint">e.g. "no-store" combined with "max-age", or "public" combined with "private"</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowEtagLastModified" checked>
+                            <span><span class="setting-name">Show validators</span><span class="setting-hint">ETag, Last-Modified, Expires, and Vary</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowContentEncoding" checked>
+                            <span><span class="setting-name">Show transport headers</span><span class="setting-hint">Content-Encoding, Transfer-Encoding, and Content-Length</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>CORS Analysis</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowCors" checked>
+                            <span><span class="setting-name">Show CORS headers</span><span class="setting-hint">Access-Control-Allow-Origin/Methods/Headers/Credentials/Max-Age</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optFlagCorsWildcardCred" checked>
+                            <span><span class="setting-name">Flag wildcard origin + credentials</span><span class="setting-hint">A wildcard Allow-Origin combined with Allow-Credentials: true is an invalid, insecure combination</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Cookie Security</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optParseCookies" checked>
+                            <span><span class="setting-name">Parse Set-Cookie headers</span><span class="setting-hint">Handles multiple Set-Cookie lines and breaks each into name, value, and attributes</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cookieFlagSecure" checked>
+                            <span><span class="setting-name">Flag missing Secure</span><span class="setting-hint">Without it, the cookie can be sent over plain HTTP</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cookieFlagHttpOnly" checked>
+                            <span><span class="setting-name">Flag missing HttpOnly</span><span class="setting-hint">Without it, JavaScript (and therefore XSS payloads) can read the cookie</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="cookieFlagSameSite" checked>
+                            <span><span class="setting-name">Flag missing/weak SameSite</span><span class="setting-hint">No SameSite falls back to browser defaults; SameSite=None without Secure is rejected outright</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Raw Response Headers</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="headersInput" spellcheck="false" placeholder="HTTP/1.1 200 OK
+Date: Tue, 25 Aug 2026 10:00:00 GMT
+Content-Type: text/html; charset=UTF-8
+Server: nginx/1.18.0
+Cache-Control: no-cache
+Set-Cookie: sessionid=abc123; Path=/; HttpOnly
+X-Frame-Options: SAMEORIGIN"></textarea>
+                    <div class="input-hint">Paste the output of <code>curl -I https://example.com</code>, the response headers panel in DevTools, or a Postman response. With batch mode on, separate multiple pasted responses with a line containing only <code>===</code>.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip">
+                        <span><strong id="lineCount">0</strong> line(s)</span>
+                        <span><strong id="validCount">0</strong> header(s) parsed</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyJsonBtn" type="button"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+                            <button class="btn-solid" id="downloadCsvBtn" type="button"><i class="fa-solid fa-download"></i> Download Batch CSV</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="summary" type="button">Summary</button>
+                        <button class="output-tab" data-tab="security" type="button">Security</button>
+                        <button class="output-tab" data-tab="disclosure" type="button">Disclosure</button>
+                        <button class="output-tab" data-tab="caching" type="button">Caching</button>
+                        <button class="output-tab" data-tab="cors" type="button">CORS</button>
+                        <button class="output-tab" data-tab="cookies" type="button">Cookies</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-summary"><div class="empty-pane">Paste response headers above to see results.</div></div>
+                    <div class="output-pane" id="pane-security"><div class="empty-pane">Paste response headers above to see results.</div></div>
+                    <div class="output-pane" id="pane-disclosure"><div class="empty-pane">Paste response headers above to see results.</div></div>
+                    <div class="output-pane" id="pane-caching"><div class="empty-pane">Paste response headers above to see results.</div></div>
+                    <div class="output-pane" id="pane-cors"><div class="empty-pane">Paste response headers above to see results.</div></div>
+                    <div class="output-pane" id="pane-cookies"><div class="empty-pane">Paste response headers above to see results.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Turn on batch mode and separate responses with a line of "===" to see the batch table.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Paste response headers above to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-satellite-dish"></i> Live Header Fetch</h3>
+                    <div class="utility-note">Attempts a live request from this page and reads whatever headers the browser exposes. Cross-origin requests only expose headers the server explicitly allows via <strong>Access-Control-Expose-Headers</strong> — for the complete, unfiltered set, use <code>curl -I</code> or your browser's Network tab and paste it above instead. This is the only part of this page that isn't fully offline.</div>
+                    <div class="field-group">
+                        <label for="fetchUrlInput">URL</label>
+                        <input type="text" id="fetchUrlInput" placeholder="https://example.com">
+                    </div>
+                    <button class="btn-solid small" id="fetchHeadersBtn" type="button">Fetch Headers</button>
+                    <div class="utility-result" id="fetchHeadersResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-code-compare"></i> Header Diff Comparator</h3>
+                    <div class="utility-note">Compare two raw responses — useful for checking what changed between staging and production, before and after a config change, or across a CDN edge.</div>
+                    <div class="field-group">
+                        <label for="compareHeadersA">Response A</label>
+                        <textarea id="compareHeadersA" class="diff-textarea" spellcheck="false" placeholder="HTTP/1.1 200 OK&#10;Cache-Control: no-cache"></textarea>
+                    </div>
+                    <div class="field-group">
+                        <label for="compareHeadersB">Response B</label>
+                        <textarea id="compareHeadersB" class="diff-textarea" spellcheck="false" placeholder="HTTP/1.1 200 OK&#10;Cache-Control: max-age=3600"></textarea>
+                    </div>
+                    <button class="btn-solid small" id="compareHeadersBtn" type="button">Compare</button>
+                    <div class="utility-result" id="compareHeadersResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-cookie-bite"></i> Quick Cookie Flag Checker</h3>
+                    <div class="utility-note">Paste a single Set-Cookie value to instantly check its Secure, HttpOnly, and SameSite flags — handy when you just need one answer without pasting a full response.</div>
+                    <div class="field-group">
+                        <label for="cookieCheckInput">Set-Cookie value</label>
+                        <input type="text" id="cookieCheckInput" placeholder="sessionid=abc123; Path=/; HttpOnly">
+                    </div>
+                    <button class="btn-solid small" id="cookieCheckBtn" type="button">Check</button>
+                    <div class="utility-result" id="cookieCheckResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>Checking header security by eye means cross-referencing a dozen header names against what you remember they should look like. This tool parses a raw response once, checks it against the current recommended security headers, flags information leaks, cookie misconfigurations, caching conflicts, and CORS mistakes, and rolls it all into a quick grade — the way a manual review would, but instantly.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why paste headers instead of just entering a URL?</h4>
+                        <p>A page running in your browser can only read the response headers of a cross-origin request if the server explicitly exposes them via <code>Access-Control-Expose-Headers</code> — that's a deliberate browser restriction, not a bug in this tool. The Live Header Fetch utility below will try, and clearly shows when it's blocked, but pasting the output of <code>curl -I</code> or your DevTools Network tab is the reliable path to the complete header set.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the security grade actually measure?</h4>
+                        <p>It's a heuristic, not a certification: each enabled security header contributes to the score based on whether it's present and well-configured, disclosure headers subtract a little, and cookies missing Secure or HttpOnly subtract a little more. Treat it as a fast way to spot gaps, then use the Security tab for the specific reasoning behind each finding.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why are Server and X-Powered-By flagged?</h4>
+                        <p>Neither header is a vulnerability by itself — but a version string like <code>Server: nginx/1.18.0</code> tells an attacker exactly which known CVEs to try first, and <code>X-Powered-By: Express</code> narrows down the entire attack surface to one framework's quirks. Removing or genericizing them is a low-cost way to slow down reconnaissance.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's wrong with wildcard CORS plus credentials?</h4>
+                        <p>The CORS spec explicitly forbids combining <code>Access-Control-Allow-Origin: *</code> with <code>Access-Control-Allow-Credentials: true</code>, because it would let any site on the internet read authenticated responses on a user's behalf. Browsers reject the combination outright, so seeing it usually points to a server reflecting the request's Origin header without validating it — worth double-checking.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does SameSite matter for cookies?</h4>
+                        <p>SameSite controls whether a cookie is sent on cross-site requests. Without it, browsers apply their own default (currently Lax), which can silently change cookie behavior across environments. <code>SameSite=None</code> is meant for cookies that genuinely need to be sent cross-site (e.g. embedded widgets), but browsers require it to be paired with <code>Secure</code> — without that pairing, the cookie is rejected entirely.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // HTTP HEADERS CHECKER — ENGINE
+        // ============================================
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ---------- Parsing ----------
+        function parseHeaderBlock(text, opts) {
+            const lines = text.split(/\r?\n/);
+            let statusLine = null;
+            let startIdx = 0;
+            if (opts.detectStatusLine && lines.length && /^HTTP\/\d(\.\d)?\s+\d{3}/i.test(lines[0].trim())) {
+                statusLine = lines[0].trim();
+                startIdx = 1;
+            }
+            const headers = [];
+            const errors = [];
+            for (let i = startIdx; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.trim() === '') continue;
+                const idx = line.indexOf(':');
+                if (idx === -1) {
+                    if (opts.strictParsing) errors.push('Malformed line (no colon): "' + line.trim() + '"');
+                    continue;
+                }
+                const name = line.slice(0, idx).trim();
+                const value = line.slice(idx + 1).trim();
+                if (!name) {
+                    if (opts.strictParsing) errors.push('Malformed line (empty header name): "' + line.trim() + '"');
+                    continue;
+                }
+                headers.push({ name, value });
+            }
+            return { statusLine, headers, errors };
+        }
+
+        function buildHeaderMap(headers) {
+            const map = new Map();
+            for (const h of headers) {
+                const key = h.name.toLowerCase();
+                if (!map.has(key)) map.set(key, { displayName: h.name, values: [] });
+                map.get(key).values.push(h.value);
+            }
+            return map;
+        }
+        function hHas(map, key) { return map.has(key.toLowerCase()); }
+        function hFirst(map, key) { const e = map.get(key.toLowerCase()); return e ? e.values[0] : null; }
+        function hAll(map, key) { const e = map.get(key.toLowerCase()); return e ? e.values : []; }
+
+        function displayHeaderName(name, opts) {
+            if (opts.headerCase === 'lower') return name.toLowerCase();
+            if (opts.headerCase === 'title') return name.split('-').map(w => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w).join('-');
+            return name;
+        }
+
+        // ---------- Security header analyzers ----------
+        function analyzeCSP(map, opts) {
+            if (!hHas(map, 'content-security-policy')) return { status: 'missing', note: 'Not set — no restriction on which scripts, styles, or resources can load.' };
+            const val = hFirst(map, 'content-security-policy');
+            const issues = [];
+            if (opts.flagCspUnsafe) {
+                if (/unsafe-inline/i.test(val)) issues.push("allows 'unsafe-inline'");
+                if (/unsafe-eval/i.test(val)) issues.push("allows 'unsafe-eval'");
+                if (/(^|\s)\*(\s|;|$)/.test(val)) issues.push('uses a wildcard (*) source');
+            }
+            if (issues.length) return { status: 'warn', note: 'Present, but ' + issues.join(', ') + '.' };
+            return { status: 'good', note: 'Present.' };
+        }
+        function analyzeHSTS(map, opts) {
+            if (!hHas(map, 'strict-transport-security')) return { status: 'missing', note: 'Not set — browsers will allow plain HTTP for this origin.' };
+            const val = hFirst(map, 'strict-transport-security');
+            const m = val.match(/max-age=(\d+)/i);
+            const maxAge = m ? parseInt(m[1], 10) : 0;
+            const hasSub = /includesubdomains/i.test(val);
+            const hasPreload = /preload/i.test(val);
+            const detail = 'max-age=' + maxAge + 's.' + (hasSub ? ' Includes subdomains.' : ' Does not include subdomains.') + (hasPreload ? ' Preload flag set.' : '');
+            if (maxAge < opts.hstsMinMaxAge) return { status: 'warn', note: detail + ' Below the recommended ' + opts.hstsMinMaxAge + 's.' };
+            return { status: 'good', note: detail };
+        }
+        function analyzeXFO(map) {
+            if (!hHas(map, 'x-frame-options')) return { status: 'missing', note: 'Not set — the page can be framed by any site (clickjacking risk) unless CSP frame-ancestors is used instead.' };
+            const val = hFirst(map, 'x-frame-options').toUpperCase();
+            if (val === 'DENY' || val === 'SAMEORIGIN') return { status: 'good', note: val + '.' };
+            return { status: 'warn', note: '"' + val + '" is non-standard or obsolete (ALLOW-FROM is deprecated).' };
+        }
+        function analyzeXCTO(map) {
+            if (!hHas(map, 'x-content-type-options')) return { status: 'missing', note: 'Not set — browsers may MIME-sniff the response body.' };
+            const val = hFirst(map, 'x-content-type-options').toLowerCase();
+            if (val === 'nosniff') return { status: 'good', note: 'nosniff.' };
+            return { status: 'warn', note: 'Unexpected value "' + val + '" (expected "nosniff").' };
+        }
+        function analyzeReferrer(map) {
+            if (!hHas(map, 'referrer-policy')) return { status: 'missing', note: 'Not set — default browser behavior applies (varies by browser).' };
+            const val = hFirst(map, 'referrer-policy').toLowerCase();
+            if (val === 'unsafe-url') return { status: 'warn', note: '"unsafe-url" leaks the full URL to any destination, including cross-origin and HTTPS-to-HTTP downgrades.' };
+            return { status: 'good', note: '"' + val + '".' };
+        }
+        function analyzePermissions(map) {
+            if (!hHas(map, 'permissions-policy')) return { status: 'missing', note: 'Not set — no restriction on browser features (camera, geolocation, etc.) available to this page or its frames.' };
+            return { status: 'good', note: 'Present.' };
+        }
+        function analyzeSimplePresence(map, key) {
+            return hHas(map, key) ? { status: 'good', note: 'Present: ' + hFirst(map, key) } : { status: 'missing', note: 'Not set.' };
+        }
+        function analyzeXXSS(map) {
+            if (!hHas(map, 'x-xss-protection')) return { status: 'missing', note: 'Not set. This header is deprecated in modern browsers; a strong CSP is the recommended replacement.' };
+            return { status: 'warn', note: 'Present ("' + hFirst(map, 'x-xss-protection') + '") but deprecated — modern browsers ignore it. A CSP is the modern replacement.' };
+        }
+
+        const SECURITY_CHECKS = [
+            { opt: 'secCSP', key: 'content-security-policy', label: 'Content-Security-Policy', fn: analyzeCSP, core: true },
+            { opt: 'secHSTS', key: 'strict-transport-security', label: 'Strict-Transport-Security', fn: analyzeHSTS, core: true },
+            { opt: 'secXFO', key: 'x-frame-options', label: 'X-Frame-Options', fn: analyzeXFO, core: true },
+            { opt: 'secXCTO', key: 'x-content-type-options', label: 'X-Content-Type-Options', fn: analyzeXCTO, core: true },
+            { opt: 'secReferrer', key: 'referrer-policy', label: 'Referrer-Policy', fn: analyzeReferrer, core: true },
+            { opt: 'secPermissions', key: 'permissions-policy', label: 'Permissions-Policy', fn: analyzePermissions, core: true },
+            { opt: 'secCOOP', key: 'cross-origin-opener-policy', label: 'Cross-Origin-Opener-Policy', fn: (m) => analyzeSimplePresence(m, 'cross-origin-opener-policy'), core: false },
+            { opt: 'secCOEP', key: 'cross-origin-embedder-policy', label: 'Cross-Origin-Embedder-Policy', fn: (m) => analyzeSimplePresence(m, 'cross-origin-embedder-policy'), core: false },
+            { opt: 'secCORP', key: 'cross-origin-resource-policy', label: 'Cross-Origin-Resource-Policy', fn: (m) => analyzeSimplePresence(m, 'cross-origin-resource-policy'), core: false },
+            { opt: 'secXXSS', key: 'x-xss-protection', label: 'X-XSS-Protection (legacy)', fn: analyzeXXSS, core: false, informational: true }
+        ];
+
+        const OTHER_DISCLOSURE_HEADERS = ['x-aspnet-version', 'x-aspnetmvc-version', 'x-generator', 'x-drupal-cache', 'via', 'x-runtime', 'x-turbo-charged-by'];
+
+        // ---------- Caching ----------
+        function parseCacheControl(value) {
+            if (!value) return null;
+            const parts = value.split(',').map(p => p.trim()).filter(Boolean);
+            const directives = {};
+            for (const p of parts) {
+                const eq = p.indexOf('=');
+                if (eq === -1) directives[p.toLowerCase()] = true;
+                else directives[p.slice(0, eq).trim().toLowerCase()] = p.slice(eq + 1).trim();
+            }
+            return directives;
+        }
+        function cacheConflicts(directives) {
+            const issues = [];
+            if (!directives) return issues;
+            if (directives['no-store'] && directives['max-age'] !== undefined) issues.push('"no-store" is set alongside "max-age" — no-store takes precedence and the response will never be cached.');
+            if (directives['public'] && directives['private']) issues.push('Both "public" and "private" are set — conflicting cache scope.');
+            if (directives['no-cache'] && directives['immutable']) issues.push('"no-cache" (always revalidate) is set alongside "immutable" (never revalidate) — conflicting intent.');
+            return issues;
+        }
+
+        // ---------- CORS ----------
+        function analyzeCors(map) {
+            const acao = hFirst(map, 'access-control-allow-origin');
+            const acac = hFirst(map, 'access-control-allow-credentials');
+            const acam = hFirst(map, 'access-control-allow-methods');
+            const acah = hFirst(map, 'access-control-allow-headers');
+            const acma = hFirst(map, 'access-control-max-age');
+            const issues = [];
+            if (acao === '*' && acac && acac.toLowerCase() === 'true') issues.push('Wildcard origin ("*") combined with Allow-Credentials: true — browsers reject this exact combination; if a specific origin is echoed back instead, verify it validates the Origin request header rather than reflecting it blindly.');
+            return { acao, acac, acam, acah, acma, issues };
+        }
+
+        // ---------- Cookies ----------
+        function parseSetCookie(raw) {
+            const parts = raw.split(';').map(p => p.trim()).filter(Boolean);
+            const nv = parts.shift() || '';
+            const eq = nv.indexOf('=');
+            const name = eq === -1 ? nv : nv.slice(0, eq);
+            const value = eq === -1 ? '' : nv.slice(eq + 1);
+            const c = { name, value, secure: false, httpOnly: false, sameSite: null, domain: null, path: null, expires: null, maxAge: null };
+            for (const p of parts) {
+                const eq2 = p.indexOf('=');
+                const k = (eq2 === -1 ? p : p.slice(0, eq2)).trim().toLowerCase();
+                const v = eq2 === -1 ? '' : p.slice(eq2 + 1).trim();
+                if (k === 'secure') c.secure = true;
+                else if (k === 'httponly') c.httpOnly = true;
+                else if (k === 'samesite') c.sameSite = v || '(empty)';
+                else if (k === 'domain') c.domain = v;
+                else if (k === 'path') c.path = v;
+                else if (k === 'expires') c.expires = v;
+                else if (k === 'max-age') c.maxAge = v;
+            }
+            return c;
+        }
+        function parseAllCookies(map) { return hAll(map, 'set-cookie').map(parseSetCookie); }
+        function cookieIssues(c, opts) {
+            const issues = [];
+            if (opts.cookieFlagSecure && !c.secure) issues.push('Missing Secure flag');
+            if (opts.cookieFlagHttpOnly && !c.httpOnly) issues.push('Missing HttpOnly flag');
+            if (opts.cookieFlagSameSite) {
+                if (!c.sameSite) issues.push('SameSite not set explicitly (browser default applies)');
+                else if (c.sameSite.toLowerCase() === 'none' && !c.secure) issues.push('SameSite=None without Secure is invalid and will be rejected by modern browsers');
+            }
+            return issues;
+        }
+
+        // ---------- Grade ----------
+        function computeGrade(map, opts) {
+            const active = SECURITY_CHECKS.filter(c => opts[c.opt] && !c.informational);
+            if (active.length === 0) return { pct: null, grade: '—' };
+            let earned = 0;
+            for (const c of active) {
+                const res = c.fn(map, opts);
+                if (res.status === 'good') earned += 1;
+                else if (res.status === 'warn') earned += 0.5;
+            }
+            let pct = Math.round((earned / active.length) * 100);
+            if (opts.discServer && hHas(map, 'server')) pct -= 5;
+            if (opts.discPoweredBy && hHas(map, 'x-powered-by')) pct -= 5;
+            const cookies = parseAllCookies(map);
+            const badCookies = cookies.filter(c => !c.secure || !c.httpOnly).length;
+            pct -= Math.min(15, badCookies * 5);
+            pct = Math.max(0, Math.min(100, pct));
+            const grade = pct >= 90 ? 'A' : pct >= 75 ? 'B' : pct >= 60 ? 'C' : pct >= 40 ? 'D' : 'F';
+            return { pct, grade };
+        }
+
+        // ---------- Unified block analysis ----------
+        function analyzeBlock(text, opts) {
+            const parsed = parseHeaderBlock(text, opts);
+            const map = buildHeaderMap(parsed.headers);
+            const grade = computeGrade(map, opts);
+            const cookies = parseAllCookies(map).map(c => Object.assign({}, c, { issues: cookieIssues(c, opts) }));
+            const cors = analyzeCors(map);
+            const cacheDirectives = parseCacheControl(hFirst(map, 'cache-control'));
+            const cacheIssues = cacheConflicts(cacheDirectives);
+            return { statusLine: parsed.statusLine, headers: parsed.headers, errors: parsed.errors, map, grade, cookies, cors, cacheDirectives, cacheIssues };
+        }
+
+        function splitBatchBlocks(raw) {
+            const lines = raw.split(/\r?\n/);
+            const blocks = [];
+            let current = [];
+            for (const line of lines) {
+                if (/^={3,}\s*$/.test(line.trim())) { blocks.push(current.join('\n')); current = []; }
+                else current.push(line);
+            }
+            blocks.push(current.join('\n'));
+            return blocks.map(b => b.trim()).filter(b => b !== '');
+        }
+
+        function getOptions() {
+            return {
+                strictParsing: document.getElementById('optStrictParsing').checked,
+                detectStatusLine: document.getElementById('optDetectStatusLine').checked,
+                batchMode: document.getElementById('optBatchMode').checked,
+                headerCase: (document.querySelector('input[name="headerCaseFormat"]:checked') || {}).value || 'asis',
+                secCSP: document.getElementById('secCSP').checked,
+                secHSTS: document.getElementById('secHSTS').checked,
+                secXFO: document.getElementById('secXFO').checked,
+                secXCTO: document.getElementById('secXCTO').checked,
+                secReferrer: document.getElementById('secReferrer').checked,
+                secPermissions: document.getElementById('secPermissions').checked,
+                secCOOP: document.getElementById('secCOOP').checked,
+                secCOEP: document.getElementById('secCOEP').checked,
+                secCORP: document.getElementById('secCORP').checked,
+                secXXSS: document.getElementById('secXXSS').checked,
+                flagCspUnsafe: document.getElementById('optFlagCspUnsafe').checked,
+                hstsMinMaxAge: parseInt(document.getElementById('hstsMinMaxAgeInput').value, 10) || 31536000,
+                discServer: document.getElementById('discServer').checked,
+                discPoweredBy: document.getElementById('discPoweredBy').checked,
+                discOther: document.getElementById('discOther').checked,
+                showCacheControl: document.getElementById('optShowCacheControl').checked,
+                flagCacheConflicts: document.getElementById('optFlagCacheConflicts').checked,
+                showEtagLastModified: document.getElementById('optShowEtagLastModified').checked,
+                showContentEncoding: document.getElementById('optShowContentEncoding').checked,
+                showCors: document.getElementById('optShowCors').checked,
+                flagCorsWildcardCred: document.getElementById('optFlagCorsWildcardCred').checked,
+                parseCookies: document.getElementById('optParseCookies').checked,
+                cookieFlagSecure: document.getElementById('cookieFlagSecure').checked,
+                cookieFlagHttpOnly: document.getElementById('cookieFlagHttpOnly').checked,
+                cookieFlagSameSite: document.getElementById('cookieFlagSameSite').checked
+            };
+        }
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+        function statusBadgeClass(status) { return status === 'good' ? 'public' : (status === 'warn' ? 'private' : 'invalid'); }
+
+        let lastAnalysis = { blocks: [] };
+
+        function analyze() {
+            const opts = getOptions();
+            const raw = document.getElementById('headersInput').value;
+            const errorBox = document.getElementById('errorBox');
+
+            const blockTexts = opts.batchMode ? (splitBatchBlocks(raw).length ? splitBatchBlocks(raw) : ['']) : [raw];
+            const blocks = blockTexts.map((t, i) => ({ index: i, raw: t, analysis: t.trim() ? analyzeBlock(t, opts) : null }));
+            lastAnalysis.blocks = blocks;
+            const primary = blocks[0] && blocks[0].analysis ? blocks[0].analysis : null;
+
+            const firstErrBlock = blocks.find(b => b.analysis && b.analysis.errors.length);
+            if (firstErrBlock) {
+                errorBox.textContent = firstErrBlock.analysis.errors[0] + (blocks.length > 1 ? ' (block ' + (firstErrBlock.index + 1) + ')' : '');
+                errorBox.classList.add('show');
+            } else {
+                errorBox.classList.remove('show');
+            }
+
+            document.getElementById('lineCount').textContent = raw.split(/\r?\n/).filter(l => l.trim() !== '').length;
+            document.getElementById('validCount').textContent = primary ? primary.headers.length : 0;
+
+            renderSummary(primary, opts);
+            renderSecurity(primary, opts);
+            renderDisclosure(primary, opts);
+            renderCaching(primary, opts);
+            renderCors(primary, opts);
+            renderCookies(primary, opts);
+            renderBatch(blocks, opts);
+            renderJson(blocks, primary, opts);
+        }
+
+        function renderSummary(a, opts) {
+            if (!a) { paneEmpty('pane-summary', 'Paste response headers above to see results.'); return; }
+            let html = '';
+            if (a.grade.pct !== null) {
+                html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;"><span class="badge grade ' + statusBadgeClass(a.grade.pct >= 75 ? 'good' : (a.grade.pct >= 40 ? 'warn' : 'missing')) + '">' + a.grade.grade + '</span><span style="font-size:13px;opacity:0.7;">' + a.grade.pct + '% of enabled security checks satisfied</span></div>';
+            }
+            let rows = [];
+            if (a.statusLine) rows.push(['Status Line', escapeHtml(a.statusLine)]);
+            rows.push(['Headers Parsed', String(a.headers.length)]);
+            rows.push(['Set-Cookie Count', String(a.cookies.length)]);
+            let html2 = '<table class="kv-table">';
+            for (const [k, v] of rows) html2 += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + v + '</td></tr>';
+            html2 += '</table>';
+
+            const issues = [];
+            for (const c of SECURITY_CHECKS) {
+                if (!opts[c.opt] || c.informational) continue;
+                const res = c.fn(a.map, opts);
+                if (res.status !== 'good') issues.push(c.label + ' — ' + res.note);
+            }
+            if (opts.discServer && hHas(a.map, 'server')) issues.push('Server header discloses: ' + hFirst(a.map, 'server'));
+            if (opts.discPoweredBy && hHas(a.map, 'x-powered-by')) issues.push('X-Powered-By header discloses: ' + hFirst(a.map, 'x-powered-by'));
+            if (opts.flagCorsWildcardCred) a.cors.issues.forEach(i => issues.push('CORS: ' + i));
+            if (opts.flagCacheConflicts) a.cacheIssues.forEach(i => issues.push('Cache-Control: ' + i));
+            a.cookies.forEach(c => c.issues.forEach(i => issues.push('Cookie "' + c.name + '": ' + i)));
+
+            let html3 = '';
+            if (issues.length) {
+                html3 = '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin:16px 0 6px;">Top Findings (' + issues.length + ')</div><ul class="issue-list">';
+                issues.slice(0, 8).forEach(i => { html3 += '<li><i class="fa-solid fa-triangle-exclamation"></i><span>' + escapeHtml(i) + '</span></li>'; });
+                html3 += '</ul>';
+                if (issues.length > 8) html3 += '<div style="font-size:11px;opacity:0.5;margin-top:8px;">+ ' + (issues.length - 8) + ' more — see the other tabs for full detail.</div>';
+            } else {
+                html3 = '<div style="margin-top:16px;font-size:12.5px;opacity:0.6;">No issues found among the enabled checks.</div>';
+            }
+            document.getElementById('pane-summary').innerHTML = html + html2 + html3;
+        }
+
+        function renderSecurity(a, opts) {
+            if (!a) { paneEmpty('pane-security', 'Paste response headers above to see results.'); return; }
+            const active = SECURITY_CHECKS.filter(c => opts[c.opt]);
+            if (active.length === 0) { paneEmpty('pane-security', 'All security-header checks are turned off in settings.'); return; }
+            let html = '<table class="kv-table">';
+            for (const c of active) {
+                const res = c.fn(a.map, opts);
+                html += '<tr><td class="k">' + escapeHtml(c.label) + '</td><td class="v"><span class="badge ' + statusBadgeClass(res.status) + '">' + (res.status === 'good' ? 'Good' : res.status === 'warn' ? 'Warning' : 'Missing') + '</span><div style="margin-top:6px;font-family:var(--font-body);font-size:12px;opacity:0.75;">' + escapeHtml(res.note) + '</div></td></tr>';
+            }
+            html += '</table>';
+            document.getElementById('pane-security').innerHTML = html;
+        }
+
+        function renderDisclosure(a, opts) {
+            if (!a) { paneEmpty('pane-disclosure', 'Paste response headers above to see results.'); return; }
+            let rows = [];
+            if (opts.discServer) rows.push(['Server', hHas(a.map, 'server') ? { v: hFirst(a.map, 'server'), bad: true } : { v: 'Not set', bad: false }]);
+            if (opts.discPoweredBy) rows.push(['X-Powered-By', hHas(a.map, 'x-powered-by') ? { v: hFirst(a.map, 'x-powered-by'), bad: true } : { v: 'Not set', bad: false }]);
+            if (opts.discOther) {
+                OTHER_DISCLOSURE_HEADERS.forEach(k => {
+                    if (hHas(a.map, k)) rows.push([a.map.get(k).displayName, { v: hFirst(a.map, k), bad: true }]);
+                });
+            }
+            if (rows.length === 0) { paneEmpty('pane-disclosure', 'All disclosure checks are turned off in settings, or none matched.'); return; }
+            let html = '<table class="kv-table">';
+            for (const [k, r] of rows) {
+                html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + (r.bad ? '<span class="badge private">Disclosed</span> ' : '<span class="badge public">Clean</span> ') + escapeHtml(r.v) + '</td></tr>';
+            }
+            html += '</table>';
+            document.getElementById('pane-disclosure').innerHTML = html;
+        }
+
+        function renderCaching(a, opts) {
+            if (!a) { paneEmpty('pane-caching', 'Paste response headers above to see results.'); return; }
+            let html = '';
+            if (opts.showCacheControl) {
+                if (a.cacheDirectives) {
+                    html += '<table class="kv-table">';
+                    for (const k of Object.keys(a.cacheDirectives)) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + (a.cacheDirectives[k] === true ? '<span class="badge public">Set</span>' : escapeHtml(a.cacheDirectives[k])) + '</td></tr>';
+                    html += '</table>';
+                } else {
+                    html += '<div class="empty-pane" style="padding:16px 0;">No Cache-Control header present.</div>';
+                }
+                if (opts.flagCacheConflicts && a.cacheIssues.length) {
+                    html += '<ul class="issue-list" style="margin-top:10px;">';
+                    a.cacheIssues.forEach(i => { html += '<li><i class="fa-solid fa-triangle-exclamation"></i><span>' + escapeHtml(i) + '</span></li>'; });
+                    html += '</ul>';
+                }
+            }
+            if (opts.showEtagLastModified || opts.showContentEncoding) {
+                let rows = [];
+                if (opts.showEtagLastModified) {
+                    ['etag', 'last-modified', 'expires', 'vary'].forEach(k => { if (hHas(a.map, k)) rows.push([a.map.get(k).displayName, hFirst(a.map, k)]); });
+                }
+                if (opts.showContentEncoding) {
+                    ['content-encoding', 'transfer-encoding', 'content-length'].forEach(k => { if (hHas(a.map, k)) rows.push([a.map.get(k).displayName, hFirst(a.map, k)]); });
+                }
+                if (rows.length) {
+                    html += '<table class="kv-table" style="margin-top:14px;">';
+                    for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+                    html += '</table>';
+                }
+            }
+            if (!html) html = '<div class="empty-pane">All caching options are turned off in settings.</div>';
+            document.getElementById('pane-caching').innerHTML = html;
+        }
+
+        function renderCors(a, opts) {
+            if (!a) { paneEmpty('pane-cors', 'Paste response headers above to see results.'); return; }
+            if (!opts.showCors) { paneEmpty('pane-cors', 'CORS display is turned off in settings.'); return; }
+            const c = a.cors;
+            if (!c.acao && !c.acac && !c.acam && !c.acah && !c.acma) { paneEmpty('pane-cors', 'No CORS headers present on this response.'); return; }
+            let rows = [
+                ['Access-Control-Allow-Origin', c.acao || 'Not set'],
+                ['Access-Control-Allow-Credentials', c.acac || 'Not set'],
+                ['Access-Control-Allow-Methods', c.acam || 'Not set'],
+                ['Access-Control-Allow-Headers', c.acah || 'Not set'],
+                ['Access-Control-Max-Age', c.acma || 'Not set']
+            ];
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+            html += '</table>';
+            if (opts.flagCorsWildcardCred && c.issues.length) {
+                html += '<ul class="issue-list" style="margin-top:10px;">';
+                c.issues.forEach(i => { html += '<li><i class="fa-solid fa-triangle-exclamation"></i><span>' + escapeHtml(i) + '</span></li>'; });
+                html += '</ul>';
+            }
+            document.getElementById('pane-cors').innerHTML = html;
+        }
+
+        function renderCookies(a, opts) {
+            if (!a) { paneEmpty('pane-cookies', 'Paste response headers above to see results.'); return; }
+            if (!opts.parseCookies) { paneEmpty('pane-cookies', 'Cookie parsing is turned off in settings.'); return; }
+            if (a.cookies.length === 0) { paneEmpty('pane-cookies', 'No Set-Cookie headers present on this response.'); return; }
+            let html = '';
+            a.cookies.forEach(c => {
+                html += '<div class="cookie-block"><div class="cookie-name">' + escapeHtml(c.name) + '</div><div class="flag-row">';
+                html += '<span class="badge ' + (c.secure ? 'public' : 'invalid') + '">' + (c.secure ? 'Secure' : 'No Secure') + '</span>';
+                html += '<span class="badge ' + (c.httpOnly ? 'public' : 'invalid') + '">' + (c.httpOnly ? 'HttpOnly' : 'No HttpOnly') + '</span>';
+                html += '<span class="badge ' + (c.sameSite ? 'public' : 'private') + '">SameSite: ' + escapeHtml(c.sameSite || 'default') + '</span>';
+                html += '</div>';
+                let attrRows = [];
+                if (c.domain) attrRows.push(['Domain', c.domain]);
+                if (c.path) attrRows.push(['Path', c.path]);
+                if (c.expires) attrRows.push(['Expires', c.expires]);
+                if (c.maxAge) attrRows.push(['Max-Age', c.maxAge]);
+                if (attrRows.length) {
+                    html += '<table class="kv-table">';
+                    attrRows.forEach(([k, v]) => { html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>'; });
+                    html += '</table>';
+                }
+                if (c.issues.length) {
+                    html += '<ul class="issue-list" style="margin-top:6px;">';
+                    c.issues.forEach(i => { html += '<li><i class="fa-solid fa-triangle-exclamation"></i><span>' + escapeHtml(i) + '</span></li>'; });
+                    html += '</ul>';
+                }
+                html += '</div>';
+            });
+            document.getElementById('pane-cookies').innerHTML = html;
+        }
+
+        function renderBatch(blocks, opts) {
+            if (!opts.batchMode) { paneEmpty('pane-batch', 'Turn on batch mode and separate responses with a line of "===" to see the batch table.'); return; }
+            const validBlocks = blocks.filter(b => b.analysis);
+            if (validBlocks.length === 0) { paneEmpty('pane-batch', 'Add one or more responses to see the batch table.'); return; }
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr><th>Block</th><th>Status Line</th><th>Grade</th><th>Headers</th><th>Cookies</th><th>Issues</th></tr></thead><tbody>';
+            validBlocks.forEach(b => {
+                const a = b.analysis;
+                const secIssues = SECURITY_CHECKS.filter(c => opts[c.opt] && !c.informational && c.fn(a.map, opts).status !== 'good').length;
+                const cookieIssueCount = a.cookies.reduce((s, c) => s + c.issues.length, 0);
+                const totalIssues = secIssues + cookieIssueCount + a.cors.issues.length + a.cacheIssues.length;
+                html += '<tr><td>Block ' + (b.index + 1) + '</td><td>' + escapeHtml(a.statusLine || '—') + '</td><td>' + (a.grade.pct !== null ? a.grade.grade + ' (' + a.grade.pct + '%)' : '—') + '</td><td>' + a.headers.length + '</td><td>' + a.cookies.length + '</td><td>' + totalIssues + '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+            document.getElementById('pane-batch').innerHTML = html;
+        }
+
+        function buildJsonForBlock(a, opts) {
+            if (!a) return null;
+            return {
+                statusLine: a.statusLine,
+                headers: a.headers.map(h => ({ name: displayHeaderName(h.name, opts), value: h.value })),
+                errors: a.errors,
+                grade: a.grade,
+                cookies: a.cookies,
+                cors: a.cors,
+                cacheControl: a.cacheDirectives,
+                cacheIssues: a.cacheIssues
+            };
+        }
+        function renderJson(blocks, primary, opts) {
+            const out = { primary: buildJsonForBlock(primary, opts), batch: opts.batchMode ? blocks.filter(b => b.analysis).map(b => buildJsonForBlock(b.analysis, opts)) : undefined };
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring ----------
+        document.getElementById('headersInput').addEventListener('input', analyze);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; analyze(); });
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('headersInput').value = '';
+            analyze();
+            document.getElementById('headersInput').focus();
+        });
+
+        document.getElementById('copyJsonBtn').addEventListener('click', async () => {
+            const text = document.getElementById('jsonOut').textContent;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const blocks = lastAnalysis.blocks.filter(b => b.analysis);
+            if (blocks.length === 0) return;
+            const header = ['block', 'statusLine', 'grade', 'percent', 'headerCount', 'cookieCount', 'issueCount'];
+            const lines = [header.join(',')];
+            blocks.forEach(b => {
+                const a = b.analysis;
+                const secIssues = SECURITY_CHECKS.filter(c => opts[c.opt] && !c.informational && c.fn(a.map, opts).status !== 'good').length;
+                const cookieIssueCount = a.cookies.reduce((s, c) => s + c.issues.length, 0);
+                const totalIssues = secIssues + cookieIssueCount + a.cors.issues.length + a.cacheIssues.length;
+                lines.push([csvCell('Block ' + (b.index + 1)), csvCell(a.statusLine || ''), csvCell(a.grade.grade), a.grade.pct !== null ? a.grade.pct : '', a.headers.length, a.cookies.length, totalIssues].join(','));
+            });
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a2 = document.createElement('a');
+            a2.href = url; a2.download = 'http-headers-batch-audit.csv';
+            document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+            URL.revokeObjectURL(url);
+        });
+        function csvCell(s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; }
+
+        // ---------- Live Header Fetch ----------
+        document.getElementById('fetchHeadersBtn').addEventListener('click', async () => {
+            const resultEl = document.getElementById('fetchHeadersResult');
+            const url = document.getElementById('fetchUrlInput').value.trim();
+            if (!url) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a URL first.</div>'; return; }
+            resultEl.innerHTML = '<div style="font-size:12px;opacity:0.6;">Requesting ' + escapeHtml(url) + '…</div>';
+            try {
+                const res = await fetch(url, { method: 'GET', mode: 'cors' });
+                const lines = ['HTTP/1.1 ' + res.status + ' ' + res.statusText];
+                let count = 0;
+                res.headers.forEach((v, k) => { lines.push(k + ': ' + v); count++; });
+                const text = lines.join('\n');
+                resultEl.innerHTML = '<div class="mono-box">' + escapeHtml(text) + '</div>' +
+                    '<button class="btn-ghost small" id="useFetchedBtn" type="button" style="margin-top:8px;">Analyze These Headers</button>' +
+                    '<div style="font-size:11px;opacity:0.55;margin-top:8px;">' + count + ' header(s) exposed to this page via CORS. If that looks short, the server isn\'t exposing the rest — check DevTools\' Network tab or run curl -I for the full set.</div>';
+                document.getElementById('useFetchedBtn').addEventListener('click', () => {
+                    document.getElementById('headersInput').value = text;
+                    analyze();
+                    document.getElementById('headersInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+            } catch (err) {
+                resultEl.innerHTML = '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>Request blocked or failed — most sites don\'t allow cross-origin reads from arbitrary pages. Run <code>curl -I ' + escapeHtml(url) + '</code> or check DevTools\' Network tab and paste the result above instead.</span></div>';
+            }
+        });
+
+        // ---------- Header Diff Comparator ----------
+        function diffHeaderMaps(mapA, mapB) {
+            const keysA = new Set(mapA.keys());
+            const keysB = new Set(mapB.keys());
+            const onlyA = [...keysA].filter(k => !keysB.has(k));
+            const onlyB = [...keysB].filter(k => !keysA.has(k));
+            const common = [...keysA].filter(k => keysB.has(k));
+            const differing = [];
+            const same = [];
+            for (const k of common) {
+                const a = mapA.get(k).values.join(', ');
+                const b = mapB.get(k).values.join(', ');
+                if (a === b) same.push(k); else differing.push({ k, a, b });
+            }
+            return { onlyA, onlyB, differing, same };
+        }
+        document.getElementById('compareHeadersBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('compareHeadersResult');
+            const rawA = document.getElementById('compareHeadersA').value;
+            const rawB = document.getElementById('compareHeadersB').value;
+            if (!rawA.trim() || !rawB.trim()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Paste headers in both boxes.</div>'; return; }
+            const mapA = buildHeaderMap(parseHeaderBlock(rawA, opts).headers);
+            const mapB = buildHeaderMap(parseHeaderBlock(rawB, opts).headers);
+            const d = diffHeaderMaps(mapA, mapB);
+            let html = '<div style="font-size:11.5px;opacity:0.6;margin-bottom:8px;">' + d.onlyA.length + ' only in A · ' + d.onlyB.length + ' only in B · ' + d.differing.length + ' differ · ' + d.same.length + ' identical</div>';
+            html += '<ul class="issue-list">';
+            d.onlyA.forEach(k => { html += '<li><i class="fa-solid fa-minus"></i><span>Only in A: <strong>' + escapeHtml(k) + '</strong> = ' + escapeHtml(mapA.get(k).values.join(', ')) + '</span></li>'; });
+            d.onlyB.forEach(k => { html += '<li><i class="fa-solid fa-plus"></i><span>Only in B: <strong>' + escapeHtml(k) + '</strong> = ' + escapeHtml(mapB.get(k).values.join(', ')) + '</span></li>'; });
+            d.differing.forEach(x => { html += '<li><i class="fa-solid fa-code-compare"></i><span><strong>' + escapeHtml(x.k) + '</strong> — A: ' + escapeHtml(x.a) + ' → B: ' + escapeHtml(x.b) + '</span></li>'; });
+            html += '</ul>';
+            if (!d.onlyA.length && !d.onlyB.length && !d.differing.length) html += '<div style="font-size:12.5px;opacity:0.6;margin-top:8px;">Every shared header matches exactly.</div>';
+            resultEl.innerHTML = html;
+        });
+
+        // ---------- Quick Cookie Flag Checker ----------
+        document.getElementById('cookieCheckBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('cookieCheckResult');
+            const raw = document.getElementById('cookieCheckInput').value.trim();
+            if (!raw) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Paste a Set-Cookie value first.</div>'; return; }
+            const c = parseSetCookie(raw);
+            const issues = cookieIssues(c, opts);
+            let html = '<div class="cookie-block"><div class="cookie-name">' + escapeHtml(c.name || '(unnamed)') + '</div><div class="flag-row">';
+            html += '<span class="badge ' + (c.secure ? 'public' : 'invalid') + '">' + (c.secure ? 'Secure' : 'No Secure') + '</span>';
+            html += '<span class="badge ' + (c.httpOnly ? 'public' : 'invalid') + '">' + (c.httpOnly ? 'HttpOnly' : 'No HttpOnly') + '</span>';
+            html += '<span class="badge ' + (c.sameSite ? 'public' : 'private') + '">SameSite: ' + escapeHtml(c.sameSite || 'default') + '</span>';
+            html += '</div>';
+            if (issues.length) {
+                html += '<ul class="issue-list">';
+                issues.forEach(i => { html += '<li><i class="fa-solid fa-triangle-exclamation"></i><span>' + escapeHtml(i) + '</span></li>'; });
+                html += '</ul>';
+            } else {
+                html += '<div style="font-size:12px;opacity:0.6;">No issues found among the enabled checks.</div>';
+            }
+            html += '</div>';
+            resultEl.innerHTML = html;
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optStrictParsing', 'optDetectStatusLine', 'optBatchMode', 'secCSP', 'secHSTS', 'secXFO', 'secXCTO', 'secReferrer', 'secPermissions', 'secCOOP', 'secCOEP', 'secCORP', 'secXXSS', 'optFlagCspUnsafe', 'discServer', 'discPoweredBy', 'discOther', 'optShowCacheControl', 'optFlagCacheConflicts', 'optShowEtagLastModified', 'optShowContentEncoding', 'optShowCors', 'optFlagCorsWildcardCred', 'optParseCookies', 'cookieFlagSecure', 'cookieFlagHttpOnly', 'cookieFlagSameSite'],
+            text: ['hstsMinMaxAgeInput'],
+            radio: ['headerCaseFormat']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            fullaudit: {
+                optStrictParsing: false, optDetectStatusLine: true, optBatchMode: false, headerCaseFormat: 'asis',
+                secCSP: true, secHSTS: true, secXFO: true, secXCTO: true, secReferrer: true, secPermissions: true, secCOOP: true, secCOEP: true, secCORP: true, secXXSS: true, optFlagCspUnsafe: true, hstsMinMaxAgeInput: '31536000',
+                discServer: true, discPoweredBy: true, discOther: true,
+                optShowCacheControl: true, optFlagCacheConflicts: true, optShowEtagLastModified: true, optShowContentEncoding: true,
+                optShowCors: true, optFlagCorsWildcardCred: true,
+                optParseCookies: true, cookieFlagSecure: true, cookieFlagHttpOnly: true, cookieFlagSameSite: true
+            },
+            cookies: {
+                optStrictParsing: false, optDetectStatusLine: true, optBatchMode: false, headerCaseFormat: 'asis',
+                secCSP: false, secHSTS: false, secXFO: false, secXCTO: false, secReferrer: false, secPermissions: false, secCOOP: false, secCOEP: false, secCORP: false, secXXSS: false, optFlagCspUnsafe: false, hstsMinMaxAgeInput: '31536000',
+                discServer: false, discPoweredBy: false, discOther: false,
+                optShowCacheControl: false, optFlagCacheConflicts: false, optShowEtagLastModified: false, optShowContentEncoding: false,
+                optShowCors: false, optFlagCorsWildcardCred: false,
+                optParseCookies: true, cookieFlagSecure: true, cookieFlagHttpOnly: true, cookieFlagSameSite: true
+            },
+            caching: {
+                optStrictParsing: false, optDetectStatusLine: true, optBatchMode: false, headerCaseFormat: 'asis',
+                secCSP: false, secHSTS: false, secXFO: false, secXCTO: false, secReferrer: false, secPermissions: false, secCOOP: false, secCOEP: false, secCORP: false, secXXSS: false, optFlagCspUnsafe: false, hstsMinMaxAgeInput: '31536000',
+                discServer: false, discPoweredBy: false, discOther: false,
+                optShowCacheControl: true, optFlagCacheConflicts: true, optShowEtagLastModified: true, optShowContentEncoding: true,
+                optShowCors: false, optFlagCorsWildcardCred: false,
+                optParseCookies: false, cookieFlagSecure: false, cookieFlagHttpOnly: false, cookieFlagSameSite: false
+            },
+            cors: {
+                optStrictParsing: false, optDetectStatusLine: true, optBatchMode: false, headerCaseFormat: 'asis',
+                secCSP: false, secHSTS: false, secXFO: false, secXCTO: false, secReferrer: false, secPermissions: false, secCOOP: true, secCOEP: true, secCORP: true, secXXSS: false, optFlagCspUnsafe: false, hstsMinMaxAgeInput: '31536000',
+                discServer: false, discPoweredBy: false, discOther: false,
+                optShowCacheControl: false, optFlagCacheConflicts: false, optShowEtagLastModified: false, optShowContentEncoding: false,
+                optShowCors: true, optFlagCorsWildcardCred: true,
+                optParseCookies: false, cookieFlagSecure: false, cookieFlagHttpOnly: false, cookieFlagSameSite: false
+            },
+            disclosure: {
+                optStrictParsing: false, optDetectStatusLine: true, optBatchMode: false, headerCaseFormat: 'lower',
+                secCSP: false, secHSTS: false, secXFO: false, secXCTO: false, secReferrer: false, secPermissions: false, secCOOP: false, secCOEP: false, secCORP: false, secXXSS: false, optFlagCspUnsafe: false, hstsMinMaxAgeInput: '31536000',
+                discServer: true, discPoweredBy: true, discOther: true,
+                optShowCacheControl: false, optFlagCacheConflicts: false, optShowEtagLastModified: false, optShowContentEncoding: false,
+                optShowCors: false, optFlagCorsWildcardCred: false,
+                optParseCookies: false, cookieFlagSecure: false, cookieFlagHttpOnly: false, cookieFlagSameSite: false
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'headersCheckerCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            analyze();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'http-headers-checker-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    analyze();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave ----------
+        const DRAFT_KEY = 'headersCheckerDraft';
+        const DRAFT_SETTINGS_KEY = 'headersCheckerLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, document.getElementById('headersInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        document.getElementById('headersInput').addEventListener('input', saveDraft);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => el.addEventListener('input', saveDraft));
+
+        (function restoreDraft() {
+            const fallback = 'HTTP/1.1 200 OK\nDate: Tue, 25 Aug 2026 10:00:00 GMT\nContent-Type: text/html; charset=UTF-8\nServer: nginx/1.18.0\nCache-Control: no-cache\nSet-Cookie: sessionid=abc123; Path=/; HttpOnly\nX-Frame-Options: SAMEORIGIN';
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                document.getElementById('headersInput').value = (savedDraft !== null && savedDraft !== '') ? savedDraft : fallback;
+            } catch (err) {
+                document.getElementById('headersInput').value = fallback;
+            }
+        })();
+
+        // Initial run
+        analyze();
+    </script>
+</body>
+</html>
