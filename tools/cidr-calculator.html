@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | CIDR Calculator — VLSM, Supernetting & Subnet Allocation Planner</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free CIDR calculator built for real network-planning work: VLSM subnet allocation from a list of host requirements, route summarization / supernetting, multi-CIDR overlap and conflict detection, next-free-subnet finder, cloud VPC reserved-IP awareness (AWS/Azure/GCP), DHCP pool planning, and Cisco ACL wildcard generation — 100% client-side." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/cidr-calculator.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/cidr-calculator.html" />
+<meta property="og:title" content="CIDR Calculator — VLSM, Supernetting & Subnet Allocation Planner — awjunaid" />
+<meta property="og:description" content="VLSM subnet allocation, route summarization, multi-CIDR overlap detection, next-free-subnet finder, AWS/Azure/GCP reserved-IP awareness, DHCP pool planning, and ACL wildcard generation. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/cidr-calculator.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="CIDR Calculator — VLSM, Supernetting & Subnet Allocation Planner — awjunaid" />
+<meta name="twitter:description" content="VLSM planning, route summarization, overlap detection, next-free-subnet finder, cloud reserved-IP awareness, DHCP pool planning, and ACL wildcard generation — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/cidr-calculator.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 680px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 32px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select, .field-group textarea {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           TOOL TABS (top-level: 5 real-world workflows)
+           ============================================ */
+        .workflow-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+        .workflow-tab {
+            border: 1px solid var(--border-color);
+            border-radius: 60px;
+            padding: 11px 20px;
+            font-size: 11.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .workflow-tab.active { background: var(--text-primary); color: var(--bg-primary); }
+        .workflow-tab:hover:not(.active) { background: var(--code-bg); }
+        .workflow-pane { display: none; }
+        .workflow-pane.active { display: block; }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-sub { font-size: 12px; opacity: 0.6; margin-top: 4px; max-width: 640px; line-height: 1.5; }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        textarea.tool-textarea, input.tool-input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        textarea.tool-textarea { min-height: 140px; }
+        textarea.tool-textarea:focus, input.tool-input:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+        .note-box {
+            border: 1px solid var(--warn); border-radius: 12px; padding: 10px 14px;
+            font-size: 12px; font-weight: 500; margin-top: 12px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.55;
+        }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 30px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 440px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .workflow-tab { flex: 1 1 calc(50% - 4px); justify-content: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">CIDR Calculator</h1>
+                <div class="tool-dek">Five real network-planning workflows in one place: allocate VLSM subnets from a list of host requirements, summarize scattered CIDRs into the fewest possible routes, find overlaps and conflicts across a firewall or VPC peering list, locate the next free block inside an already-partitioned network, and see exactly how many addresses AWS, Azure, or GCP will reserve from a subnet before you size it. Entirely in your browser.</div>
+            </div>
+
+            <!-- Global Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Cloud Reserved-IP Model</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Applies to Single CIDR, VLSM, and DHCP Pool tabs</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="cloudModel" value="none" checked> None (2 reserved: network + broadcast)</label>
+                                <label class="radio-opt"><input type="radio" name="cloudModel" value="aws"> AWS VPC (5 reserved)</label>
+                                <label class="radio-opt"><input type="radio" name="cloudModel" value="azure"> Azure VNet (5 reserved)</label>
+                                <label class="radio-opt"><input type="radio" name="cloudModel" value="gcp"> GCP VPC (4 reserved)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>VLSM Allocation</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVlsmLargestFirst" checked>
+                            <span><span class="setting-name">Sort largest-first before allocating</span><span class="setting-hint">Standard VLSM practice — avoids fragmentation. Uncheck to allocate in the order you typed them</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVlsmShowWasted" checked>
+                            <span><span class="setting-name">Show wasted addresses per block</span><span class="setting-hint">Requested hosts vs. block capacity, and total plan efficiency</span></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>Display</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUppercaseWildcard">
+                            <span><span class="setting-name">Uppercase hex in JSON/exports</span><span class="setting-hint">Cosmetic only — affects generated hex values</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictValidation">
+                            <span><span class="setting-name">Strict octet validation</span><span class="setting-hint">Rejects leading zeros like "192.168.001.1" across every tab</span></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>DHCP Pool Defaults</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="dhcpReserveCount">Static reservations before pool</label>
+                            <input type="number" id="dhcpReserveCount" min="0" max="4000" value="10">
+                        </div>
+                        <div class="field-group">
+                            <label>Gateway position</label>
+                            <div class="radio-row" style="margin-top:10px;">
+                                <label class="radio-opt"><input type="radio" name="gatewayPos" value="first" checked> First usable</label>
+                                <label class="radio-opt"><input type="radio" name="gatewayPos" value="last"> Last usable</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>Next-Free-Subnet Search</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="nfsMaxResults">Max free blocks to list</label>
+                            <input type="number" id="nfsMaxResults" min="1" max="200" value="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workflow Tabs -->
+            <div class="workflow-tabs">
+                <button class="workflow-tab active" data-wf="basic" type="button"><i class="fa-solid fa-calculator"></i> Single CIDR</button>
+                <button class="workflow-tab" data-wf="vlsm" type="button"><i class="fa-solid fa-sitemap"></i> VLSM Planner</button>
+                <button class="workflow-tab" data-wf="supernet" type="button"><i class="fa-solid fa-route"></i> Route Summarization</button>
+                <button class="workflow-tab" data-wf="overlap" type="button"><i class="fa-solid fa-triangle-exclamation"></i> Overlap Detector</button>
+                <button class="workflow-tab" data-wf="nfs" type="button"><i class="fa-solid fa-magnifying-glass"></i> Next Free Subnet</button>
+            </div>
+
+            <!-- ============ TAB 1: SINGLE CIDR ============ -->
+            <div class="workflow-pane active" id="wf-basic">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Single CIDR Breakdown</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost small" id="basicCopyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+                        </div>
+                    </div>
+                    <div class="panel-sub">Full subnet math plus a cloud-reservation-aware usable count and a ready-to-use DHCP pool, based on the settings above.</div>
+                    <div class="field-row" style="margin-top:16px;">
+                        <div class="field-group full-width">
+                            <label for="basicCidrInput">Network / CIDR</label>
+                            <input type="text" class="tool-input" id="basicCidrInput" placeholder="10.20.30.0/24" value="10.20.30.0/24">
+                        </div>
+                    </div>
+                    <div class="error-box" id="basicError"></div>
+                    <div id="basicOutput" style="margin-top:16px;"><div class="empty-pane">Enter a CIDR block above.</div></div>
+                </div>
+            </div>
+
+            <!-- ============ TAB 2: VLSM PLANNER ============ -->
+            <div class="workflow-pane" id="wf-vlsm">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>VLSM Subnet Allocation</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost small" id="vlsmDownloadBtn" type="button"><i class="fa-solid fa-download"></i> Download CSV</button>
+                        </div>
+                    </div>
+                    <div class="panel-sub">Give a base network and a list of "label,hosts" requirements — one department, VLAN, or site per line. Blocks are allocated largest-first and address-aligned, the same way a real VLSM design is built by hand.</div>
+                    <div class="field-row" style="margin-top:16px;">
+                        <div class="field-group">
+                            <label for="vlsmBaseInput">Base network / CIDR</label>
+                            <input type="text" class="tool-input" id="vlsmBaseInput" placeholder="10.0.0.0/24" value="10.0.0.0/24">
+                        </div>
+                    </div>
+                    <div class="field-group" style="margin-top:14px;">
+                        <label for="vlsmListInput">Required subnets (one "label,hosts" per line)</label>
+                        <textarea class="tool-textarea" id="vlsmListInput" spellcheck="false" placeholder="Sales,60
+Engineering,25
+Guest-WiFi,10
+Point-to-Point-Link,2">Sales,60
+Engineering,25
+Guest-WiFi,10
+Point-to-Point-Link,2</textarea>
+                    </div>
+                    <div class="error-box" id="vlsmError"></div>
+                    <div id="vlsmOutput" style="margin-top:16px;"><div class="empty-pane">Fill in a base network and at least one requirement line.</div></div>
+                </div>
+            </div>
+
+            <!-- ============ TAB 3: SUPERNET / SUMMARIZATION ============ -->
+            <div class="workflow-pane" id="wf-supernet">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Route Summarization / Supernetting</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost small" id="supernetCopyBtn" type="button"><i class="fa-solid fa-copy"></i> Copy Result</button>
+                        </div>
+                    </div>
+                    <div class="panel-sub">Paste every subnet a router currently advertises and get back the fewest CIDR blocks that summarize them exactly — plus the single loose supernet, if you're willing to advertise a bit of unused space to simplify a routing table further.</div>
+                    <div class="field-group" style="margin-top:16px;">
+                        <label for="supernetListInput">CIDR blocks (one per line)</label>
+                        <textarea class="tool-textarea" id="supernetListInput" spellcheck="false" placeholder="192.168.0.0/24
+192.168.1.0/24
+192.168.2.0/24
+192.168.3.0/24">192.168.0.0/24
+192.168.1.0/24
+192.168.2.0/24
+192.168.3.0/24</textarea>
+                    </div>
+                    <div class="error-box" id="supernetError"></div>
+                    <div id="supernetOutput" style="margin-top:16px;"><div class="empty-pane">Add at least two CIDR blocks above.</div></div>
+                </div>
+            </div>
+
+            <!-- ============ TAB 4: OVERLAP DETECTOR ============ -->
+            <div class="workflow-pane" id="wf-overlap">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Multi-CIDR Overlap & Conflict Detector</h3>
+                    </div>
+                    <div class="panel-sub">Paste a firewall rule list, a set of VPCs you're about to peer, or subnets from two merging networks. Every pair is checked for overlap, containment, or an exact duplicate before it becomes a routing or peering problem in production.</div>
+                    <div class="field-group" style="margin-top:16px;">
+                        <label for="overlapListInput">CIDR blocks — optional "label," prefix per line</label>
+                        <textarea class="tool-textarea" id="overlapListInput" spellcheck="false" placeholder="VPC-A,10.0.0.0/16
+VPC-B,10.0.4.0/24
+VPC-C,172.16.0.0/12
+Firewall-Rule-9,10.0.4.128/26">VPC-A,10.0.0.0/16
+VPC-B,10.0.4.0/24
+VPC-C,172.16.0.0/12
+Firewall-Rule-9,10.0.4.128/26</textarea>
+                    </div>
+                    <div class="error-box" id="overlapError"></div>
+                    <div id="overlapOutput" style="margin-top:16px;"><div class="empty-pane">Add at least two CIDR blocks above.</div></div>
+                </div>
+            </div>
+
+            <!-- ============ TAB 5: NEXT FREE SUBNET ============ -->
+            <div class="workflow-pane" id="wf-nfs">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Next Free Subnet Finder</h3>
+                    </div>
+                    <div class="panel-sub">Give the parent block, everything already carved out of it, and the prefix length you need next. Get back the first free, correctly-aligned block(s) that don't collide with anything already assigned.</div>
+                    <div class="two-col" style="margin-top:16px;">
+                        <div>
+                            <div class="field-group">
+                                <label for="nfsParentInput">Parent network / CIDR</label>
+                                <input type="text" class="tool-input" id="nfsParentInput" placeholder="10.0.0.0/16" value="10.0.0.0/16">
+                            </div>
+                            <div class="field-group" style="margin-top:14px;">
+                                <label for="nfsNewPrefixInput">Needed prefix for the new block</label>
+                                <input type="number" class="tool-input" id="nfsNewPrefixInput" min="1" max="32" value="24">
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="nfsUsedInput">Already-used CIDR blocks (one per line)</label>
+                            <textarea class="tool-textarea" id="nfsUsedInput" spellcheck="false" placeholder="10.0.0.0/24
+10.0.1.0/24
+10.0.4.0/22">10.0.0.0/24
+10.0.1.0/24
+10.0.4.0/22</textarea>
+                        </div>
+                    </div>
+                    <div class="error-box" id="nfsError"></div>
+                    <div id="nfsOutput" style="margin-top:16px;"><div class="empty-pane">Fill in the parent network and prefix above.</div></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Why a separate tool from a plain subnet calculator?</h4>
+                        <p>A single-address subnet calculator answers "what's the network and broadcast for this one CIDR?" This tool is built around the multi-block problems network engineers actually hit: designing VLSM allocations from a requirements list, collapsing dozens of routes into a clean summary, catching an overlap before a VPC peering request fails, and finding where the next block actually fits.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does the VLSM planner decide block sizes?</h4>
+                        <p>Each requested host count is rounded up to the smallest power-of-two block that fits it plus the network and broadcast address (except /31 and /32, which skip that reservation). With largest-first sorting on, the biggest requirement is placed first and each next block starts at the first address boundary its size aligns to — the same manual process taught for VLSM design, just done for you.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the difference between "exact" and "loose" summarization?</h4>
+                        <p>An exact summary is the minimal list of CIDR blocks that together cover precisely the addresses you supplied — no more, no less. A single loose supernet is one CIDR block big enough to contain everything, which is simpler to advertise but may include address space you don't actually own or use. The tool shows both so you can choose based on how much unused space you're willing to include.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why do AWS, Azure, and GCP reserve different numbers of addresses?</h4>
+                        <p>All three reserve the network and broadcast address like any subnet. AWS additionally reserves the VPC router, the DNS resolver, and one address for future use (5 total). Azure reserves the same four plus broadcast (5 total). GCP reserves only the network address, the default gateway, and broadcast (4 total, since GCP subnets don't broadcast a fixed DNS/router address the same way). Picking the right model before sizing a subnet avoids an under-provisioned VPC.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does the overlap detector classify a pair?</h4>
+                        <p>Every pair of entered blocks is compared by their numeric start/end address range. A pair is flagged as identical if both ranges match exactly, contained if one range fully sits inside the other, overlapping if the ranges partially intersect without one containing the other, and disjoint if they share no addresses at all.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is the next-free-subnet search guaranteed to find a valid, aligned block?</h4>
+                        <p>Yes — it only tests candidate starting addresses that are correctly aligned to the requested prefix length within the parent block, then checks each candidate against every used range. The first (and, if requested, next few) non-colliding, in-bounds candidates are returned in address order.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // CIDR CALCULATOR — CORE ENGINE
+        // ============================================
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function parseIPv4(str, opts) {
+            if (typeof str !== 'string') return null;
+            const s = str.trim();
+            const m = s.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+            if (!m) return null;
+            const parts = m.slice(1, 5);
+            if (opts && opts.strictValidation) {
+                if (parts.some(p => p.length > 1 && p[0] === '0')) return null;
+            }
+            const octs = parts.map(p => parseInt(p, 10));
+            if (octs.some(o => o < 0 || o > 255)) return null;
+            return octs;
+        }
+        function ipv4ToInt(o) { return ((o[0] * 16777216) + (o[1] * 65536) + (o[2] * 256) + o[3]) >>> 0; }
+        function intToIPv4(n) { n = n >>> 0; return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
+        function prefixToNetmaskInt(prefix) {
+            if (prefix <= 0) return 0;
+            if (prefix >= 32) return 0xFFFFFFFF >>> 0;
+            return (0xFFFFFFFF << (32 - prefix)) >>> 0;
+        }
+        function computeIPv4Subnet(ipInt, prefix) {
+            const maskInt = prefixToNetmaskInt(prefix);
+            const network = (ipInt & maskInt) >>> 0;
+            const wildcard = (~maskInt) >>> 0;
+            const broadcast = (network | wildcard) >>> 0;
+            const total = Math.pow(2, 32 - prefix);
+            let firstHost, lastHost, usable;
+            if (prefix >= 31) { firstHost = network; lastHost = broadcast; usable = (prefix === 32 ? 1 : 2); }
+            else { firstHost = network + 1; lastHost = broadcast - 1; usable = total - 2; }
+            return { network, broadcast, wildcard, maskInt, total, firstHost, lastHost, usable, prefix };
+        }
+        function rangeToCidrs(start, end) {
+            const result = [];
+            let guard = 0;
+            while (end >= start && guard < 10000) {
+                guard++;
+                let maxSize = 32;
+                while (maxSize > 0) {
+                    const mask = prefixToNetmaskInt(maxSize - 1);
+                    if (((start & mask) >>> 0) !== start) break;
+                    maxSize--;
+                }
+                const x = Math.log2(end - start + 1);
+                const maxDiff = 32 - Math.floor(x);
+                if (maxSize < maxDiff) maxSize = maxDiff;
+                result.push(intToIPv4(start) + '/' + maxSize);
+                const step = Math.pow(2, 32 - maxSize);
+                if (start + step > 0xFFFFFFFF) break;
+                start += step;
+            }
+            return result;
+        }
+        // parse "ip/prefix" or bare ip (treated as /32)
+        function parseCidrLine(line, opts) {
+            line = line.trim();
+            if (!line) return null;
+            let ipPart = line, prefixPart = null;
+            if (line.includes('/')) {
+                const idx = line.lastIndexOf('/');
+                ipPart = line.slice(0, idx);
+                prefixPart = line.slice(idx + 1);
+            }
+            const octs = parseIPv4(ipPart, opts);
+            if (!octs) return { raw: line, error: 'Invalid IPv4 address: "' + ipPart + '"' };
+            let prefix = 32;
+            if (prefixPart !== null) {
+                prefix = parseInt(prefixPart, 10);
+                if (isNaN(prefix) || prefix < 0 || prefix > 32) return { raw: line, error: 'Invalid prefix length: "/' + prefixPart + '"' };
+            }
+            const int = ipv4ToInt(octs);
+            const subnet = computeIPv4Subnet(int, prefix);
+            return { raw: line, ok: true, octs, int, prefix, subnet, hadPrefix: prefixPart !== null };
+        }
+
+        function getGlobalOptions() {
+            return {
+                strictValidation: document.getElementById('optStrictValidation').checked,
+                cloudModel: (document.querySelector('input[name="cloudModel"]:checked') || {}).value || 'none',
+                vlsmLargestFirst: document.getElementById('optVlsmLargestFirst').checked,
+                vlsmShowWasted: document.getElementById('optVlsmShowWasted').checked,
+                uppercaseHex: document.getElementById('optUppercaseWildcard').checked,
+                dhcpReserveCount: parseInt(document.getElementById('dhcpReserveCount').value, 10) || 0,
+                gatewayPos: (document.querySelector('input[name="gatewayPos"]:checked') || {}).value || 'first',
+                nfsMaxResults: parseInt(document.getElementById('nfsMaxResults').value, 10) || 5
+            };
+        }
+
+        function cloudReservedInfo(model, subnet) {
+            // returns { reservedCount, reservedList: [{addr, why}], usableAfterCloud }
+            const net = subnet.network, bcast = subnet.broadcast, prefix = subnet.prefix;
+            if (prefix >= 31) return { reservedCount: subnet.total - subnet.usable, reservedList: [], usableAfterCloud: subnet.usable, label: 'None (point-to-point / host route)' };
+            let list = [];
+            if (model === 'none') {
+                list = [
+                    { addr: intToIPv4(net), why: 'Network address' },
+                    { addr: intToIPv4(bcast), why: 'Broadcast address' }
+                ];
+            } else if (model === 'aws') {
+                list = [
+                    { addr: intToIPv4(net), why: 'Network address' },
+                    { addr: intToIPv4(net + 1), why: 'VPC router' },
+                    { addr: intToIPv4(net + 2), why: 'DNS server (Amazon-provided)' },
+                    { addr: intToIPv4(net + 3), why: 'Reserved for future use' },
+                    { addr: intToIPv4(bcast), why: 'Broadcast address' }
+                ];
+            } else if (model === 'azure') {
+                list = [
+                    { addr: intToIPv4(net), why: 'Network address' },
+                    { addr: intToIPv4(net + 1), why: 'Default gateway' },
+                    { addr: intToIPv4(net + 2), why: 'Azure DNS mapping' },
+                    { addr: intToIPv4(net + 3), why: 'Azure DNS mapping' },
+                    { addr: intToIPv4(bcast), why: 'Broadcast address' }
+                ];
+            } else if (model === 'gcp') {
+                list = [
+                    { addr: intToIPv4(net), why: 'Network address' },
+                    { addr: intToIPv4(net + 1), why: 'Default gateway' },
+                    { addr: intToIPv4(bcast), why: 'Broadcast address' }
+                ];
+            }
+            const usableAfterCloud = Math.max(0, subnet.total - list.length);
+            const labelMap = { none: 'None — standard reservation only', aws: 'AWS VPC', azure: 'Azure VNet', gcp: 'GCP VPC' };
+            return { reservedCount: list.length, reservedList: list, usableAfterCloud, label: labelMap[model] };
+        }
+
+        function dhcpPoolFor(subnet, cloudInfo, opts) {
+            // usable range after cloud reservations: assume cloud reserves are always at the *bottom* except broadcast at top,
+            // so shrink firstHost upward by (reservedCount - (has broadcast reserved ? 1 : 0)) and lastHost down by 1 if broadcast reserved.
+            let first = subnet.firstHost, last = subnet.lastHost;
+            if (cloudInfo.reservedList.length) {
+                const bottomReserved = cloudInfo.reservedList.filter(r => intToIPv4Sort(r.addr) !== intToIPv4(subnet.broadcast)).length;
+                first = subnet.network + bottomReserved;
+                last = subnet.broadcast - 1;
+            }
+            let gwAddr = null;
+            if (opts.gatewayPos === 'first') { gwAddr = first; first = first + 1; }
+            else { gwAddr = last; last = last - 1; }
+            const staticEnd = first + opts.dhcpReserveCount - 1;
+            const poolStart = staticEnd + 1;
+            const poolEnd = last;
+            const poolSize = poolEnd - poolStart + 1;
+            return {
+                gateway: gwAddr <= last + (opts.gatewayPos === 'first' ? 1 : 1) ? intToIPv4(gwAddr) : null,
+                staticRange: opts.dhcpReserveCount > 0 && staticEnd >= first ? intToIPv4(first) + ' \u2013 ' + intToIPv4(Math.min(staticEnd, last)) : 'none',
+                poolStart: poolSize > 0 ? intToIPv4(poolStart) : null,
+                poolEnd: poolSize > 0 ? intToIPv4(poolEnd) : null,
+                poolSize: Math.max(0, poolSize)
+            };
+        }
+        function intToIPv4Sort(s) { return s; }
+
+        // ============================================
+        // TAB 1: SINGLE CIDR
+        // ============================================
+        function renderBasic() {
+            const opts = getGlobalOptions();
+            const errBox = document.getElementById('basicError');
+            const raw = document.getElementById('basicCidrInput').value;
+            const parsed = parseCidrLine(raw, opts);
+            if (!parsed) { document.getElementById('basicOutput').innerHTML = '<div class="empty-pane">Enter a CIDR block above.</div>'; errBox.classList.remove('show'); return; }
+            if (parsed.error) {
+                errBox.textContent = parsed.error; errBox.classList.add('show');
+                document.getElementById('basicOutput').innerHTML = '<div class="empty-pane">Fix the input above to see results.</div>';
+                return;
+            }
+            errBox.classList.remove('show');
+            const s = parsed.subnet;
+            const cloud = cloudReservedInfo(opts.cloudModel, s);
+            const dhcp = dhcpPoolFor(s, cloud, opts);
+            const nextNet = s.broadcast + 1 <= 0xFFFFFFFF ? intToIPv4Safe(s.broadcast + 1) : null;
+            const prevBcast = s.network - 1 >= 0 ? intToIPv4Safe(s.network - 1) : null;
+
+            let rows = [];
+            rows.push(['Input', escapeHtml(parsed.raw) + (parsed.hadPrefix ? '' : ' (no prefix given — treated as /32)')]);
+            rows.push(['Network address', intToIPv4(s.network) + '/' + s.prefix]);
+            rows.push(['Broadcast address', intToIPv4(s.broadcast)]);
+            rows.push(['Subnet mask', intToIPv4(s.maskInt) + ' (/' + s.prefix + ')']);
+            rows.push(['Wildcard mask (ACL)', intToIPv4(s.wildcard)]);
+            rows.push(['Usable host range (standard)', intToIPv4(s.firstHost) + ' \u2013 ' + intToIPv4(s.lastHost)]);
+            rows.push(['Total addresses', s.total.toLocaleString()]);
+            rows.push(['Usable hosts (standard)', s.usable.toLocaleString()]);
+            rows.push(['Cloud model applied', escapeHtml(cloud.label)]);
+            rows.push(['Reserved by cloud model', cloud.reservedCount + ' address(es)']);
+            rows.push(['Usable hosts after cloud reservation', cloud.usableAfterCloud.toLocaleString()]);
+            if (nextNet) rows.push(['Next contiguous network', nextNet + '/' + s.prefix]);
+            if (prevBcast) rows.push(['Address before this block', prevBcast]);
+
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + v + '</td></tr>';
+            html += '</table>';
+
+            if (cloud.reservedList.length) {
+                html += '<div style="margin-top:16px;"><div class="k" style="font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Cloud-Reserved Addresses</div>';
+                html += '<div class="table-scroll"><table class="data-table"><thead><tr><th>Address</th><th>Reason</th></tr></thead><tbody>';
+                for (const r of cloud.reservedList) html += '<tr><td>' + escapeHtml(r.addr) + '</td><td>' + escapeHtml(r.why) + '</td></tr>';
+                html += '</tbody></table></div></div>';
+            }
+
+            html += '<div style="margin-top:16px;"><div class="k" style="font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Suggested DHCP Pool</div><table class="kv-table">';
+            html += '<tr><td class="k">Gateway</td><td class="v">' + (dhcp.gateway ? escapeHtml(dhcp.gateway) : '\u2014') + '</td></tr>';
+            html += '<tr><td class="k">Static reservation range</td><td class="v">' + escapeHtml(dhcp.staticRange) + '</td></tr>';
+            html += '<tr><td class="k">DHCP pool</td><td class="v">' + (dhcp.poolStart ? escapeHtml(dhcp.poolStart) + ' \u2013 ' + escapeHtml(dhcp.poolEnd) : '\u2014 (no room left after reservations)') + '</td></tr>';
+            html += '<tr><td class="k">Pool size</td><td class="v">' + dhcp.poolSize.toLocaleString() + ' address(es)</td></tr>';
+            html += '</table></div>';
+
+            document.getElementById('basicOutput').innerHTML = html;
+            lastBasicJson = { input: parsed.raw, network: intToIPv4(s.network) + '/' + s.prefix, broadcast: intToIPv4(s.broadcast), mask: intToIPv4(s.maskInt), wildcard: intToIPv4(s.wildcard), usableRangeStandard: intToIPv4(s.firstHost) + '-' + intToIPv4(s.lastHost), totalAddresses: s.total, usableStandard: s.usable, cloudModel: cloud.label, cloudReserved: cloud.reservedList, usableAfterCloud: cloud.usableAfterCloud, dhcp };
+        }
+        function intToIPv4Safe(n) { if (n < 0 || n > 0xFFFFFFFF) return null; return intToIPv4(n >>> 0); }
+        let lastBasicJson = null;
+        document.getElementById('basicCopyBtn').addEventListener('click', async () => {
+            if (!lastBasicJson) return;
+            try { await navigator.clipboard.writeText(JSON.stringify(lastBasicJson, null, 2)); } catch (err) { /* ignore */ }
+        });
+
+        // ============================================
+        // TAB 2: VLSM PLANNER
+        // ============================================
+        let lastVlsmRows = [];
+        function renderVlsm() {
+            const opts = getGlobalOptions();
+            const errBox = document.getElementById('vlsmError');
+            const baseRaw = document.getElementById('vlsmBaseInput').value.trim();
+            const listRaw = document.getElementById('vlsmListInput').value;
+            const base = parseCidrLine(baseRaw, opts);
+            if (!base) { document.getElementById('vlsmOutput').innerHTML = '<div class="empty-pane">Fill in a base network above.</div>'; errBox.classList.remove('show'); return; }
+            if (base.error) { errBox.textContent = base.error; errBox.classList.add('show'); document.getElementById('vlsmOutput').innerHTML = ''; return; }
+
+            const lines = listRaw.split('\n').map(l => l.trim()).filter(l => l);
+            let reqs = [];
+            for (const line of lines) {
+                const parts = line.split(',');
+                let label, hostsStr;
+                if (parts.length >= 2) { label = parts.slice(0, -1).join(',').trim(); hostsStr = parts[parts.length - 1].trim(); }
+                else { label = 'Subnet'; hostsStr = parts[0].trim(); }
+                const hosts = parseInt(hostsStr, 10);
+                if (isNaN(hosts) || hosts < 1) { errBox.textContent = 'Could not parse host count on line: "' + line + '"'; errBox.classList.add('show'); document.getElementById('vlsmOutput').innerHTML = ''; return; }
+                reqs.push({ label: label || 'Subnet', hosts });
+            }
+            if (reqs.length === 0) { errBox.textContent = 'Add at least one "label,hosts" line.'; errBox.classList.add('show'); document.getElementById('vlsmOutput').innerHTML = ''; return; }
+            errBox.classList.remove('show');
+
+            // compute needed prefix per requirement
+            reqs.forEach(r => {
+                let neededSize;
+                if (r.hosts <= 1) neededSize = 2; // /31-ish minimal, but keep simple block of 2
+                else neededSize = Math.pow(2, Math.ceil(Math.log2(r.hosts + 2)));
+                r.size = neededSize;
+                r.prefix = 32 - Math.log2(neededSize);
+            });
+
+            const ordered = opts.vlsmLargestFirst ? [...reqs].sort((a, b) => b.size - a.size) : reqs;
+
+            const baseNet = base.subnet.network;
+            const baseTotal = base.subnet.total;
+            let cursor = baseNet;
+            let overflow = false;
+            const allocations = [];
+            for (const r of ordered) {
+                // align cursor up to a multiple of r.size relative to address 0
+                const rem = cursor % r.size;
+                if (rem !== 0) cursor += (r.size - rem);
+                if (cursor + r.size - 1 > baseNet + baseTotal - 1) { overflow = true; break; }
+                const subnet = computeIPv4Subnet(cursor, r.prefix);
+                allocations.push({ label: r.label, hosts: r.hosts, prefix: r.prefix, network: subnet.network, broadcast: subnet.broadcast, firstHost: subnet.firstHost, lastHost: subnet.lastHost, usable: subnet.usable, size: r.size });
+                cursor += r.size;
+            }
+
+            let html = '';
+            if (overflow) {
+                html += '<div class="note-box" style="border-color:var(--danger);color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i><span>The base network ' + escapeHtml(baseRaw) + ' (' + baseTotal.toLocaleString() + ' addresses) is not large enough to fit all requested subnets. ' + allocations.length + ' of ' + ordered.length + ' were allocated before running out of space \u2014 use a larger base network or shrink the requirement list.</span></div>';
+            }
+
+            const totalAllocated = allocations.reduce((s, a) => s + a.size, 0);
+            const totalRequested = allocations.reduce((s, a) => s + a.hosts, 0);
+            const totalUsable = allocations.reduce((s, a) => s + a.usable, 0);
+            const efficiency = totalAllocated > 0 ? ((totalRequested / totalAllocated) * 100).toFixed(1) : '0.0';
+            const remaining = baseTotal - totalAllocated;
+
+            html += '<div class="stat-strip"><span><strong>' + allocations.length + '</strong> block(s) allocated</span><span><strong>' + totalAllocated.toLocaleString() + '</strong> addresses used of ' + baseTotal.toLocaleString() + '</span><span><strong>' + remaining.toLocaleString() + '</strong> addresses remaining in base</span><span><strong>' + efficiency + '%</strong> allocation efficiency</span></div>';
+
+            html += '<div class="table-scroll" style="margin-top:14px;"><table class="data-table"><thead><tr><th>Label</th><th>Requested</th><th>Network</th><th>Broadcast</th><th>Usable Range</th><th>Usable Hosts</th>' + (opts.vlsmShowWasted ? '<th>Wasted</th>' : '') + '</tr></thead><tbody>';
+            for (const a of allocations) {
+                html += '<tr><td>' + escapeHtml(a.label) + '</td><td>' + a.hosts + '</td><td>' + intToIPv4(a.network) + '/' + a.prefix + '</td><td>' + intToIPv4(a.broadcast) + '</td><td>' + intToIPv4(a.firstHost) + ' \u2013 ' + intToIPv4(a.lastHost) + '</td><td>' + a.usable.toLocaleString() + '</td>';
+                if (opts.vlsmShowWasted) html += '<td>' + (a.usable - a.hosts).toLocaleString() + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table></div>';
+
+            document.getElementById('vlsmOutput').innerHTML = html;
+            lastVlsmRows = allocations;
+        }
+        document.getElementById('vlsmDownloadBtn').addEventListener('click', () => {
+            if (lastVlsmRows.length === 0) return;
+            const header = ['label', 'requested_hosts', 'network', 'broadcast', 'first_usable', 'last_usable', 'usable_hosts', 'wasted'];
+            const lines = [header.join(',')];
+            for (const a of lastVlsmRows) {
+                lines.push([csvCell(a.label), a.hosts, csvCell(intToIPv4(a.network) + '/' + a.prefix), csvCell(intToIPv4(a.broadcast)), csvCell(intToIPv4(a.firstHost)), csvCell(intToIPv4(a.lastHost)), a.usable, a.usable - a.hosts].join(','));
+            }
+            downloadBlob(lines.join('\n'), 'text/csv', 'vlsm-allocation-plan.csv');
+        });
+        function csvCell(s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; }
+        function downloadBlob(content, type, filename) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ============================================
+        // TAB 3: SUPERNET / SUMMARIZATION
+        // ============================================
+        let lastSupernetText = '';
+        function renderSupernet() {
+            const opts = getGlobalOptions();
+            const errBox = document.getElementById('supernetError');
+            const listRaw = document.getElementById('supernetListInput').value;
+            const lines = listRaw.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length < 1) { document.getElementById('supernetOutput').innerHTML = '<div class="empty-pane">Add at least two CIDR blocks above.</div>'; errBox.classList.remove('show'); return; }
+            let entries = [];
+            for (const line of lines) {
+                const p = parseCidrLine(line, opts);
+                if (p.error) { errBox.textContent = p.error; errBox.classList.add('show'); document.getElementById('supernetOutput').innerHTML = ''; return; }
+                entries.push(p);
+            }
+            errBox.classList.remove('show');
+
+            let ranges = entries.map(e => ({ start: e.subnet.network, end: e.subnet.broadcast }));
+            ranges.sort((a, b) => a.start - b.start);
+            const merged = [];
+            for (const r of ranges) {
+                if (merged.length && r.start <= merged[merged.length - 1].end + 1) {
+                    merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, r.end);
+                } else merged.push({ start: r.start, end: r.end });
+            }
+
+            const overallStart = Math.min(...ranges.map(r => r.start));
+            const overallEnd = Math.max(...ranges.map(r => r.end));
+
+            let html = '<div class="stat-strip"><span><strong>' + entries.length + '</strong> input block(s)</span><span><strong>' + merged.length + '</strong> contiguous group(s) found</span></div>';
+
+            html += '<div style="margin-top:16px;"><div class="k" style="font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Exact Summary \u2014 Minimal CIDR List (no extra addresses)</div>';
+            let exactBlocks = [];
+            for (const g of merged) exactBlocks.push(...rangeToCidrs(g.start, g.end));
+            html += '<div class="mono-box">' + exactBlocks.map(escapeHtml).join('\n') + '</div></div>';
+
+            // single loose supernet: smallest prefix whose network<=overallStart and broadcast>=overallEnd, aligned
+            let loosePrefix = 32;
+            while (loosePrefix > 0) {
+                const testPrefix = loosePrefix - 1;
+                const maskInt = prefixToNetmaskInt(testPrefix);
+                const net = (overallStart & maskInt) >>> 0;
+                const bcast = (net | (~maskInt >>> 0)) >>> 0;
+                if (net <= overallStart && bcast >= overallEnd) loosePrefix = testPrefix; else break;
+            }
+            const looseMask = prefixToNetmaskInt(loosePrefix);
+            const looseNet = (overallStart & looseMask) >>> 0;
+            const looseBcast = (looseNet | (~looseMask >>> 0)) >>> 0;
+            const looseTotal = Math.pow(2, 32 - loosePrefix);
+            const usedTotal = merged.reduce((s, g) => s + (g.end - g.start + 1), 0);
+            const isExactSingle = merged.length === 1 && looseNet === merged[0].start && looseBcast === merged[0].end;
+
+            html += '<div style="margin-top:16px;"><div class="k" style="font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Single Loose Supernet</div><table class="kv-table">';
+            html += '<tr><td class="k">Block</td><td class="v">' + intToIPv4(looseNet) + '/' + loosePrefix + '</td></tr>';
+            html += '<tr><td class="k">Covers</td><td class="v">' + intToIPv4(looseNet) + ' \u2013 ' + intToIPv4(looseBcast) + '</td></tr>';
+            html += '<tr><td class="k">Total addresses in block</td><td class="v">' + looseTotal.toLocaleString() + '</td></tr>';
+            html += '<tr><td class="k">Addresses actually in your inputs</td><td class="v">' + usedTotal.toLocaleString() + '</td></tr>';
+            html += '<tr><td class="k">Extra (unused) addresses included</td><td class="v">' + (looseTotal - usedTotal).toLocaleString() + '</td></tr>';
+            html += '</table></div>';
+
+            if (isExactSingle) {
+                html += '<div class="note-box"><i class="fa-solid fa-circle-check" style="color:var(--accent);"></i><span>Your inputs collapse cleanly into this single block \u2014 the exact summary and the loose supernet are the same.</span></div>';
+            } else {
+                html += '<div class="note-box"><i class="fa-solid fa-triangle-exclamation"></i><span>The loose supernet includes address space beyond what you listed. Use the exact summary above if advertising unused space is a problem (e.g. it overlaps another router\u2019s block).</span></div>';
+            }
+
+            document.getElementById('supernetOutput').innerHTML = html;
+            lastSupernetText = 'Exact summary:\n' + exactBlocks.join('\n') + '\n\nLoose supernet: ' + intToIPv4(looseNet) + '/' + loosePrefix;
+        }
+        document.getElementById('supernetCopyBtn').addEventListener('click', async () => {
+            if (!lastSupernetText) return;
+            try { await navigator.clipboard.writeText(lastSupernetText); } catch (err) { /* ignore */ }
+        });
+
+        // ============================================
+        // TAB 4: OVERLAP DETECTOR
+        // ============================================
+        function renderOverlap() {
+            const opts = getGlobalOptions();
+            const errBox = document.getElementById('overlapError');
+            const listRaw = document.getElementById('overlapListInput').value;
+            const lines = listRaw.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length < 2) { document.getElementById('overlapOutput').innerHTML = '<div class="empty-pane">Add at least two CIDR blocks above.</div>'; errBox.classList.remove('show'); return; }
+
+            let entries = [];
+            for (const line of lines) {
+                let label = null, cidrStr = line;
+                const commaIdx = line.indexOf(',');
+                if (commaIdx !== -1) { label = line.slice(0, commaIdx).trim(); cidrStr = line.slice(commaIdx + 1).trim(); }
+                const p = parseCidrLine(cidrStr, opts);
+                if (p.error) { errBox.textContent = (label ? label + ': ' : '') + p.error; errBox.classList.add('show'); document.getElementById('overlapOutput').innerHTML = ''; return; }
+                entries.push({ label: label || cidrStr, cidr: intToIPv4(p.subnet.network) + '/' + p.prefix, start: p.subnet.network, end: p.subnet.broadcast });
+            }
+            errBox.classList.remove('show');
+
+            let pairs = [];
+            let conflictCount = 0;
+            for (let i = 0; i < entries.length; i++) {
+                for (let j = i + 1; j < entries.length; j++) {
+                    const a = entries[i], b = entries[j];
+                    let status, cls;
+                    if (a.start === b.start && a.end === b.end) { status = 'Identical'; cls = 'invalid'; conflictCount++; }
+                    else if (a.start <= b.start && a.end >= b.end) { status = entries[i].label + ' contains ' + entries[j].label; cls = 'private'; conflictCount++; }
+                    else if (b.start <= a.start && b.end >= a.end) { status = entries[j].label + ' contains ' + entries[i].label; cls = 'private'; conflictCount++; }
+                    else if (a.start <= b.end && b.start <= a.end) { status = 'Overlapping'; cls = 'invalid'; conflictCount++; }
+                    else { status = 'Disjoint'; cls = 'public'; }
+                    pairs.push({ a, b, status, cls });
+                }
+            }
+
+            let html = '<div class="stat-strip"><span><strong>' + entries.length + '</strong> block(s)</span><span><strong>' + pairs.length + '</strong> pair(s) checked</span><span><strong>' + conflictCount + '</strong> conflicting pair(s)</span></div>';
+            html += '<div class="table-scroll" style="margin-top:14px;"><table class="data-table"><thead><tr><th>Block A</th><th>Block B</th><th>Relationship</th></tr></thead><tbody>';
+            for (const p of pairs) {
+                html += '<tr><td>' + escapeHtml(p.a.label) + ' <span style="opacity:0.55;">(' + escapeHtml(p.a.cidr) + ')</span></td><td>' + escapeHtml(p.b.label) + ' <span style="opacity:0.55;">(' + escapeHtml(p.b.cidr) + ')</span></td><td><span class="badge ' + p.cls + '">' + escapeHtml(p.status) + '</span></td></tr>';
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('overlapOutput').innerHTML = html;
+        }
+
+        // ============================================
+        // TAB 5: NEXT FREE SUBNET
+        // ============================================
+        function renderNfs() {
+            const opts = getGlobalOptions();
+            const errBox = document.getElementById('nfsError');
+            const parentRaw = document.getElementById('nfsParentInput').value.trim();
+            const newPrefix = parseInt(document.getElementById('nfsNewPrefixInput').value, 10);
+            const usedRaw = document.getElementById('nfsUsedInput').value;
+
+            const parent = parseCidrLine(parentRaw, opts);
+            if (!parent) { document.getElementById('nfsOutput').innerHTML = '<div class="empty-pane">Fill in the parent network above.</div>'; errBox.classList.remove('show'); return; }
+            if (parent.error) { errBox.textContent = parent.error; errBox.classList.add('show'); document.getElementById('nfsOutput').innerHTML = ''; return; }
+            if (isNaN(newPrefix) || newPrefix < parent.prefix || newPrefix > 32) {
+                errBox.textContent = 'Needed prefix must be between /' + parent.prefix + ' (the parent) and /32.';
+                errBox.classList.add('show'); document.getElementById('nfsOutput').innerHTML = ''; return;
+            }
+            errBox.classList.remove('show');
+
+            const usedLines = usedRaw.split('\n').map(l => l.trim()).filter(l => l);
+            let usedRanges = [];
+            for (const line of usedLines) {
+                const p = parseCidrLine(line, opts);
+                if (p.error) { errBox.textContent = p.error; errBox.classList.add('show'); document.getElementById('nfsOutput').innerHTML = ''; return; }
+                usedRanges.push({ start: p.subnet.network, end: p.subnet.broadcast, raw: intToIPv4(p.subnet.network) + '/' + p.prefix });
+            }
+
+            const size = Math.pow(2, 32 - newPrefix);
+            const parentStart = parent.subnet.network, parentEnd = parent.subnet.broadcast;
+            const found = [];
+            let cursor = parentStart;
+            const rem = cursor % size;
+            if (rem !== 0) cursor += (size - rem);
+            while (cursor + size - 1 <= parentEnd && found.length < opts.nfsMaxResults) {
+                const candStart = cursor, candEnd = cursor + size - 1;
+                const collides = usedRanges.some(u => candStart <= u.end && u.start <= candEnd);
+                if (!collides) found.push({ network: intToIPv4(candStart) + '/' + newPrefix, start: intToIPv4(candStart), end: intToIPv4(candEnd) });
+                cursor += size;
+            }
+
+            let html = '<div class="stat-strip"><span><strong>' + usedRanges.length + '</strong> used block(s)</span><span>Searching for <strong>/' + newPrefix + '</strong> blocks (' + size.toLocaleString() + ' addresses each)</span></div>';
+            if (found.length === 0) {
+                html += '<div class="note-box" style="border-color:var(--danger);color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i><span>No free /' + newPrefix + ' block was found inside ' + escapeHtml(parentRaw) + ' given the used blocks listed \u2014 the parent is fully allocated at this size, or every candidate collides.</span></div>';
+            } else {
+                html += '<div class="table-scroll" style="margin-top:14px;"><table class="data-table"><thead><tr><th>#</th><th>Free Block</th><th>Range</th></tr></thead><tbody>';
+                found.forEach((f, i) => { html += '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(f.network) + '</td><td>' + escapeHtml(f.start) + ' \u2013 ' + escapeHtml(f.end) + '</td></tr>'; });
+                html += '</tbody></table></div>';
+            }
+            document.getElementById('nfsOutput').innerHTML = html;
+        }
+
+        // ============================================
+        // WIRING
+        // ============================================
+        function renderAll() {
+            renderBasic(); renderVlsm(); renderSupernet(); renderOverlap(); renderNfs();
+        }
+
+        document.querySelectorAll('.workflow-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.workflow-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.workflow-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('wf-' + tab.dataset.wf).classList.add('active');
+            });
+        });
+
+        document.getElementById('basicCidrInput').addEventListener('input', renderBasic);
+        document.getElementById('vlsmBaseInput').addEventListener('input', renderVlsm);
+        document.getElementById('vlsmListInput').addEventListener('input', renderVlsm);
+        document.getElementById('supernetListInput').addEventListener('input', renderSupernet);
+        document.getElementById('overlapListInput').addEventListener('input', renderOverlap);
+        document.getElementById('nfsParentInput').addEventListener('input', renderNfs);
+        document.getElementById('nfsNewPrefixInput').addEventListener('input', renderNfs);
+        document.getElementById('nfsUsedInput').addEventListener('input', renderNfs);
+
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', renderAll);
+        });
+
+        // Initial run
+        renderAll();
+    </script>
+</body>
+</html>
