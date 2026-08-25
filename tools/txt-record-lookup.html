@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | TXT Record Lookup — SPF, DMARC, DKIM & Domain Verification Checker</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free TXT record lookup tool: fetch and parse SPF (with DNS-lookup-limit counting), DMARC policy tags, DKIM selector records, and recognize domain-verification codes (Google, Microsoft, Facebook, Atlassian, and more) — batch multiple domains, export results." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/txt-record-lookup.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/txt-record-lookup.html" />
+<meta property="og:title" content="TXT Record Lookup — SPF, DMARC, DKIM & Domain Verification Checker — awjunaid" />
+<meta property="og:description" content="Look up and parse TXT records for any domain: validate SPF (with the 10-lookup limit counted for you), read DMARC policy tags, check a DKIM selector, and identify domain-verification codes from major providers. Batch multiple domains and export the results." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/txt-record-lookup.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="TXT Record Lookup — SPF, DMARC, DKIM & Domain Verification Checker — awjunaid" />
+<meta name="twitter:description" content="SPF lookup-limit checker, DMARC policy parser, DKIM selector lookup, and domain-verification tag recognizer — batch multiple domains, free and no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/txt-record-lookup.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 680px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           SHARED PANEL / BUTTON / TABLE STYLES
+           ============================================ */
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        textarea.tool-textarea {
+            width: 100%; min-height: 120px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 16px; padding: 16px 18px; font-family: var(--font-mono); color: var(--text-primary);
+            font-size: 13px; line-height: 1.7; resize: vertical;
+        }
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 38%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .badge.neutral { background: transparent; color: var(--text-color); }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning.ok { border-color: var(--accent); }
+        .net-warning i { margin-top: 2px; }
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 30px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 460px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        .stat-strip { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; opacity: 0.75; }
+        .stat-strip strong { opacity: 1; }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+        .utility-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 900px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+
+        .loading-inline { font-size: 12px; opacity: 0.6; display: flex; align-items: center; gap: 8px; }
+        .spin { display: inline-block; animation: spin 0.9s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item { border: 1px solid var(--border-light); border-radius: 16px; padding: 20px 22px; }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">TXT Record Lookup</h1>
+                <div class="tool-dek">The real-world problem: TXT records quietly control email deliverability and domain ownership, but reading them raw is tedious and error-prone. This looks up TXT records over DNS-over-HTTPS and does the parsing for you — validates SPF and counts it against the 10-DNS-lookup limit, reads DMARC policy tags, checks a DKIM selector, recognizes domain-verification codes from major providers, and audits a whole list of domains at once.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="email">Email Deliverability Audit (SPF + DMARC)</option>
+                    <option value="onboarding">New Domain Onboarding Checklist</option>
+                    <option value="migration">Provider Migration (SPF include swap)</option>
+                    <option value="verification">Verification Tag Sweep</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Resolver</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="dohProvider">DNS-over-HTTPS provider</label>
+                            <select id="dohProvider">
+                                <option value="cloudflare">Cloudflare (1.1.1.1)</option>
+                                <option value="google">Google (8.8.8.8)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="lookupTimeout">Per-query timeout (ms)</label>
+                            <input type="number" id="lookupTimeout" min="1000" max="20000" value="6000">
+                        </div>
+                        <div class="field-group">
+                            <label for="maxDomains">Max domains per batch</label>
+                            <input type="number" id="maxDomains" min="1" max="200" value="50">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>SPF Analysis</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSpfCountLookups" checked>
+                            <span><span class="setting-name">Count DNS-lookup mechanisms</span><span class="setting-hint">Tallies include/a/mx/ptr/exists/redirect against RFC 7208's 10-lookup limit</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSpfWarnMultiple" checked>
+                            <span><span class="setting-name">Warn on multiple SPF records</span><span class="setting-hint">A domain must publish exactly one SPF TXT record — more than one breaks validation</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSpfWarnSoftfail" checked>
+                            <span><span class="setting-name">Flag weak "all" qualifier</span><span class="setting-hint">Warns on <code>?all</code> (neutral) or missing "all" mechanism entirely</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSpfExpandIncludes">
+                            <span><span class="setting-name">Resolve nested includes</span><span class="setting-hint">Follows each <code>include:</code> one level deep to show what it resolves to — slower, more queries</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>DMARC Analysis</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDmarcParseTags" checked>
+                            <span><span class="setting-name">Parse policy tags</span><span class="setting-hint">Breaks out p=, sp=, pct=, adkim=, aspf=, rua=, ruf=, fo=</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDmarcWarnNone" checked>
+                            <span><span class="setting-name">Flag monitoring-only policy</span><span class="setting-hint">Warns when p=none, since it reports on abuse but doesn't stop it</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDmarcWarnNoRua" checked>
+                            <span><span class="setting-name">Flag missing aggregate reports</span><span class="setting-hint">Warns when no rua= address is set — you'd have no visibility into failures</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>DKIM Selector Lookup</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="dkimCommonSelectors">Common selectors to try (comma-separated)</label>
+                            <input type="text" id="dkimCommonSelectors" value="default, selector1, selector2, google, k1, dkim, mail">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Verification Tag Recognition</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectVerification" checked>
+                            <span><span class="setting-name">Identify known verification records</span><span class="setting-hint">Matches TXT values against known prefixes (Google, Microsoft, Facebook, Atlassian, Adobe, Stripe, Dropbox, and more)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optHideUnknownTxt">
+                            <span><span class="setting-name">Hide unrecognized TXT records</span><span class="setting-hint">In the verification-sweep utility, only shows records that matched a known service</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Display</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowRawRecords" checked>
+                            <span><span class="setting-name">Show raw TXT strings</span><span class="setting-hint">Full unmodified record text alongside the parsed breakdown</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowRecordLength">
+                            <span><span class="setting-name">Show record length</span><span class="setting-hint">Character count per record — a single TXT string is limited to 255 bytes</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 TOOL 1: BATCH TXT LOOKUP
+                 ============================================ -->
+            <div class="panel-card">
+                <div class="panel-head">
+                    <h3><i class="fa-solid fa-list-check"></i>&nbsp; Batch TXT Lookup</h3>
+                    <div class="panel-actions">
+                        <button class="btn-solid small" id="batchLookupBtn" type="button"><i class="fa-solid fa-magnifying-glass"></i> Look Up</button>
+                        <button class="btn-ghost small" id="batchCsvBtn" type="button"><i class="fa-solid fa-download"></i> Export CSV</button>
+                    </div>
+                </div>
+                <div class="panel-note">The real-world problem: auditing email/DNS hygiene across a portfolio of domains one-by-one is slow. Paste a list — one domain per line — and this pulls every root TXT record for each, plus a quick SPF/DMARC verdict.</div>
+                <textarea id="batchDomainsInput" class="tool-textarea" spellcheck="false" placeholder="example.com
+mail.example.com
+example.org"></textarea>
+                <div class="input-hint">One domain per line. Looked up as the bare domain — subdomains are checked as entered.</div>
+                <div class="error-box" id="batchErrorBox"></div>
+                <div id="batchStatusWrap"></div>
+                <div id="batchResultWrap" style="margin-top:14px;"></div>
+            </div>
+
+            <!-- ============================================
+                 TOOL 2 & 3: SPF ANALYZER + DMARC CHECKER
+                 ============================================ -->
+            <div class="two-col">
+                <div class="panel-card" style="margin-bottom:0;">
+                    <div class="panel-head">
+                        <h3><i class="fa-solid fa-envelope-circle-check"></i>&nbsp; SPF Analyzer</h3>
+                    </div>
+                    <div class="panel-note">The real-world problem: SPF fails silently when it exceeds 10 DNS lookups, or when a second SPF record gets published by mistake during a mail-provider migration. This fetches the record and checks both.</div>
+                    <div class="field-group">
+                        <label for="spfDomainInput">Domain</label>
+                        <input type="text" id="spfDomainInput" placeholder="example.com">
+                    </div>
+                    <button class="btn-solid small" id="spfCheckBtn" type="button">Analyze SPF</button>
+                    <div class="error-box" id="spfErrorBox"></div>
+                    <div id="spfResultWrap" style="margin-top:14px;"></div>
+                </div>
+
+                <div class="panel-card" style="margin-bottom:0;">
+                    <div class="panel-head">
+                        <h3><i class="fa-solid fa-shield-halved"></i>&nbsp; DMARC Checker</h3>
+                    </div>
+                    <div class="panel-note">The real-world problem: a missing or misconfigured DMARC record leaves spoofed mail unpoliced and gives you no visibility when it happens. This fetches <code>_dmarc.&lt;domain&gt;</code> and breaks down the policy.</div>
+                    <div class="field-group">
+                        <label for="dmarcDomainInput">Domain</label>
+                        <input type="text" id="dmarcDomainInput" placeholder="example.com">
+                    </div>
+                    <button class="btn-solid small" id="dmarcCheckBtn" type="button">Check DMARC</button>
+                    <div class="error-box" id="dmarcErrorBox"></div>
+                    <div id="dmarcResultWrap" style="margin-top:14px;"></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-key"></i> DKIM Selector Lookup</h3>
+                    <div class="utility-note">DKIM records live at <code>&lt;selector&gt;._domainkey.&lt;domain&gt;</code> — and the selector isn't discoverable from the domain alone. Give it a domain and it will try your configured list of common selectors (edit the list in settings) plus any specific one you name.</div>
+                    <div class="field-group">
+                        <label for="dkimDomain">Domain</label>
+                        <input type="text" id="dkimDomain" placeholder="example.com">
+                    </div>
+                    <div class="field-group">
+                        <label for="dkimSpecificSelector">Specific selector (optional)</label>
+                        <input type="text" id="dkimSpecificSelector" placeholder="s1">
+                    </div>
+                    <button class="btn-solid small" id="dkimCheckBtn" type="button">Try Selectors</button>
+                    <div class="utility-result" id="dkimResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-stamp"></i> Verification Tag Recognizer</h3>
+                    <div class="utility-note">Paste any TXT record value (or look it up by domain) to identify which service issued it — useful when cleaning up old DNS zones full of unlabeled verification strings.</div>
+                    <div class="field-group">
+                        <label for="verifyDomainInput">Domain (looks up + tags all TXT records)</label>
+                        <input type="text" id="verifyDomainInput" placeholder="example.com">
+                    </div>
+                    <div class="field-group">
+                        <label for="verifyRawInput">— or paste a single TXT value</label>
+                        <input type="text" id="verifyRawInput" placeholder="google-site-verification=abc123...">
+                    </div>
+                    <button class="btn-solid small" id="verifyCheckBtn" type="button">Identify</button>
+                    <div class="utility-result" id="verifyResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>How does a browser tool do a DNS lookup?</h4>
+                        <p>It uses DNS-over-HTTPS (DoH) — a plain HTTPS request to a public resolver (Cloudflare or Google, your choice in settings) that returns the DNS answer as JSON. It's the same underlying data <code>dig TXT example.com</code> would return, just fetched over HTTPS instead of port 53 so it works from a browser.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does the SPF lookup count matter?</h4>
+                        <p>RFC 7208 caps SPF evaluation at 10 DNS-lookup mechanisms (<code>include</code>, <code>a</code>, <code>mx</code>, <code>ptr</code>, <code>exists</code>, <code>redirect</code>) — go over that limit and receiving mail servers are supposed to treat the whole record as a PermError, which can silently break delivery. Each extra mail vendor added to an SPF record (<code>include:vendor.com</code>) usually costs at least one lookup, so this is easy to exceed after a few integrations.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does a DMARC policy of p=none actually do?</h4>
+                        <p><code>p=none</code> tells receiving servers to take no enforcement action on mail that fails SPF/DKIM alignment — it only asks for reports (if <code>rua=</code> is set). It's the standard first step before moving to <code>p=quarantine</code> or <code>p=reject</code>, but a domain that's been sitting on <code>p=none</code> for years isn't actually protected against spoofing.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why isn't there a single authoritative list of DKIM selectors?</h4>
+                        <p>Unlike SPF and DMARC, which live at fixed, predictable record names, a DKIM selector is chosen by whoever configured the mail-sending service and isn't published anywhere in DNS on its own. The selector lookup tries common defaults used by major providers (Google Workspace, Microsoft 365, and generic setups) plus anything specific you supply.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why bother identifying verification TXT records?</h4>
+                        <p>Domains that have been through multiple SaaS onboardings accumulate TXT records like <code>google-site-verification=...</code> or <code>facebook-domain-verification=...</code> that nobody remembers adding. Before deleting anything during a DNS cleanup, it helps to know which service a record belongs to and whether that integration is still in use.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>Domain names you enter are sent to the DNS-over-HTTPS resolver you select in settings (Cloudflare or Google) to perform the lookup — that's the only network activity. All parsing (SPF, DMARC, verification-tag matching) happens locally in your browser. Nothing is logged by this tool itself, and your settings only persist in this browser's local storage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // TXT RECORD LOOKUP — ENGINE
+        // ============================================
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function getOptions() {
+            return {
+                dohProvider: document.getElementById('dohProvider').value,
+                lookupTimeout: parseInt(document.getElementById('lookupTimeout').value, 10) || 6000,
+                maxDomains: parseInt(document.getElementById('maxDomains').value, 10) || 50,
+                spfCountLookups: document.getElementById('optSpfCountLookups').checked,
+                spfWarnMultiple: document.getElementById('optSpfWarnMultiple').checked,
+                spfWarnSoftfail: document.getElementById('optSpfWarnSoftfail').checked,
+                spfExpandIncludes: document.getElementById('optSpfExpandIncludes').checked,
+                dmarcParseTags: document.getElementById('optDmarcParseTags').checked,
+                dmarcWarnNone: document.getElementById('optDmarcWarnNone').checked,
+                dmarcWarnNoRua: document.getElementById('optDmarcWarnNoRua').checked,
+                dkimCommonSelectors: document.getElementById('dkimCommonSelectors').value.split(',').map(s => s.trim()).filter(Boolean),
+                detectVerification: document.getElementById('optDetectVerification').checked,
+                hideUnknownTxt: document.getElementById('optHideUnknownTxt').checked,
+                showRawRecords: document.getElementById('optShowRawRecords').checked,
+                showRecordLength: document.getElementById('optShowRecordLength').checked
+            };
+        }
+
+        function dohEndpoint(name, type, opts) {
+            const provider = opts.dohProvider;
+            if (provider === 'google') return 'https://dns.google/resolve?name=' + encodeURIComponent(name) + '&type=' + type;
+            return 'https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(name) + '&type=' + type;
+        }
+
+        async function dohQuery(name, type, opts) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), opts.lookupTimeout);
+            try {
+                const res = await fetch(dohEndpoint(name, type, opts), { headers: { 'Accept': 'application/dns-json' }, signal: controller.signal });
+                clearTimeout(timer);
+                if (!res.ok) return { error: 'HTTP ' + res.status };
+                const data = await res.json();
+                if (data.Status !== 0) {
+                    if (data.Status === 3) return { records: [], nxdomain: true };
+                    return { error: 'DNS status ' + data.Status };
+                }
+                const answers = (data.Answer || []).filter(a => a.type === (type === 'TXT' ? 16 : a.type));
+                const records = answers.map(a => cleanTxt(a.data));
+                return { records };
+            } catch (err) {
+                clearTimeout(timer);
+                if (err.name === 'AbortError') return { error: 'Timed out' };
+                return { error: 'Lookup failed (network or CORS)' };
+            }
+        }
+        function cleanTxt(raw) {
+            // DoH returns TXT strings quoted and split; join multi-part strings and strip outer quotes
+            let s = raw.trim();
+            const parts = s.match(/"((?:[^"\\]|\\.)*)"/g);
+            if (parts) return parts.map(p => p.slice(1, -1).replace(/\\"/g, '"')).join('');
+            if (s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1);
+            return s;
+        }
+
+        // ---------- SPF parsing ----------
+        const SPF_LOOKUP_MECHS = ['include', 'a', 'mx', 'ptr', 'exists', 'redirect'];
+        function parseSpf(record) {
+            const tokens = record.trim().split(/\s+/).filter(Boolean);
+            const mechs = [];
+            let allQualifier = null;
+            let lookupCount = 0;
+            for (const tok of tokens) {
+                if (tok.toLowerCase() === 'v=spf1') continue;
+                const m = tok.match(/^([+\-~?]?)(all|include|a|mx|ptr|exists|redirect|ip4|ip6)(:|=)?(.*)$/i);
+                if (!m) { mechs.push({ raw: tok, type: 'unknown' }); continue; }
+                const [, qual, type, , val] = m;
+                if (type.toLowerCase() === 'all') { allQualifier = qual || '+'; mechs.push({ raw: tok, type: 'all', qualifier: qual || '+' }); continue; }
+                mechs.push({ raw: tok, type: type.toLowerCase(), value: val, qualifier: qual || '+' });
+                if (SPF_LOOKUP_MECHS.includes(type.toLowerCase())) lookupCount++;
+            }
+            return { tokens, mechs, allQualifier, lookupCount };
+        }
+        function spfAllVerdict(q) {
+            if (q === '-') return { label: 'Hard fail (-all)', good: true };
+            if (q === '~') return { label: 'Soft fail (~all)', good: true };
+            if (q === '?') return { label: 'Neutral (?all)', good: false };
+            if (q === '+') return { label: 'Pass — allows anyone (+all)', good: false };
+            return { label: 'Missing "all" mechanism', good: false };
+        }
+
+        // ---------- DMARC parsing ----------
+        function parseDmarc(record) {
+            const tags = {};
+            record.split(';').forEach(part => {
+                const idx = part.indexOf('=');
+                if (idx === -1) return;
+                const k = part.slice(0, idx).trim().toLowerCase();
+                const v = part.slice(idx + 1).trim();
+                if (k) tags[k] = v;
+            });
+            return tags;
+        }
+        const DMARC_TAG_LABELS = {
+            v: 'Version', p: 'Policy (domain)', sp: 'Policy (subdomains)', pct: 'Percentage applied',
+            rua: 'Aggregate report address', ruf: 'Forensic report address', adkim: 'DKIM alignment mode',
+            aspf: 'SPF alignment mode', fo: 'Failure reporting options', ri: 'Report interval (sec)'
+        };
+
+        // ---------- Verification tag registry ----------
+        const VERIFICATION_PATTERNS = [
+            { re: /^google-site-verification=/i, name: 'Google (Search Console)' },
+            { re: /^MS=ms/i, name: 'Microsoft (Office 365 / Azure)' },
+            { re: /^facebook-domain-verification=/i, name: 'Facebook / Meta Business' },
+            { re: /^atlassian-domain-verification=/i, name: 'Atlassian' },
+            { re: /^adobe-idp-site-verification=/i, name: 'Adobe' },
+            { re: /^docusign=/i, name: 'DocuSign' },
+            { re: /^stripe-verification=/i, name: 'Stripe' },
+            { re: /^zoom-domain-verification=/i, name: 'Zoom' },
+            { re: /^shopify-verification-code=/i, name: 'Shopify' },
+            { re: /^notion-domain-verification=/i, name: 'Notion' },
+            { re: /^miro-verification=/i, name: 'Miro' },
+            { re: /^webexdomainverification\./i, name: 'Cisco Webex' },
+            { re: /^apple-domain-verification=/i, name: 'Apple' },
+            { re: /^brave-ledger-verification=/i, name: 'Brave' },
+            { re: /^status-page-domain-verification=/i, name: 'Statuspage' },
+            { re: /^yandex-verification:/i, name: 'Yandex' },
+            { re: /^keybase-site-verification=/i, name: 'Keybase' },
+            { re: /^dropbox-domain-verification=/i, name: 'Dropbox' },
+            { re: /^have-i-been-pwned-verification=/i, name: 'Have I Been Pwned' },
+            { re: /^canva-site-verification=/i, name: 'Canva' },
+            { re: /^v=spf1/i, name: 'SPF record' },
+            { re: /^v=DMARC1/i, name: 'DMARC record' },
+            { re: /^v=DKIM1/i, name: 'DKIM record' }
+        ];
+        function identifyVerification(txt) {
+            for (const p of VERIFICATION_PATTERNS) if (p.re.test(txt)) return p.name;
+            return null;
+        }
+
+        // ============================================
+        // TOOL 1: BATCH TXT LOOKUP
+        // ============================================
+        let lastBatchResults = [];
+        document.getElementById('batchLookupBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const errorBox = document.getElementById('batchErrorBox');
+            const statusWrap = document.getElementById('batchStatusWrap');
+            const resultWrap = document.getElementById('batchResultWrap');
+            errorBox.classList.remove('show');
+            const raw = document.getElementById('batchDomainsInput').value;
+            const domains = raw.split('\n').map(d => d.trim()).filter(Boolean).slice(0, opts.maxDomains);
+            if (domains.length === 0) { errorBox.textContent = 'Enter at least one domain, one per line.'; errorBox.classList.add('show'); return; }
+
+            resultWrap.innerHTML = '';
+            let done = 0;
+            statusWrap.innerHTML = '<div class="loading-inline"><i class="fa-solid fa-circle-notch spin"></i> Looking up ' + domains.length + ' domain(s)… (0 / ' + domains.length + ')</div>';
+
+            const results = [];
+            for (const domain of domains) {
+                const [txt, spf, dmarc] = await Promise.all([
+                    dohQuery(domain, 'TXT', opts),
+                    dohQuery(domain, 'TXT', opts).then(r => r), // reuse below via txt records instead
+                    dohQuery('_dmarc.' + domain, 'TXT', opts)
+                ]);
+                const txtRecords = txt.records || [];
+                const spfRecords = txtRecords.filter(r => /^v=spf1/i.test(r));
+                const dmarcRecords = (dmarc.records || []).filter(r => /^v=DMARC1/i.test(r));
+                results.push({
+                    domain, error: txt.error || null, nxdomain: !!txt.nxdomain,
+                    txtRecords, spfRecords, dmarcRecords
+                });
+                done++;
+                statusWrap.innerHTML = '<div class="loading-inline"><i class="fa-solid fa-circle-notch spin"></i> Looking up ' + domains.length + ' domain(s)… (' + done + ' / ' + domains.length + ')</div>';
+            }
+            statusWrap.innerHTML = '';
+            lastBatchResults = results;
+            renderBatchResults(results, opts);
+        });
+
+        function renderBatchResults(results, opts) {
+            const wrap = document.getElementById('batchResultWrap');
+            let cols = ['Domain', 'Status', 'TXT Records', 'SPF', 'DMARC'];
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+            for (const r of results) {
+                let status = r.error ? '<span style="color:var(--danger);">' + escapeHtml(r.error) + '</span>' : (r.nxdomain ? '<span style="color:var(--warn);">No such domain</span>' : '<span style="color:var(--accent);">OK</span>');
+                let txtCell = r.txtRecords.length ? r.txtRecords.length + ' record(s)' : '—';
+                let spfCell = r.spfRecords.length === 0 ? '<span class="badge invalid">Missing</span>' : (r.spfRecords.length > 1 ? '<span class="badge invalid">' + r.spfRecords.length + ' (multiple!)</span>' : '<span class="badge public">Present</span>');
+                let dmarcCell = r.dmarcRecords.length === 0 ? '<span class="badge invalid">Missing</span>' : '<span class="badge public">Present</span>';
+                html += '<tr><td>' + escapeHtml(r.domain) + '</td><td>' + status + '</td><td>' + txtCell + '</td><td>' + spfCell + '</td><td>' + dmarcCell + '</td></tr>';
+            }
+            html += '</tbody></table></div>';
+            if (opts.showRawRecords) {
+                html += '<div style="margin-top:16px;font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Raw TXT records</div>';
+                for (const r of results) {
+                    if (!r.txtRecords.length) continue;
+                    html += '<div style="margin-bottom:10px;"><div style="font-size:12px;font-weight:700;margin-bottom:4px;">' + escapeHtml(r.domain) + '</div><div class="mono-box">' + r.txtRecords.map(t => escapeHtml(t) + (opts.showRecordLength ? '  (' + t.length + ' chars)' : '')).join('\n') + '</div></div>';
+                }
+            }
+            wrap.innerHTML = html;
+        }
+
+        document.getElementById('batchCsvBtn').addEventListener('click', () => {
+            if (lastBatchResults.length === 0) return;
+            const header = ['domain', 'status', 'txt_count', 'spf_present', 'spf_count', 'dmarc_present', 'txt_records'];
+            const lines = [header.join(',')];
+            for (const r of lastBatchResults) {
+                const status = r.error ? r.error : (r.nxdomain ? 'nxdomain' : 'ok');
+                lines.push([
+                    csvCell(r.domain), csvCell(status), r.txtRecords.length,
+                    r.spfRecords.length > 0 ? 'yes' : 'no', r.spfRecords.length,
+                    r.dmarcRecords.length > 0 ? 'yes' : 'no',
+                    csvCell(r.txtRecords.join(' | '))
+                ].join(','));
+            }
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'txt-record-audit.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        function csvCell(s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; }
+
+        // ============================================
+        // TOOL 2: SPF ANALYZER
+        // ============================================
+        document.getElementById('spfCheckBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const errorBox = document.getElementById('spfErrorBox');
+            const wrap = document.getElementById('spfResultWrap');
+            errorBox.classList.remove('show');
+            const domain = document.getElementById('spfDomainInput').value.trim();
+            if (!domain) { errorBox.textContent = 'Enter a domain.'; errorBox.classList.add('show'); return; }
+            wrap.innerHTML = '<div class="loading-inline"><i class="fa-solid fa-circle-notch spin"></i> Querying TXT records for ' + escapeHtml(domain) + '…</div>';
+            const res = await dohQuery(domain, 'TXT', opts);
+            if (res.error) { errorBox.textContent = res.error; errorBox.classList.add('show'); wrap.innerHTML = ''; return; }
+            const spfRecords = (res.records || []).filter(r => /^v=spf1/i.test(r));
+            if (spfRecords.length === 0) {
+                wrap.innerHTML = '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>No SPF record found for ' + escapeHtml(domain) + '. Without one, receiving servers have no way to know which servers are authorized to send mail for this domain.</span></div>';
+                return;
+            }
+
+            let html = '';
+            if (opts.spfWarnMultiple && spfRecords.length > 1) {
+                html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>' + spfRecords.length + ' SPF records found — a domain must publish exactly one. Multiple SPF records is a PermError under RFC 7208 and can cause mail to be rejected.</span></div>';
+            }
+
+            for (const record of spfRecords) {
+                const parsed = parseSpf(record);
+                html += '<div class="mono-box" style="margin-top:10px;">' + escapeHtml(record) + '</div>';
+                html += '<table class="kv-table" style="margin-top:6px;">';
+                if (opts.spfCountLookups) {
+                    const over = parsed.lookupCount > 10;
+                    html += '<tr><td class="k">DNS-lookup mechanisms</td><td class="v">' + parsed.lookupCount + ' / 10' + (over ? ' <span class="badge invalid">Over limit</span>' : ' <span class="badge public">OK</span>') + '</td></tr>';
+                }
+                const verdict = spfAllVerdict(parsed.allQualifier);
+                if (opts.spfWarnSoftfail) {
+                    html += '<tr><td class="k">"all" mechanism</td><td class="v">' + escapeHtml(verdict.label) + (verdict.good ? ' <span class="badge public">Enforced</span>' : ' <span class="badge invalid">Weak</span>') + '</td></tr>';
+                }
+                const includeMechs = parsed.mechs.filter(m => m.type === 'include');
+                if (includeMechs.length) html += '<tr><td class="k">Includes (' + includeMechs.length + ')</td><td class="v">' + includeMechs.map(m => escapeHtml(m.value)).join(', ') + '</td></tr>';
+                const ip4 = parsed.mechs.filter(m => m.type === 'ip4').map(m => m.value);
+                const ip6 = parsed.mechs.filter(m => m.type === 'ip6').map(m => m.value);
+                if (ip4.length) html += '<tr><td class="k">ip4 ranges</td><td class="v">' + ip4.map(escapeHtml).join(', ') + '</td></tr>';
+                if (ip6.length) html += '<tr><td class="k">ip6 ranges</td><td class="v">' + ip6.map(escapeHtml).join(', ') + '</td></tr>';
+                if (opts.showRecordLength) html += '<tr><td class="k">Record length</td><td class="v">' + record.length + ' chars</td></tr>';
+                html += '</table>';
+
+                if (opts.spfExpandIncludes && includeMechs.length) {
+                    html += '<div style="margin-top:10px;font-size:11px;font-weight:700;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;">Resolved includes</div>';
+                    for (const inc of includeMechs) {
+                        const incRes = await dohQuery(inc.value, 'TXT', opts);
+                        const incSpf = (incRes.records || []).find(r => /^v=spf1/i.test(r));
+                        html += '<div class="mono-box" style="margin-top:6px;font-size:11.5px;"><strong>' + escapeHtml(inc.value) + '</strong>\n' + (incSpf ? escapeHtml(incSpf) : (incRes.error ? 'Lookup failed: ' + escapeHtml(incRes.error) : 'No SPF record found')) + '</div>';
+                    }
+                }
+            }
+            wrap.innerHTML = html;
+        });
+
+        // ============================================
+        // TOOL 3: DMARC CHECKER
+        // ============================================
+        document.getElementById('dmarcCheckBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const errorBox = document.getElementById('dmarcErrorBox');
+            const wrap = document.getElementById('dmarcResultWrap');
+            errorBox.classList.remove('show');
+            const domain = document.getElementById('dmarcDomainInput').value.trim();
+            if (!domain) { errorBox.textContent = 'Enter a domain.'; errorBox.classList.add('show'); return; }
+            wrap.innerHTML = '<div class="loading-inline"><i class="fa-solid fa-circle-notch spin"></i> Querying _dmarc.' + escapeHtml(domain) + '…</div>';
+            const res = await dohQuery('_dmarc.' + domain, 'TXT', opts);
+            if (res.error) { errorBox.textContent = res.error; errorBox.classList.add('show'); wrap.innerHTML = ''; return; }
+            const dmarcRecords = (res.records || []).filter(r => /^v=DMARC1/i.test(r));
+            if (dmarcRecords.length === 0) {
+                wrap.innerHTML = '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>No DMARC record found at _dmarc.' + escapeHtml(domain) + '. Without one, mailbox providers apply their own default handling to spoofed mail claiming to be from this domain, with no reporting back to you.</span></div>';
+                return;
+            }
+            let html = '';
+            for (const record of dmarcRecords) {
+                html += '<div class="mono-box">' + escapeHtml(record) + '</div>';
+                if (opts.dmarcParseTags) {
+                    const tags = parseDmarc(record);
+                    html += '<table class="kv-table" style="margin-top:6px;">';
+                    for (const [k, label] of Object.entries(DMARC_TAG_LABELS)) {
+                        if (tags[k] !== undefined) html += '<tr><td class="k">' + label + '</td><td class="v">' + escapeHtml(tags[k]) + '</td></tr>';
+                    }
+                    html += '</table>';
+                    if (opts.dmarcWarnNone && tags.p === 'none') {
+                        html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>Policy is p=none — DMARC is in monitoring mode only. Spoofed mail that fails alignment is still delivered; it just gets reported (if rua= is set).</span></div>';
+                    }
+                    if (opts.dmarcWarnNoRua && !tags.rua) {
+                        html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>No rua= aggregate-report address is set — you won\'t receive the daily reports that show which servers are sending mail (legitimate or spoofed) as this domain.</span></div>';
+                    }
+                }
+                if (opts.showRecordLength) html += '<div class="stat-strip"><span>Record length: <strong>' + record.length + '</strong> chars</span></div>';
+            }
+            wrap.innerHTML = html;
+        });
+
+        // ============================================
+        // UTILITY: DKIM SELECTOR LOOKUP
+        // ============================================
+        document.getElementById('dkimCheckBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('dkimResult');
+            const domain = document.getElementById('dkimDomain').value.trim();
+            const specific = document.getElementById('dkimSpecificSelector').value.trim();
+            if (!domain) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a domain.</div>'; return; }
+            let selectors = opts.dkimCommonSelectors.slice();
+            if (specific && !selectors.includes(specific)) selectors.unshift(specific);
+            resultEl.innerHTML = '<div class="loading-inline"><i class="fa-solid fa-circle-notch spin"></i> Trying ' + selectors.length + ' selector(s)…</div>';
+            let rowsHtml = '';
+            let found = 0;
+            for (const sel of selectors) {
+                const name = sel + '._domainkey.' + domain;
+                const res = await dohQuery(name, 'TXT', opts);
+                const dkimRec = (res.records || []).find(r => /v=DKIM1/i.test(r) || /p=/i.test(r));
+                if (dkimRec) {
+                    found++;
+                    rowsHtml += '<tr><td>' + escapeHtml(sel) + '</td><td><span class="badge public">Found</span></td><td>' + escapeHtml(dkimRec.slice(0, 80)) + (dkimRec.length > 80 ? '…' : '') + '</td></tr>';
+                } else {
+                    rowsHtml += '<tr><td>' + escapeHtml(sel) + '</td><td><span class="badge neutral" style="opacity:0.5;">Not found</span></td><td>—</td></tr>';
+                }
+            }
+            resultEl.innerHTML = '<div class="stat-strip"><span><strong>' + found + '</strong> of ' + selectors.length + ' selector(s) matched</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Selector</th><th>Status</th><th>Record (truncated)</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+        });
+
+        // ============================================
+        // UTILITY: VERIFICATION TAG RECOGNIZER
+        // ============================================
+        document.getElementById('verifyCheckBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('verifyResult');
+            const domain = document.getElementById('verifyDomainInput').value.trim();
+            const rawVal = document.getElementById('verifyRawInput').value.trim();
+
+            if (rawVal) {
+                const name = identifyVerification(rawVal);
+                resultEl.innerHTML = '<div class="mono-box">' + escapeHtml(rawVal) + '</div><div style="margin-top:8px;">' + (name ? '<span class="badge public">' + escapeHtml(name) + '</span>' : '<span class="badge invalid">Not recognized</span>') + '</div>';
+                return;
+            }
+            if (!domain) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a domain, or paste a TXT value instead.</div>'; return; }
+            resultEl.innerHTML = '<div class="loading-inline"><i class="fa-solid fa-circle-notch spin"></i> Looking up TXT records for ' + escapeHtml(domain) + '…</div>';
+            const res = await dohQuery(domain, 'TXT', opts);
+            if (res.error) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">' + escapeHtml(res.error) + '</div>'; return; }
+            const records = res.records || [];
+            if (records.length === 0) { resultEl.innerHTML = '<div class="empty-pane">No TXT records found.</div>'; return; }
+            let rowsHtml = '';
+            let shown = 0;
+            for (const r of records) {
+                const name = identifyVerification(r);
+                if (opts.hideUnknownTxt && !name) continue;
+                shown++;
+                rowsHtml += '<tr><td>' + (name ? '<span class="badge public">' + escapeHtml(name) + '</span>' : '<span class="badge invalid">Unrecognized</span>') + '</td><td>' + escapeHtml(r.length > 90 ? r.slice(0, 90) + '…' : r) + '</td></tr>';
+            }
+            if (shown === 0) { resultEl.innerHTML = '<div class="empty-pane">No recognized verification records (hidden unknowns per settings).</div>'; return; }
+            resultEl.innerHTML = '<div class="table-scroll"><table class="data-table"><thead><tr><th>Service</th><th>Record</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            email: {
+                batch: 'example.com',
+                settings: { dohProvider: 'cloudflare', lookupTimeout: '6000', maxDomains: '50', optSpfCountLookups: true, optSpfWarnMultiple: true, optSpfWarnSoftfail: true, optSpfExpandIncludes: true, optDmarcParseTags: true, optDmarcWarnNone: true, optDmarcWarnNoRua: true, dkimCommonSelectors: 'default, selector1, selector2, google, k1, dkim, mail', optDetectVerification: false, optHideUnknownTxt: false, optShowRawRecords: true, optShowRecordLength: true }
+            },
+            onboarding: {
+                batch: '',
+                settings: { dohProvider: 'cloudflare', lookupTimeout: '6000', maxDomains: '50', optSpfCountLookups: true, optSpfWarnMultiple: true, optSpfWarnSoftfail: false, optSpfExpandIncludes: false, optDmarcParseTags: true, optDmarcWarnNone: false, optDmarcWarnNoRua: false, dkimCommonSelectors: 'default, selector1, selector2, google, k1, dkim, mail', optDetectVerification: true, optHideUnknownTxt: false, optShowRawRecords: true, optShowRecordLength: false }
+            },
+            migration: {
+                batch: '',
+                settings: { dohProvider: 'cloudflare', lookupTimeout: '8000', maxDomains: '50', optSpfCountLookups: true, optSpfWarnMultiple: true, optSpfWarnSoftfail: true, optSpfExpandIncludes: true, optDmarcParseTags: false, optDmarcWarnNone: false, optDmarcWarnNoRua: false, dkimCommonSelectors: 'default, selector1, selector2, google, k1, dkim, mail', optDetectVerification: false, optHideUnknownTxt: false, optShowRawRecords: true, optShowRecordLength: true }
+            },
+            verification: {
+                batch: '',
+                settings: { dohProvider: 'cloudflare', lookupTimeout: '6000', maxDomains: '50', optSpfCountLookups: false, optSpfWarnMultiple: false, optSpfWarnSoftfail: false, optSpfExpandIncludes: false, optDmarcParseTags: false, optDmarcWarnNone: false, optDmarcWarnNoRua: false, dkimCommonSelectors: 'default, selector1, selector2, google, k1, dkim, mail', optDetectVerification: true, optHideUnknownTxt: true, optShowRawRecords: false, optShowRecordLength: false }
+            }
+        };
+        const SETTING_IDS = {
+            checkboxes: ['optSpfCountLookups', 'optSpfWarnMultiple', 'optSpfWarnSoftfail', 'optSpfExpandIncludes', 'optDmarcParseTags', 'optDmarcWarnNone', 'optDmarcWarnNoRua', 'optDetectVerification', 'optHideUnknownTxt', 'optShowRawRecords', 'optShowRecordLength'],
+            text: ['lookupTimeout', 'maxDomains', 'dkimCommonSelectors'],
+            select: ['dohProvider']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+        }
+        function applyPreset(key) {
+            const preset = BUILTIN_PRESETS[key];
+            if (!preset) return;
+            applySettingsObject(preset.settings);
+            if (preset.batch !== undefined && preset.batch !== '') {
+                document.getElementById('batchDomainsInput').value = preset.batch;
+            }
+        }
+
+        const CUSTOM_PRESETS_KEY = 'txtLookupCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applyPreset(val);
+            }
+        });
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this settings preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'txt-record-lookup-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- persistence of settings across visits ----------
+        const SETTINGS_KEY = 'txtLookupLastSettings';
+        function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist())); } catch (err) { /* ignore */ } }
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; saveSettings(); });
+        });
+        (function restoreSettings() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+
+        // ---------- initial demo state ----------
+        document.getElementById('batchDomainsInput').value = 'example.com';
+        document.getElementById('spfDomainInput').value = 'example.com';
+        document.getElementById('dmarcDomainInput').value = 'example.com';
+        document.getElementById('dkimDomain').value = 'example.com';
+        document.getElementById('verifyDomainInput').value = 'example.com';
+    </script>
+</body>
+</html>
