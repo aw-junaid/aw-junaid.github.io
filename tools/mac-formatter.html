@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | MAC Address Formatter & Vendor Lookup Tool</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free MAC address formatter and analyzer. Convert between colon, hyphen, Cisco-dot and plain notations, detect unicast/multicast and universal/local bits, identify the vendor via OUI lookup, generate modified EUI-64 IPv6 identifiers, batch-audit MAC lists, compare addresses, and generate random MACs — 100% client-side." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/mac-formatter.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/mac-formatter.html" />
+<meta property="og:title" content="MAC Address Formatter & Vendor Lookup Tool — awjunaid" />
+<meta property="og:description" content="Convert MAC addresses between colon, hyphen, Cisco-dot and plain notations, detect unicast/multicast and universal/local bits, look up the vendor OUI, generate EUI-64 IPv6 identifiers, batch-audit lists, compare addresses, and generate random MACs. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/mac-formatter.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="MAC Address Formatter & Vendor Lookup Tool — awjunaid" />
+<meta name="twitter:description" content="Format, validate, classify, and batch-audit MAC addresses. Convert to EUI-64, look up OUI vendors, and generate random MACs — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/mac-formatter.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #macInput {
+            width: 100%;
+            min-height: 160px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #macInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 42%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        /* Utility grid (random gen, comparator, vendor lookup) */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #macInput { min-height: 140px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">MAC Address Formatter & Vendor Lookup</h1>
+                <div class="tool-dek">Paste a MAC address in any notation to validate it, reformat it to colon, hyphen, Cisco-dot, space, or plain hex, break it into binary/decimal/hex, classify unicast vs. multicast and universal vs. locally-administered addresses, flag well-known reserved multicast ranges, derive a modified EUI-64 / IPv6 link-local address, batch-audit whole lists, and look up the OUI vendor — entirely in your browser.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="cleanup">Format Cleanup (colon, lowercase)</option>
+                    <option value="cisco">Cisco Style (dot notation)</option>
+                    <option value="classify">Classification Audit</option>
+                    <option value="eui64">IPv6 EUI-64 Prep</option>
+                    <option value="vendor">Vendor / OUI Audit</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Input & Parsing</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStrictValidation">
+                            <span><span class="setting-name">Strict format validation</span><span class="setting-hint">Requires a single consistent separator (colon, hyphen, dot, or space) throughout — rejects mixed or malformed separators instead of stripping and re-parsing them</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDedupeBatch" checked>
+                            <span><span class="setting-name">Dedupe batch entries</span><span class="setting-hint">Two lines that are the same address in different notations or casing are flagged as duplicates in the batch table</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Format</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Separator</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="separatorFormat" value="colon" checked> Colon <span style="opacity:0.5">00:1A:2B:3C:4D:5E</span></label>
+                                <label class="radio-opt"><input type="radio" name="separatorFormat" value="hyphen"> Hyphen <span style="opacity:0.5">00-1A-2B-3C-4D-5E</span></label>
+                                <label class="radio-opt"><input type="radio" name="separatorFormat" value="dot"> Cisco Dot <span style="opacity:0.5">001a.2b3c.4d5e</span></label>
+                                <label class="radio-opt"><input type="radio" name="separatorFormat" value="space"> Space <span style="opacity:0.5">00 1A 2B 3C 4D 5E</span></label>
+                                <label class="radio-opt"><input type="radio" name="separatorFormat" value="none"> None <span style="opacity:0.5">001A2B3C4D5E</span></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Letter case</label>
+                            <div class="radio-row">
+                                <label class="radio-opt"><input type="radio" name="letterCase" value="lower" checked> Lowercase</label>
+                                <label class="radio-opt"><input type="radio" name="letterCase" value="upper"> Uppercase</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Number Base Display</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowBinary" checked>
+                            <span><span class="setting-name">Show binary</span><span class="setting-hint">All 48 bits, grouped into six 8-bit octets</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowDecimal" checked>
+                            <span><span class="setting-name">Show decimal integer</span><span class="setting-hint">The address as an unsigned 48-bit integer</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowHexInt" checked>
+                            <span><span class="setting-name">Show hex integer</span><span class="setting-hint">A single 0x-prefixed 48-bit hex value, no separators</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUppercaseHexInt">
+                            <span><span class="setting-name">Uppercase hex integer</span><span class="setting-hint">Applies only to the hex-integer field above, independent of the output-format case</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Address Classification</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectUnicastMulticast" checked>
+                            <span><span class="setting-name">Unicast / Multicast (I/G bit)</span><span class="setting-hint">Least-significant bit of the first octet — 0 = unicast, 1 = multicast/group</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectUL" checked>
+                            <span><span class="setting-name">Universal / Local (U/L bit)</span><span class="setting-hint">Second bit of the first octet — 0 = burned-in vendor address, 1 = locally administered</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectBroadcast" checked>
+                            <span><span class="setting-name">Broadcast address</span><span class="setting-hint">Flags ff:ff:ff:ff:ff:ff</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectNull" checked>
+                            <span><span class="setting-name">Null / all-zero address</span><span class="setting-hint">Flags 00:00:00:00:00:00, often a sign of an uninitialized NIC or parsing bug</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optDetectWellKnown" checked>
+                            <span><span class="setting-name">Well-known reserved ranges</span><span class="setting-hint">STP/bridge (01:80:C2), Cisco CDP/VTP (01:00:0C), IPv4 multicast (01:00:5E), IPv6 multicast (33:33), PTP (01:1B:19)</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>OUI & Vendor Lookup</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowOuiSplit" checked>
+                            <span><span class="setting-name">Show OUI / NIC split</span><span class="setting-hint">First 3 bytes (organizationally unique identifier) vs. last 3 bytes (device-specific)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optEnableVendorLookup">
+                            <span><span class="setting-name">Enable vendor lookup</span><span class="setting-hint">Opt-in — calls the third-party api.macvendors.com API from the Summary tab and the utility card below</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchVendorLookup">
+                            <span><span class="setting-name">Include vendor column in batch table</span><span class="setting-hint">Requires vendor lookup enabled above; runs sequentially with a short delay to respect the API's rate limit, capped by the setting below</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxBatchVendorInput">Max batch vendor lookups</label>
+                            <input type="number" id="maxBatchVendorInput" min="1" max="50" value="10">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>IPv6 EUI-64 Conversion</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowEui64" checked>
+                            <span><span class="setting-name">Show modified EUI-64 identifier</span><span class="setting-hint">Inserts FFFE in the middle and flips the U/L bit, per RFC 4291</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowLinkLocal" checked>
+                            <span><span class="setting-name">Show derived link-local IPv6 address</span><span class="setting-hint">fe80::/64 combined with the EUI-64 interface identifier</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>MAC Address Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="macInput" spellcheck="false" placeholder="00:1A:2B:3C:4D:5E
+00-1B-63-84-45-E6
+001a.2b3c.4d5e
+ff:ff:ff:ff:ff:ff"></textarea>
+                    <div class="input-hint">One entry per line. Accepts colon (<code>00:1A:2B:3C:4D:5E</code>), hyphen (<code>00-1A-2B-3C-4D-5E</code>), Cisco dot (<code>001a.2b3c.4d5e</code>), space, or plain hex (<code>001A2B3C4D5E</code>) notation. The Summary / Bases / Classification / EUI-64 tabs analyze the <strong>first</strong> line; the Batch Table tab covers every line.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip">
+                        <span><strong id="lineCount">0</strong> line(s)</span>
+                        <span><strong id="validCount">0</strong> valid</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyJsonBtn" type="button"><i class="fa-solid fa-copy"></i> Copy JSON</button>
+                            <button class="btn-solid" id="downloadCsvBtn" type="button"><i class="fa-solid fa-download"></i> Download Batch CSV</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="summary" type="button">Summary</button>
+                        <button class="output-tab" data-tab="bases" type="button">Number Bases</button>
+                        <button class="output-tab" data-tab="classification" type="button">Classification</button>
+                        <button class="output-tab" data-tab="eui64" type="button">IPv6 / EUI-64</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-summary"><div class="empty-pane">Enter a MAC address above to see results.</div></div>
+                    <div class="output-pane" id="pane-bases"><div class="empty-pane">Enter a MAC address above to see results.</div></div>
+                    <div class="output-pane" id="pane-classification"><div class="empty-pane">Enter a MAC address above to see results.</div></div>
+                    <div class="output-pane" id="pane-eui64"><div class="empty-pane">Enter a MAC address above to see results.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Add lines to see the batch table.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter a MAC address above to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-shuffle"></i> Random MAC Generator</h3>
+                    <div class="utility-note">Generate a random MAC for lab environments, VM NICs, or test fixtures — useful for spinning up virtual interfaces without colliding with real vendor-assigned addresses.</div>
+                    <div class="field-group">
+                        <label>Address type</label>
+                        <div class="radio-row">
+                            <label class="radio-opt"><input type="radio" name="genType" value="unicast" checked> Unicast</label>
+                            <label class="radio-opt"><input type="radio" name="genType" value="multicast"> Multicast</label>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label>Administration</label>
+                        <div class="radio-row">
+                            <label class="radio-opt"><input type="radio" name="genAdmin" value="local" checked> Locally administered</label>
+                            <label class="radio-opt"><input type="radio" name="genAdmin" value="universal"> Universal (random OUI)</label>
+                        </div>
+                    </div>
+                    <button class="btn-solid small" id="generateMacBtn" type="button">Generate</button>
+                    <div class="utility-result" id="generateResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-code-compare"></i> Address Comparator</h3>
+                    <div class="utility-note">Check whether two MAC addresses are the same, regardless of separator, casing, or notation — handy for reconciling entries pulled from different tools (switch CAM tables, DHCP leases, ARP output).</div>
+                    <div class="field-group">
+                        <label for="compareA">Address A</label>
+                        <input type="text" id="compareA" placeholder="00:1A:2B:3C:4D:5E">
+                    </div>
+                    <div class="field-group">
+                        <label for="compareB">Address B</label>
+                        <input type="text" id="compareB" placeholder="001a.2b3c.4d5e">
+                    </div>
+                    <button class="btn-solid small" id="compareBtn" type="button">Compare</button>
+                    <div class="utility-result" id="compareResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-industry"></i> Vendor / OUI Lookup</h3>
+                    <div class="utility-note">Sends the address's OUI to a third-party API (<strong>api.macvendors.com</strong>) to identify the manufacturer. This is the only part of this page that isn't fully offline — nothing else you type here is sent anywhere. The free API is rate-limited, so lookups may occasionally need a retry.</div>
+                    <div class="field-group">
+                        <label for="vendorLookupInput">MAC address</label>
+                        <input type="text" id="vendorLookupInput" placeholder="00:1B:63:84:45:E6">
+                    </div>
+                    <button class="btn-solid small" id="vendorLookupBtn" type="button">Look Up Vendor</button>
+                    <div class="utility-result" id="vendorLookupResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>MAC addresses show up in a dozen inconsistent notations across switches, packet captures, DHCP leases, and vendor spec sheets. This tool normalizes any of them, shows every common representation, classifies the address by its control bits, flags reserved multicast ranges before they're mistaken for real devices, and audits whole lists at once — all client-side.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's the I/G bit and the U/L bit?</h4>
+                        <p>The least-significant bit of the first octet is the Individual/Group (I/G) bit: 0 means the frame is addressed to a single device (unicast), 1 means it's addressed to a group (multicast or broadcast). The next bit is the Universal/Local (U/L) bit: 0 means the address was burned in by the vendor using their assigned OUI, 1 means it was set locally — common for VMs, containers, and randomized Wi-Fi MACs.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why do some multicast MACs get a special label?</h4>
+                        <p>Certain multicast ranges are reserved by standards bodies rather than assigned to a vendor: <code>01:80:C2</code> is used by Spanning Tree and other 802.1 bridge protocols, <code>01:00:0C</code> covers Cisco's CDP/VTP/PAgP frames, <code>01:00:5E</code> is the mapping IPv4 multicast uses at Layer 2, and <code>33:33</code> is the equivalent for IPv6 multicast. Recognizing these avoids mistaking protocol control traffic for a rogue device.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How is the EUI-64 / link-local address derived?</h4>
+                        <p>RFC 4291's modified EUI-64 process splits the 48-bit MAC into two 24-bit halves, inserts <code>fffe</code> between them to make a 64-bit interface identifier, and flips the U/L bit so a globally unique (vendor-assigned) MAC produces a globally unique identifier. Prefixing that identifier with <code>fe80::/64</code> gives the interface's automatically-configured IPv6 link-local address.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No, with one exception: vendor lookup is opt-in and, when enabled, sends the address's OUI to api.macvendors.com to identify the manufacturer. Everything else — parsing, reformatting, classification, EUI-64 derivation, batch auditing — runs entirely in your browser. Your draft and settings only persist in this browser's local storage.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I clean up a messy list of MACs pulled from a switch?</h4>
+                        <p>Paste the whole list into the input box, pick your target separator and case in Output Format, and switch to the Batch Table tab — it validates every line, flags duplicates and malformed entries, and the Download Batch CSV button exports a normalized version ready to re-import elsewhere.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // MAC ADDRESS FORMATTER — ENGINE
+        // ============================================
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ---------- Parsing ----------
+        function parseMac(str, opts) {
+            if (typeof str !== 'string') return null;
+            let s = str.trim();
+            if (s === '') return null;
+
+            let sepUsed = null;
+            let hex = null;
+            if (/^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$/.test(s)) { sepUsed = 'colon'; hex = s.split(':').join(''); }
+            else if (/^[0-9a-fA-F]{2}(-[0-9a-fA-F]{2}){5}$/.test(s)) { sepUsed = 'hyphen'; hex = s.split('-').join(''); }
+            else if (/^[0-9a-fA-F]{4}(\.[0-9a-fA-F]{4}){2}$/.test(s)) { sepUsed = 'dot'; hex = s.split('.').join(''); }
+            else if (/^[0-9a-fA-F]{2}( [0-9a-fA-F]{2}){5}$/.test(s)) { sepUsed = 'space'; hex = s.split(' ').join(''); }
+            else if (/^[0-9a-fA-F]{12}$/.test(s)) { sepUsed = 'none'; hex = s; }
+            else {
+                if (opts.strictValidation) return null;
+                const stripped = s.replace(/[^0-9a-fA-F]/g, '');
+                if (stripped.length !== 12 || !/^[0-9a-fA-F]{12}$/.test(stripped)) return null;
+                sepUsed = 'mixed';
+                hex = stripped;
+            }
+            if (hex.length !== 12) return null;
+            const bytes = [];
+            for (let i = 0; i < 12; i += 2) bytes.push(parseInt(hex.substr(i, 2), 16));
+            return { bytes, sepUsed };
+        }
+
+        function formatMac(bytes, opts) {
+            let hexBytes = bytes.map(b => b.toString(16).padStart(2, '0'));
+            hexBytes = opts.letterCase === 'upper' ? hexBytes.map(h => h.toUpperCase()) : hexBytes.map(h => h.toLowerCase());
+            switch (opts.separator) {
+                case 'colon': return hexBytes.join(':');
+                case 'hyphen': return hexBytes.join('-');
+                case 'space': return hexBytes.join(' ');
+                case 'none': return hexBytes.join('');
+                case 'dot': {
+                    const all = hexBytes.join('');
+                    return all.slice(0, 4) + '.' + all.slice(4, 8) + '.' + all.slice(8, 12);
+                }
+                default: return hexBytes.join(':');
+            }
+        }
+
+        function bytesToBigInt(bytes) {
+            let n = 0n;
+            for (const b of bytes) n = (n << 8n) | BigInt(b);
+            return n;
+        }
+
+        // ---------- Well-known / reserved prefixes ----------
+        const WELL_KNOWN = [
+            { prefix: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], name: 'Broadcast address' },
+            { prefix: [0x01, 0x80, 0xC2], name: 'IEEE 802.1 Bridge / Spanning Tree reserved multicast' },
+            { prefix: [0x01, 0x00, 0x0C], name: 'Cisco proprietary (CDP / VTP / PAgP) multicast' },
+            { prefix: [0x01, 0x00, 0x5E], name: 'IPv4 multicast mapping (RFC 1112)' },
+            { prefix: [0x33, 0x33], name: 'IPv6 multicast mapping (RFC 2464)' },
+            { prefix: [0x01, 0x1B, 0x19], name: 'PTP (IEEE 1588) peer-delay messages' },
+            { prefix: [0x01, 0x0C, 0xCD], name: 'IEC 61850 GOOSE / MMS multicast' }
+        ];
+        function matchWellKnown(bytes) {
+            let best = null;
+            for (const entry of WELL_KNOWN) {
+                const len = entry.prefix.length;
+                let match = true;
+                for (let i = 0; i < len; i++) { if (bytes[i] !== entry.prefix[i]) { match = false; break; } }
+                if (match && (!best || len > best.prefix.length)) best = entry;
+            }
+            return best;
+        }
+
+        // ---------- Classification ----------
+        function classify(bytes) {
+            const isMulticast = (bytes[0] & 0x01) === 0x01;
+            const isLocal = (bytes[0] & 0x02) === 0x02;
+            const isBroadcast = bytes.every(b => b === 0xFF);
+            const isNull = bytes.every(b => b === 0x00);
+            return { isMulticast, isLocal, isBroadcast, isNull };
+        }
+
+        // ---------- EUI-64 / link-local ----------
+        function toEui64(bytes) {
+            const b = [...bytes];
+            b[0] = b[0] ^ 0x02;
+            return [b[0], b[1], b[2], 0xFF, 0xFE, b[3], b[4], b[5]];
+        }
+        function eui64ToLinkLocal(eui) {
+            const g1 = ((eui[0] << 8) | eui[1]).toString(16);
+            const g2 = ((eui[2] << 8) | eui[3]).toString(16);
+            const g3 = ((eui[4] << 8) | eui[5]).toString(16);
+            const g4 = ((eui[6] << 8) | eui[7]).toString(16);
+            return 'fe80::' + [g1, g2, g3, g4].join(':');
+        }
+
+        function getOptions() {
+            return {
+                strictValidation: document.getElementById('optStrictValidation').checked,
+                dedupeBatch: document.getElementById('optDedupeBatch').checked,
+                separator: (document.querySelector('input[name="separatorFormat"]:checked') || {}).value || 'colon',
+                letterCase: (document.querySelector('input[name="letterCase"]:checked') || {}).value || 'lower',
+                showBinary: document.getElementById('optShowBinary').checked,
+                showDecimal: document.getElementById('optShowDecimal').checked,
+                showHexInt: document.getElementById('optShowHexInt').checked,
+                uppercaseHexInt: document.getElementById('optUppercaseHexInt').checked,
+                detectUnicastMulticast: document.getElementById('optDetectUnicastMulticast').checked,
+                detectUL: document.getElementById('optDetectUL').checked,
+                detectBroadcast: document.getElementById('optDetectBroadcast').checked,
+                detectNull: document.getElementById('optDetectNull').checked,
+                detectWellKnown: document.getElementById('optDetectWellKnown').checked,
+                showOuiSplit: document.getElementById('optShowOuiSplit').checked,
+                enableVendorLookup: document.getElementById('optEnableVendorLookup').checked,
+                batchVendorLookup: document.getElementById('optBatchVendorLookup').checked,
+                maxBatchVendor: parseInt(document.getElementById('maxBatchVendorInput').value, 10) || 10,
+                showEui64: document.getElementById('optShowEui64').checked,
+                showLinkLocal: document.getElementById('optShowLinkLocal').checked
+            };
+        }
+
+        function analyzeLine(line, opts) {
+            line = line.trim();
+            if (!line) return null;
+            const result = { raw: line, valid: false, error: null };
+            const parsed = parseMac(line, opts);
+            if (!parsed) { result.error = 'Not a recognizable MAC address'; return result; }
+            result.valid = true;
+            result.bytes = parsed.bytes;
+            result.sepUsed = parsed.sepUsed;
+            return result;
+        }
+
+        let lastAnalysis = { primary: null, batch: [] };
+        let vendorCache = {};
+
+        function analyze() {
+            const opts = getOptions();
+            const raw = document.getElementById('macInput').value;
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('lineCount').textContent = lines.length;
+
+            const errorBox = document.getElementById('errorBox');
+            const results = lines.map(l => analyzeLine(l, opts));
+            const validCount = results.filter(r => r && r.valid).length;
+            document.getElementById('validCount').textContent = validCount;
+
+            const firstInvalid = results.find(r => r && !r.valid);
+            if (firstInvalid) {
+                errorBox.textContent = '"' + firstInvalid.raw + '" — ' + firstInvalid.error;
+                errorBox.classList.add('show');
+            } else {
+                errorBox.classList.remove('show');
+            }
+
+            if (opts.dedupeBatch) {
+                const seen = new Map();
+                for (const r of results) {
+                    if (!r || !r.valid) continue;
+                    const key = r.bytes.join(':');
+                    if (seen.has(key)) r.duplicateOf = seen.get(key);
+                    else seen.set(key, r.raw);
+                }
+            }
+
+            lastAnalysis.batch = results;
+            const primary = results.find(r => r && r.valid) || null;
+            lastAnalysis.primary = primary;
+
+            renderSummary(primary, opts);
+            renderBases(primary, opts);
+            renderClassification(primary, opts);
+            renderEui64(primary, opts);
+            renderBatch(results, opts);
+            renderJson(primary, results, opts);
+        }
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function renderSummary(r, opts) {
+            if (!r) { paneEmpty('pane-summary', 'Enter a valid MAC address above to see results.'); return; }
+            const c = classify(r.bytes);
+            const well = opts.detectWellKnown ? matchWellKnown(r.bytes) : null;
+            let rows = [];
+            rows.push(['Input', escapeHtml(r.raw)]);
+            rows.push(['Formatted', escapeHtml(formatMac(r.bytes, opts))]);
+            rows.push(['Type', c.isMulticast ? 'Multicast / Group' : 'Unicast']);
+            rows.push(['Administration', c.isLocal ? 'Locally administered' : 'Universally administered (vendor-assigned)']);
+            if (c.isBroadcast) rows.push(['Special', '<span class="badge invalid">Broadcast</span>']);
+            if (c.isNull) rows.push(['Special', '<span class="badge invalid">Null / all-zero</span>']);
+            if (well) rows.push(['Matched Range', escapeHtml(well.name)]);
+            if (opts.showOuiSplit) {
+                rows.push(['OUI (organization)', r.bytes.slice(0, 3).map(b => b.toString(16).padStart(2, '0')).join(':')]);
+                rows.push(['NIC (device)', r.bytes.slice(3, 6).map(b => b.toString(16).padStart(2, '0')).join(':')]);
+            }
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + v + '</td></tr>';
+            html += '</table>';
+            if (opts.enableVendorLookup) {
+                html += '<div style="margin-top:14px;"><button class="btn-ghost small" id="summaryVendorBtn" type="button">Look Up Vendor</button><div id="summaryVendorResult" style="margin-top:10px;"></div></div>';
+            }
+            document.getElementById('pane-summary').innerHTML = html;
+            if (opts.enableVendorLookup) {
+                document.getElementById('summaryVendorBtn').addEventListener('click', () => lookupVendor(r.bytes, 'summaryVendorResult'));
+            }
+        }
+
+        function renderBases(r, opts) {
+            if (!r) { paneEmpty('pane-bases', 'Enter a valid MAC address above to see results.'); return; }
+            let rows = [];
+            if (opts.showBinary) rows.push(['Binary (grouped)', r.bytes.map(b => b.toString(2).padStart(8, '0')).join(':')]);
+            if (opts.showDecimal) rows.push(['Decimal (uint48)', bytesToBigInt(r.bytes).toString()]);
+            if (opts.showHexInt) {
+                let hex = r.bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+                if (opts.uppercaseHexInt) hex = hex.toUpperCase();
+                rows.push(['Hex integer', '0x' + hex]);
+            }
+            if (rows.length === 0) { paneEmpty('pane-bases', 'All number-base options are turned off in settings.'); return; }
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+            html += '</table>';
+            document.getElementById('pane-bases').innerHTML = html;
+        }
+
+        function renderClassification(r, opts) {
+            if (!r) { paneEmpty('pane-classification', 'Enter a valid MAC address above to see results.'); return; }
+            const c = classify(r.bytes);
+            const well = matchWellKnown(r.bytes);
+            let rows = [];
+            if (opts.detectUnicastMulticast) rows.push(['I/G bit (bit 0 of octet 1)', c.isMulticast ? '<span class="badge private">1 — Multicast / Group</span>' : '<span class="badge public">0 — Unicast</span>']);
+            if (opts.detectUL) rows.push(['U/L bit (bit 1 of octet 1)', c.isLocal ? '<span class="badge private">1 — Locally administered</span>' : '<span class="badge public">0 — Universally administered</span>']);
+            if (opts.detectBroadcast) rows.push(['Broadcast', c.isBroadcast ? '<span class="badge invalid">Yes</span>' : 'No']);
+            if (opts.detectNull) rows.push(['Null / all-zero', c.isNull ? '<span class="badge invalid">Yes</span>' : 'No']);
+            if (opts.detectWellKnown) rows.push(['Well-known range', well ? escapeHtml(well.name) : 'No match among known reserved ranges']);
+            if (rows.length === 0) { paneEmpty('pane-classification', 'All classification options are turned off in settings.'); return; }
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + v + '</td></tr>';
+            html += '</table>';
+            document.getElementById('pane-classification').innerHTML = html;
+        }
+
+        function renderEui64(r, opts) {
+            if (!r) { paneEmpty('pane-eui64', 'Enter a valid MAC address above to see results.'); return; }
+            if (!opts.showEui64 && !opts.showLinkLocal) { paneEmpty('pane-eui64', 'EUI-64 / link-local options are turned off in settings.'); return; }
+            const eui = toEui64(r.bytes);
+            let rows = [];
+            if (opts.showEui64) rows.push(['Modified EUI-64', eui.map(b => b.toString(16).padStart(2, '0')).join(':')]);
+            if (opts.showLinkLocal) rows.push(['Derived link-local IPv6', eui64ToLinkLocal(eui)]);
+            let html = '<table class="kv-table">';
+            for (const [k, v] of rows) html += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+            html += '</table>';
+            html += '<div style="margin-top:14px;font-size:11px;opacity:0.55;line-height:1.6;">Derived by splitting the MAC into two 24-bit halves, inserting <code>fffe</code> in the middle, and flipping the U/L bit — the standard modified EUI-64 process from RFC 4291.</div>';
+            document.getElementById('pane-eui64').innerHTML = html;
+        }
+
+        function renderBatch(results, opts) {
+            const valid = results.filter(r => r);
+            if (valid.length === 0) { paneEmpty('pane-batch', 'Add lines to see the batch table.'); return; }
+            let cols = ['Input', 'Normalized', 'Status', 'Type', 'Admin', 'Special / Range'];
+            if (opts.batchVendorLookup && opts.enableVendorLookup) cols.push('Vendor');
+
+            let html = '<div class="table-scroll"><table class="data-table" id="batchTable"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+            const vendorTargets = [];
+            let rowIndex = 0;
+            for (const r of valid) {
+                if (!r.valid) {
+                    html += '<tr><td>' + escapeHtml(r.raw) + '</td><td colspan="' + (cols.length - 1) + '" style="color:var(--danger);">' + escapeHtml(r.error) + '</td></tr>';
+                    continue;
+                }
+                const c = classify(r.bytes);
+                const well = matchWellKnown(r.bytes);
+                let status = '<span style="color:var(--accent);">Valid</span>';
+                if (r.duplicateOf) status = '<span style="color:var(--warn);">Duplicate of ' + escapeHtml(r.duplicateOf) + '</span>';
+                let cells = [
+                    escapeHtml(r.raw),
+                    formatMac(r.bytes, opts),
+                    status,
+                    c.isMulticast ? 'Multicast' : 'Unicast',
+                    c.isLocal ? 'Local' : 'Universal',
+                    well ? escapeHtml(well.name) : (c.isNull ? 'Null / all-zero' : '—')
+                ];
+                if (opts.batchVendorLookup && opts.enableVendorLookup) {
+                    const cellId = 'vendorcell-' + rowIndex;
+                    cells.push('<span id="' + cellId + '" style="opacity:0.5;">' + (rowIndex < opts.maxBatchVendor ? 'looking up…' : 'skipped (limit)') + '</span>');
+                    if (rowIndex < opts.maxBatchVendor) vendorTargets.push({ cellId, bytes: r.bytes });
+                }
+                html += '<tr>' + cells.map(cell => '<td>' + cell + '</td>').join('') + '</tr>';
+                rowIndex++;
+            }
+            html += '</tbody></table></div>';
+            document.getElementById('pane-batch').innerHTML = html;
+
+            if (vendorTargets.length) runBatchVendorLookups(vendorTargets);
+        }
+
+        async function runBatchVendorLookups(targets) {
+            for (const t of targets) {
+                await new Promise(res => setTimeout(res, 350));
+                const el = document.getElementById(t.cellId);
+                if (!el) continue;
+                const oui = t.bytes.slice(0, 3).map(b => b.toString(16).padStart(2, '0')).join(':');
+                try {
+                    if (vendorCache[oui]) { el.textContent = vendorCache[oui]; el.style.opacity = '1'; continue; }
+                    const res = await fetch('https://api.macvendors.com/' + t.bytes.map(b => b.toString(16).padStart(2, '0')).join(':'));
+                    if (res.status === 404) { el.textContent = 'Not found'; el.style.opacity = '0.5'; continue; }
+                    const text = await res.text();
+                    vendorCache[oui] = text;
+                    el.textContent = text;
+                    el.style.opacity = '1';
+                } catch (err) {
+                    el.textContent = 'Lookup failed';
+                    el.style.opacity = '0.5';
+                }
+            }
+        }
+
+        function buildJsonForLine(r, opts) {
+            if (!r) return null;
+            if (!r.valid) return { input: r.raw, valid: false, error: r.error };
+            const c = classify(r.bytes);
+            const well = matchWellKnown(r.bytes);
+            const eui = toEui64(r.bytes);
+            return {
+                input: r.raw, valid: true,
+                normalized: formatMac(r.bytes, opts),
+                decimal: bytesToBigInt(r.bytes).toString(),
+                hex: '0x' + r.bytes.map(b => b.toString(16).padStart(2, '0')).join(''),
+                binary: r.bytes.map(b => b.toString(2).padStart(8, '0')).join(':'),
+                isMulticast: c.isMulticast, isLocallyAdministered: c.isLocal,
+                isBroadcast: c.isBroadcast, isNull: c.isNull,
+                wellKnownRange: well ? well.name : null,
+                oui: r.bytes.slice(0, 3).map(b => b.toString(16).padStart(2, '0')).join(':'),
+                nic: r.bytes.slice(3, 6).map(b => b.toString(16).padStart(2, '0')).join(':'),
+                eui64: eui.map(b => b.toString(16).padStart(2, '0')).join(':'),
+                linkLocalIPv6: eui64ToLinkLocal(eui),
+                duplicateOf: r.duplicateOf || null
+            };
+        }
+
+        function renderJson(primary, results, opts) {
+            const batch = results.filter(r => r).map(r => buildJsonForLine(r, opts));
+            const out = { primary: primary ? buildJsonForLine(primary, opts) : null, batch };
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring ----------
+        document.getElementById('macInput').addEventListener('input', analyze);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; analyze(); });
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('macInput').value = '';
+            analyze();
+            document.getElementById('macInput').focus();
+        });
+
+        document.getElementById('copyJsonBtn').addEventListener('click', async () => {
+            const text = document.getElementById('jsonOut').textContent;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const rows = lastAnalysis.batch.filter(r => r);
+            if (rows.length === 0) return;
+            const header = ['input', 'valid', 'normalized', 'type', 'admin', 'special', 'oui', 'nic', 'error'];
+            const lines = [header.join(',')];
+            for (const r of rows) {
+                if (!r.valid) { lines.push([csvCell(r.raw), 'false', '', '', '', '', '', '', csvCell(r.error)].join(',')); continue; }
+                const c = classify(r.bytes);
+                const well = matchWellKnown(r.bytes);
+                lines.push([
+                    csvCell(r.raw), 'true', csvCell(formatMac(r.bytes, opts)),
+                    c.isMulticast ? 'multicast' : 'unicast', c.isLocal ? 'local' : 'universal',
+                    csvCell(well ? well.name : ''),
+                    csvCell(r.bytes.slice(0, 3).map(b => b.toString(16).padStart(2, '0')).join(':')),
+                    csvCell(r.bytes.slice(3, 6).map(b => b.toString(16).padStart(2, '0')).join(':')),
+                    ''
+                ].join(','));
+            }
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'mac-batch-audit.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        function csvCell(s) { s = String(s == null ? '' : s); return '"' + s.replace(/"/g, '""') + '"'; }
+
+        // ---------- Random MAC Generator ----------
+        document.getElementById('generateMacBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const genType = (document.querySelector('input[name="genType"]:checked') || {}).value || 'unicast';
+            const genAdmin = (document.querySelector('input[name="genAdmin"]:checked') || {}).value || 'local';
+            const bytes = [];
+            for (let i = 0; i < 6; i++) bytes.push(Math.floor(Math.random() * 256));
+            if (genType === 'multicast') bytes[0] = bytes[0] | 0x01; else bytes[0] = bytes[0] & ~0x01;
+            if (genAdmin === 'local') bytes[0] = bytes[0] | 0x02; else bytes[0] = bytes[0] & ~0x02;
+            const formatted = formatMac(bytes, opts);
+            document.getElementById('generateResult').innerHTML =
+                '<div class="mono-box">' + escapeHtml(formatted) + '</div>' +
+                '<button class="btn-ghost small" id="useGeneratedBtn" type="button" style="margin-top:8px;">Analyze This Address</button>';
+            document.getElementById('useGeneratedBtn').addEventListener('click', () => {
+                document.getElementById('macInput').value = formatted + (document.getElementById('macInput').value ? '\n' + document.getElementById('macInput').value : '');
+                analyze();
+                document.getElementById('macInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // ---------- Address Comparator ----------
+        document.getElementById('compareBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('compareResult');
+            const a = analyzeLine(document.getElementById('compareA').value.trim(), opts);
+            const b = analyzeLine(document.getElementById('compareB').value.trim(), opts);
+            if (!a || !a.valid) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a valid address in field A.</div>'; return; }
+            if (!b || !b.valid) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a valid address in field B.</div>'; return; }
+            const same = a.bytes.every((v, i) => v === b.bytes[i]);
+            resultEl.innerHTML =
+                '<div style="margin-bottom:8px;"><span class="badge ' + (same ? 'public' : 'invalid') + '">' + (same ? 'Same address' : 'Different addresses') + '</span></div>' +
+                '<div class="mono-box" style="font-size:11.5px;">A: ' + escapeHtml(formatMac(a.bytes, opts)) + '\nB: ' + escapeHtml(formatMac(b.bytes, opts)) + '</div>';
+        });
+
+        // ---------- Vendor Lookup ----------
+        async function lookupVendor(bytes, targetId) {
+            const el = document.getElementById(targetId);
+            const macStr = bytes.map(b => b.toString(16).padStart(2, '0')).join(':');
+            el.innerHTML = '<div style="font-size:12px;opacity:0.6;">Looking up vendor via api.macvendors.com…</div>';
+            try {
+                const res = await fetch('https://api.macvendors.com/' + macStr);
+                if (res.status === 404) { el.innerHTML = '<div style="font-size:12px;opacity:0.6;">No vendor found for this OUI (may be locally administered or unassigned).</div>'; return; }
+                if (!res.ok) { el.innerHTML = '<div style="color:var(--danger);font-size:12px;">Lookup failed (rate limited or unavailable) — try again shortly.</div>'; return; }
+                const text = await res.text();
+                el.innerHTML = '<div class="mono-box">' + escapeHtml(text) + '</div>';
+            } catch (err) {
+                el.innerHTML = '<div style="color:var(--danger);font-size:12px;">Could not reach api.macvendors.com. Check your connection or try again.</div>';
+            }
+        }
+        document.getElementById('vendorLookupBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('vendorLookupResult');
+            const r = analyzeLine(document.getElementById('vendorLookupInput').value.trim(), opts);
+            if (!r || !r.valid) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter a valid MAC address.</div>'; return; }
+            lookupVendor(r.bytes, 'vendorLookupResult');
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optStrictValidation', 'optDedupeBatch', 'optShowBinary', 'optShowDecimal', 'optShowHexInt', 'optUppercaseHexInt', 'optDetectUnicastMulticast', 'optDetectUL', 'optDetectBroadcast', 'optDetectNull', 'optDetectWellKnown', 'optShowOuiSplit', 'optEnableVendorLookup', 'optBatchVendorLookup', 'optShowEui64', 'optShowLinkLocal'],
+            text: ['maxBatchVendorInput'],
+            radio: ['separatorFormat', 'letterCase']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            cleanup: {
+                optStrictValidation: false, optDedupeBatch: true,
+                separatorFormat: 'colon', letterCase: 'lower',
+                optShowBinary: false, optShowDecimal: false, optShowHexInt: false, optUppercaseHexInt: false,
+                optDetectUnicastMulticast: true, optDetectUL: true, optDetectBroadcast: true, optDetectNull: true, optDetectWellKnown: false,
+                optShowOuiSplit: false, optEnableVendorLookup: false, optBatchVendorLookup: false, maxBatchVendorInput: '10',
+                optShowEui64: false, optShowLinkLocal: false
+            },
+            cisco: {
+                optStrictValidation: false, optDedupeBatch: true,
+                separatorFormat: 'dot', letterCase: 'lower',
+                optShowBinary: false, optShowDecimal: false, optShowHexInt: false, optUppercaseHexInt: false,
+                optDetectUnicastMulticast: true, optDetectUL: true, optDetectBroadcast: true, optDetectNull: false, optDetectWellKnown: true,
+                optShowOuiSplit: true, optEnableVendorLookup: false, optBatchVendorLookup: false, maxBatchVendorInput: '10',
+                optShowEui64: false, optShowLinkLocal: false
+            },
+            classify: {
+                optStrictValidation: true, optDedupeBatch: true,
+                separatorFormat: 'colon', letterCase: 'lower',
+                optShowBinary: true, optShowDecimal: false, optShowHexInt: false, optUppercaseHexInt: false,
+                optDetectUnicastMulticast: true, optDetectUL: true, optDetectBroadcast: true, optDetectNull: true, optDetectWellKnown: true,
+                optShowOuiSplit: true, optEnableVendorLookup: false, optBatchVendorLookup: false, maxBatchVendorInput: '10',
+                optShowEui64: false, optShowLinkLocal: false
+            },
+            eui64: {
+                optStrictValidation: false, optDedupeBatch: true,
+                separatorFormat: 'colon', letterCase: 'lower',
+                optShowBinary: false, optShowDecimal: false, optShowHexInt: false, optUppercaseHexInt: false,
+                optDetectUnicastMulticast: false, optDetectUL: true, optDetectBroadcast: false, optDetectNull: false, optDetectWellKnown: false,
+                optShowOuiSplit: false, optEnableVendorLookup: false, optBatchVendorLookup: false, maxBatchVendorInput: '10',
+                optShowEui64: true, optShowLinkLocal: true
+            },
+            vendor: {
+                optStrictValidation: false, optDedupeBatch: true,
+                separatorFormat: 'colon', letterCase: 'upper',
+                optShowBinary: false, optShowDecimal: false, optShowHexInt: false, optUppercaseHexInt: false,
+                optDetectUnicastMulticast: false, optDetectUL: true, optDetectBroadcast: false, optDetectNull: false, optDetectWellKnown: false,
+                optShowOuiSplit: true, optEnableVendorLookup: true, optBatchVendorLookup: true, maxBatchVendorInput: '10',
+                optShowEui64: false, optShowLinkLocal: false
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'macFormatterCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            analyze();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'mac-formatter-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    analyze();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave ----------
+        const DRAFT_KEY = 'macFormatterDraft';
+        const DRAFT_SETTINGS_KEY = 'macFormatterLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_KEY, document.getElementById('macInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        document.getElementById('macInput').addEventListener('input', saveDraft);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => el.addEventListener('input', saveDraft));
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedDraft = localStorage.getItem(DRAFT_KEY);
+                if (savedDraft !== null && savedDraft !== '') document.getElementById('macInput').value = savedDraft;
+                else document.getElementById('macInput').value = '00:1A:2B:3C:4D:5E\n00-1B-63-84-45-E6\n001a.2b3c.4d5e\nff:ff:ff:ff:ff:ff';
+            } catch (err) {
+                document.getElementById('macInput').value = '00:1A:2B:3C:4D:5E\n00-1B-63-84-45-E6\n001a.2b3c.4d5e\nff:ff:ff:ff:ff:ff';
+            }
+        })();
+
+        // Initial run
+        analyze();
+    </script>
+</body>
+</html>
