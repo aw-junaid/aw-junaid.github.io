@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Compressor — Reduce PDF File Size Free | awjunaid</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF compressor: shrink oversized PDFs by recompressing embedded images, capping resolution, and optimizing structure — entirely in your browser. Inspect what's bloating the file, optionally set a target size, and verify the savings before you send it. 100% client-side, no uploads." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-compressor.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-compressor.html" />
+<meta property="og:title" content="PDF Compressor — awjunaid" />
+<meta property="og:description" content="Shrink oversized PDFs by recompressing images, capping resolution, and optimizing structure — free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-compressor.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Compressor — awjunaid" />
+<meta name="twitter:description" content="Shrink oversized PDFs by recompressing images, capping resolution, and optimizing structure — free, client-side, no signup." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-compressor.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PROBLEM BANNER (what this tool is solving)
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--warn); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--warn) 8%, transparent);
+        }
+        .risk-banner i { font-size: 18px; color: var(--warn); margin-top: 2px; flex-shrink: 0; }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .risk-tag.low { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        /* Quality slider */
+        .quality-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+        .quality-row input[type="range"] { flex: 1; accent-color: var(--text-primary); }
+        .quality-badge {
+            font-family: var(--font-mono); font-size: 12px; font-weight: 700; border: 1px solid var(--border-light);
+            border-radius: 30px; padding: 4px 12px; min-width: 48px; text-align: center;
+        }
+
+        /* Target size row */
+        .target-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+        .target-row input[type="number"] { flex: 1; }
+        .target-row select { width: 90px; flex-shrink: 0; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Composition ring strip on the source panel */
+        .risk-score-strip {
+            display: none;
+            align-items: center; gap: 14px;
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 14px 18px; margin-bottom: 14px;
+        }
+        .risk-score-strip.show { display: flex; }
+        .risk-score-ring {
+            width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-header); font-weight: 800; font-size: 14px;
+            border: 3px solid var(--border-light);
+        }
+        .risk-score-ring.high { border-color: var(--danger); color: var(--danger); }
+        .risk-score-ring.med { border-color: var(--warn); color: var(--warn); }
+        .risk-score-ring.low { border-color: var(--accent); color: var(--accent); }
+        .risk-score-text strong { display: block; font-size: 13px; }
+        .risk-score-text span { font-size: 11px; opacity: 0.65; }
+
+        /* Image inspector list */
+        .field-inspector-wrap { display: none; }
+        .field-inspector-wrap.show { display: block; }
+        .field-inspector-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .field-inspector-toolbar button { font-size: 10px; padding: 7px 12px; }
+        .field-inspector {
+            border: 1px solid var(--border-light); border-radius: 16px;
+            max-height: 380px; overflow-y: auto;
+        }
+        .fi-group { border-bottom: 1px solid var(--border-light); }
+        .fi-group:last-child { border-bottom: none; }
+        .fi-group-head {
+            font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+            opacity: 0.5; padding: 10px 16px 6px; font-family: var(--font-header);
+        }
+        .fi-row {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 9px 16px; border-top: 1px solid var(--border-light);
+        }
+        .fi-row:first-of-type { border-top: none; }
+        .fi-row input[type="checkbox"] { margin-top: 3px; accent-color: var(--text-primary); cursor: pointer; flex-shrink: 0; }
+        .fi-row .fi-main { flex: 1; min-width: 0; }
+        .fi-row .fi-key { font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; }
+        .fi-row .fi-val { font-family: var(--font-mono); font-size: 11px; opacity: 0.65; word-break: break-word; margin-top: 2px; }
+        .fi-row .fi-val.empty { opacity: 0.35; font-style: italic; }
+        .fi-badge {
+            font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; flex-shrink: 0; margin-top: 1px;
+        }
+        .fi-badge.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .fi-badge.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .fi-badge.low { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        .verify-row {
+            display: grid; grid-template-columns: 1fr auto 1fr auto; align-items: center; gap: 10px;
+            padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 11.5px;
+        }
+        .verify-row:last-child { border-bottom: none; }
+        .verify-row .v-before { opacity: 0.55; word-break: break-word; }
+        .verify-row .v-after { word-break: break-word; }
+        .verify-row .v-arrow { opacity: 0.4; }
+        .verify-row .v-status { font-size: 9px; font-weight: 800; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; text-align: center; }
+        .verify-row .v-status.removed { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .verify-row .v-status.changed { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .verify-row .v-status.kept { background: color-mix(in srgb, var(--border-light) 60%, transparent); opacity: 0.7; }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .verify-row { grid-template-columns: 1fr; gap: 3px; }
+            .verify-row .v-arrow { display: none; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+            .target-row { flex-direction: column; align-items: stretch; }
+            .target-row select { width: 100%; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Compressor</h1>
+                <div class="tool-dek">A scanned contract, a photographed receipt, an export from a phone camera app — and suddenly your "one page" PDF is 18MB and bouncing off an email attachment limit. This tool inspects exactly what's bloating the file (almost always the embedded images), recompresses or downsamples them, strips dead weight, and — if you set a target size — keeps retrying until it fits. Nothing leaves your browser.</div>
+            </div>
+
+            <div class="risk-banner">
+                <i class="fa-solid fa-weight-hanging"></i>
+                <div>
+                    <strong>Why PDFs balloon in size</strong>
+                    <p>Scanner and camera apps routinely embed images at full sensor resolution and near-lossless quality — a single photographed page can carry a 6–15MB JPEG doing the work of a 300KB one. Add uncompressed object tables, leftover revision data, and no object-stream packing, and a five-page document can outweigh a short film clip. This tool targets each of those causes directly instead of just re-zipping the file.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="maximum">Maximum Compression</option>
+                    <option value="high">High Compression</option>
+                    <option value="balanced" selected>Balanced</option>
+                    <option value="light">Light (near-lossless)</option>
+                    <option value="archive">Archive Quality (structure only)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Image Recompression <span class="mini-link" id="fiSelectInfo">select all supported images below</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRecompressImages" checked>
+                            <span><span class="setting-name">Recompress embedded images <span class="risk-tag low">Main lever</span></span><span class="setting-hint">Decodes and re-encodes JPEG / raw RGB / grayscale images at a lower quality</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optGrayscale">
+                            <span><span class="setting-name">Convert images to grayscale</span><span class="setting-hint">Big savings for scanned text documents that don't need color</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optSkipTransparent" checked>
+                            <span><span class="setting-name">Skip images with transparency</span><span class="setting-hint">Leaves images with an SMask/alpha channel untouched to avoid visual breakage</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label for="jpegQuality">JPEG quality</label>
+                            <div class="quality-row">
+                                <input type="range" id="jpegQuality" min="10" max="95" value="65">
+                                <span class="quality-badge" id="qualityBadge">65%</span>
+                            </div>
+                            <div class="field-note">Lower = smaller file, more visible artifacting. 60–75% is usually unnoticeable for scanned documents.</div>
+                        </div>
+                        <div class="field-group">
+                            <label for="maxDimSelect">Max image resolution</label>
+                            <select id="maxDimSelect">
+                                <option value="">No limit (quality only)</option>
+                                <option value="2000">2000px longest side (print, ~300dpi @ letter)</option>
+                                <option value="1500">1500px longest side (high, ~200dpi)</option>
+                                <option value="1000" selected>1000px longest side (screen, ~150dpi)</option>
+                                <option value="720">720px longest side (email, ~100dpi)</option>
+                                <option value="480">480px longest side (aggressive, ~72dpi)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="minImageKB">Skip images smaller than</label>
+                            <input type="number" id="minImageKB" min="0" value="20" step="1">
+                            <div class="field-note">In KB — avoids wasting time re-encoding tiny icons/logos.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Page Rasterization <span class="risk-tag med">Aggressive</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRasterize">
+                            <span><span class="setting-name">Flatten pages to compressed images</span><span class="setting-hint">Re-renders every page as one JPEG — smallest possible file, but text is no longer selectable/searchable</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:10px;">
+                        <div class="field-group">
+                            <label for="rasterDpi">Rasterization DPI</label>
+                            <select id="rasterDpi">
+                                <option value="72">72 DPI (screen only)</option>
+                                <option value="96">96 DPI (web)</option>
+                                <option value="150" selected>150 DPI (readable)</option>
+                                <option value="200">200 DPI (sharp)</option>
+                                <option value="300">300 DPI (print)</option>
+                            </select>
+                            <div class="field-note">Only used when rasterization is enabled — best for scanned/photo-only PDFs with little or no real text.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Structural Optimization</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optObjectStreams" checked>
+                            <span><span class="setting-name">Use object streams</span><span class="setting-hint">Packs the PDF's internal object table more efficiently — free savings, always safe</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRemoveMetadata">
+                            <span><span class="setting-name">Remove document metadata</span><span class="setting-hint">Clears Author/Producer/dates/XMP — a minor size cut; for full metadata control use the PDF Metadata Remover</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optReportDuplicates" checked>
+                            <span><span class="setting-name">Report duplicate images</span><span class="setting-hint">Flags identical embedded images (e.g. a repeated letterhead) — informational only</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Target File Size <span class="risk-tag low">Optional</span></h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label>Compress until under</label>
+                            <div class="target-row">
+                                <input type="number" id="targetSizeVal" min="0" step="0.1" placeholder="e.g. 5">
+                                <select id="targetSizeUnit">
+                                    <option value="MB" selected>MB</option>
+                                    <option value="KB">KB</option>
+                                </select>
+                            </div>
+                            <div class="field-note">If set, quality is automatically lowered in steps (down to 20%) and retried until the file fits, or the floor is reached.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVerifyAfter" checked>
+                            <span><span class="setting-name">Verify output after compressing</span><span class="setting-hint">Re-measures the cleaned file and reports actual byte savings, per image and overall</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchZip" checked>
+                            <span><span class="setting-name">Bundle batch output as ZIP</span><span class="setting-hint">Applies when compressing multiple files at once</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="compressed.pdf">
+                            <div class="field-note">Applied to a single file. Batch mode appends "-compressed" to each original name.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Source PDF</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Choose PDF(s)</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag & drop one or more .pdf files here, or use "Choose PDF(s)" above.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="risk-score-strip" id="riskScoreStrip">
+                        <div class="risk-score-ring" id="riskScoreRing">0%</div>
+                        <div class="risk-score-text">
+                            <strong id="riskScoreLabel">No file loaded</strong>
+                            <span id="riskScoreSub">—</span>
+                        </div>
+                    </div>
+
+                    <div class="field-inspector-wrap" id="fieldInspectorWrap">
+                        <div class="field-inspector-toolbar">
+                            <button class="btn-ghost" id="fiSelectAllBtn" type="button">Select all supported</button>
+                            <button class="btn-ghost" id="fiSelectNoneBtn" type="button">Clear selection</button>
+                        </div>
+                        <div class="field-inspector" id="fieldInspector"></div>
+                    </div>
+
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalImagesFound">0</strong> image(s) found</span>
+                        <span><strong id="totalFilesLoaded">0</strong> file(s) loaded</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Compress & Verify</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="compressBtn" type="button"><i class="fa-solid fa-compress"></i> Compress PDF</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Compression Plan</button>
+                        <button class="output-tab" data-tab="verify" type="button">Verify</button>
+                        <button class="output-tab" data-tab="files" type="button">Output Files</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Load a PDF and it'll be scanned automatically — the compression plan appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-verify">
+                        <div class="info-pane" id="verifyPane"><p class="info-empty">Run "Compress PDF" to see a before/after size comparison confirming the actual savings.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">Compressed files will be listed here after processing.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Scan and compression activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputBeforeSize">0 KB</strong> original</span>
+                        <span><strong id="outputAfterSize">0 KB</strong> compressed</span>
+                        <span><strong id="outputStatus">Not compressed yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>Where does the size actually go?</h4>
+                        <p>In almost every oversized PDF, embedded raster images account for the overwhelming majority of the file. This tool scans every image XObject in the document and shows you what share of the total file they make up before you compress anything.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Does it re-encode text and vector graphics?</h4>
+                        <p>No — real text and vector drawing stay exactly as they are (still selectable and sharp at any zoom) unless you turn on full-page rasterization. Only raster image data is recompressed, which is where the actual bloat lives.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does "Max image resolution" actually change?</h4>
+                        <p>It caps the longest side of each embedded image in pixels before recompression. A camera photo saved at 4000px wide is almost always far more detail than a printed or on-screen page needs — capping it is usually the single biggest size reduction available.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>When should I use page rasterization?</h4>
+                        <p>Only for PDFs that are already just photos of pages with little real, selectable text — think a phone-scanned form. It re-renders each page as one compressed image, which shrinks aggressively but permanently removes text selection and searchability.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does the target size option work?</h4>
+                        <p>If you set a target, the tool compresses at your chosen quality, checks the result, and — if it's still too big — automatically retries at a lower quality (down to a 20% floor) up to five times, logging each attempt so you can see what it took.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every PDF you load is scanned and compressed locally in your browser using pdf-lib, pdf.js, and canvas re-encoding — nothing is sent anywhere. Reload the page and everything is cleared except your settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // PDF COMPRESSOR — ENTERPRISE EDITION
+        // ============================================
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const verifyPane = document.getElementById('verifyPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const compressBtn = document.getElementById('compressBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const fieldInspectorWrap = document.getElementById('fieldInspectorWrap');
+        const fieldInspector = document.getElementById('fieldInspector');
+        const riskScoreStrip = document.getElementById('riskScoreStrip');
+
+        let loadedFiles = []; // { name, bytes, scan }
+        let outputs = []; // { name, blob, size, originalSize }
+        let imageSelection = {}; // tag -> bool, driven by the first loaded file
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_CHECKBOXES = [
+            'optRecompressImages','optGrayscale','optSkipTransparent','optRasterize',
+            'optObjectStreams','optRemoveMetadata','optReportDuplicates','optVerifyAfter','optBatchZip'
+        ];
+        const SETTING_TEXT = ['outputFilename','targetSizeVal'];
+        const SETTING_SELECT = ['maxDimSelect','rasterDpi','targetSizeUnit'];
+        const SETTING_RANGE = ['jpegQuality'];
+
+        function getOptions() {
+            const opts = {};
+            SETTING_CHECKBOXES.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_TEXT.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_SELECT.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_RANGE.forEach(id => opts[id] = Number(document.getElementById(id).value));
+            return opts;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_CHECKBOXES.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_TEXT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_SELECT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_RANGE.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            updateQualityBadge();
+        }
+
+        function updateQualityBadge() {
+            document.getElementById('qualityBadge').textContent = document.getElementById('jpegQuality').value + '%';
+        }
+        document.getElementById('jpegQuality').addEventListener('input', updateQualityBadge);
+
+        function markCustomAndSave() {
+            document.getElementById('presetSelect').value = 'custom';
+            invalidateCompress();
+            updateQualityBadge();
+            if (loadedFiles.length) renderPlan();
+            saveSettingsDraft();
+        }
+        document.querySelectorAll('.settings-card input[type="checkbox"], .settings-card input[type="text"], .settings-card input[type="number"], .settings-card input[type="range"], .settings-card select').forEach(el => {
+            el.addEventListener('input', markCustomAndSave);
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            maximum: {
+                optRecompressImages: true, jpegQuality: 35, maxDimSelect: '1000', optGrayscale: false, minImageKB: 10,
+                optSkipTransparent: true, optRasterize: true, rasterDpi: '100', optObjectStreams: true,
+                optRemoveMetadata: true, optReportDuplicates: true, optVerifyAfter: true, optBatchZip: true,
+                outputFilename: 'compressed.pdf', targetSizeVal: '', targetSizeUnit: 'MB'
+            },
+            high: {
+                optRecompressImages: true, jpegQuality: 50, maxDimSelect: '1500', optGrayscale: false, minImageKB: 15,
+                optSkipTransparent: true, optRasterize: false, rasterDpi: '150', optObjectStreams: true,
+                optRemoveMetadata: false, optReportDuplicates: true, optVerifyAfter: true, optBatchZip: true,
+                outputFilename: 'compressed.pdf', targetSizeVal: '', targetSizeUnit: 'MB'
+            },
+            balanced: {
+                optRecompressImages: true, jpegQuality: 65, maxDimSelect: '1000', optGrayscale: false, minImageKB: 20,
+                optSkipTransparent: true, optRasterize: false, rasterDpi: '150', optObjectStreams: true,
+                optRemoveMetadata: false, optReportDuplicates: true, optVerifyAfter: true, optBatchZip: true,
+                outputFilename: 'compressed.pdf', targetSizeVal: '', targetSizeUnit: 'MB'
+            },
+            light: {
+                optRecompressImages: true, jpegQuality: 85, maxDimSelect: '', optGrayscale: false, minImageKB: 50,
+                optSkipTransparent: true, optRasterize: false, rasterDpi: '150', optObjectStreams: true,
+                optRemoveMetadata: false, optReportDuplicates: true, optVerifyAfter: true, optBatchZip: true,
+                outputFilename: 'compressed.pdf', targetSizeVal: '', targetSizeUnit: 'MB'
+            },
+            archive: {
+                optRecompressImages: false, jpegQuality: 90, maxDimSelect: '', optGrayscale: false, minImageKB: 20,
+                optSkipTransparent: true, optRasterize: false, rasterDpi: '150', optObjectStreams: true,
+                optRemoveMetadata: false, optReportDuplicates: true, optVerifyAfter: true, optBatchZip: true,
+                outputFilename: 'compressed.pdf', targetSizeVal: '', targetSizeUnit: 'MB'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfCompressorCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            invalidateCompress();
+            if (loadedFiles.length) renderPlan();
+            saveSettingsDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-compressor-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    invalidateCompress();
+                    if (loadedFiles.length) renderPlan();
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        document.getElementById('fiSelectInfo').addEventListener('click', () => {
+            document.getElementById('fiSelectAllBtn').click();
+        });
+
+        // ============================================
+        // ERROR / LOG HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function clearLog() {
+            logLines = [];
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Scan and compression activity will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function truncate(str, n) {
+            str = String(str);
+            return str.length > n ? str.slice(0, n) + '…' : str;
+        }
+        function formatBytes(n) {
+            if (n < 1024) return n + ' B';
+            if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+            return (n / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // ============================================
+        // SCANNING: walk every image XObject in the PDF
+        // ============================================
+        function nameOf(pdfNameObj) {
+            try { return pdfNameObj && pdfNameObj.encodedName ? pdfNameObj.encodedName().replace(/^\//, '') : ''; } catch (e) { return ''; }
+        }
+
+        function quickHash(bytes) {
+            let h = 0;
+            const step = Math.max(1, Math.floor(bytes.length / 256));
+            for (let i = 0; i < bytes.length; i += step) h = (h * 31 + bytes[i]) >>> 0;
+            return h.toString(16) + '_' + bytes.length;
+        }
+
+        async function scanFile(bytes) {
+            const { PDFDocument, PDFName } = PDFLib;
+            const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+            const images = [];
+            let imageBytesTotal = 0;
+            const hashGroups = {};
+
+            for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
+                if (!(obj instanceof PDFLib.PDFStream)) continue;
+                if (nameOf(obj.dict.get(PDFName.of('Subtype'))) !== 'Image') continue;
+
+                const raw = obj.contents || new Uint8Array();
+                const widthObj = obj.dict.get(PDFName.of('Width'));
+                const heightObj = obj.dict.get(PDFName.of('Height'));
+                const width = widthObj && widthObj.asNumber ? widthObj.asNumber() : 0;
+                const height = heightObj && heightObj.asNumber ? heightObj.asNumber() : 0;
+                const bpcObj = obj.dict.get(PDFName.of('BitsPerComponent'));
+                const bpc = bpcObj && bpcObj.asNumber ? bpcObj.asNumber() : null;
+
+                let filterName = nameOf(obj.dict.get(PDFName.of('Filter')));
+                let csName = '';
+                const csObj = obj.dict.get(PDFName.of('ColorSpace'));
+                try {
+                    if (csObj && csObj.encodedName) csName = nameOf(csObj);
+                    else if (csObj) { const looked = doc.context.lookup(csObj); csName = looked ? (nameOf(looked) || 'Indexed/Other') : 'Other'; }
+                } catch (e) { csName = 'Other'; }
+
+                const hasSMask = !!obj.dict.get(PDFName.of('SMask'));
+                const supported = (filterName === 'DCTDecode' && bpc === 8) ||
+                    ((filterName === 'FlateDecode' || filterName === '') && bpc === 8 && (csName === 'DeviceRGB' || csName === 'DeviceGray'));
+                const tag = `img_${ref.objectNumber}_${ref.generationNumber}`;
+
+                images.push({ tag, width, height, bpc, filterName: filterName || 'None', csName: csName || 'Unknown', hasSMask, size: raw.length, supported });
+                imageBytesTotal += raw.length;
+
+                const h = quickHash(raw) + ':' + width + 'x' + height;
+                hashGroups[h] = (hashGroups[h] || 0) + 1;
+            }
+
+            const duplicateCount = Object.values(hashGroups).filter(c => c > 1).reduce((a, c) => a + c, 0);
+            images.sort((a, b) => b.size - a.size);
+            return { images, imageBytesTotal, totalSize: bytes.length, pageCount: doc.getPageCount(), duplicateCount };
+        }
+
+        // ============================================
+        // FILE LOADING
+        // ============================================
+        async function loadFiles(fileList) {
+            clearError();
+            clearLog();
+            const files = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+            if (files.length === 0) {
+                showError('No valid PDF files selected.');
+                return;
+            }
+            loadedFiles = [];
+            for (const file of files) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const scan = await scanFile(bytes);
+                    loadedFiles.push({ name: file.name, bytes, scan });
+                    logMsg(`Scanned "${file.name}" — ${scan.images.length} image(s), ${formatBytes(scan.imageBytesTotal)} of ${formatBytes(scan.totalSize)} is image data.`, 'success');
+                } catch (err) {
+                    logMsg(`Failed to scan "${file.name}": ${err.message || err}`, 'error');
+                }
+            }
+            if (loadedFiles.length === 0) {
+                showError('None of the selected files could be read as PDFs.');
+                return;
+            }
+
+            const first = loadedFiles[0];
+            document.getElementById('lfName').textContent = loadedFiles.length === 1 ? first.name : `${first.name} + ${loadedFiles.length - 1} more`;
+            document.getElementById('lfMeta').textContent = loadedFiles.length === 1
+                ? `${formatBytes(first.scan.totalSize)} · ${first.scan.pageCount} page(s) · ${first.scan.images.length} image(s)`
+                : `${loadedFiles.length} files loaded — batch mode`;
+            loadedFileCard.classList.add('show');
+            document.getElementById('totalFilesLoaded').textContent = loadedFiles.length;
+
+            const base = first.name.replace(/\.pdf$/i, '');
+            document.getElementById('outputFilename').value = base + '-compressed.pdf';
+
+            initImageSelection();
+            renderCompositionRing();
+            renderImageInspector();
+            invalidateCompress();
+            renderPlan();
+        }
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            loadedFiles = [];
+            loadedFileCard.classList.remove('show');
+            fieldInspectorWrap.classList.remove('show');
+            riskScoreStrip.classList.remove('show');
+            document.getElementById('totalFilesLoaded').textContent = '0';
+            document.getElementById('totalImagesFound').textContent = '0';
+            invalidateCompress();
+            planPane.innerHTML = '<p class="info-empty">Load a PDF and it\'ll be scanned automatically — the compression plan appears here.</p>';
+        });
+
+        // ============================================
+        // COMPOSITION RING (how much of the file is images)
+        // ============================================
+        function renderCompositionRing() {
+            if (loadedFiles.length === 0) { riskScoreStrip.classList.remove('show'); return; }
+            const first = loadedFiles[0];
+            const pct = first.scan.totalSize > 0 ? Math.round((first.scan.imageBytesTotal / first.scan.totalSize) * 100) : 0;
+            const ring = document.getElementById('riskScoreRing');
+            const label = document.getElementById('riskScoreLabel');
+            const sub = document.getElementById('riskScoreSub');
+            ring.textContent = pct + '%';
+            ring.className = 'risk-score-ring ' + (pct >= 60 ? 'high' : pct >= 25 ? 'med' : 'low');
+            label.textContent = pct >= 60 ? 'Image-dominated file' : pct >= 25 ? 'Mixed content file' : 'Mostly text/vector file';
+            let subText = `${formatBytes(first.scan.imageBytesTotal)} of ${formatBytes(first.scan.totalSize)} is embedded images across ${first.scan.images.length} image(s)`;
+            if (first.scan.duplicateCount > 0) subText += ` · ${first.scan.duplicateCount} duplicate image(s) detected`;
+            sub.textContent = subText;
+            riskScoreStrip.classList.add('show');
+        }
+
+        // ============================================
+        // IMAGE INSPECTOR (first file drives the UI; batch applies same rules)
+        // ============================================
+        function initImageSelection() {
+            imageSelection = {};
+            const first = loadedFiles[0];
+            if (!first) return;
+            const minBytes = (Number(document.getElementById('minImageKB').value) || 0) * 1024;
+            first.scan.images.forEach(img => {
+                imageSelection[img.tag] = img.supported && img.size >= minBytes && !(img.hasSMask && document.getElementById('optSkipTransparent').checked);
+            });
+        }
+
+        function renderImageInspector() {
+            const first = loadedFiles[0];
+            if (!first || first.scan.images.length === 0) { fieldInspectorWrap.classList.remove('show'); return; }
+            let html = '<div class="fi-group"><div class="fi-group-head">Embedded Images (largest first)</div>';
+            first.scan.images.forEach(img => {
+                const checked = imageSelection[img.tag] !== false;
+                const severity = img.size > 500 * 1024 ? 'high' : img.size > 100 * 1024 ? 'med' : 'low';
+                const badge = img.supported ? (severity === 'high' ? 'high' : severity) : 'med';
+                const badgeText = img.supported ? formatBytes(img.size) : 'Unsupported';
+                const detail = `${img.width}×${img.height} · ${img.filterName} · ${img.csName}${img.hasSMask ? ' · has transparency' : ''}`;
+                html += `<div class="fi-row">
+                    <input type="checkbox" data-key="${img.tag}" ${checked ? 'checked' : ''} ${img.supported ? '' : 'disabled'}>
+                    <div class="fi-main"><div class="fi-key">${formatBytes(img.size)}${img.supported ? '' : ' — not recompressible'}</div><div class="fi-val">${escapeHtmlStr(detail)}</div></div>
+                    <span class="fi-badge ${badge}">${escapeHtmlStr(badgeText === 'Unsupported' ? 'Skip' : (severity === 'high' ? 'Large' : severity === 'med' ? 'Medium' : 'Small'))}</span>
+                </div>`;
+            });
+            html += '</div>';
+            fieldInspector.innerHTML = html;
+            document.getElementById('totalImagesFound').textContent = first.scan.images.length;
+
+            fieldInspector.querySelectorAll('.fi-row input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    imageSelection[cb.dataset.key] = cb.checked;
+                    invalidateCompress();
+                    renderPlan();
+                });
+            });
+
+            fieldInspectorWrap.classList.add('show');
+        }
+
+        document.getElementById('fiSelectAllBtn').addEventListener('click', () => {
+            const first = loadedFiles[0];
+            if (!first) return;
+            first.scan.images.forEach(img => { if (img.supported) imageSelection[img.tag] = true; });
+            fieldInspector.querySelectorAll('input[type="checkbox"]:not(:disabled)').forEach(cb => cb.checked = true);
+            invalidateCompress(); renderPlan();
+        });
+        document.getElementById('fiSelectNoneBtn').addEventListener('click', () => {
+            Object.keys(imageSelection).forEach(k => imageSelection[k] = false);
+            fieldInspector.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            invalidateCompress(); renderPlan();
+        });
+
+        // ============================================
+        // COMPRESSION PLAN PREVIEW
+        // ============================================
+        function renderPlan() {
+            if (loadedFiles.length === 0) {
+                planPane.innerHTML = '<p class="info-empty">Load a PDF and it\'ll be scanned automatically — the compression plan appears here.</p>';
+                return;
+            }
+            const opts = getOptions();
+            const selectedCount = Object.values(imageSelection).filter(Boolean).length;
+            let html = `<div class="meta-row"><span>Files queued</span><span>${loadedFiles.length}</span></div>`;
+            html += `<div class="meta-row"><span>Mode</span><span>${opts.optRasterize ? 'Full-page rasterization' : 'Selective image recompression'}</span></div>`;
+            if (opts.optRasterize) {
+                html += `<div class="meta-row"><span>Rasterization DPI</span><span>${opts.rasterDpi}</span></div>`;
+            } else {
+                html += `<div class="meta-row"><span>Images marked for recompression</span><span>${selectedCount}</span></div>`;
+                html += `<div class="meta-row"><span>Max resolution cap</span><span>${opts.maxDimSelect ? opts.maxDimSelect + 'px longest side' : 'None'}</span></div>`;
+            }
+            html += `<div class="meta-row"><span>JPEG quality</span><span>${opts.jpegQuality}%</span></div>`;
+            html += `<div class="meta-row"><span>Grayscale conversion</span><span>${opts.optGrayscale ? 'Yes' : 'No'}</span></div>`;
+            html += `<div class="meta-row"><span>Object streams</span><span>${opts.optObjectStreams ? 'Enabled' : 'Disabled'}</span></div>`;
+            html += `<div class="meta-row"><span>Remove metadata</span><span>${opts.optRemoveMetadata ? 'Yes' : 'No'}</span></div>`;
+            const targetVal = Number(opts.targetSizeVal);
+            if (targetVal > 0) html += `<div class="meta-row"><span>Target size</span><span>Under ${targetVal} ${opts.targetSizeUnit}</span></div>`;
+            planPane.innerHTML = html;
+        }
+
+        // ============================================
+        // IMAGE DECODING / ENCODING HELPERS
+        // ============================================
+        function loadImageEl(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+        async function jpegBytesToCanvas(bytes) {
+            const blob = new Blob([bytes], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+            try {
+                const img = await loadImageEl(url);
+                const c = document.createElement('canvas');
+                c.width = img.naturalWidth; c.height = img.naturalHeight;
+                c.getContext('2d').drawImage(img, 0, 0);
+                return c;
+            } finally { URL.revokeObjectURL(url); }
+        }
+        function rawPixelsToCanvas(decoded, width, height, comps) {
+            const c = document.createElement('canvas');
+            c.width = width; c.height = height;
+            const ctx = c.getContext('2d');
+            const imgData = ctx.createImageData(width, height);
+            const rowBytes = width * comps;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const si = y * rowBytes + x * comps;
+                    const di = (y * width + x) * 4;
+                    if (comps === 1) {
+                        const g = decoded[si] || 0;
+                        imgData.data[di] = g; imgData.data[di + 1] = g; imgData.data[di + 2] = g; imgData.data[di + 3] = 255;
+                    } else {
+                        imgData.data[di] = decoded[si] || 0; imgData.data[di + 1] = decoded[si + 1] || 0; imgData.data[di + 2] = decoded[si + 2] || 0; imgData.data[di + 3] = 255;
+                    }
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return c;
+        }
+        function computeTargetDims(w, h, maxDim) {
+            if (!maxDim || (w <= maxDim && h <= maxDim)) return { w, h };
+            if (w >= h) { const nw = maxDim; const nh = Math.round(h * maxDim / w); return { w: nw, h: Math.max(1, nh) }; }
+            const nh = maxDim; const nw = Math.round(w * maxDim / h); return { w: Math.max(1, nw), h: nh };
+        }
+        function dataUrlToBytes(dataUrl) {
+            const base64 = dataUrl.split(',')[1];
+            const bin = atob(base64);
+            const arr = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+            return arr;
+        }
+        function stripMetadata(doc) {
+            const { PDFName } = PDFLib;
+            const infoRef = doc.context.trailerInfo.Info;
+            const info = infoRef ? doc.context.lookup(infoRef) : null;
+            if (info && info.delete) ['Author', 'Producer', 'Creator', 'Subject', 'Keywords', 'CreationDate', 'ModDate'].forEach(k => info.delete(PDFName.of(k)));
+            if (doc.catalog.get(PDFName.of('Metadata'))) doc.catalog.delete(PDFName.of('Metadata'));
+        }
+
+        // ============================================
+        // COMPRESSION ENGINE — image recompression path
+        // ============================================
+        async function compressOneFile(entry, opts) {
+            const { PDFDocument, PDFName, PDFNumber, PDFRawStream } = PDFLib;
+            const doc = await PDFDocument.load(entry.bytes, { ignoreEncryption: true, updateMetadata: false });
+            const maxDim = opts.maxDimSelect ? Number(opts.maxDimSelect) : null;
+            const minBytes = (Number(opts.minImageKB) || 0) * 1024;
+
+            let imagesProcessed = 0, imagesSkipped = 0, bytesBeforeImgs = 0, bytesAfterImgs = 0;
+            const perImage = [];
+
+            if (opts.optRecompressImages) {
+                for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
+                    if (!(obj instanceof PDFLib.PDFStream)) continue;
+                    if (nameOf(obj.dict.get(PDFName.of('Subtype'))) !== 'Image') continue;
+
+                    const tag = `img_${ref.objectNumber}_${ref.generationNumber}`;
+                    if (imageSelection[tag] === false) { imagesSkipped++; continue; }
+
+                    const raw = obj.contents || new Uint8Array();
+                    if (raw.length < minBytes) { imagesSkipped++; continue; }
+
+                    const hasSMask = !!obj.dict.get(PDFName.of('SMask'));
+                    if (hasSMask && opts.optSkipTransparent) { imagesSkipped++; continue; }
+
+                    const widthObj = obj.dict.get(PDFName.of('Width'));
+                    const heightObj = obj.dict.get(PDFName.of('Height'));
+                    const width = widthObj && widthObj.asNumber ? widthObj.asNumber() : 0;
+                    const height = heightObj && heightObj.asNumber ? heightObj.asNumber() : 0;
+                    if (!width || !height) { imagesSkipped++; continue; }
+
+                    const bpcObj = obj.dict.get(PDFName.of('BitsPerComponent'));
+                    const bpc = bpcObj && bpcObj.asNumber ? bpcObj.asNumber() : null;
+                    const filterName = nameOf(obj.dict.get(PDFName.of('Filter')));
+                    let csName = '';
+                    const csObj = obj.dict.get(PDFName.of('ColorSpace'));
+                    try {
+                        if (csObj && csObj.encodedName) csName = nameOf(csObj);
+                        else if (csObj) { const looked = doc.context.lookup(csObj); csName = looked ? nameOf(looked) : ''; }
+                    } catch (e) { /* ignore */ }
+
+                    let sourceCanvas;
+                    try {
+                        if (filterName === 'DCTDecode' && bpc === 8) {
+                            sourceCanvas = await jpegBytesToCanvas(raw);
+                        } else if ((filterName === 'FlateDecode' || filterName === '') && bpc === 8 && (csName === 'DeviceRGB' || csName === 'DeviceGray')) {
+                            const decoded = filterName === 'FlateDecode' ? pako.inflate(raw) : raw;
+                            sourceCanvas = rawPixelsToCanvas(decoded, width, height, csName === 'DeviceGray' ? 1 : 3);
+                        } else {
+                            imagesSkipped++; continue;
+                        }
+                    } catch (e) { imagesSkipped++; continue; }
+
+                    const dims = computeTargetDims(sourceCanvas.width, sourceCanvas.height, maxDim);
+                    const outCanvas = document.createElement('canvas');
+                    outCanvas.width = dims.w; outCanvas.height = dims.h;
+                    const octx = outCanvas.getContext('2d');
+                    if (opts.optGrayscale) octx.filter = 'grayscale(1)';
+                    octx.drawImage(sourceCanvas, 0, 0, dims.w, dims.h);
+                    const dataUrl = outCanvas.toDataURL('image/jpeg', Math.max(0.01, opts.jpegQuality / 100));
+                    const newBytes = dataUrlToBytes(dataUrl);
+
+                    if (newBytes.length >= raw.length) { imagesSkipped++; continue; }
+
+                    const newDict = doc.context.obj({});
+                    newDict.set(PDFName.of('Type'), PDFName.of('XObject'));
+                    newDict.set(PDFName.of('Subtype'), PDFName.of('Image'));
+                    newDict.set(PDFName.of('Width'), PDFNumber.of(dims.w));
+                    newDict.set(PDFName.of('Height'), PDFNumber.of(dims.h));
+                    newDict.set(PDFName.of('ColorSpace'), PDFName.of('DeviceRGB'));
+                    newDict.set(PDFName.of('BitsPerComponent'), PDFNumber.of(8));
+                    newDict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
+                    newDict.set(PDFName.of('Length'), PDFNumber.of(newBytes.length));
+                    const newStream = PDFRawStream.of(newDict, newBytes);
+                    doc.context.assign(ref, newStream);
+
+                    imagesProcessed++;
+                    bytesBeforeImgs += raw.length;
+                    bytesAfterImgs += newBytes.length;
+                    perImage.push({ tag, before: raw.length, after: newBytes.length, w: width, h: height, newW: dims.w, newH: dims.h });
+                }
+            }
+
+            if (opts.optRemoveMetadata) stripMetadata(doc);
+
+            const bytes = await doc.save({ useObjectStreams: opts.optObjectStreams });
+            return { bytes, imagesProcessed, imagesSkipped, bytesBeforeImgs, bytesAfterImgs, perImage };
+        }
+
+        // ============================================
+        // COMPRESSION ENGINE — full-page rasterization path
+        // ============================================
+        async function rasterizeFile(entry, opts) {
+            const loadingTask = pdfjsLib.getDocument({ data: entry.bytes.slice() });
+            const pdfDoc = await loadingTask.promise;
+            const outDoc = await PDFLib.PDFDocument.create();
+            const dpi = Number(opts.rasterDpi) || 150;
+            const scale = dpi / 72;
+
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const viewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.ceil(viewport.width);
+                canvas.height = Math.ceil(viewport.height);
+                const ctx = canvas.getContext('2d');
+                if (opts.optGrayscale) ctx.filter = 'grayscale(1)';
+                await page.render({ canvasContext: ctx, viewport }).promise;
+
+                const dataUrl = canvas.toDataURL('image/jpeg', Math.max(0.01, opts.jpegQuality / 100));
+                const jpgBytes = dataUrlToBytes(dataUrl);
+                const jpgImage = await outDoc.embedJpg(jpgBytes);
+                const pageWidthPts = canvas.width * 72 / dpi;
+                const pageHeightPts = canvas.height * 72 / dpi;
+                const newPage = outDoc.addPage([pageWidthPts, pageHeightPts]);
+                newPage.drawImage(jpgImage, { x: 0, y: 0, width: pageWidthPts, height: pageHeightPts });
+            }
+
+            if (opts.optRemoveMetadata) stripMetadata(outDoc);
+            const bytes = await outDoc.save({ useObjectStreams: opts.optObjectStreams });
+            return { bytes, imagesProcessed: pdfDoc.numPages, imagesSkipped: 0, bytesBeforeImgs: entry.bytes.length, bytesAfterImgs: bytes.length, perImage: [] };
+        }
+
+        async function compressForTarget(entry, opts) {
+            let quality = opts.jpegQuality;
+            const targetVal = Number(opts.targetSizeVal);
+            const targetBytes = targetVal > 0 ? targetVal * (opts.targetSizeUnit === 'MB' ? 1024 * 1024 : 1024) : 0;
+
+            let result = opts.optRasterize ? await rasterizeFile(entry, { ...opts, jpegQuality: quality }) : await compressOneFile(entry, { ...opts, jpegQuality: quality });
+            let tries = 0;
+            while (targetBytes && result.bytes.length > targetBytes && quality > 20 && tries < 5) {
+                quality = Math.max(20, quality - 15);
+                tries++;
+                logMsg(`"${entry.name}" is still above target (${formatBytes(result.bytes.length)} > ${formatBytes(targetBytes)}) — retrying at ${quality}% quality…`, 'warn');
+                result = opts.optRasterize ? await rasterizeFile(entry, { ...opts, jpegQuality: quality }) : await compressOneFile(entry, { ...opts, jpegQuality: quality });
+            }
+            if (targetBytes && result.bytes.length > targetBytes) {
+                logMsg(`"${entry.name}" could not be brought under ${formatBytes(targetBytes)} without dropping below the 20% quality floor. Best result: ${formatBytes(result.bytes.length)}.`, 'warn');
+            } else if (targetBytes) {
+                logMsg(`"${entry.name}" hit target: ${formatBytes(result.bytes.length)} ≤ ${formatBytes(targetBytes)} at ${quality}% quality.`, 'success');
+            }
+            return result;
+        }
+
+        // ============================================
+        // MAIN COMPRESS HANDLER
+        // ============================================
+        async function compressFiles() {
+            if (loadedFiles.length === 0) {
+                showError('Load a PDF before compressing.');
+                return;
+            }
+            clearError();
+            clearLog();
+            compressBtn.disabled = true;
+            downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Compressing…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+            outputs = [];
+
+            const opts = getOptions();
+            let totalBefore = 0, totalAfter = 0;
+            let verifyHtml = '';
+
+            try {
+                for (let i = 0; i < loadedFiles.length; i++) {
+                    const entry = loadedFiles[i];
+                    const result = await compressForTarget(entry, opts);
+
+                    let filename;
+                    if (loadedFiles.length === 1) {
+                        filename = (opts.outputFilename || 'compressed.pdf').replace(/\.pdf$/i, '') + '.pdf';
+                    } else {
+                        filename = entry.name.replace(/\.pdf$/i, '') + '-compressed.pdf';
+                    }
+                    outputs.push({ name: filename, blob: new Blob([result.bytes], { type: 'application/pdf' }), size: result.bytes.length, originalSize: entry.bytes.length });
+                    totalBefore += entry.bytes.length;
+                    totalAfter += result.bytes.length;
+
+                    const savedPct = entry.bytes.length > 0 ? Math.round((1 - result.bytes.length / entry.bytes.length) * 100) : 0;
+                    logMsg(`Compressed "${entry.name}" → "${filename}": ${formatBytes(entry.bytes.length)} → ${formatBytes(result.bytes.length)} (${savedPct}% smaller). ${result.imagesProcessed} image(s) recompressed, ${result.imagesSkipped} skipped.`, 'success');
+
+                    if (i === 0) {
+                        let rescanImages = 0, rescanTotal = 0;
+                        if (opts.optVerifyAfter) {
+                            try {
+                                const rescan = await scanFile(result.bytes);
+                                rescanImages = rescan.images.length;
+                                rescanTotal = rescan.imageBytesTotal;
+                            } catch (e) { logMsg('Re-scan of compressed output failed: ' + (e.message || e), 'warn'); }
+                        }
+
+                        result.perImage.sort((a, b) => (b.before - b.after) - (a.before - a.after)).slice(0, 12).forEach(p => {
+                            const savedHere = Math.round((1 - p.after / p.before) * 100);
+                            verifyHtml += `<div class="verify-row">
+                                <span class="v-before">${p.w}×${p.h}, ${formatBytes(p.before)}</span>
+                                <span class="v-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                                <span class="v-after">${p.newW}×${p.newH}, ${formatBytes(p.after)}</span>
+                                <span class="v-status changed">-${savedHere}%</span>
+                            </div>`;
+                        });
+
+                        verifyHtml += `<div class="verify-row">
+                            <span class="v-before" style="grid-column:1/-1;${savedPct > 0 ? 'color:var(--accent);' : ''}">Whole file: ${formatBytes(entry.bytes.length)} → ${formatBytes(result.bytes.length)} (${savedPct}% smaller)${opts.optVerifyAfter ? ` — re-scan found ${rescanImages} image(s) totalling ${formatBytes(rescanTotal)} remaining` : ''}</span>
+                        </div>`;
+                    }
+                }
+
+                document.getElementById('outputBeforeSize').textContent = formatBytes(totalBefore);
+                document.getElementById('outputAfterSize').textContent = formatBytes(totalAfter);
+                verifyPane.innerHTML = verifyHtml || '<p class="info-empty">No differences to show.</p>';
+
+                const overallPct = totalBefore > 0 ? Math.round((1 - totalAfter / totalBefore) * 100) : 0;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = outputs.length > 1 ? `Compressed ${outputs.length} files (-${overallPct}%)` : `Compressed (-${overallPct}%)`;
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add(overallPct > 0 ? 'success' : 'error');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                logMsg(`Compression complete: ${outputs.length} file(s) processed, ${formatBytes(totalBefore)} → ${formatBytes(totalAfter)} overall.`, 'success');
+            } catch (err) {
+                showError('Compression failed: ' + (err.message || err));
+                logMsg('Compression failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Compression failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                outputs = [];
+                downloadBtn.disabled = true;
+            } finally {
+                compressBtn.disabled = false;
+            }
+        }
+
+        function renderFilesPane() {
+            if (outputs.length === 0) {
+                filesPane.innerHTML = '<p class="info-empty">Compressed files will be listed here after processing.</p>';
+                return;
+            }
+            filesPane.innerHTML = '';
+            outputs.forEach((o, i) => {
+                const savedPct = o.originalSize > 0 ? Math.round((1 - o.size / o.originalSize) * 100) : 0;
+                const row = document.createElement('div');
+                row.className = 'output-list-item';
+                row.innerHTML = `
+                    <span class="oli-name" title="${escapeHtmlStr(o.name)}">${escapeHtmlStr(o.name)}</span>
+                    <span class="oli-meta">${formatBytes(o.size)} (-${savedPct}%)</span>
+                    <button class="oli-dl" type="button" data-idx="${i}">Save</button>
+                `;
+                row.querySelector('.oli-dl').addEventListener('click', () => downloadSingle(i));
+                filesPane.appendChild(row);
+            });
+        }
+
+        function downloadSingle(idx) {
+            const o = outputs[idx];
+            if (!o) return;
+            const url = URL.createObjectURL(o.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = o.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAll() {
+            if (outputs.length === 0) return;
+            if (outputs.length === 1) {
+                downloadSingle(0);
+                return;
+            }
+            const opts = getOptions();
+            if (!opts.optBatchZip || !window['JSZip']) {
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+                return;
+            }
+            try {
+                const zip = new JSZip();
+                for (const o of outputs) {
+                    const buf = await o.blob.arrayBuffer();
+                    zip.file(o.name, buf);
+                }
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'compressed-pdfs.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logMsg(`Downloaded ZIP bundle with ${outputs.length} file(s).`, 'success');
+            } catch (err) {
+                logMsg(`ZIP bundling failed, falling back to individual downloads: ${err.message || err}`, 'warn');
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+            }
+        }
+
+        function invalidateCompress() {
+            if (outputs.length > 0) {
+                outputs = [];
+                downloadBtn.disabled = true;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Settings changed — compress again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                filesPane.innerHTML = '<p class="info-empty">Compressed files will be listed here after processing.</p>';
+                verifyPane.innerHTML = '<p class="info-empty">Run "Compress PDF" to see a before/after size comparison confirming the actual savings.</p>';
+            }
+        }
+
+        compressBtn.addEventListener('click', compressFiles);
+        downloadBtn.addEventListener('click', downloadAll);
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            loadFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            loadFiles(dropped);
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfCompressorLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial render
+        updateQualityBadge();
+    </script>
+</body>
+</html>
