@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | PDF Repair Tool</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free PDF repair tool: diagnose a damaged or corrupted PDF (broken header, missing xref/trailer, truncated download, broken page tree), rebuild it, recover pages one by one, fall back to image rasterization as a last resort, then verify the result opens cleanly. 100% client-side, in your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/pdf-repair-tool.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/pdf-repair-tool.html" />
+<meta property="og:title" content="PDF Repair Tool — awjunaid" />
+<meta property="og:description" content="Diagnose and repair a damaged PDF — broken header, missing xref/trailer, corrupted pages, truncated downloads. Page-by-page recovery, last-resort rasterization, and a before/after verify pass. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-repair-tool.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PDF Repair Tool — awjunaid" />
+<meta name="twitter:description" content="Diagnose and repair a damaged PDF — broken header, missing xref/trailer, corrupted pages, truncated downloads. Page-by-page recovery, last-resort rasterization, and a before/after verify pass." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/pdf-repair-tool.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #b8860b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-eyebrow .pro-badge {
+            background: var(--text-primary); color: var(--bg-primary); border-radius: 20px;
+            padding: 2px 10px; font-size: 10px; letter-spacing: 1px;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           RISK BANNER (what this tool is protecting against)
+           ============================================ */
+        .risk-banner {
+            display: flex; align-items: flex-start; gap: 14px;
+            border: 1px solid var(--danger); border-radius: 18px;
+            padding: 16px 20px; margin: 28px 0 0;
+            background: color-mix(in srgb, var(--danger) 8%, transparent);
+        }
+        .risk-banner i { font-size: 18px; color: var(--danger); margin-top: 2px; flex-shrink: 0; }
+        .risk-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
+        .risk-banner p { font-size: 12.5px; opacity: 0.85; line-height: 1.55; }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 20px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .settings-section h4 .mini-link { font-size: 10px; text-transform: none; letter-spacing: 0; opacity: 0.8; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+        .setting-toggle .risk-tag {
+            display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; margin-left: 7px; vertical-align: 1px;
+        }
+        .risk-tag.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .risk-tag.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 40px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* File drop */
+        .file-drop {
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .loaded-file-card {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+        }
+        .loaded-file-card.show { display: flex; }
+        .loaded-file-card .lf-icon { font-size: 20px; opacity: 0.7; }
+        .loaded-file-card .lf-main { flex: 1; min-width: 0; }
+        .loaded-file-card .lf-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loaded-file-card .lf-meta { font-size: 11px; opacity: 0.6; margin-top: 2px; font-family: var(--font-mono); }
+        .loaded-file-card .lf-remove { border: none; background: rgba(239,68,68,0.12); color: var(--danger); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; flex-shrink: 0; font-size: 13px; }
+
+        .error-banner {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--danger);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .error-banner.show { display: block; }
+
+        /* Risk score strip on the source panel */
+        .risk-score-strip {
+            display: none;
+            align-items: center; gap: 14px;
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 14px 18px; margin-bottom: 14px;
+        }
+        .risk-score-strip.show { display: flex; }
+        .risk-score-ring {
+            width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-header); font-weight: 800; font-size: 15px;
+            border: 3px solid var(--border-light);
+        }
+        .risk-score-ring.high { border-color: var(--danger); color: var(--danger); }
+        .risk-score-ring.med { border-color: var(--warn); color: var(--warn); }
+        .risk-score-ring.low { border-color: var(--accent); color: var(--accent); }
+        .risk-score-text strong { display: block; font-size: 13px; }
+        .risk-score-text span { font-size: 11px; opacity: 0.65; }
+
+        /* Field/issue inspector list */
+        .field-inspector-wrap { display: none; }
+        .field-inspector-wrap.show { display: block; }
+        .field-inspector-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .field-inspector-toolbar button { font-size: 10px; padding: 7px 12px; }
+        .field-inspector {
+            border: 1px solid var(--border-light); border-radius: 16px;
+            max-height: 380px; overflow-y: auto;
+        }
+        .fi-group { border-bottom: 1px solid var(--border-light); }
+        .fi-group:last-child { border-bottom: none; }
+        .fi-group-head {
+            font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+            opacity: 0.5; padding: 10px 16px 6px; font-family: var(--font-header);
+        }
+        .fi-row {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 9px 16px; border-top: 1px solid var(--border-light);
+        }
+        .fi-row:first-of-type { border-top: none; }
+        .fi-row .fi-dot { width: 17px; flex-shrink: 0; }
+        .fi-row .fi-main { flex: 1; min-width: 0; }
+        .fi-row .fi-key { font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; }
+        .fi-row .fi-val { font-family: var(--font-mono); font-size: 11px; opacity: 0.65; word-break: break-word; margin-top: 2px; }
+        .fi-row .fi-val.empty { opacity: 0.35; font-style: italic; }
+        .fi-badge {
+            font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 1px 7px; border-radius: 20px; flex-shrink: 0; margin-top: 1px;
+        }
+        .fi-badge.high { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+        .fi-badge.med { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .fi-badge.low { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .fi-badge.ok { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+        .stat-strip.error strong { color: var(--danger); opacity: 1; }
+        .stat-strip.success strong { color: var(--accent); opacity: 1; }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; }
+        .output-pane.active { display: block; }
+
+        .info-pane {
+            border: 1px solid var(--border-light); border-radius: 16px; padding: 16px 18px; min-height: 420px; max-height: 420px; overflow-y: auto;
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .info-pane .info-empty { font-size: 12px; opacity: 0.5; font-family: var(--font-body); }
+        .log-line { padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .log-line:last-child { border-bottom: none; }
+        .log-line.warn { color: var(--warn); }
+        .log-line.error { color: var(--danger); }
+        .log-line.success { color: var(--accent); }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-row span:first-child { opacity: 0.6; flex-shrink: 0; }
+        .meta-row span:last-child { text-align: right; word-break: break-word; }
+
+        .verify-row {
+            display: grid; grid-template-columns: 1fr auto 1fr auto; align-items: center; gap: 10px;
+            padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 11.5px;
+        }
+        .verify-row:last-child { border-bottom: none; }
+        .verify-row .v-before { opacity: 0.55; word-break: break-word; }
+        .verify-row .v-after { word-break: break-word; }
+        .verify-row .v-arrow { opacity: 0.4; }
+        .verify-row .v-status { font-size: 9px; font-weight: 800; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; text-align: center; }
+        .verify-row .v-status.removed { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+        .verify-row .v-status.changed { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .verify-row .v-status.kept { background: color-mix(in srgb, var(--border-light) 60%, transparent); opacity: 0.7; }
+        .verify-row .v-status.lost { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+
+        .output-list-item {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border: 1px solid var(--border-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-family: var(--font-body);
+        }
+        .output-list-item .oli-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .output-list-item .oli-meta { font-size: 11px; opacity: 0.55; font-family: var(--font-mono); flex-shrink: 0; }
+        .output-list-item .oli-dl { border: 1px solid var(--border-color); background: transparent; color: var(--text-color); border-radius: 50px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+        .output-list-item .oli-dl:hover { background: var(--hover-bg); color: var(--hover-text); }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card { padding: 18px; border-radius: 18px; }
+            .info-pane { min-height: 320px; max-height: 320px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+            .verify-row { grid-template-columns: 1fr; gap: 3px; }
+            .verify-row .v-arrow { display: none; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(33% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">PDF Repair Tool</h1>
+                <div class="tool-dek">A truncated download, a crashed export, a byte flipped in transit — and suddenly a PDF won't open, or opens with blank pages. This scans the file with two independent parsers to pinpoint exactly what's broken (header, xref/trailer, page tree, individual pages), then rebuilds it: page-by-page recovery so one bad page doesn't sink the whole file, with image rasterization as a last resort when a page can't be salvaged any other way.</div>
+            </div>
+
+            <div class="risk-banner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <strong>Why a PDF stops opening</strong>
+                    <p>Most "corrupted PDF" errors trace back to a handful of causes: a download that got cut off mid-transfer (missing %%EOF), a broken cross-reference table or trailer from a crashed export, a page tree with a dangling reference, or actual byte corruption from a bad upload/email gateway. Standard PDF readers give up on the whole file the moment one of these is wrong — this tool tries to recover everything that's still intact instead.</p>
+                </div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="diagnoseOnly">Diagnose Only (no changes)</option>
+                    <option value="safeRepair">Safe Repair (recommended)</option>
+                    <option value="fullRecovery">Full Recovery (max effort)</option>
+                    <option value="passwordRepair">Password-Restricted Repair</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Structural Repair</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repLooseParsing" checked>
+                            <span><span class="setting-name">Tolerant parsing <span class="risk-tag high">Recovery</span></span><span class="setting-hint">Falls back to relaxed object validation if strict parsing fails</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repRebuildStructure" checked>
+                            <span><span class="setting-name">Rebuild &amp; compact structure <span class="risk-tag high">Structure</span></span><span class="setting-hint">Re-serializes header, xref table, trailer and %%EOF fresh, and compacts unreferenced objects</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repStripLinearization" checked>
+                            <span><span class="setting-name">Strip stale linearization data <span class="risk-tag med">Structure</span></span><span class="setting-hint">Removes the fast-web-view dict, since it's invalidated by any rebuild anyway</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Page Recovery</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repPageByPage" checked>
+                            <span><span class="setting-name">Page-by-page recovery <span class="risk-tag high">Recovery</span></span><span class="setting-hint">Copies pages one at a time into a new document, so a single broken page can't take down the whole file</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repSkipBroken" checked>
+                            <span><span class="setting-name">Skip unrecoverable pages <span class="risk-tag med">Recovery</span></span><span class="setting-hint">Continue past a page that fails, instead of aborting the whole repair</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repInsertPlaceholder">
+                            <span><span class="setting-name">Insert placeholder for skipped pages</span><span class="setting-hint">Keeps page numbering intact by adding a blank labeled page where content was lost</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repFixMediaBox" checked>
+                            <span><span class="setting-name">Fix missing/invalid page size <span class="risk-tag med">Pages</span></span><span class="setting-hint">Replaces a missing or non-finite MediaBox with a fallback page size</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repFixRotation" checked>
+                            <span><span class="setting-name">Normalize invalid rotation</span><span class="setting-hint">Resets any page rotation that isn't a multiple of 90°</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repRasterFallback">
+                            <span><span class="setting-name">Image-based last-resort recovery <span class="risk-tag high">Recovery</span></span><span class="setting-hint">Renders an unrecoverable page with the independent PDF.js engine and embeds it as a flattened image — keeps the visuals, loses selectable text</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Encryption &amp; Access</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repBypassOwnerPw" checked>
+                            <span><span class="setting-name">Bypass owner-password restrictions <span class="risk-tag med">Access</span></span><span class="setting-hint">Rebuilds files that only restrict printing/editing (no password needed to open)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repFlagUserPw" checked>
+                            <span><span class="setting-name">Flag user-password-protected files</span><span class="setting-hint">Reports files that need a password to open — these can't be repaired without it</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Content Integrity Checks <span class="mini-link" id="fiSelectInfo">what's flag-only?</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repFlagRenderErrors" checked>
+                            <span><span class="setting-name">Flag pages the independent renderer can't parse</span><span class="setting-hint">Cross-checks every page against PDF.js in addition to pdf-lib — catches issues one parser alone would miss</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="repFlagAnnotErrors" checked>
+                            <span><span class="setting-name">Flag broken annotations/form fields</span><span class="setting-hint">Reports comments, links, or AcroForm fields that reference missing objects</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Recovery Fallbacks</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="repFallbackSize">Fallback page size</label>
+                            <select id="repFallbackSize">
+                                <option value="letter">Letter (612 × 792 pt)</option>
+                                <option value="a4">A4 (595 × 842 pt)</option>
+                                <option value="legal">Legal (612 × 1008 pt)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="repRasterDpi">Rasterization DPI</label>
+                            <select id="repRasterDpi">
+                                <option value="100">100 DPI (fastest)</option>
+                                <option value="150" selected>150 DPI</option>
+                                <option value="200">200 DPI</option>
+                                <option value="300">300 DPI (highest quality)</option>
+                            </select>
+                        </div>
+                        <div class="field-group full-width">
+                            <label for="repPlaceholderText">Placeholder page text</label>
+                            <input type="text" id="repPlaceholderText" value="This page could not be recovered.">
+                            <div class="field-note">Only used when "Insert placeholder for skipped pages" is on.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOptimize" checked>
+                            <span><span class="setting-name">Compact output with object streams</span><span class="setting-hint">Smaller file, applied during the structural rebuild</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optVerifyAfter" checked>
+                            <span><span class="setting-name">Verify repaired file after rebuild</span><span class="setting-hint">Re-opens the output with both parsers to confirm it now loads cleanly</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchZip" checked>
+                            <span><span class="setting-name">Bundle batch output as ZIP</span><span class="setting-hint">Applies when repairing multiple files at once</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <label for="outputFilename">Output filename</label>
+                            <input type="text" id="outputFilename" value="repaired.pdf">
+                            <div class="field-note">Applied to a single file. Batch mode appends "-repaired" to each original name.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Damaged PDF</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="uploadBtn" type="button"><i class="fa-solid fa-upload"></i> Choose PDF(s)</button>
+                            <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;">
+                        </div>
+                    </div>
+                    <div class="file-drop" id="dropZone">Drag &amp; drop one or more .pdf files here, or use "Choose PDF(s)" above.</div>
+                    <div class="error-banner" id="errorBanner"></div>
+                    <div class="loaded-file-card" id="loadedFileCard">
+                        <i class="fa-solid fa-file-pdf lf-icon"></i>
+                        <div class="lf-main">
+                            <div class="lf-name" id="lfName"></div>
+                            <div class="lf-meta" id="lfMeta"></div>
+                        </div>
+                        <button class="lf-remove" id="lfRemove" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="risk-score-strip" id="riskScoreStrip">
+                        <div class="risk-score-ring" id="riskScoreRing">0</div>
+                        <div class="risk-score-text">
+                            <strong id="riskScoreLabel">Scanning…</strong>
+                            <span id="riskScoreSub">0 issues found</span>
+                        </div>
+                    </div>
+
+                    <div class="field-inspector-wrap" id="fieldInspectorWrap">
+                        <div class="field-inspector-toolbar">
+                            <button class="btn-ghost" id="fiRescanBtn" type="button">Re-scan</button>
+                        </div>
+                        <div class="field-inspector" id="fieldInspector"></div>
+                    </div>
+
+                    <div class="stat-strip" id="inputStats">
+                        <span><strong id="totalFieldsFound">0</strong> issues found</span>
+                        <span><strong id="totalFilesLoaded">0</strong> file(s) loaded</span>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Repair &amp; Verify</h3>
+                        <div class="panel-actions">
+                            <button class="btn-solid" id="cleanBtn" type="button"><i class="fa-solid fa-wrench"></i> Repair PDF</button>
+                            <button class="btn-solid" id="downloadBtn" type="button" disabled><i class="fa-solid fa-download"></i> Download</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="plan" type="button">Repair Plan</button>
+                        <button class="output-tab" data-tab="verify" type="button">Page Recovery</button>
+                        <button class="output-tab" data-tab="check" type="button">Verify</button>
+                        <button class="output-tab" data-tab="files" type="button">Output Files</button>
+                        <button class="output-tab" data-tab="log" type="button">Log</button>
+                    </div>
+                    <div class="output-pane active" id="pane-plan">
+                        <div class="info-pane" id="planPane"><p class="info-empty">Load a PDF and it'll be scanned automatically — the repair plan appears here.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-verify">
+                        <div class="info-pane" id="verifyPane"><p class="info-empty">Run "Repair PDF" to see the status of every page — recovered, rasterized, placeholdered, or skipped.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-check">
+                        <div class="info-pane" id="checkPane"><p class="info-empty">Run "Repair PDF" to compare the file's structure before and after rebuilding.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-files">
+                        <div class="info-pane" id="filesPane"><p class="info-empty">Repaired files will be listed here after processing.</p></div>
+                    </div>
+                    <div class="output-pane" id="pane-log">
+                        <div class="info-pane" id="logPane"><p class="info-empty">Scan and repair activity will be logged here.</p></div>
+                    </div>
+                    <div class="stat-strip" id="outputStats">
+                        <span><strong id="outputRemovedCount">0</strong> pages recovered</span>
+                        <span><strong id="outputLeakCount">0</strong> pages lost</span>
+                        <span><strong id="outputStatus">Not repaired yet</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What actually breaks inside a PDF?</h4>
+                        <p>Usually one of a few things: a download or email transfer that cut off mid-file (missing %%EOF), a crashed export that left the cross-reference table or trailer half-written, a page tree with a reference pointing at nothing, or flat-out byte corruption from a lossy transfer. Readers are unforgiving — one bad pointer and the whole file refuses to open, even though 99% of the content is intact.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why scan with two separate parsers?</h4>
+                        <p>pdf-lib and PDF.js are independent implementations with different tolerances — pdf-lib is lenient about structure and good at rebuilding it, PDF.js is closer to what Acrobat and browsers actually render with. Cross-checking both catches page-level problems that either parser alone would silently accept or silently choke on.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does page-by-page recovery actually do?</h4>
+                        <p>Instead of re-saving the damaged document as one unit — where a single broken page can fail the whole save — it builds a brand-new document and copies each page across individually, catching and logging any page that fails on its own rather than losing everything after it.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is the image-based last-resort recovery?</h4>
+                        <p>When a page's underlying content stream is too damaged to copy as real PDF content, this renders that page with the independent PDF.js engine and embeds the result as a flattened image page instead. You keep what the page looked like; you lose selectable text and searchability on that specific page.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can this repair a PDF that needs a password to open?</h4>
+                        <p>No — files encrypted with a user (open) password require that password to decrypt before any repair is possible, and this tool doesn't attempt to guess or crack it. It can bypass owner-only restrictions (files that open freely but block printing/editing), which is a different, much weaker protection.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything uploaded to a server?</h4>
+                        <p>No. Every PDF you load is diagnosed and repaired locally in your browser — nothing is sent anywhere, which matters most for exactly the sensitive documents people are trying to recover. Reload the page and everything is cleared except your settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // PDF REPAIR TOOL — ENTERPRISE EDITION
+        // ============================================
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        const errorBanner = document.getElementById('errorBanner');
+        const planPane = document.getElementById('planPane');
+        const verifyPane = document.getElementById('verifyPane');
+        const checkPane = document.getElementById('checkPane');
+        const filesPane = document.getElementById('filesPane');
+        const logPane = document.getElementById('logPane');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const cleanBtn = document.getElementById('cleanBtn');
+        const loadedFileCard = document.getElementById('loadedFileCard');
+        const dropZone = document.getElementById('dropZone');
+        const fieldInspectorWrap = document.getElementById('fieldInspectorWrap');
+        const fieldInspector = document.getElementById('fieldInspector');
+        const riskScoreStrip = document.getElementById('riskScoreStrip');
+
+        let loadedFiles = []; // { name, bytes, scan }
+        let outputs = []; // { name, blob, size }
+        let lastRepairResults = []; // per-file repair result, first file drives the UI
+
+        const FALLBACK_SIZES = { letter: [612, 792], a4: [595.28, 841.89], legal: [612, 1008] };
+
+        // ============================================
+        // SETTINGS: read / write / defaults
+        // ============================================
+        const SETTING_CHECKBOXES = [
+            'repLooseParsing','repRebuildStructure','repStripLinearization',
+            'repPageByPage','repSkipBroken','repInsertPlaceholder','repFixMediaBox','repFixRotation','repRasterFallback',
+            'repBypassOwnerPw','repFlagUserPw','repFlagRenderErrors','repFlagAnnotErrors',
+            'optOptimize','optVerifyAfter','optBatchZip'
+        ];
+        const SETTING_TEXT = ['repPlaceholderText','outputFilename'];
+        const SETTING_SELECT = ['repFallbackSize','repRasterDpi'];
+
+        function getOptions() {
+            const opts = {};
+            SETTING_CHECKBOXES.forEach(id => opts[id] = document.getElementById(id).checked);
+            SETTING_TEXT.forEach(id => opts[id] = document.getElementById(id).value);
+            SETTING_SELECT.forEach(id => opts[id] = document.getElementById(id).value);
+            return opts;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_CHECKBOXES.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_TEXT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_SELECT.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+        }
+
+        function markCustomAndSave() {
+            document.getElementById('presetSelect').value = 'custom';
+            invalidateClean();
+            if (loadedFiles.length) renderPlan();
+            saveSettingsDraft();
+        }
+        document.querySelectorAll('.settings-card input[type="checkbox"], .settings-card input[type="text"], .settings-card select').forEach(el => {
+            el.addEventListener('input', markCustomAndSave);
+        });
+        document.getElementById('fiSelectInfo').addEventListener('click', () => {
+            alert('Flag-only checks (renderer cross-check, annotation/form checks) never change your file — they only add rows to the diagnostic report and log so you know what to review by hand.');
+        });
+
+        // ============================================
+        // PRESETS
+        // ============================================
+        const BUILTIN_PRESETS = {
+            diagnoseOnly: {
+                repLooseParsing: true, repRebuildStructure: true, repStripLinearization: false,
+                repPageByPage: false, repSkipBroken: false, repInsertPlaceholder: false, repFixMediaBox: false, repFixRotation: false, repRasterFallback: false,
+                repBypassOwnerPw: false, repFlagUserPw: true, repFlagRenderErrors: true, repFlagAnnotErrors: true,
+                optOptimize: false, optVerifyAfter: true, optBatchZip: true,
+                repFallbackSize: 'letter', repRasterDpi: '150', repPlaceholderText: 'This page could not be recovered.', outputFilename: 'repaired.pdf'
+            },
+            safeRepair: {
+                repLooseParsing: true, repRebuildStructure: true, repStripLinearization: true,
+                repPageByPage: true, repSkipBroken: true, repInsertPlaceholder: false, repFixMediaBox: true, repFixRotation: true, repRasterFallback: false,
+                repBypassOwnerPw: true, repFlagUserPw: true, repFlagRenderErrors: true, repFlagAnnotErrors: true,
+                optOptimize: true, optVerifyAfter: true, optBatchZip: true,
+                repFallbackSize: 'letter', repRasterDpi: '150', repPlaceholderText: 'This page could not be recovered.', outputFilename: 'repaired.pdf'
+            },
+            fullRecovery: {
+                repLooseParsing: true, repRebuildStructure: true, repStripLinearization: true,
+                repPageByPage: true, repSkipBroken: true, repInsertPlaceholder: true, repFixMediaBox: true, repFixRotation: true, repRasterFallback: true,
+                repBypassOwnerPw: true, repFlagUserPw: true, repFlagRenderErrors: true, repFlagAnnotErrors: true,
+                optOptimize: true, optVerifyAfter: true, optBatchZip: true,
+                repFallbackSize: 'letter', repRasterDpi: '200', repPlaceholderText: 'Page could not be recovered — original content unreadable.', outputFilename: 'repaired.pdf'
+            },
+            passwordRepair: {
+                repLooseParsing: true, repRebuildStructure: true, repStripLinearization: true,
+                repPageByPage: true, repSkipBroken: true, repInsertPlaceholder: false, repFixMediaBox: true, repFixRotation: true, repRasterFallback: false,
+                repBypassOwnerPw: true, repFlagUserPw: true, repFlagRenderErrors: true, repFlagAnnotErrors: true,
+                optOptimize: true, optVerifyAfter: true, optBatchZip: true,
+                repFallbackSize: 'letter', repRasterDpi: '150', repPlaceholderText: 'This page could not be recovered.', outputFilename: 'repaired.pdf'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'pdfRepairToolCustomPresets';
+        function loadCustomPresets() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; }
+        }
+        function saveCustomPresets(presets) {
+            try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch (err) { /* ignore */ }
+        }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name;
+                opt.textContent = name + ' (saved)';
+                opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            invalidateClean();
+            if (loadedFiles.length) renderPlan();
+            saveSettingsDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getOptions();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getOptions(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pdf-repair-tool-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    invalidateClean();
+                    if (loadedFiles.length) renderPlan();
+                    saveSettingsDraft();
+                } catch (err) {
+                    alert('That file is not a valid config JSON.');
+                }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ============================================
+        // ERROR / LOG HELPERS
+        // ============================================
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+        function clearError() {
+            errorBanner.classList.remove('show');
+            errorBanner.textContent = '';
+        }
+        let logLines = [];
+        function logMsg(msg, level) {
+            logLines.push({ msg, level: level || 'info' });
+            renderLog();
+        }
+        function clearLog() {
+            logLines = [];
+            renderLog();
+        }
+        function renderLog() {
+            if (logLines.length === 0) {
+                logPane.innerHTML = '<p class="info-empty">Scan and repair activity will be logged here.</p>';
+                return;
+            }
+            logPane.innerHTML = logLines.map(l => `<div class="log-line ${l.level}">${escapeHtmlStr(l.msg)}</div>`).join('');
+            logPane.scrollTop = logPane.scrollHeight;
+        }
+        function escapeHtmlStr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function truncate(str, n) {
+            str = String(str);
+            return str.length > n ? str.slice(0, n) + '…' : str;
+        }
+
+        // ============================================
+        // SCANNING: two independent parsers, plus raw byte checks
+        // ============================================
+        async function scanFile(bytes) {
+            const scan = {
+                headerOk: false, headerDetail: '',
+                eofOk: false,
+                xrefOk: false, xrefDetail: '',
+                trailerOk: false,
+                strictLoads: false, strictError: '',
+                tolerantLoads: false, tolerantError: '',
+                encrypted: false,
+                linearizedStale: false,
+                catalogPageCount: null, walkablePageCount: null, pageTreeError: '',
+                pageIssues: [],
+                pdfjsPageCount: null, pdfjsFailedPages: [], pdfjsError: '',
+                annotIssues: 0,
+                rawSize: bytes.length
+            };
+
+            let text = '';
+            try { text = new TextDecoder('utf-8', { fatal: false }).decode(bytes); } catch (e) { text = ''; }
+
+            const head = text.slice(0, 1024);
+            const headerMatch = head.match(/%PDF-1\.[0-7]/);
+            scan.headerOk = !!headerMatch && head.indexOf(headerMatch[0]) < 20;
+            scan.headerDetail = headerMatch
+                ? `Found "${headerMatch[0]}" at byte ${head.indexOf(headerMatch[0])}${scan.headerOk ? '' : ' (later than the spec allows)'}`
+                : 'No %PDF- signature found in the first 1024 bytes';
+
+            const tail = text.slice(-2048);
+            scan.eofOk = /%%EOF/.test(tail);
+
+            const hasStartxref = /startxref/.test(text);
+            const hasXrefTable = /\bxref\b/.test(text) || /\/Type\s*\/XRef/.test(text);
+            scan.xrefOk = hasStartxref && hasXrefTable;
+            scan.xrefDetail = !hasStartxref
+                ? 'No startxref pointer found in the file'
+                : !hasXrefTable
+                    ? 'startxref present but no xref table or cross-reference stream found'
+                    : 'startxref and xref table/stream both present';
+
+            scan.trailerOk = /\btrailer\b/.test(text) || /\/Type\s*\/XRef/.test(text);
+
+            const linMatch = text.match(/\/Linearized\s+1[\s\S]{0,200}?\/L\s+(\d+)/);
+            if (linMatch) {
+                const declaredLen = parseInt(linMatch[1], 10);
+                scan.linearizedStale = Math.abs(declaredLen - bytes.length) > 16;
+            }
+
+            // --- pdf-lib strict then tolerant load ---
+            try {
+                const doc = await PDFLib.PDFDocument.load(bytes, { updateMetadata: false });
+                scan.strictLoads = true;
+                scan.encrypted = !!doc.isEncrypted;
+                try {
+                    scan.catalogPageCount = doc.getPageCount();
+                    const pages = doc.getPages();
+                    scan.walkablePageCount = pages.length;
+                    pages.forEach((p, i) => {
+                        try {
+                            const { width, height } = p.getSize();
+                            if (!isFinite(width) || !isFinite(height) || width <= 0 || height <= 0) {
+                                scan.pageIssues.push({ page: i + 1, type: 'mediabox', detail: `Invalid size ${width}×${height}` });
+                            }
+                        } catch (e) { scan.pageIssues.push({ page: i + 1, type: 'mediabox', detail: 'Could not read page size' }); }
+                        try {
+                            const angle = p.getRotation().angle;
+                            if (angle % 90 !== 0) scan.pageIssues.push({ page: i + 1, type: 'rotation', detail: `Rotation ${angle}° is not a multiple of 90°` });
+                        } catch (e) { /* ignore */ }
+                    });
+                } catch (pe) {
+                    scan.pageTreeError = pe.message || String(pe);
+                }
+            } catch (strictErr) {
+                scan.strictError = strictErr.message || String(strictErr);
+                try {
+                    const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, throwOnInvalidObject: false, updateMetadata: false, parseSpeed: PDFLib.ParseSpeeds.Slow });
+                    scan.tolerantLoads = true;
+                    scan.encrypted = !!doc.isEncrypted;
+                    try {
+                        scan.catalogPageCount = doc.getPageCount();
+                        scan.walkablePageCount = doc.getPages().length;
+                    } catch (pe) {
+                        scan.pageTreeError = pe.message || String(pe);
+                    }
+                } catch (tolerantErr) {
+                    scan.tolerantError = tolerantErr.message || String(tolerantErr);
+                }
+            }
+
+            // --- PDF.js cross-check ---
+            try {
+                const pdfjsDoc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+                scan.pdfjsPageCount = pdfjsDoc.numPages;
+                const capPages = Math.min(pdfjsDoc.numPages, 300);
+                for (let i = 1; i <= capPages; i++) {
+                    try { await pdfjsDoc.getPage(i); } catch (pageErr) { scan.pdfjsFailedPages.push(i); }
+                }
+            } catch (pdfjsErr) {
+                scan.pdfjsError = pdfjsErr.message || String(pdfjsErr);
+            }
+
+            // --- best-effort annotation/form reference check ---
+            try {
+                const annotRefs = (text.match(/\/Annots\s*\[[^\]]*\]/g) || []).length;
+                const acroForm = /\/AcroForm/.test(text);
+                if (annotRefs === 0 && /\/Annots/.test(text)) scan.annotIssues += 1;
+                if (acroForm && !/\/Fields/.test(text)) scan.annotIssues += 1;
+            } catch (e) { /* ignore */ }
+
+            return scan;
+        }
+
+        // ============================================
+        // FILE LOADING
+        // ============================================
+        async function loadFiles(fileList) {
+            clearError();
+            clearLog();
+            const files = Array.from(fileList).filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+            if (files.length === 0) {
+                showError('No valid PDF files selected.');
+                return;
+            }
+            loadedFiles = [];
+            for (const file of files) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    const scan = await scanFile(bytes);
+                    loadedFiles.push({ name: file.name, bytes, scan });
+                    logMsg(`Scanned "${file.name}" — found ${countIssues(scan)} issue(s).`, countIssues(scan) ? 'warn' : 'success');
+                } catch (err) {
+                    logMsg(`Failed to scan "${file.name}": ${err.message || err}`, 'error');
+                }
+            }
+            if (loadedFiles.length === 0) {
+                showError('None of the selected files could be read.');
+                return;
+            }
+
+            const first = loadedFiles[0];
+            document.getElementById('lfName').textContent = loadedFiles.length === 1 ? first.name : `${first.name} + ${loadedFiles.length - 1} more`;
+            document.getElementById('lfMeta').textContent = loadedFiles.length === 1
+                ? `${countIssues(first.scan)} issue(s) found`
+                : `${loadedFiles.length} files loaded — batch mode`;
+            loadedFileCard.classList.add('show');
+            document.getElementById('totalFilesLoaded').textContent = loadedFiles.length;
+
+            const base = first.name.replace(/\.pdf$/i, '');
+            document.getElementById('outputFilename').value = base + '-repaired.pdf';
+
+            renderRiskScore();
+            renderFieldInspector();
+            invalidateClean();
+            renderPlan();
+        }
+
+        function countIssues(scan) {
+            let n = 0;
+            if (!scan.headerOk) n++;
+            if (!scan.eofOk) n++;
+            if (!scan.xrefOk) n++;
+            if (!scan.trailerOk) n++;
+            if (scan.strictError && scan.tolerantError) n++;
+            else if (scan.strictError) n++;
+            if (scan.pageTreeError) n++;
+            if (scan.linearizedStale) n++;
+            n += scan.pageIssues.length;
+            n += scan.pdfjsFailedPages.length;
+            n += scan.annotIssues;
+            if (scan.encrypted) n++;
+            return n;
+        }
+
+        document.getElementById('lfRemove').addEventListener('click', () => {
+            loadedFiles = [];
+            loadedFileCard.classList.remove('show');
+            fieldInspectorWrap.classList.remove('show');
+            riskScoreStrip.classList.remove('show');
+            document.getElementById('totalFilesLoaded').textContent = '0';
+            document.getElementById('totalFieldsFound').textContent = '0';
+            invalidateClean();
+            planPane.innerHTML = '<p class="info-empty">Load a PDF and it\'ll be scanned automatically — the repair plan appears here.</p>';
+        });
+
+        document.getElementById('fiRescanBtn').addEventListener('click', async () => {
+            if (!loadedFiles.length) return;
+            clearLog();
+            for (const entry of loadedFiles) {
+                entry.scan = await scanFile(entry.bytes);
+            }
+            renderRiskScore();
+            renderFieldInspector();
+            renderPlan();
+            logMsg('Re-scan complete.', 'success');
+        });
+
+        // ============================================
+        // CORRUPTION SEVERITY SCORE
+        // ============================================
+        function renderRiskScore() {
+            if (loadedFiles.length === 0) { riskScoreStrip.classList.remove('show'); return; }
+            let high = 0, med = 0, low = 0;
+            loadedFiles.forEach(f => {
+                const s = f.scan;
+                if (s.strictError && s.tolerantError) high += 3;
+                else if (s.strictError) high += 1;
+                if (!s.headerOk) high++;
+                if (!s.xrefOk) high++;
+                if (s.pageTreeError) high++;
+                if (!s.eofOk) med++;
+                if (!s.trailerOk) med++;
+                if (s.linearizedStale) med++;
+                if (s.encrypted) med++;
+                med += s.pageIssues.length;
+                low += Math.min(s.pdfjsFailedPages.length, 10);
+                low += s.annotIssues;
+            });
+            const score = Math.min(99, high * 14 + med * 6 + low * 2);
+            const ring = document.getElementById('riskScoreRing');
+            const label = document.getElementById('riskScoreLabel');
+            const sub = document.getElementById('riskScoreSub');
+            ring.textContent = score;
+            ring.className = 'risk-score-ring ' + (score >= 45 ? 'high' : score >= 15 ? 'med' : 'low');
+            label.textContent = score >= 45 ? 'Heavily damaged' : score >= 15 ? 'Moderately damaged' : score === 0 ? 'Opens cleanly' : 'Minor issues only';
+            sub.textContent = `${high} critical · ${med} moderate · ${low} minor issue(s) across ${loadedFiles.length} file(s)`;
+            riskScoreStrip.classList.add('show');
+        }
+
+        // ============================================
+        // DIAGNOSTIC REPORT (first file drives the UI)
+        // ============================================
+        function renderFieldInspector() {
+            const first = loadedFiles[0];
+            if (!first) { fieldInspectorWrap.classList.remove('show'); return; }
+            const s = first.scan;
+            let html = '';
+            let foundCount = 0;
+
+            html += `<div class="fi-group"><div class="fi-group-head">File Structure</div>`;
+            html += diagRow('Header signature', s.headerOk ? 'valid' : s.headerDetail, s.headerOk ? 'ok' : 'high'); if (!s.headerOk) foundCount++;
+            html += diagRow('End-of-file marker', s.eofOk ? 'present' : 'missing — file may have been truncated', s.eofOk ? 'ok' : 'med'); if (!s.eofOk) foundCount++;
+            html += diagRow('Cross-reference table', s.xrefOk ? 'present' : s.xrefDetail, s.xrefOk ? 'ok' : 'high'); if (!s.xrefOk) foundCount++;
+            html += diagRow('Trailer dictionary', s.trailerOk ? 'present' : 'missing', s.trailerOk ? 'ok' : 'med'); if (!s.trailerOk) foundCount++;
+            if (s.strictError) { html += diagRow('Strict parse (pdf-lib)', s.tolerantLoads ? 'failed — recovered with tolerant parsing' : 'failed — ' + truncate(s.strictError, 90), s.tolerantLoads ? 'med' : 'high'); foundCount++; }
+            else { html += diagRow('Strict parse (pdf-lib)', 'opens cleanly', 'ok'); }
+            if (s.pageTreeError) { html += diagRow('Page tree', 'error walking pages: ' + truncate(s.pageTreeError, 90), 'high'); foundCount++; }
+            else if (s.catalogPageCount !== null) { html += diagRow('Page tree', `${s.walkablePageCount} of ${s.catalogPageCount} page(s) walkable`, s.walkablePageCount === s.catalogPageCount ? 'ok' : 'high'); if (s.walkablePageCount !== s.catalogPageCount) foundCount++; }
+            if (s.linearizedStale) { html += diagRow('Linearization tag', 'declared length does not match file size (stale fast-web-view data)', 'med'); foundCount++; }
+            html += `</div>`;
+
+            html += `<div class="fi-group"><div class="fi-group-head">Encryption</div>`;
+            html += diagRow('Encryption status', s.encrypted ? 'file reports as encrypted' : 'not encrypted', s.encrypted ? 'med' : 'ok');
+            if (s.encrypted) foundCount++;
+            html += `</div>`;
+
+            if (s.pageIssues.length) {
+                html += `<div class="fi-group"><div class="fi-group-head">Pages (pdf-lib)</div>`;
+                s.pageIssues.slice(0, 25).forEach(pi => {
+                    html += diagRow(`Page ${pi.page}`, pi.detail, 'med');
+                    foundCount++;
+                });
+                if (s.pageIssues.length > 25) html += diagRow('…', `${s.pageIssues.length - 25} more page issue(s) not shown`, 'low');
+                html += `</div>`;
+            }
+
+            html += `<div class="fi-group"><div class="fi-group-head">Cross-Check (PDF.js)</div>`;
+            if (s.pdfjsError) {
+                html += diagRow('PDF.js load', truncate(s.pdfjsError, 100), 'high');
+                foundCount++;
+            } else {
+                html += diagRow('PDF.js page count', String(s.pdfjsPageCount), 'ok');
+                if (s.pdfjsFailedPages.length) {
+                    html += diagRow('Pages PDF.js could not parse', s.pdfjsFailedPages.slice(0, 20).join(', ') + (s.pdfjsFailedPages.length > 20 ? '…' : ''), 'low');
+                    foundCount += s.pdfjsFailedPages.length;
+                } else {
+                    html += diagRow('Independent page parse', 'all pages parsed cleanly', 'ok');
+                }
+            }
+            if (s.annotIssues) {
+                html += diagRow('Annotations / form fields', `${s.annotIssues} possible broken reference(s)`, 'low');
+                foundCount += s.annotIssues;
+            }
+            html += `</div>`;
+
+            fieldInspector.innerHTML = html;
+            document.getElementById('totalFieldsFound').textContent = foundCount;
+            fieldInspectorWrap.classList.add('show');
+        }
+
+        function diagRow(label, value, severity) {
+            const badgeLabel = severity === 'ok' ? 'OK' : severity === 'high' ? 'High' : severity === 'med' ? 'Medium' : 'Low';
+            return `<div class="fi-row">
+                <div class="fi-dot"></div>
+                <div class="fi-main"><div class="fi-key">${escapeHtmlStr(label)}</div><div class="fi-val">${escapeHtmlStr(truncate(value, 110))}</div></div>
+                <span class="fi-badge ${severity}">${badgeLabel}</span>
+            </div>`;
+        }
+
+        // ============================================
+        // REPAIR PLAN PREVIEW
+        // ============================================
+        function renderPlan() {
+            if (loadedFiles.length === 0) {
+                planPane.innerHTML = '<p class="info-empty">Load a PDF and it\'ll be scanned automatically — the repair plan appears here.</p>';
+                return;
+            }
+            const opts = getOptions();
+            let html = `<div class="meta-row"><span>Files queued</span><span>${loadedFiles.length}</span></div>`;
+            html += `<div class="meta-row"><span>Parsing strategy</span><span>${opts.repLooseParsing ? 'Strict, falling back to tolerant' : 'Strict only'}</span></div>`;
+            html += `<div class="meta-row"><span>Recovery mode</span><span>${opts.repPageByPage ? 'Page-by-page' : 'Whole-document re-save'}</span></div>`;
+            html += `<div class="meta-row"><span>Unrecoverable pages</span><span>${opts.repSkipBroken ? (opts.repRasterFallback ? 'Skip → try rasterizing' : opts.repInsertPlaceholder ? 'Skip → insert placeholder' : 'Skip → drop') : 'Abort whole file'}</span></div>`;
+            html += `<div class="meta-row"><span>Page size/rotation fixes</span><span>${opts.repFixMediaBox || opts.repFixRotation ? [opts.repFixMediaBox && 'size', opts.repFixRotation && 'rotation'].filter(Boolean).join(' + ') : 'Off'}</span></div>`;
+            html += `<div class="meta-row"><span>Owner-password bypass</span><span>${opts.repBypassOwnerPw ? 'Yes' : 'No'}</span></div>`;
+            html += `<div class="meta-row"><span>Fallback page size</span><span>${labelForSize(opts.repFallbackSize)}</span></div>`;
+            if (opts.repRasterFallback) html += `<div class="meta-row"><span>Rasterization DPI</span><span>${opts.repRasterDpi}</span></div>`;
+            html += `<div class="meta-row"><span>Compact with object streams</span><span>${opts.optOptimize ? 'Yes' : 'No'}</span></div>`;
+            html += `<div class="meta-row"><span>Verify after repair</span><span>${opts.optVerifyAfter ? 'Yes' : 'No'}</span></div>`;
+            planPane.innerHTML = html;
+        }
+        function labelForSize(key) {
+            return { letter: 'Letter (612×792)', a4: 'A4 (595×842)', legal: 'Legal (612×1008)' }[key] || key;
+        }
+
+        // ============================================
+        // REPAIR ENGINE
+        // ============================================
+        function addPlaceholderPage(doc, opts) {
+            const size = FALLBACK_SIZES[opts.repFallbackSize] || FALLBACK_SIZES.letter;
+            const page = doc.addPage(size);
+            const text = opts.repPlaceholderText || 'This page could not be recovered.';
+            try { page.drawText(text, { x: 40, y: size[1] - 60, size: 14 }); } catch (e) { /* font issues — page still added */ }
+        }
+
+        async function rasterizeSinglePage(srcBytes, pageNum, opts, outDoc) {
+            try {
+                const pdfjsDoc = await pdfjsLib.getDocument({ data: srcBytes.slice() }).promise;
+                const page = await pdfjsDoc.getPage(pageNum);
+                const dpi = parseInt(opts.repRasterDpi, 10) || 150;
+                const viewport = page.getViewport({ scale: dpi / 72 });
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.ceil(viewport.width));
+                canvas.height = Math.max(1, Math.ceil(viewport.height));
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                const pngResp = await fetch(canvas.toDataURL('image/png'));
+                const pngBytes = await pngResp.arrayBuffer();
+                const img = await outDoc.embedPng(pngBytes);
+                const newPage = outDoc.addPage([viewport.width, viewport.height]);
+                newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function repairOneFile(entry, opts) {
+            const { PDFDocument, PDFName, PDFDict, degrees } = PDFLib;
+            const srcBytes = entry.bytes;
+            let srcDoc = null;
+            let loadMode = 'strict';
+            let loadErrorMsg = '';
+
+            try {
+                srcDoc = await PDFDocument.load(srcBytes, { updateMetadata: false });
+                loadMode = 'strict';
+            } catch (strictErr) {
+                if (!opts.repLooseParsing) {
+                    throw new Error('Strict parsing failed and tolerant parsing is disabled: ' + (strictErr.message || strictErr));
+                }
+                try {
+                    srcDoc = await PDFDocument.load(srcBytes, {
+                        ignoreEncryption: opts.repBypassOwnerPw,
+                        throwOnInvalidObject: false,
+                        updateMetadata: false,
+                        parseSpeed: PDFLib.ParseSpeeds.Slow
+                    });
+                    loadMode = 'tolerant';
+                } catch (tolerantErr) {
+                    loadMode = 'failed';
+                    loadErrorMsg = tolerantErr.message || String(tolerantErr);
+                    if (!opts.repRasterFallback) {
+                        throw new Error('File could not be parsed even with tolerant parsing: ' + loadErrorMsg + (opts.repRasterFallback ? '' : ' Enable image-based last-resort recovery to attempt a rasterized rebuild.'));
+                    }
+                }
+            }
+
+            const pageResults = [];
+            let outDoc;
+            let originalPageCount = 0;
+
+            if (loadMode === 'failed') {
+                outDoc = await PDFDocument.create();
+                const pdfjsDoc = await pdfjsLib.getDocument({ data: srcBytes.slice() }).promise;
+                originalPageCount = pdfjsDoc.numPages;
+                const dpi = parseInt(opts.repRasterDpi, 10) || 150;
+                for (let i = 1; i <= pdfjsDoc.numPages; i++) {
+                    try {
+                        const page = await pdfjsDoc.getPage(i);
+                        const viewport = page.getViewport({ scale: dpi / 72 });
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.max(1, Math.ceil(viewport.width));
+                        canvas.height = Math.max(1, Math.ceil(viewport.height));
+                        const ctx = canvas.getContext('2d');
+                        await page.render({ canvasContext: ctx, viewport }).promise;
+                        const pngBytes = await (await fetch(canvas.toDataURL('image/png'))).arrayBuffer();
+                        const img = await outDoc.embedPng(pngBytes);
+                        const newPage = outDoc.addPage([viewport.width, viewport.height]);
+                        newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+                        pageResults.push({ page: i, status: 'raster' });
+                    } catch (pageErr) {
+                        if (!opts.repSkipBroken) throw new Error(`Page ${i} could not be rasterized: ` + (pageErr.message || pageErr));
+                        if (opts.repInsertPlaceholder) { addPlaceholderPage(outDoc, opts); pageResults.push({ page: i, status: 'placeholder' }); }
+                        else pageResults.push({ page: i, status: 'skipped' });
+                    }
+                }
+            } else if (opts.repPageByPage) {
+                outDoc = await PDFDocument.create();
+                const count = srcDoc.getPageCount();
+                originalPageCount = count;
+                for (let i = 0; i < count; i++) {
+                    try {
+                        const [copied] = await outDoc.copyPages(srcDoc, [i]);
+                        outDoc.addPage(copied);
+                        pageResults.push({ page: i + 1, status: 'recovered' });
+                    } catch (pageErr) {
+                        if (!opts.repSkipBroken) throw new Error(`Page ${i + 1} failed to copy: ` + (pageErr.message || pageErr));
+                        let rastered = false;
+                        if (opts.repRasterFallback) rastered = await rasterizeSinglePage(srcBytes, i + 1, opts, outDoc);
+                        if (rastered) {
+                            pageResults.push({ page: i + 1, status: 'raster' });
+                        } else if (opts.repInsertPlaceholder) {
+                            addPlaceholderPage(outDoc, opts);
+                            pageResults.push({ page: i + 1, status: 'placeholder' });
+                        } else {
+                            pageResults.push({ page: i + 1, status: 'skipped' });
+                        }
+                    }
+                }
+            } else {
+                outDoc = srcDoc;
+                originalPageCount = outDoc.getPageCount();
+                outDoc.getPages().forEach((p, i) => pageResults.push({ page: i + 1, status: 'recovered' }));
+            }
+
+            if (opts.repStripLinearization) {
+                try {
+                    const toDelete = [];
+                    for (const [ref, obj] of outDoc.context.enumerateIndirectObjects()) {
+                        if (obj instanceof PDFDict && obj.get(PDFName.of('Linearized'))) toDelete.push(ref);
+                    }
+                    toDelete.forEach(ref => { try { outDoc.context.delete(ref); } catch (e) { /* best effort */ } });
+                } catch (e) { /* pdf-lib internals vary by version — best effort */ }
+            }
+
+            const fallbackSize = FALLBACK_SIZES[opts.repFallbackSize] || FALLBACK_SIZES.letter;
+            outDoc.getPages().forEach(p => {
+                if (opts.repFixMediaBox) {
+                    let needsFix = false;
+                    try {
+                        const { width, height } = p.getSize();
+                        needsFix = !isFinite(width) || !isFinite(height) || width <= 0 || height <= 0;
+                    } catch (e) { needsFix = true; }
+                    if (needsFix) { try { p.setSize(fallbackSize[0], fallbackSize[1]); } catch (e) { /* ignore */ } }
+                }
+                if (opts.repFixRotation) {
+                    try {
+                        const angle = p.getRotation().angle;
+                        if (angle % 90 !== 0) p.setRotation(degrees(0));
+                    } catch (e) { /* ignore */ }
+                }
+            });
+
+            const bytes = await outDoc.save({ useObjectStreams: !!opts.repRebuildStructure && !!opts.optOptimize });
+            return { bytes, loadMode, loadErrorMsg, pageResults, originalPageCount };
+        }
+
+        async function repairFiles() {
+            if (loadedFiles.length === 0) {
+                showError('Load a PDF before repairing.');
+                return;
+            }
+            clearError();
+            clearLog();
+            cleanBtn.disabled = true;
+            downloadBtn.disabled = true;
+            document.getElementById('outputStatus').textContent = 'Repairing…';
+            document.getElementById('outputStatus').parentElement.classList.remove('error', 'success');
+            outputs = [];
+            lastRepairResults = [];
+
+            const opts = getOptions();
+            let recoveredTotal = 0;
+            let lostTotal = 0;
+
+            try {
+                for (let i = 0; i < loadedFiles.length; i++) {
+                    const entry = loadedFiles[i];
+                    const result = await repairOneFile(entry, opts);
+
+                    let filename;
+                    if (loadedFiles.length === 1) {
+                        filename = (opts.outputFilename || 'repaired.pdf').replace(/\.pdf$/i, '') + '.pdf';
+                    } else {
+                        filename = entry.name.replace(/\.pdf$/i, '') + '-repaired.pdf';
+                    }
+                    outputs.push({ name: filename, blob: new Blob([result.bytes], { type: 'application/pdf' }), size: result.bytes.length });
+                    lastRepairResults.push({ name: entry.name, ...result });
+
+                    const recovered = result.pageResults.filter(p => p.status === 'recovered' || p.status === 'raster').length;
+                    const lost = result.pageResults.filter(p => p.status === 'skipped').length;
+                    recoveredTotal += recovered;
+                    lostTotal += lost;
+
+                    logMsg(`Repaired "${entry.name}" → "${filename}" using ${result.loadMode} parsing (${result.bytes.length.toLocaleString()} bytes).`, 'success');
+                    if (lost) logMsg(`${lost} page(s) in "${entry.name}" could not be recovered and were skipped.`, 'warn');
+
+                    if (i === 0) {
+                        renderPageRecovery(result);
+                        if (opts.optVerifyAfter) {
+                            const rescan = await scanFile(result.bytes);
+                            renderVerifyCheck(entry.scan, rescan, result);
+                        } else {
+                            checkPane.innerHTML = '<p class="info-empty">Turn on "Verify repaired file after rebuild" to compare before/after structure.</p>';
+                        }
+                    }
+                }
+
+                document.getElementById('outputRemovedCount').textContent = recoveredTotal;
+                document.getElementById('outputLeakCount').textContent = lostTotal;
+
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = outputs.length > 1 ? `Repaired ${outputs.length} files` : 'Repaired';
+                statusEl.parentElement.classList.remove('error');
+                statusEl.parentElement.classList.add(lostTotal > 0 ? 'error' : 'success');
+                downloadBtn.disabled = false;
+                renderFilesPane();
+                logMsg(`Repair complete: ${outputs.length} file(s) processed, ${recoveredTotal} page(s) recovered, ${lostTotal} page(s) lost.`, 'success');
+            } catch (err) {
+                showError('Repair failed: ' + (err.message || err));
+                logMsg('Repair failed: ' + (err.message || err), 'error');
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Repair failed';
+                statusEl.parentElement.classList.remove('success');
+                statusEl.parentElement.classList.add('error');
+                outputs = [];
+                downloadBtn.disabled = true;
+            } finally {
+                cleanBtn.disabled = false;
+            }
+        }
+
+        function renderPageRecovery(result) {
+            if (!result.pageResults.length) {
+                verifyPane.innerHTML = '<p class="info-empty">No pages found to report on.</p>';
+                return;
+            }
+            const statusMeta = {
+                recovered: { cls: 'removed', label: 'Recovered' },
+                raster: { cls: 'changed', label: 'Rasterized' },
+                placeholder: { cls: 'changed', label: 'Placeholder' },
+                skipped: { cls: 'lost', label: 'Lost' }
+            };
+            let html = '';
+            result.pageResults.forEach(pr => {
+                const meta = statusMeta[pr.status] || { cls: 'kept', label: pr.status };
+                html += `<div class="verify-row">
+                    <span class="v-before">Page ${pr.page}</span>
+                    <span class="v-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                    <span class="v-after">${meta.label}</span>
+                    <span class="v-status ${meta.cls}">${meta.label}</span>
+                </div>`;
+            });
+            verifyPane.innerHTML = html;
+        }
+
+        function renderVerifyCheck(beforeScan, afterScan, result) {
+            let html = '';
+            html += verifyRow('Parses with strict pdf-lib', beforeScan.strictLoads ? 'Yes' : 'No', afterScan.strictLoads ? 'Yes' : 'No');
+            html += verifyRow('PDF.js page count', String(beforeScan.pdfjsPageCount ?? 'unknown'), String(afterScan.pdfjsPageCount ?? 'unknown'));
+            html += verifyRow('Pages PDF.js can\'t parse', String(beforeScan.pdfjsFailedPages.length), String(afterScan.pdfjsFailedPages.length));
+            html += verifyRow('Header signature valid', beforeScan.headerOk ? 'Yes' : 'No', afterScan.headerOk ? 'Yes' : 'No');
+            html += verifyRow('%%EOF present', beforeScan.eofOk ? 'Yes' : 'No', afterScan.eofOk ? 'Yes' : 'No');
+            html += verifyRow('Cross-reference table valid', beforeScan.xrefOk ? 'Yes' : 'No', afterScan.xrefOk ? 'Yes' : 'No');
+            html += verifyRow('Page tree walkable', beforeScan.pageTreeError ? 'No' : 'Yes', afterScan.pageTreeError ? 'No' : 'Yes');
+            html += verifyRow('Original page count', String(result.originalPageCount), String(result.pageResults.filter(p => p.status !== 'skipped').length) + ' present');
+            checkPane.innerHTML = html || '<p class="info-empty">No differences to show.</p>';
+        }
+
+        function verifyRow(label, before, after) {
+            let cls = 'kept';
+            if (before !== after) cls = (after === 'Yes' || (!isNaN(parseInt(after)) && !isNaN(parseInt(before)) && parseInt(after) < parseInt(before))) ? 'removed' : 'changed';
+            return `<div class="verify-row">
+                <span class="v-before">${escapeHtmlStr(before)}</span>
+                <span class="v-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                <span class="v-after">${escapeHtmlStr(after)}</span>
+                <span class="v-status ${cls}">${escapeHtmlStr(label)}</span>
+            </div>`;
+        }
+
+        function renderFilesPane() {
+            if (outputs.length === 0) {
+                filesPane.innerHTML = '<p class="info-empty">Repaired files will be listed here after processing.</p>';
+                return;
+            }
+            filesPane.innerHTML = '';
+            outputs.forEach((o, i) => {
+                const row = document.createElement('div');
+                row.className = 'output-list-item';
+                row.innerHTML = `
+                    <span class="oli-name" title="${escapeHtmlStr(o.name)}">${escapeHtmlStr(o.name)}</span>
+                    <span class="oli-meta">${o.size.toLocaleString()}b</span>
+                    <button class="oli-dl" type="button" data-idx="${i}">Save</button>
+                `;
+                row.querySelector('.oli-dl').addEventListener('click', () => downloadSingle(i));
+                filesPane.appendChild(row);
+            });
+        }
+
+        function downloadSingle(idx) {
+            const o = outputs[idx];
+            if (!o) return;
+            const url = URL.createObjectURL(o.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = o.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAll() {
+            if (outputs.length === 0) return;
+            if (outputs.length === 1) {
+                downloadSingle(0);
+                return;
+            }
+            const opts = getOptions();
+            if (!opts.optBatchZip || !window['JSZip']) {
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+                return;
+            }
+            try {
+                const zip = new JSZip();
+                for (const o of outputs) {
+                    const buf = await o.blob.arrayBuffer();
+                    zip.file(o.name, buf);
+                }
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'repaired-pdfs.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logMsg(`Downloaded ZIP bundle with ${outputs.length} file(s).`, 'success');
+            } catch (err) {
+                logMsg(`ZIP bundling failed, falling back to individual downloads: ${err.message || err}`, 'warn');
+                outputs.forEach((o, i) => setTimeout(() => downloadSingle(i), i * 250));
+            }
+        }
+
+        function invalidateClean() {
+            if (outputs.length > 0) {
+                outputs = [];
+                downloadBtn.disabled = true;
+                const statusEl = document.getElementById('outputStatus');
+                statusEl.textContent = 'Settings changed — repair again';
+                statusEl.parentElement.classList.remove('success', 'error');
+                filesPane.innerHTML = '<p class="info-empty">Repaired files will be listed here after processing.</p>';
+                verifyPane.innerHTML = '<p class="info-empty">Run "Repair PDF" to see the status of every page — recovered, rasterized, placeholdered, or skipped.</p>';
+                checkPane.innerHTML = '<p class="info-empty">Run "Repair PDF" to compare the file\'s structure before and after rebuilding.</p>';
+            }
+        }
+
+        cleanBtn.addEventListener('click', repairFiles);
+        downloadBtn.addEventListener('click', downloadAll);
+
+        // Tabs
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload (button)
+        const fileInput = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            loadFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        // Drag & drop
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                dropZone.style.opacity = '1';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '';
+                dropZone.style.opacity = '';
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dropped = e.dataTransfer.files;
+            if (!dropped.length) return;
+            loadFiles(dropped);
+        });
+
+        // ============================================
+        // AUTOSAVE SETTINGS (localStorage, this browser only — files are never persisted)
+        // ============================================
+        const SETTINGS_DRAFT_KEY = 'pdfRepairToolLastSettings';
+        let settingsDraftTimer;
+        function saveSettingsDraft() {
+            clearTimeout(settingsDraftTimer);
+            settingsDraftTimer = setTimeout(() => {
+                try { localStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(getOptions())); } catch (err) { /* ignore */ }
+            }, 400);
+        }
+        (function restoreSettingsDraft() {
+            try {
+                const saved = localStorage.getItem(SETTINGS_DRAFT_KEY);
+                if (saved) applySettingsObject(JSON.parse(saved));
+            } catch (err) { /* ignore */ }
+        })();
+    </script>
+</body>
+</html>
