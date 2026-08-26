@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | ASCII ↔ Hex Converter (Hex Dump / xxd Import, Byte Arrays)</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free ASCII ↔ Hex converter. Convert text to hex and hex to text, paste raw xxd/hexdump/Wireshark output and have offsets and ASCII sidebars stripped automatically, export as C/C++ byte arrays, Python bytes literals, or escaped string literals, and generate random hex byte strings. Supports UTF-8, 7-bit ASCII, and Latin-1 encodings — 100% client-side, nothing leaves your browser." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/ascii-hex-converter.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/ascii-hex-converter.html" />
+<meta property="og:title" content="ASCII ↔ Hex Converter — awjunaid" />
+<meta property="og:description" content="Convert text to hex and hex to text, import raw xxd/hexdump/Wireshark output, export as C byte arrays or Python bytes, and generate random hex. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ascii-hex-converter.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="ASCII ↔ Hex Converter — awjunaid" />
+<meta name="twitter:description" content="Text-to-hex and hex-to-text, xxd/hexdump import, C/Python byte array export, and a random hex generator — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/ascii-hex-converter.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group input[type="password"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #mainInput, #batchInput, #escapeInput {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #mainInput { min-height: 220px; }
+        #batchInput { min-height: 160px; }
+        #escapeInput { min-height: 100px; }
+        #mainInput:focus, #batchInput:focus, #escapeInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        .field-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .field-label-row label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; }
+        .inline-toggle-group { display: flex; gap: 4px; }
+        .inline-toggle-group button {
+            border: 1px solid var(--border-light); background: transparent; color: var(--text-color);
+            padding: 4px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+            border-radius: 30px; cursor: pointer; font-family: var(--font-header);
+        }
+        .inline-toggle-group button.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 34%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .badge.neutral { background: transparent; }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+        .result-hash {
+            font-family: var(--font-mono); font-size: 14px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 16px 18px; word-break: break-all; line-height: 1.6; position: relative; white-space: pre-wrap;
+        }
+        .result-hash.empty { opacity: 0.4; font-style: italic; }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        /* Utility grid */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #mainInput { min-height: 160px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">ASCII ↔ Hex Converter</h1>
+                <div class="tool-dek">Convert text to hex and hex back to text, with real-world formats built in: paste raw output straight from <code>xxd</code>, <code>hexdump -C</code>, or Wireshark and the address offsets and ASCII sidebar are stripped automatically, export as a C/C++ byte array or Python bytes literal, decode escaped string literals like <code>\x48\x65\x6c\x6c\x6f</code>, and generate random hex byte strings — computed entirely in your browser, nothing sent anywhere.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="plain">Plain Hex String</option>
+                    <option value="carray">C/C++ Byte Array</option>
+                    <option value="hexdump">Hex Dump / xxd Import</option>
+                    <option value="pybytes">Python Bytes Literal</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Direction &amp; Encoding</h4>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="directionSelect">Conversion direction</label>
+                            <select id="directionSelect">
+                                <option value="auto" selected>Auto-detect</option>
+                                <option value="a2h">Text → Hex</option>
+                                <option value="h2a">Hex → Text</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="encodingSelect">Text encoding</label>
+                            <select id="encodingSelect">
+                                <option value="utf8" selected>UTF-8</option>
+                                <option value="ascii">ASCII (7-bit, strict)</option>
+                                <option value="latin1">Latin-1 (ISO-8859-1)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-hint" style="margin-top:12px;">Auto-detect treats the input as hex when, after removing common separators and <code>0x</code>/<code>\x</code> prefixes, it's made up entirely of hex digits — otherwise it's treated as text to encode.</div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Hex Output Formatting <span style="opacity:0.5;font-weight:400;text-transform:none;letter-spacing:0;">(used for Text → Hex)</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optUppercase">
+                            <span><span class="setting-name">Uppercase hex output</span><span class="setting-hint">Uncheck for lowercase hex digits</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optHexDumpView">
+                            <span><span class="setting-name">Render as hex dump</span><span class="setting-hint">Offset + hex + ASCII sidebar, like xxd/hexdump — overrides prefix, delimiter, and grouping below</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Byte prefix</label>
+                            <div class="radio-row" id="hexPrefixRadios">
+                                <label class="radio-opt"><input type="radio" name="hexPrefix" value="none" checked> None</label>
+                                <label class="radio-opt"><input type="radio" name="hexPrefix" value="0x"> 0x (C / hex literal)</label>
+                                <label class="radio-opt"><input type="radio" name="hexPrefix" value="\\x"> \x (Python / escape)</label>
+                            </div>
+                        </div>
+                        <div class="field-group full-width">
+                            <label>Delimiter</label>
+                            <div class="radio-row" id="hexDelimiterRadios">
+                                <label class="radio-opt"><input type="radio" name="hexDelimiter" value="none"> None</label>
+                                <label class="radio-opt"><input type="radio" name="hexDelimiter" value="space" checked> Space</label>
+                                <label class="radio-opt"><input type="radio" name="hexDelimiter" value="comma"> Comma</label>
+                                <label class="radio-opt"><input type="radio" name="hexDelimiter" value="colon"> Colon</label>
+                                <label class="radio-opt"><input type="radio" name="hexDelimiter" value="newline"> Newline</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="groupSizeInput">Bytes per group</label>
+                            <input type="number" id="groupSizeInput" min="1" max="16" value="1">
+                        </div>
+                        <div class="field-group">
+                            <label for="dumpBytesPerLineInput">Hex dump: bytes per line</label>
+                            <input type="number" id="dumpBytesPerLineInput" min="4" max="64" value="16">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Hex Input Parsing <span style="opacity:0.5;font-weight:400;text-transform:none;letter-spacing:0;">(used for Hex → Text)</span></h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optStripHexDump" checked>
+                            <span><span class="setting-name">Strip hex-dump formatting</span><span class="setting-hint">Removes leading address offsets and a trailing "|ASCII|" sidebar — paste directly from xxd, hexdump -C, or Wireshark's hex view</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optIgnoreNonHex" checked>
+                            <span><span class="setting-name">Ignore non-hex characters</span><span class="setting-hint">Strips spaces, commas, colons, newlines, and 0x/\x prefixes automatically instead of erroring</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRequireEven">
+                            <span><span class="setting-name">Require even number of hex digits</span><span class="setting-hint">Off by default — a lone leading zero is padded automatically for odd-length input</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Non-Printable Byte Display</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <div class="radio-row" id="nonPrintableRadios">
+                                <label class="radio-opt"><input type="radio" name="nonPrintable" value="dot" checked> Show as "."</label>
+                                <label class="radio-opt"><input type="radio" name="nonPrintable" value="escape"> Show as \xNN</label>
+                                <label class="radio-opt"><input type="radio" name="nonPrintable" value="replacement"> Show as replacement char</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-hint" style="margin-top:12px;">Applies to the ASCII sidebar in the hex dump view. Bytes 0x20–0x7E are always shown as their literal printable character.</div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch Mode</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchMode">
+                            <span><span class="setting-name">Convert each line independently</span><span class="setting-hint">Used by the Batch Convert utility below — applies the same direction and formatting settings to every line</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxBatchLinesInput">Max lines per batch run</label>
+                            <input type="number" id="maxBatchLinesInput" min="1" max="5000" value="500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+
+                    <textarea id="mainInput" spellcheck="false" placeholder='Paste ASCII/UTF-8 text, a plain hex string, or raw xxd/hexdump output here, e.g.:
+
+Hello, world!
+
+— or —
+
+48 65 6c 6c 6f 2c 20 77 6f 72 6c 64 21
+
+— or —
+
+00000000  48 65 6c 6c 6f 2c 20 77  6f 72 6c 64 21           |Hello, world!|'></textarea>
+
+                    <div class="input-hint">Direction and formatting are controlled by the settings panel above. Hex parsing is byte-sensitive — enable "Ignore non-hex characters" if your source has surrounding punctuation, and "Strip hex-dump formatting" if you copied straight from a terminal dump.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip" id="statStrip"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyResultBtn" type="button"><i class="fa-solid fa-copy"></i> Copy Result</button>
+                            <button class="btn-solid" id="downloadJsonBtn" type="button"><i class="fa-solid fa-download"></i> Download JSON</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="result" type="button">Result</button>
+                        <button class="output-tab" data-tab="hexdump" type="button">Hex Dump</button>
+                        <button class="output-tab" data-tab="escape" type="button">Escaped String</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-result"><div class="empty-pane">Enter ASCII text or a hex string above to see results.</div></div>
+                    <div class="output-pane" id="pane-hexdump"><div class="empty-pane">Enter input above to see the hex dump view.</div></div>
+                    <div class="output-pane" id="pane-escape"><div class="empty-pane">Enter input above to see the escaped string literal.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Use the Batch Convert utility below to see results here.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter input above to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-list-ol"></i> Batch Convert</h3>
+                    <div class="utility-note">Convert multiple lines at once — one text string or one hex string per line — using the direction and formatting settings above. Useful for turning a list of test payloads into hex, or a column of hex values back into readable text.</div>
+                    <div class="field-group">
+                        <label for="batchInput">One item per line</label>
+                        <textarea id="batchInput" spellcheck="false" placeholder="Hello
+World
+48656c6c6f"></textarea>
+                    </div>
+                    <button class="btn-solid small" id="batchConvertBtn" type="button">Convert All</button>
+                    <div class="utility-result" id="batchUtilResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-code"></i> Escape-Sequence Decoder</h3>
+                    <div class="utility-note">Paste a C/JS-style escaped string literal — with sequences like <code>\x48</code>, <code>\n</code>, <code>\t</code>, <code>\\</code> — and decode it back to raw bytes and hex. Handy for debugging a string a program printed with <code>repr()</code> or a debugger's escaped view.</div>
+                    <div class="field-group">
+                        <label for="escapeInput">Escaped string literal</label>
+                        <textarea id="escapeInput" spellcheck="false" placeholder="Hello\x2c\x20world\x21\n"></textarea>
+                    </div>
+                    <button class="btn-solid small" id="escapeDecodeBtn" type="button">Decode</button>
+                    <div class="utility-result" id="escapeUtilResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-dice"></i> Random Hex Generator</h3>
+                    <div class="utility-note">Generates a cryptographically random byte string using the Web Crypto API's secure random source — useful as a test payload, a placeholder token, or a nonce.</div>
+                    <div class="field-group">
+                        <label for="randomLengthInput">Length (bytes)</label>
+                        <input type="number" id="randomLengthInput" min="1" max="1024" value="16">
+                    </div>
+                    <button class="btn-solid small" id="genRandomBtn" type="button">Generate</button>
+                    <div class="utility-result" id="genRandomResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>Hex shows up constantly when working close to bytes: firmware and network payloads, packet captures, memory dumps, encryption keys, and log lines that print raw data instead of text. This tool goes both directions — turn readable text into the exact hex bytes a protocol or byte array expects, or take hex you've copied from a terminal, a debugger, or a colleague's message and read it back as text — without needing a local script for a one-off check.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Can I paste output straight from xxd or hexdump?</h4>
+                        <p>Yes — enable "Strip hex-dump formatting" (on by default) and paste a full line like <code>00000000  48 65 6c 6c 6f  |Hello|</code> directly into the input. The leading address offset and the trailing ASCII sidebar are removed automatically before the hex is parsed, so you don't need to manually trim the line first.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does my hex look different from a colleague's for the same text?</h4>
+                        <p>The underlying bytes can be identical while the text representation differs — hex case, whether bytes are grouped or delimited, and whether each byte is prefixed with <code>0x</code> or <code>\x</code> are all just formatting choices layered on top of the same data. This tool separates the two: the byte count and JSON output reflect the true underlying bytes regardless of how the hex string is styled.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why do I need to pick a text encoding?</h4>
+                        <p>The same character can map to different bytes depending on encoding — UTF-8 represents most non-English characters using multiple bytes, Latin-1 always uses exactly one byte per character (0–255), and strict ASCII rejects anything outside the 7-bit range entirely. If your hex output doesn't match what another tool produces, a mismatched encoding is the most common cause.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What does the "escaped string" tab give me?</h4>
+                        <p>It renders the current bytes as a quoted string literal using common C/JavaScript/Python-style escapes — printable ASCII characters appear as themselves, and everything else (including the byte that produced the text) is written as <code>\xNN</code>. It's meant for pasting directly into source code as a string constant.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. Every computation — encoding, decoding, hex-dump parsing, escape-sequence decoding, and random byte generation — runs entirely in your browser. Nothing you type ever leaves the page.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // ASCII ↔ HEX CONVERTER — ENGINE
+        // ============================================
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ---------- Core byte <-> string helpers ----------
+        function encodeStringToBytes(str, encoding) {
+            if (encoding === 'utf8') return new TextEncoder().encode(str);
+            if (encoding === 'ascii') {
+                const bytes = new Uint8Array(str.length);
+                for (let i = 0; i < str.length; i++) {
+                    const code = str.charCodeAt(i);
+                    if (code > 127) throw new Error('Character "' + str[i] + '" (U+' + code.toString(16).toUpperCase().padStart(4, '0') + ') is outside 7-bit ASCII. Switch encoding to UTF-8 or Latin-1, or uncheck strict ASCII.');
+                    bytes[i] = code;
+                }
+                return bytes;
+            }
+            if (encoding === 'latin1') {
+                const bytes = new Uint8Array(str.length);
+                for (let i = 0; i < str.length; i++) {
+                    const code = str.charCodeAt(i);
+                    if (code > 255) throw new Error('Character "' + str[i] + '" is outside the Latin-1 range (0-255). Switch encoding to UTF-8.');
+                    bytes[i] = code;
+                }
+                return bytes;
+            }
+            return new TextEncoder().encode(str);
+        }
+
+        function decodeBytesToString(bytes, encoding) {
+            if (encoding === 'utf8') {
+                try {
+                    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+                } catch (err) {
+                    return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+                }
+            }
+            let s = '';
+            for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+            return s;
+        }
+
+        function bytesToHexPlain(bytes) {
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // ---------- Hex-dump-aware parsing (xxd / hexdump -C / Wireshark) ----------
+        function stripHexDumpFormatting(text) {
+            return text.split('\n').map(line => {
+                line = line.replace(/\|[^|]*\|\s*$/, '');
+                line = line.replace(/^\s*[0-9a-fA-F]{4,}[:\s]{1,2}/, '');
+                return line;
+            }).join('\n');
+        }
+
+        function looksLikeHex(raw) {
+            const cleaned = raw.replace(/0x/gi, '').replace(/\\x/gi, '').replace(/[\s,:;]+/g, '');
+            if (cleaned.length === 0) return false;
+            return /^[0-9a-fA-F]+$/.test(cleaned);
+        }
+
+        function detectDirection(raw, opts) {
+            let test = raw;
+            if (opts.stripHexDump) test = stripHexDumpFormatting(test);
+            return looksLikeHex(test) ? 'h2a' : 'a2h';
+        }
+
+        function parseHexToBytes(raw, opts) {
+            let text = raw;
+            if (opts.stripHexDump) text = stripHexDumpFormatting(text);
+            text = text.replace(/0x/gi, '').replace(/\\x/gi, '');
+            if (opts.ignoreNonHex) {
+                text = text.replace(/[^0-9a-fA-F]/g, '');
+            } else {
+                const cleaned = text.replace(/[\s,:;]+/g, '');
+                if (!/^[0-9a-fA-F]*$/.test(cleaned)) {
+                    throw new Error('Input contains characters that are not hex digits or common separators. Enable "Ignore non-hex characters" to strip them automatically.');
+                }
+                text = cleaned;
+            }
+            if (text.length === 0) return new Uint8Array(0);
+            if (text.length % 2 !== 0) {
+                if (opts.requireEven) throw new Error('Hex string has an odd number of digits (' + text.length + ').');
+                text = '0' + text;
+            }
+            const bytes = new Uint8Array(text.length / 2);
+            for (let i = 0; i < text.length; i += 2) bytes[i / 2] = parseInt(text.substr(i, 2), 16);
+            return bytes;
+        }
+
+        // ---------- Hex output formatting ----------
+        function formatHexContinuous(bytes, opts) {
+            const delimMap = { none: '', space: ' ', comma: ',', colon: ':', newline: '\n' };
+            const delim = delimMap[opts.delimiter] !== undefined ? delimMap[opts.delimiter] : ' ';
+            const groupSize = Math.max(1, opts.groupSize || 1);
+            const pieces = [];
+            for (let i = 0; i < bytes.length; i += groupSize) {
+                let group = '';
+                for (let j = i; j < Math.min(i + groupSize, bytes.length); j++) {
+                    let h = bytes[j].toString(16).padStart(2, '0');
+                    if (opts.uppercase) h = h.toUpperCase();
+                    group += h;
+                }
+                if (opts.prefix === '0x') group = '0x' + group;
+                else if (opts.prefix === '\\x') group = '\\x' + group;
+                pieces.push(group);
+            }
+            if (bytes.length === 0) return '';
+            return pieces.join(delim);
+        }
+
+        function nonPrintableChar(b, opts) {
+            if (b >= 32 && b <= 126) return String.fromCharCode(b);
+            if (opts.nonPrintable === 'escape') return '\\x' + b.toString(16).padStart(2, '0');
+            if (opts.nonPrintable === 'replacement') return '\uFFFD';
+            return '.';
+        }
+
+        function formatHexDump(bytes, opts) {
+            if (bytes.length === 0) return '';
+            const perLine = Math.max(4, opts.dumpBytesPerLine || 16);
+            const lines = [];
+            for (let i = 0; i < bytes.length; i += perLine) {
+                const chunk = bytes.slice(i, i + perLine);
+                const offset = i.toString(16).padStart(8, '0');
+                let hexParts = Array.from(chunk).map(b => {
+                    let h = b.toString(16).padStart(2, '0');
+                    return opts.uppercase ? h.toUpperCase() : h;
+                });
+                let hexCol = hexParts.join(' ');
+                hexCol = hexCol.padEnd(perLine * 3 - 1, ' ');
+                const asciiCol = Array.from(chunk).map(b => nonPrintableChar(b, opts)).join('');
+                lines.push(offset + '  ' + hexCol + '  |' + asciiCol + '|');
+            }
+            return lines.join('\n');
+        }
+
+        function toEscapedStringLiteral(bytes) {
+            let out = '"';
+            for (const b of bytes) {
+                if (b === 34) out += '\\"';
+                else if (b === 92) out += '\\\\';
+                else if (b === 10) out += '\\n';
+                else if (b === 13) out += '\\r';
+                else if (b === 9) out += '\\t';
+                else if (b >= 32 && b <= 126) out += String.fromCharCode(b);
+                else out += '\\x' + b.toString(16).padStart(2, '0');
+            }
+            return out + '"';
+        }
+
+        function decodeEscapedString(str) {
+            const bytes = [];
+            const map = { n: 10, r: 13, t: 9, '\\': 92, '"': 34, "'": 39, '0': 0, b: 8, f: 12, v: 11 };
+            let i = 0;
+            while (i < str.length) {
+                const c = str[i];
+                if (c === '\\' && i + 1 < str.length) {
+                    const next = str[i + 1];
+                    if (next === 'x' && i + 3 < str.length) {
+                        const hex = str.substr(i + 2, 2);
+                        if (/^[0-9a-fA-F]{2}$/.test(hex)) { bytes.push(parseInt(hex, 16)); i += 4; continue; }
+                    }
+                    if (next in map) { bytes.push(map[next]); i += 2; continue; }
+                }
+                const codePoint = str.codePointAt(i);
+                const chunk = new TextEncoder().encode(String.fromCodePoint(codePoint));
+                for (const b of chunk) bytes.push(b);
+                i += (codePoint > 0xFFFF) ? 2 : 1;
+            }
+            return new Uint8Array(bytes);
+        }
+
+        // ---------- Options ----------
+        function getOptions() {
+            return {
+                direction: document.getElementById('directionSelect').value,
+                encoding: document.getElementById('encodingSelect').value,
+                uppercase: document.getElementById('optUppercase').checked,
+                prefix: (document.querySelector('input[name="hexPrefix"]:checked') || {}).value || 'none',
+                delimiter: (document.querySelector('input[name="hexDelimiter"]:checked') || {}).value || 'space',
+                groupSize: parseInt(document.getElementById('groupSizeInput').value, 10) || 1,
+                hexDumpView: document.getElementById('optHexDumpView').checked,
+                dumpBytesPerLine: parseInt(document.getElementById('dumpBytesPerLineInput').value, 10) || 16,
+                stripHexDump: document.getElementById('optStripHexDump').checked,
+                ignoreNonHex: document.getElementById('optIgnoreNonHex').checked,
+                requireEven: document.getElementById('optRequireEven').checked,
+                nonPrintable: (document.querySelector('input[name="nonPrintable"]:checked') || {}).value || 'dot',
+                batchMode: document.getElementById('optBatchMode').checked,
+                maxBatchLines: parseInt(document.getElementById('maxBatchLinesInput').value, 10) || 500
+            };
+        }
+
+        let lastResult = null;
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function analyze() {
+            const opts = getOptions();
+            const errorBox = document.getElementById('errorBox');
+            errorBox.classList.remove('show');
+            document.getElementById('statStrip').innerHTML = '';
+
+            const raw = document.getElementById('mainInput').value;
+
+            if (!raw) {
+                paneEmpty('pane-result', 'Enter ASCII text or a hex string above to see results.');
+                paneEmpty('pane-hexdump', 'Enter input above to see the hex dump view.');
+                paneEmpty('pane-escape', 'Enter input above to see the escaped string literal.');
+                document.getElementById('jsonOut').textContent = 'Enter input above to see results.';
+                lastResult = null;
+                return;
+            }
+
+            let direction = opts.direction;
+            if (direction === 'auto') direction = detectDirection(raw, opts);
+
+            let bytes, decodedText;
+            try {
+                if (direction === 'h2a') {
+                    bytes = parseHexToBytes(raw, opts);
+                    decodedText = decodeBytesToString(bytes, opts.encoding);
+                } else {
+                    bytes = encodeStringToBytes(raw, opts.encoding);
+                    decodedText = raw;
+                }
+            } catch (err) {
+                errorBox.textContent = err.message;
+                errorBox.classList.add('show');
+                lastResult = null;
+                return;
+            }
+
+            const sourceLabel = direction === 'h2a' ? 'Hex → Text' : 'Text → Hex';
+            document.getElementById('statStrip').innerHTML =
+                '<span>Direction: <strong>' + sourceLabel + '</strong></span><span>Bytes: <strong>' + bytes.length + '</strong></span><span>Characters: <strong>' + decodedText.length + '</strong></span>';
+
+            const hexContinuous = formatHexContinuous(bytes, opts);
+            const hexDump = formatHexDump(bytes, opts);
+            const escapedLiteral = toEscapedStringLiteral(bytes);
+
+            lastResult = { opts, direction, bytes, decodedText, hexContinuous, hexDump, escapedLiteral };
+
+            renderResult(direction, decodedText, hexContinuous, opts);
+            document.getElementById('pane-hexdump').innerHTML = bytes.length ? ('<div class="mono-box">' + escapeHtml(hexDump) + '</div>') : '<div class="empty-pane">Enter input above to see the hex dump view.</div>';
+            document.getElementById('pane-escape').innerHTML = '<div class="mono-box">' + escapeHtml(escapedLiteral) + '</div>';
+            renderJson(direction, bytes, decodedText);
+        }
+
+        function renderResult(direction, decodedText, hexContinuous, opts) {
+            let html = '';
+            if (direction === 'h2a') {
+                html += '<div style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Decoded Text</div>';
+                html += '<div class="result-hash' + (decodedText ? '' : ' empty') + '">' + (decodedText ? escapeHtml(decodedText) : '(empty)') + '</div>';
+            } else {
+                if (opts.hexDumpView) {
+                    html += '<div style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Hex Output — see the Hex Dump tab</div>';
+                    html += '<div class="input-hint">"Render as hex dump" is on, so the formatted view lives in the Hex Dump tab. This tab always shows the continuous hex string.</div>';
+                }
+                html += '<div style="margin:14px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Hex Output</div>';
+                html += '<div class="result-hash' + (hexContinuous ? '' : ' empty') + '">' + (hexContinuous ? escapeHtml(hexContinuous) : '(empty)') + '</div>';
+            }
+            document.getElementById('pane-result').innerHTML = html;
+        }
+
+        function renderJson(direction, bytes, decodedText) {
+            const out = {
+                direction: direction === 'h2a' ? 'hex-to-text' : 'text-to-hex',
+                byteLength: bytes.length,
+                hex: bytesToHexPlain(bytes),
+                text: direction === 'h2a' ? decodedText : null
+            };
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring: main analyze ----------
+        let analyzeTimer;
+        function scheduleAnalyze() { clearTimeout(analyzeTimer); analyzeTimer = setTimeout(analyze, 120); saveDraft(); }
+        document.getElementById('mainInput').addEventListener('input', scheduleAnalyze);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; scheduleAnalyze(); });
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('mainInput').value = '';
+            analyze(); saveDraft();
+            document.getElementById('mainInput').focus();
+        });
+
+        document.getElementById('copyResultBtn').addEventListener('click', async () => {
+            if (!lastResult) return;
+            const text = lastResult.direction === 'h2a' ? lastResult.decodedText : lastResult.hexContinuous;
+            try { await navigator.clipboard.writeText(text); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+            if (!lastResult) return;
+            const out = {
+                direction: lastResult.direction === 'h2a' ? 'hex-to-text' : 'text-to-hex',
+                byteLength: lastResult.bytes.length,
+                hex: bytesToHexPlain(lastResult.bytes),
+                text: lastResult.direction === 'h2a' ? lastResult.decodedText : null
+            };
+            const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ascii-hex-result.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- Utility: Batch Convert ----------
+        document.getElementById('batchConvertBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('batchUtilResult');
+            let lines = document.getElementById('batchInput').value.split('\n').filter(l => l.trim() !== '');
+            lines = lines.slice(0, opts.maxBatchLines);
+            if (lines.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Add at least one line.</div>'; return; }
+
+            const rows = lines.map(line => {
+                let direction = opts.direction;
+                if (direction === 'auto') direction = detectDirection(line, opts);
+                try {
+                    if (direction === 'h2a') {
+                        const bytes = parseHexToBytes(line, opts);
+                        return { line, direction: 'Hex → Text', out: decodeBytesToString(bytes, opts.encoding) };
+                    } else {
+                        const bytes = encodeStringToBytes(line, opts.encoding);
+                        return { line, direction: 'Text → Hex', out: formatHexContinuous(bytes, opts) };
+                    }
+                } catch (err) {
+                    return { line, direction: '—', error: err.message };
+                }
+            });
+
+            const buildTable = (maxLen) => {
+                let html = '<div class="table-scroll"><table class="data-table"><thead><tr><th>Input</th><th>Direction</th><th>Output</th></tr></thead><tbody>';
+                rows.forEach(r => {
+                    const inCell = escapeHtml(r.line.length > maxLen ? r.line.slice(0, maxLen) + '…' : r.line);
+                    const outCell = r.error ? '<span style="color:var(--danger);">' + escapeHtml(r.error) + '</span>' : escapeHtml(r.out);
+                    html += '<tr><td>' + inCell + '</td><td>' + r.direction + '</td><td>' + outCell + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+                return html;
+            };
+
+            resultEl.innerHTML = buildTable(60);
+            document.getElementById('pane-batch').innerHTML = buildTable(80);
+        });
+
+        // ---------- Utility: Escape-Sequence Decoder ----------
+        document.getElementById('escapeDecodeBtn').addEventListener('click', () => {
+            const resultEl = document.getElementById('escapeUtilResult');
+            const input = document.getElementById('escapeInput').value;
+            if (!input) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Paste an escaped string to decode.</div>'; return; }
+            let bytes;
+            try {
+                bytes = decodeEscapedString(input);
+            } catch (err) {
+                resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">' + escapeHtml(err.message) + '</div>';
+                return;
+            }
+            const opts = getOptions();
+            const hex = formatHexContinuous(bytes, opts);
+            const text = decodeBytesToString(bytes, opts.encoding === 'utf8' ? 'utf8' : opts.encoding);
+            resultEl.innerHTML =
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:6px;">Decoded Text</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(text) + '</div>' +
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin:10px 0 6px;">Hex</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(hex) + '</div>' +
+                '<button class="btn-ghost small" id="useEscapeResultBtn" type="button" style="margin-top:10px;">Use Hex as Input</button>';
+            document.getElementById('useEscapeResultBtn').addEventListener('click', () => {
+                document.getElementById('directionSelect').value = 'h2a';
+                document.getElementById('mainInput').value = hex;
+                scheduleAnalyze();
+                document.getElementById('mainInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // ---------- Utility: Random Hex Generator ----------
+        document.getElementById('genRandomBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const len = Math.max(1, Math.min(1024, parseInt(document.getElementById('randomLengthInput').value, 10) || 16));
+            const bytes = new Uint8Array(len);
+            crypto.getRandomValues(bytes);
+            const hex = formatHexContinuous(bytes, opts);
+            const asciiPreview = Array.from(bytes).map(b => nonPrintableChar(b, opts)).join('');
+            const resultEl = document.getElementById('genRandomResult');
+            resultEl.innerHTML =
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:6px;">Hex</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(hex) + '</div>' +
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin:10px 0 6px;">ASCII Preview</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(asciiPreview) + '</div>' +
+                '<button class="btn-ghost small" id="useRandomResultBtn" type="button" style="margin-top:10px;">Use as Input</button>';
+            document.getElementById('useRandomResultBtn').addEventListener('click', () => {
+                document.getElementById('directionSelect').value = 'h2a';
+                document.getElementById('mainInput').value = bytesToHexPlain(bytes);
+                scheduleAnalyze();
+                document.getElementById('mainInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optUppercase', 'optHexDumpView', 'optStripHexDump', 'optIgnoreNonHex', 'optRequireEven', 'optBatchMode'],
+            text: ['groupSizeInput', 'dumpBytesPerLineInput', 'maxBatchLinesInput'],
+            select: ['directionSelect', 'encodingSelect'],
+            radio: ['hexPrefix', 'hexDelimiter', 'nonPrintable']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+        }
+
+        const BUILTIN_PRESETS = {
+            plain: {
+                directionSelect: 'auto', encodingSelect: 'utf8', optUppercase: false, optHexDumpView: false,
+                hexPrefix: 'none', hexDelimiter: 'none', groupSizeInput: '1', dumpBytesPerLineInput: '16',
+                optStripHexDump: true, optIgnoreNonHex: true, optRequireEven: false, nonPrintable: 'dot',
+                optBatchMode: false, maxBatchLinesInput: '500'
+            },
+            carray: {
+                directionSelect: 'a2h', encodingSelect: 'utf8', optUppercase: false, optHexDumpView: false,
+                hexPrefix: '0x', hexDelimiter: 'comma', groupSizeInput: '1', dumpBytesPerLineInput: '16',
+                optStripHexDump: true, optIgnoreNonHex: true, optRequireEven: false, nonPrintable: 'dot',
+                optBatchMode: false, maxBatchLinesInput: '500'
+            },
+            hexdump: {
+                directionSelect: 'h2a', encodingSelect: 'utf8', optUppercase: false, optHexDumpView: true,
+                hexPrefix: 'none', hexDelimiter: 'space', groupSizeInput: '1', dumpBytesPerLineInput: '16',
+                optStripHexDump: true, optIgnoreNonHex: true, optRequireEven: false, nonPrintable: 'dot',
+                optBatchMode: false, maxBatchLinesInput: '500'
+            },
+            pybytes: {
+                directionSelect: 'a2h', encodingSelect: 'utf8', optUppercase: false, optHexDumpView: false,
+                hexPrefix: '\\x', hexDelimiter: 'none', groupSizeInput: '1', dumpBytesPerLineInput: '16',
+                optStripHexDump: true, optIgnoreNonHex: true, optRequireEven: false, nonPrintable: 'dot',
+                optBatchMode: false, maxBatchLinesInput: '500'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'asciiHexCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            scheduleAnalyze();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'ascii-hex-converter-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    scheduleAnalyze();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave ----------
+        const DRAFT_INPUT_KEY = 'asciiHexDraftInput';
+        const DRAFT_SETTINGS_KEY = 'asciiHexLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_INPUT_KEY, document.getElementById('mainInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedInput = localStorage.getItem(DRAFT_INPUT_KEY);
+                if (savedInput !== null) document.getElementById('mainInput').value = savedInput;
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        analyze();
+    </script>
+</body>
+</html>
