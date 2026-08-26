@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | ROT13 Encoder & Caesar Cipher Tool (ROT-N, Atbash, Auto-Crack)</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free ROT13 encoder and Caesar cipher tool. Encode/decode ROT13, ROT5, ROT18, ROT47, custom ROT-N shifts, and Atbash. Preserve case and punctuation, rotate digits, batch-convert line by line, and auto-crack an unknown shift using English letter-frequency scoring — 100% client-side, nothing sent to a server." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/rot13-encoder.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/rot13-encoder.html" />
+<meta property="og:title" content="ROT13 Encoder & Caesar Cipher Tool — awjunaid" />
+<meta property="og:description" content="Encode/decode ROT13, ROT5, ROT18, ROT47, custom Caesar shifts, and Atbash. Case preservation, digit rotation, batch mode, and auto-crack for unknown shifts. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/rot13-encoder.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="ROT13 Encoder & Caesar Cipher Tool — awjunaid" />
+<meta name="twitter:description" content="ROT13, ROT5, ROT18, ROT47, custom Caesar shifts, and Atbash — with auto-crack, batch mode, and case/digit handling. Free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/rot13-encoder.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group input[type="password"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        .range-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+        .range-row input[type="range"] { flex: 1; accent-color: var(--text-primary); }
+        .range-row .range-val {
+            font-family: var(--font-mono); font-size: 13px; font-weight: 700; min-width: 84px; text-align: center;
+            border: 1px solid var(--border-light); border-radius: 30px; padding: 6px 10px;
+        }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #plainInput, #cipherInput, #batchInput {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #plainInput { min-height: 140px; }
+        #cipherInput { min-height: 140px; }
+        #batchInput { min-height: 160px; }
+        #plainInput:focus, #cipherInput:focus, #batchInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        /* Direction toggle */
+        .direction-toggle {
+            display: flex; gap: 6px; margin-bottom: 18px; border: 1px solid var(--border-light); border-radius: 60px; padding: 4px;
+        }
+        .direction-toggle button {
+            flex: 1; border: none; background: transparent; color: var(--text-color); padding: 10px 14px;
+            font-family: var(--font-header); font-weight: 700; text-transform: uppercase; font-size: 11px;
+            letter-spacing: 0.5px; border-radius: 60px; cursor: pointer; transition: all 0.2s;
+        }
+        .direction-toggle button.active { background: var(--text-primary); color: var(--bg-primary); }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 34%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .badge.neutral { background: transparent; }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+        .result-hash {
+            font-family: var(--font-mono); font-size: 14px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 16px 18px; word-break: break-word; white-space: pre-wrap; line-height: 1.6; position: relative;
+        }
+        .result-hash.empty { opacity: 0.4; font-style: italic; }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+        table.data-table tr.best-row td { background: var(--note-bg); color: #000; font-weight: 700; }
+
+        /* Utility grid */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning i { margin-top: 2px; }
+        .net-warning.danger-warn { border-color: var(--danger); }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        .freq-bars { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 6px; align-items: end; }
+        .freq-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .freq-bar-track { width: 100%; height: 90px; display: flex; align-items: flex-end; border-bottom: 1px solid var(--border-light); }
+        .freq-bar { width: 100%; background: var(--text-primary); border-radius: 3px 3px 0 0; min-height: 2px; }
+        .freq-bar-wrap .lbl { font-family: var(--font-mono); font-size: 10px; font-weight: 700; }
+        .freq-bar-wrap .pct { font-size: 8.5px; opacity: 0.5; }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            #plainInput, #cipherInput { min-height: 120px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">ROT13 Encoder & Caesar Cipher Tool</h1>
+                <div class="tool-dek">Encode or decode ROT13, ROT5, ROT18, ROT47, any custom Caesar shift (ROT-1 through ROT-25), and Atbash. Preserve or ignore letter case, optionally rotate digits and symbols, batch-convert line by line for spoiler tags and puzzle sets, and auto-crack an unknown shift with English letter-frequency scoring when you don't know the key — computed entirely in your browser, nothing sent anywhere.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="rot13">ROT13 (Classic / Forum Spoilers)</option>
+                    <option value="rot5">ROT5 (Digits Only)</option>
+                    <option value="rot18">ROT18 (ROT13 + ROT5)</option>
+                    <option value="rot47">ROT47 (Full Printable ASCII)</option>
+                    <option value="caesar3">Caesar Shift 3 (Classic Cipher)</option>
+                    <option value="atbash">Atbash (Mirror Alphabet)</option>
+                    <option value="crack">Unknown Shift / Auto-Crack Mode</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Cipher Type</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <div class="radio-row" id="cipherTypeRadios">
+                                <label class="radio-opt"><input type="radio" name="cipherType" value="caesar" checked> Caesar / ROT-N (letters shift by N)</label>
+                                <label class="radio-opt"><input type="radio" name="cipherType" value="rot47"> ROT47 (all printable ASCII 33–126)</label>
+                                <label class="radio-opt"><input type="radio" name="cipherType" value="atbash"> Atbash (A↔Z mirror, no shift value)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;" id="shiftRow">
+                        <div class="field-group full-width">
+                            <label for="shiftRange">Letter shift amount (N)</label>
+                            <div class="range-row">
+                                <input type="range" id="shiftRange" min="1" max="25" value="13">
+                                <span class="range-val" id="shiftValLabel">13 (ROT13)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Letter Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPreserveCase" checked>
+                            <span><span class="setting-name">Preserve case</span><span class="setting-hint">Off forces every rotated letter to lowercase, losing the original capitalization pattern</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optRotateDigits">
+                            <span><span class="setting-name">Rotate digits (ROT5 behavior)</span><span class="setting-hint">Also rotates 0–9 by 5 places (0↔5, 1↔6, …) — combine with letter ROT13 to get ROT18</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAccentFold">
+                            <span><span class="setting-name">Fold accented Latin letters</span><span class="setting-hint">Treats é, ñ, ü, etc. as their base letter (e→e) before rotating instead of passing them through unchanged</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Non-Letter Characters</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPreserveWhitespace" checked>
+                            <span><span class="setting-name">Preserve whitespace and line breaks exactly</span><span class="setting-hint">Uncheck only if you need every character (including spaces) run through ROT47's symbol range</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optPreservePunctuation" checked>
+                            <span><span class="setting-name">Leave punctuation and symbols untouched</span><span class="setting-hint">Disabled automatically in ROT47 mode, where punctuation is part of the rotated range</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Direction</h4>
+                    <div class="field-row">
+                        <div class="field-group full-width">
+                            <div class="radio-row" id="opModeRadios">
+                                <label class="radio-opt"><input type="radio" name="opMode" value="auto" checked> Same operation both ways (ROT13/Atbash — shift and its inverse are identical)</label>
+                                <label class="radio-opt"><input type="radio" name="opMode" value="encode"> Force encode (shift forward by N)</label>
+                                <label class="radio-opt"><input type="radio" name="opMode" value="decode"> Force decode (shift backward by N)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-hint" style="margin-top:10px;">"Same operation" is only mathematically correct at N=13 (26 ÷ 2). For any other shift, applying it twice does <strong>not</strong> return the original text — use Encode to scramble and Decode to reverse.</div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Auto-Crack (Unknown Shift)</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoCrack">
+                            <span><span class="setting-name">Score all 25 shifts against English letter frequency</span><span class="setting-hint">Ranks every possible ROT-N by chi-squared distance to typical English letter frequencies and highlights the most likely plaintext — use when you found ciphertext but don't know N</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowAllRotations" checked>
+                            <span><span class="setting-name">Show full 25-rotation brute-force table</span><span class="setting-hint">Lists every shift's output side by side in the Brute Force tab, regardless of scoring</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch Mode</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchIncludeIndex" checked>
+                            <span><span class="setting-name">Include line index in batch output</span><span class="setting-hint">Adds a row number column to the batch table and export</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchSkipEmpty" checked>
+                            <span><span class="setting-name">Skip empty lines</span><span class="setting-hint">Uncheck to preserve blank lines as empty rows in batch output</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxBatchLinesInput">Max lines per batch run</label>
+                            <input type="number" id="maxBatchLinesInput" min="1" max="5000" value="500">
+                        </div>
+                        <div class="field-group">
+                            <label for="batchOpSelect">Batch operation</label>
+                            <select id="batchOpSelect">
+                                <option value="encode">Encode every line</option>
+                                <option value="decode">Decode every line</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Input</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="swapBtn" type="button"><i class="fa-solid fa-arrow-right-arrow-left"></i> Swap</button>
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="direction-toggle">
+                        <button class="active" id="dirEncodeBtn" type="button" data-dir="encode">Plaintext → Ciphertext</button>
+                        <button id="dirDecodeBtn" type="button" data-dir="decode">Ciphertext → Plaintext</button>
+                    </div>
+
+                    <div id="wrapPlainInput">
+                        <label for="plainInput" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:8px;">Plaintext</label>
+                        <textarea id="plainInput" spellcheck="false" placeholder="Meet at midnight."></textarea>
+                    </div>
+
+                    <div id="wrapCipherInput" style="display:none;">
+                        <label for="cipherInput" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:8px;">Ciphertext</label>
+                        <textarea id="cipherInput" spellcheck="false" placeholder="Zrrgng zvqavtug."></textarea>
+                    </div>
+
+                    <div class="input-hint">Only letters (and optionally digits) are rotated — spacing, punctuation, and numbers pass straight through unless you enable digit rotation or switch to ROT47 mode. Turn on Auto-Crack below if you have ciphertext but don't know the shift.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip" id="statStrip"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyPrimaryBtn" type="button"><i class="fa-solid fa-copy"></i> Copy</button>
+                            <button class="btn-solid" id="downloadJsonBtn" type="button"><i class="fa-solid fa-download"></i> Download JSON</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="result" type="button">Result</button>
+                        <button class="output-tab" data-tab="crack" type="button">Auto-Crack</button>
+                        <button class="output-tab" data-tab="brute" type="button">Brute Force (25)</button>
+                        <button class="output-tab" data-tab="freq" type="button">Letter Frequency</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-result"><div class="empty-pane">Enter plaintext or ciphertext on the left to see results.</div></div>
+                    <div class="output-pane" id="pane-crack"><div class="empty-pane">Enable Auto-Crack in settings and enter ciphertext to see the best-guess shift.</div></div>
+                    <div class="output-pane" id="pane-brute"><div class="empty-pane">Enter text to see all 25 possible Caesar rotations side by side.</div></div>
+                    <div class="output-pane" id="pane-freq"><div class="empty-pane">Enter text to see its letter frequency distribution.</div></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Use the Batch Conversion utility below to see results here.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter plaintext or ciphertext on the left to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-list-ol"></i> Batch Conversion</h3>
+                    <div class="utility-note">Encode or decode multiple lines at once using the current cipher settings — useful for converting a whole list of forum spoiler lines or CTF puzzle strings.</div>
+                    <div class="field-group">
+                        <label for="batchInput">One item per line</label>
+                        <textarea id="batchInput" spellcheck="false" placeholder="Hello
+World
+Secret Message"></textarea>
+                    </div>
+                    <button class="btn-solid small" id="batchConvertBtn" type="button">Convert All</button>
+                    <div class="utility-result" id="batchUtilResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-key"></i> Round-Trip Verifier</h3>
+                    <div class="utility-note">Encodes your text with the current shift, then immediately decodes it back — confirms the current settings actually reverse cleanly before you rely on them (they won't for non-standard shifts if encode/decode is set wrong).</div>
+                    <div class="field-group">
+                        <label for="roundTripInput">Sample text</label>
+                        <input type="text" id="roundTripInput" placeholder="The quick brown fox">
+                    </div>
+                    <button class="btn-solid small" id="roundTripBtn" type="button">Verify</button>
+                    <div class="utility-result" id="roundTripResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-magnifying-glass-chart"></i> Unknown-Shift Cracker</h3>
+                    <div class="utility-note">Paste ciphertext of unknown shift here directly — scores all 25 Caesar rotations by English letter-frequency fit and returns its best guess, independent of the main settings above.</div>
+                    <div class="field-group">
+                        <label for="crackInput">Ciphertext</label>
+                        <input type="text" id="crackInput" placeholder="Wkh txlfn eurzq ira...">
+                    </div>
+                    <button class="btn-solid small" id="crackBtn" type="button">Crack It</button>
+                    <div class="utility-result" id="crackUtilResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>ROT13 shows up constantly in the real world — forum and Usenet spoiler tags, puzzle hunts, CTF challenges, and old-school "don't read this unless you want it spoiled" text. But the moment a puzzle uses a shift other than 13, or mixes in digits, most quick tools break. This one handles arbitrary Caesar shifts, case preservation, digit rotation, ROT47's full symbol range, Atbash, and — critically — figuring out the shift when you don't already know it.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why is ROT13 its own inverse but Caesar shift 3 isn't?</h4>
+                        <p>The Latin alphabet has 26 letters. Rotating by exactly half that (13) means applying the same rotation twice lands back on the original letter, so encoding and decoding are the identical operation. Any other shift needs its mirror image (26 − N) to reverse it, which is why this tool separates "Force encode" from "Force decode" for non-13 shifts.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What's ROT47 and when would I use it?</h4>
+                        <p>ROT47 rotates the full printable ASCII range (33–126) by 47 places instead of just the 26 letters, so it also scrambles digits, punctuation, and symbols. It's common in Usenet posts and some obfuscated scripts because it hides more of the original structure than plain ROT13, though it's exactly as easy to reverse.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How does auto-crack guess the shift without a key?</h4>
+                        <p>It decodes the ciphertext under all 25 possible shifts, measures each candidate's letter frequency distribution against known English letter frequencies using a chi-squared-style distance score, and surfaces the shift whose output looks most like real English. Short or non-English text can fool this, so always sanity-check the result yourself.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is ROT13 or Atbash actually secure?</h4>
+                        <p>No — none of the ciphers here provide real security. They have no secret key beyond a small, guessable number (or none at all, for Atbash), and can be broken instantly by brute force or frequency analysis, as this very tool demonstrates. They're obfuscation for spoilers and puzzles, not encryption for anything sensitive.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. Every computation — encoding, decoding, batch processing, brute-force rotation, and frequency scoring — runs entirely in your browser. Nothing you type ever leaves the page.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // ROT13 / CAESAR CIPHER — ENGINE
+        // ============================================
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        const ENGLISH_FREQ = { A:8.2,B:1.5,C:2.8,D:4.3,E:12.7,F:2.2,G:2.0,H:6.1,I:7.0,J:0.15,K:0.77,L:4.0,M:2.4,
+            N:6.7,O:7.5,P:1.9,Q:0.095,R:6.0,S:6.3,T:9.1,U:2.8,V:0.98,W:2.4,X:0.15,Y:2.0,Z:0.074 };
+
+        const ACCENT_MAP = { 'à':'a','á':'a','â':'a','ã':'a','ä':'a','å':'a','À':'A','Á':'A','Â':'A','Ã':'A','Ä':'A','Å':'A',
+            'è':'e','é':'e','ê':'e','ë':'e','È':'E','É':'E','Ê':'E','Ë':'E','ì':'i','í':'i','î':'i','ï':'i','Ì':'I','Í':'I','Î':'I','Ï':'I',
+            'ò':'o','ó':'o','ô':'o','õ':'o','ö':'o','Ò':'O','Ó':'O','Ô':'O','Õ':'O','Ö':'O','ù':'u','ú':'u','û':'u','ü':'u','Ù':'U','Ú':'U','Û':'U','Ü':'U',
+            'ñ':'n','Ñ':'N','ç':'c','Ç':'C','ý':'y','ÿ':'y','Ý':'Y' };
+
+        function foldAccents(str, enabled) {
+            if (!enabled) return str;
+            return Array.from(str).map(ch => ACCENT_MAP[ch] || ch).join('');
+        }
+
+        // Rotate a single letter by shift within A-Z / a-z. dirSign: +1 encode, -1 decode.
+        function rotateLetter(ch, shift, dirSign) {
+            const code = ch.charCodeAt(0);
+            let base;
+            if (code >= 65 && code <= 90) base = 65;
+            else if (code >= 97 && code <= 122) base = 97;
+            else return ch;
+            const n = ((shift * dirSign) % 26 + 26) % 26;
+            return String.fromCharCode(((code - base + n) % 26) + base);
+        }
+
+        function rotateDigit(ch, dirSign) {
+            const code = ch.charCodeAt(0);
+            if (code < 48 || code > 57) return ch;
+            const n = ((5 * dirSign) % 10 + 10) % 10;
+            return String.fromCharCode(((code - 48 + n) % 10) + 48);
+        }
+
+        function atbashChar(ch) {
+            const code = ch.charCodeAt(0);
+            if (code >= 65 && code <= 90) return String.fromCharCode(90 - (code - 65));
+            if (code >= 97 && code <= 122) return String.fromCharCode(122 - (code - 97));
+            return ch;
+        }
+
+        function rot47Char(ch, dirSign) {
+            const code = ch.charCodeAt(0);
+            if (code < 33 || code > 126) return ch;
+            const n = ((47 * dirSign) % 94 + 94) % 94;
+            return String.fromCharCode(((code - 33 + n) % 94) + 33);
+        }
+
+        // Main transform. opts.cipherType: 'caesar' | 'atbash' | 'rot47'. dirSign: +1 encode, -1 decode.
+        function transform(str, opts, dirSign) {
+            const folded = foldAccents(str, opts.accentFold);
+            let out = '';
+            for (let ch of folded) {
+                if (opts.cipherType === 'rot47') {
+                    out += rot47Char(ch, dirSign);
+                    continue;
+                }
+                if (opts.cipherType === 'atbash') {
+                    out += atbashChar(ch);
+                    continue;
+                }
+                const isLetter = /[a-zA-Z]/.test(ch);
+                const isDigit = /[0-9]/.test(ch);
+                if (isLetter) {
+                    let rotated = rotateLetter(ch, opts.shift, dirSign);
+                    if (!opts.preserveCase) rotated = rotated.toLowerCase();
+                    out += rotated;
+                } else if (isDigit && opts.rotateDigits) {
+                    out += rotateDigit(ch, dirSign);
+                } else {
+                    out += ch;
+                }
+            }
+            return out;
+        }
+
+        function chiSquaredScore(text) {
+            const counts = {};
+            let total = 0;
+            for (const ch of text.toUpperCase()) {
+                if (ch >= 'A' && ch <= 'Z') { counts[ch] = (counts[ch] || 0) + 1; total++; }
+            }
+            if (total === 0) return Infinity;
+            let score = 0;
+            for (const letter in ENGLISH_FREQ) {
+                const observed = counts[letter] || 0;
+                const expected = (ENGLISH_FREQ[letter] / 100) * total;
+                if (expected > 0) score += Math.pow(observed - expected, 2) / expected;
+            }
+            return score;
+        }
+
+        function bruteForceAllShifts(text, opts) {
+            const results = [];
+            for (let n = 1; n <= 25; n++) {
+                const testOpts = Object.assign({}, opts, { shift: n });
+                const decoded = transform(text, testOpts, -1);
+                results.push({ shift: n, text: decoded, score: chiSquaredScore(decoded) });
+            }
+            return results;
+        }
+
+        // ---------- Options ----------
+        function getOptions() {
+            const cipherType = (document.querySelector('input[name="cipherType"]:checked') || {}).value || 'caesar';
+            const opMode = (document.querySelector('input[name="opMode"]:checked') || {}).value || 'auto';
+            const shift = parseInt(document.getElementById('shiftRange').value, 10) || 13;
+            return {
+                cipherType,
+                opMode,
+                shift,
+                preserveCase: document.getElementById('optPreserveCase').checked,
+                rotateDigits: document.getElementById('optRotateDigits').checked,
+                accentFold: document.getElementById('optAccentFold').checked,
+                preserveWhitespace: document.getElementById('optPreserveWhitespace').checked,
+                preservePunctuation: document.getElementById('optPreservePunctuation').checked,
+                autoCrack: document.getElementById('optAutoCrack').checked,
+                showAllRotations: document.getElementById('optShowAllRotations').checked,
+                batchIncludeIndex: document.getElementById('optBatchIncludeIndex').checked,
+                batchSkipEmpty: document.getElementById('optBatchSkipEmpty').checked,
+                maxBatchLines: parseInt(document.getElementById('maxBatchLinesInput').value, 10) || 500,
+                batchOp: document.getElementById('batchOpSelect').value
+            };
+        }
+
+        function effectiveDirSign(opts, panelDir) {
+            // panelDir: 'encode' or 'decode' from the direction toggle
+            if (opts.opMode === 'encode') return 1;
+            if (opts.opMode === 'decode') return -1;
+            return panelDir === 'encode' ? 1 : -1; // 'auto' — for ROT13/Atbash this is symmetric anyway
+        }
+
+        function updateShiftLabel() {
+            const v = parseInt(document.getElementById('shiftRange').value, 10);
+            const label = document.getElementById('shiftValLabel');
+            const names = { 13: '13 (ROT13)', 5: '5 (ROT5-style)', 3: '3 (Classic Caesar)' };
+            label.textContent = names[v] ? names[v] : (v + '');
+        }
+        document.getElementById('shiftRange').addEventListener('input', () => { updateShiftLabel(); document.getElementById('presetSelect').value = 'custom'; scheduleAnalyze(); });
+        updateShiftLabel();
+
+        function syncCipherTypeUI() {
+            const type = (document.querySelector('input[name="cipherType"]:checked') || {}).value;
+            document.getElementById('shiftRow').style.display = type === 'caesar' ? 'grid' : 'none';
+        }
+        document.querySelectorAll('input[name="cipherType"]').forEach(r => r.addEventListener('change', () => { syncCipherTypeUI(); document.getElementById('presetSelect').value = 'custom'; scheduleAnalyze(); }));
+        syncCipherTypeUI();
+
+        let currentDirection = 'encode';
+        let lastResult = null;
+
+        function setDirection(dir) {
+            currentDirection = dir;
+            document.getElementById('dirEncodeBtn').classList.toggle('active', dir === 'encode');
+            document.getElementById('dirDecodeBtn').classList.toggle('active', dir === 'decode');
+            document.getElementById('wrapPlainInput').style.display = dir === 'encode' ? 'block' : 'none';
+            document.getElementById('wrapCipherInput').style.display = dir === 'decode' ? 'block' : 'none';
+            analyze();
+        }
+        document.getElementById('dirEncodeBtn').addEventListener('click', () => setDirection('encode'));
+        document.getElementById('dirDecodeBtn').addEventListener('click', () => setDirection('decode'));
+
+        document.getElementById('swapBtn').addEventListener('click', () => {
+            if (!lastResult) { setDirection(currentDirection === 'encode' ? 'decode' : 'encode'); return; }
+            if (currentDirection === 'encode') {
+                document.getElementById('cipherInput').value = lastResult.output;
+                setDirection('decode');
+            } else {
+                document.getElementById('plainInput').value = lastResult.output;
+                setDirection('encode');
+            }
+        });
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function analyze() {
+            const opts = getOptions();
+            const errorBox = document.getElementById('errorBox');
+            errorBox.classList.remove('show');
+            document.getElementById('statStrip').innerHTML = '';
+
+            const raw = currentDirection === 'encode' ? document.getElementById('plainInput').value : document.getElementById('cipherInput').value;
+            if (!raw) { resetEmptyPanes('Enter plaintext or ciphertext on the left to see results.'); lastResult = null; return; }
+
+            const dirSign = effectiveDirSign(opts, currentDirection);
+            const output = transform(raw, opts, dirSign);
+
+            const letterCount = (raw.match(/[a-zA-Z]/g) || []).length;
+            const digitCount = (raw.match(/[0-9]/g) || []).length;
+
+            lastResult = { opts, input: raw, output, dir: currentDirection, dirSign };
+
+            document.getElementById('statStrip').innerHTML =
+                '<span>Letters: <strong>' + letterCount + '</strong></span>' +
+                '<span>Digits: <strong>' + digitCount + '</strong></span>' +
+                '<span>Cipher: <strong>' + (opts.cipherType === 'caesar' ? ('ROT' + opts.shift) : opts.cipherType.toUpperCase()) + '</strong></span>';
+
+            renderResult(lastResult);
+            renderCrack(lastResult);
+            renderBrute(lastResult);
+            renderFreq(lastResult);
+            renderJsonOut(lastResult);
+        }
+
+        function resetEmptyPanes(msg) {
+            paneEmpty('pane-result', msg);
+            paneEmpty('pane-crack', msg);
+            paneEmpty('pane-brute', msg);
+            paneEmpty('pane-freq', msg);
+            document.getElementById('jsonOut').textContent = msg;
+        }
+
+        function renderResult(r) {
+            const label = r.dir === 'encode' ? 'Ciphertext' : 'Decoded Plaintext';
+            let html = '<div style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">' + label + '</div>';
+            html += '<div class="result-hash' + (r.output === '' ? ' empty' : '') + '">' + (r.output === '' ? '(empty)' : escapeHtml(r.output)) + '</div>';
+            html += '<div style="margin:16px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Original Input</div>';
+            html += '<div class="result-hash">' + escapeHtml(r.input) + '</div>';
+            document.getElementById('pane-result').innerHTML = html;
+        }
+
+        function renderCrack(r) {
+            const opts = r.opts;
+            if (!opts.autoCrack) { paneEmpty('pane-crack', 'Enable "Score all 25 shifts against English letter frequency" in settings to see the best-guess shift here.'); return; }
+            if (opts.cipherType !== 'caesar') { paneEmpty('pane-crack', 'Auto-crack scores Caesar/ROT-N shifts. Switch cipher type to Caesar / ROT-N to use it.'); return; }
+            const source = r.dir === 'encode' ? r.output : r.input;
+            const candidates = bruteForceAllShifts(source, opts).sort((a, b) => a.score - b.score);
+            const best = candidates[0];
+            let html = '<div class="net-warning"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Best guess: shift <strong>' + best.shift + '</strong> (chi-squared score ' + best.score.toFixed(2) + ', lower is more English-like). Short or non-English input can still fool this — sanity check the text below.</span></div>';
+            html += '<div style="margin:16px 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Top 5 Candidates</div>';
+            html += '<div class="table-scroll"><table class="data-table"><thead><tr><th>Shift</th><th>Score</th><th>Decoded Text</th></tr></thead><tbody>';
+            candidates.slice(0, 5).forEach((c, i) => {
+                html += '<tr' + (i === 0 ? ' class="best-row"' : '') + '><td>ROT' + c.shift + '</td><td>' + c.score.toFixed(2) + '</td><td>' + escapeHtml(c.text.length > 90 ? c.text.slice(0, 90) + '…' : c.text) + '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+            document.getElementById('pane-crack').innerHTML = html;
+        }
+
+        function renderBrute(r) {
+            const opts = r.opts;
+            if (!opts.showAllRotations) { paneEmpty('pane-brute', 'Enable "Show full 25-rotation brute-force table" in settings to see this.'); return; }
+            if (opts.cipherType !== 'caesar') { paneEmpty('pane-brute', 'Brute force applies to Caesar/ROT-N shifts. Switch cipher type to Caesar / ROT-N to use it.'); return; }
+            const source = r.dir === 'encode' ? r.output : r.input;
+            const rows = bruteForceAllShifts(source, opts);
+            let html = '<div class="table-scroll"><table class="data-table"><thead><tr><th>Shift</th><th>Result</th></tr></thead><tbody>';
+            rows.forEach(row => {
+                const isCurrent = row.shift === opts.shift;
+                html += '<tr' + (isCurrent ? ' class="best-row"' : '') + '><td>ROT' + row.shift + '</td><td>' + escapeHtml(row.text.length > 110 ? row.text.slice(0, 110) + '…' : row.text) + '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+            document.getElementById('pane-brute').innerHTML = html;
+        }
+
+        function renderFreq(r) {
+            const source = (r.dir === 'encode' ? r.output : r.input).toUpperCase();
+            const counts = {};
+            let total = 0;
+            for (const ch of source) { if (ch >= 'A' && ch <= 'Z') { counts[ch] = (counts[ch] || 0) + 1; total++; } }
+            if (total === 0) { paneEmpty('pane-freq', 'No letters found to analyze in the current output.'); return; }
+            const max = Math.max(...Object.values(counts));
+            let html = '<div style="margin-bottom:12px;font-size:11.5px;opacity:0.6;">Distribution across ' + total + ' letters. Flatter distributions tend to look more like ciphertext; peaks near E/T/A/O/N usually mean you\'re looking at real English.</div>';
+            html += '<div class="freq-bars">';
+            for (let i = 0; i < 26; i++) {
+                const letter = String.fromCharCode(65 + i);
+                const c = counts[letter] || 0;
+                const pct = total ? ((c / total) * 100) : 0;
+                const heightPct = max ? Math.round((c / max) * 100) : 0;
+                html += '<div class="freq-bar-wrap"><div class="freq-bar-track"><div class="freq-bar" style="height:' + heightPct + '%;"></div></div><div class="lbl">' + letter + '</div><div class="pct">' + pct.toFixed(1) + '%</div></div>';
+            }
+            html += '</div>';
+            document.getElementById('pane-freq').innerHTML = html;
+        }
+
+        function renderJsonOut(r) {
+            const opts = r.opts;
+            const out = {
+                direction: r.dir,
+                cipherType: opts.cipherType,
+                shift: opts.cipherType === 'caesar' ? opts.shift : null,
+                preserveCase: opts.preserveCase,
+                rotateDigits: opts.rotateDigits,
+                input: r.input,
+                output: r.output
+            };
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring: main analyze ----------
+        let analyzeTimer;
+        function scheduleAnalyze() { clearTimeout(analyzeTimer); analyzeTimer = setTimeout(analyze, 120); saveDraft(); }
+        document.getElementById('plainInput').addEventListener('input', scheduleAnalyze);
+        document.getElementById('cipherInput').addEventListener('input', scheduleAnalyze);
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('input', () => { document.getElementById('presetSelect').value = 'custom'; scheduleAnalyze(); });
+        });
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('plainInput').value = '';
+            document.getElementById('cipherInput').value = '';
+            analyze(); saveDraft();
+            (currentDirection === 'encode' ? document.getElementById('plainInput') : document.getElementById('cipherInput')).focus();
+        });
+
+        document.getElementById('copyPrimaryBtn').addEventListener('click', async () => {
+            if (!lastResult) return;
+            try { await navigator.clipboard.writeText(lastResult.output); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+            if (!lastResult) return;
+            const el = document.getElementById('jsonOut');
+            const blob = new Blob([el.textContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'rot13-result.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- Utility: Batch Conversion ----------
+        document.getElementById('batchConvertBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('batchUtilResult');
+            let lines = document.getElementById('batchInput').value.split('\n');
+            if (opts.batchSkipEmpty) lines = lines.filter(l => l.trim() !== '');
+            lines = lines.slice(0, opts.maxBatchLines);
+            if (lines.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Add at least one line.</div>'; return; }
+
+            const dirSign = opts.batchOp === 'decode' ? -1 : 1;
+            const rows = lines.map(line => ({ input: line, output: transform(line, opts, dirSign) }));
+
+            const cols = opts.batchIncludeIndex ? ['#', 'Input', 'Output'] : ['Input', 'Output'];
+            function buildTable(truncLen) {
+                let html = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+                rows.forEach((r, i) => {
+                    let cells = [];
+                    if (opts.batchIncludeIndex) cells.push(String(i + 1));
+                    cells.push(escapeHtml(r.input.length > truncLen ? r.input.slice(0, truncLen) + '…' : r.input));
+                    cells.push(escapeHtml(r.output.length > truncLen ? r.output.slice(0, truncLen) + '…' : r.output));
+                    html += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+                });
+                html += '</tbody></table></div>';
+                return html;
+            }
+
+            resultEl.innerHTML = buildTable(60);
+            document.getElementById('pane-batch').innerHTML = buildTable(100);
+            window._lastBatchRows = rows;
+        });
+
+        // ---------- Utility: Round-Trip Verifier ----------
+        document.getElementById('roundTripBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const raw = document.getElementById('roundTripInput').value;
+            const resultEl = document.getElementById('roundTripResult');
+            if (!raw.trim()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter some sample text to verify.</div>'; return; }
+            const encoded = transform(raw, opts, 1);
+            const decoded = transform(encoded, opts, -1);
+            const matches = decoded === raw;
+            resultEl.innerHTML = '<span class="badge ' + (matches ? 'public' : 'invalid') + '">' + (matches ? 'Round-trip OK' : 'Mismatch') + '</span>' +
+                '<div class="mono-box" style="margin-top:10px;font-size:11.5px;">Encoded: ' + escapeHtml(encoded) + '<br>Decoded back: ' + escapeHtml(decoded) + '</div>';
+        });
+
+        // ---------- Utility: Unknown-Shift Cracker ----------
+        document.getElementById('crackBtn').addEventListener('click', () => {
+            const opts = getOptions();
+            const raw = document.getElementById('crackInput').value;
+            const resultEl = document.getElementById('crackUtilResult');
+            if (!raw.trim()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter ciphertext to crack.</div>'; return; }
+            const candidates = bruteForceAllShifts(raw, opts).sort((a, b) => a.score - b.score);
+            const best = candidates[0];
+            let html = '<span class="badge public">Best guess: ROT' + best.shift + '</span>';
+            html += '<div class="mono-box" style="margin-top:10px;font-size:11.5px;">' + escapeHtml(best.text) + '</div>';
+            html += '<button class="btn-ghost small" id="useCrackedBtn" type="button" style="margin-top:10px;">Load Into Main Tool</button>';
+            resultEl.innerHTML = html;
+            document.getElementById('useCrackedBtn').addEventListener('click', () => {
+                document.querySelector('input[name="cipherType"][value="caesar"]').checked = true;
+                syncCipherTypeUI();
+                document.getElementById('shiftRange').value = best.shift;
+                updateShiftLabel();
+                document.getElementById('optAutoCrack').checked = true;
+                setDirection('decode');
+                document.getElementById('cipherInput').value = raw;
+                scheduleAnalyze();
+                document.getElementById('cipherInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optPreserveCase', 'optRotateDigits', 'optAccentFold', 'optPreserveWhitespace', 'optPreservePunctuation', 'optAutoCrack', 'optShowAllRotations', 'optBatchIncludeIndex', 'optBatchSkipEmpty'],
+            text: ['maxBatchLinesInput'],
+            select: ['batchOpSelect'],
+            radio: ['cipherType', 'opMode'],
+            range: ['shiftRange']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.range.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.range.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+            updateShiftLabel();
+            syncCipherTypeUI();
+        }
+
+        const BUILTIN_PRESETS = {
+            rot13: { cipherType: 'caesar', shiftRange: '13', opMode: 'auto', optPreserveCase: true, optRotateDigits: false, optAccentFold: false, optPreserveWhitespace: true, optPreservePunctuation: true, optAutoCrack: false, optShowAllRotations: true, optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchOpSelect: 'encode' },
+            rot5: { cipherType: 'caesar', shiftRange: '13', opMode: 'auto', optPreserveCase: true, optRotateDigits: true, optAccentFold: false, optPreserveWhitespace: true, optPreservePunctuation: true, optAutoCrack: false, optShowAllRotations: false, optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchOpSelect: 'encode' },
+            rot18: { cipherType: 'caesar', shiftRange: '13', opMode: 'auto', optPreserveCase: true, optRotateDigits: true, optAccentFold: false, optPreserveWhitespace: true, optPreservePunctuation: true, optAutoCrack: false, optShowAllRotations: true, optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchOpSelect: 'encode' },
+            rot47: { cipherType: 'rot47', shiftRange: '13', opMode: 'auto', optPreserveCase: true, optRotateDigits: false, optAccentFold: false, optPreserveWhitespace: false, optPreservePunctuation: false, optAutoCrack: false, optShowAllRotations: false, optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchOpSelect: 'encode' },
+            caesar3: { cipherType: 'caesar', shiftRange: '3', opMode: 'encode', optPreserveCase: true, optRotateDigits: false, optAccentFold: true, optPreserveWhitespace: true, optPreservePunctuation: true, optAutoCrack: false, optShowAllRotations: true, optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchOpSelect: 'encode' },
+            atbash: { cipherType: 'atbash', shiftRange: '13', opMode: 'auto', optPreserveCase: true, optRotateDigits: false, optAccentFold: false, optPreserveWhitespace: true, optPreservePunctuation: true, optAutoCrack: false, optShowAllRotations: false, optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchOpSelect: 'encode' },
+            crack: { cipherType: 'caesar', shiftRange: '13', opMode: 'decode', optPreserveCase: true, optRotateDigits: false, optAccentFold: true, optPreserveWhitespace: true, optPreservePunctuation: true, optAutoCrack: true, optShowAllRotations: true, optBatchIncludeIndex: true, optBatchSkipEmpty: true, maxBatchLinesInput: '500', batchOpSelect: 'decode' }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'rot13CustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            scheduleAnalyze();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'rot13-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    scheduleAnalyze();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave ----------
+        const DRAFT_PLAIN_KEY = 'rot13DraftPlain';
+        const DRAFT_CIPHER_KEY = 'rot13DraftCipher';
+        const DRAFT_DIR_KEY = 'rot13DraftDirection';
+        const DRAFT_SETTINGS_KEY = 'rot13LastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    localStorage.setItem(DRAFT_PLAIN_KEY, document.getElementById('plainInput').value);
+                    localStorage.setItem(DRAFT_CIPHER_KEY, document.getElementById('cipherInput').value);
+                    localStorage.setItem(DRAFT_DIR_KEY, currentDirection);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedPlain = localStorage.getItem(DRAFT_PLAIN_KEY);
+                const savedCipher = localStorage.getItem(DRAFT_CIPHER_KEY);
+                const savedDir = localStorage.getItem(DRAFT_DIR_KEY);
+                if (savedPlain !== null) document.getElementById('plainInput').value = savedPlain;
+                if (savedCipher !== null) document.getElementById('cipherInput').value = savedCipher;
+                if (savedDir === 'decode') {
+                    currentDirection = 'decode';
+                    document.getElementById('dirEncodeBtn').classList.remove('active');
+                    document.getElementById('dirDecodeBtn').classList.add('active');
+                    document.getElementById('wrapPlainInput').style.display = 'none';
+                    document.getElementById('wrapCipherInput').style.display = 'block';
+                }
+            } catch (err) { /* ignore */ }
+        })();
+
+        // Initial run
+        analyze();
+    </script>
+</body>
+</html>
