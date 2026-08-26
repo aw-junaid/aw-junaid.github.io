@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>awjunaid | Argon2 Hash Generator &amp; Verifier (Argon2id / Argon2i / Argon2d)</title>
+
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png" />
+<meta name="description" content="Free Argon2 hash generator and verifier. Compute Argon2id, Argon2i, and Argon2d password hashes with full control over memory, iterations, parallelism, salt, and hash length. Includes a parameter auto-tune benchmark to pick safe settings for your server, PHC-encoded hash verification, batch hashing, and a random salt generator — 100% client-side via WebAssembly, nothing sent anywhere." />
+<meta name="author" content="Abdul Wahab Junaid" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://aw-junaid.github.io/tools/argon2-generator.html" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://aw-junaid.github.io/tools/argon2-generator.html" />
+<meta property="og:title" content="Argon2 Hash Generator & Verifier — awjunaid" />
+<meta property="og:description" content="Compute Argon2id/Argon2i/Argon2d password hashes with full memory, iteration, and parallelism control. Auto-tune benchmark, PHC verification, batch hashing, random salt generator. Free, client-side, no signup." />
+<meta property="og:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/argon2-generator.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Argon2 Hash Generator & Verifier — awjunaid" />
+<meta name="twitter:description" content="Compute Argon2id/i/d password hashes, auto-tune parameters for your hardware, verify PHC-encoded hashes, and batch-hash — free and client-side." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/aw-junaid/aw-junaid.github.io/refs/heads/main/images/social-preview/argon2-generator.png" />
+
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ============================================
+           THEME VARIABLES & GLOBAL STYLES (Black & White)
+           ============================================ */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-color: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-color: #000000;
+            --border-color: #000000;
+            --border-light: #e0e0e0;
+            --input-bg: #ffffff;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --font-header: 'League Spartan', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --code-bg: #f4f4f4;
+            --note-bg: #fff9c4;
+            --content-width: 1280px;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        body.dark-mode {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-color: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --border-light: #2a2a2a;
+            --input-bg: #111111;
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --code-bg: #111111;
+            --note-bg: #1e1e00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+        a { color: var(--text-color); text-decoration: none; transition: all 0.2s ease; }
+        .container { max-width: var(--content-width); margin: 0 auto; width: 100%; padding: 0 24px; }
+
+        /* ============================================
+           HEADER & NAVIGATION (Preserved)
+           ============================================ */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            width: 100%;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo a { font-family: var(--font-header); font-size: clamp(18px, 5vw, 26px); font-weight: 800; text-transform: lowercase; letter-spacing: -1px; transition: opacity 0.2s; }
+        .logo a:hover { opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; }
+        nav.main-nav { display: flex; gap: clamp(16px, 2.5vw, 24px); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+        nav.main-nav a { position: relative; letter-spacing: -0.2px; }
+        nav.main-nav a:hover { opacity: 0.65; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; background-color: var(--bg-color); min-width: 200px;
+            border: 1px solid var(--border-color); z-index: 100; top: 100%; left: 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        }
+        body.dark-mode .dropdown-content { box-shadow: 0 6px 12px rgba(255,255,255,0.08); }
+        .dropdown-content a { padding: 12px 16px; display: block; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 500; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: var(--hover-bg); color: var(--hover-text); padding-left: 20px; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .social-icons { display: flex; gap: 8px; font-size: 18px; align-items: center; }
+        .social-icons a { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; opacity: 0.8; }
+        .social-icons a:hover { transform: translateY(-2px); opacity: 1; }
+        .theme-switcher {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 6px 14px; cursor: pointer; font-family: var(--font-header); font-weight: 700;
+            text-transform: uppercase; font-size: 11px; transition: all 0.2s; border-radius: 30px; white-space: nowrap;
+        }
+        .theme-switcher:hover { background-color: var(--hover-bg); color: var(--hover-text); }
+
+        /* ============================================
+           TOOL HERO
+           ============================================ */
+        .tool-hero {
+            margin: 48px 0 32px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 28px;
+        }
+        .tool-eyebrow {
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase; font-weight: 800;
+            margin-bottom: 16px; border-left: 4px solid var(--border-color); padding-left: 12px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .tool-title {
+            font-family: var(--font-inter); font-size: clamp(32px, 7vw, 52px); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .tool-dek {
+            font-size: 1.05rem; line-height: 1.6; opacity: 0.8; max-width: 640px;
+            border-left: 2px solid var(--border-color); padding-left: 20px;
+        }
+
+        /* ============================================
+           PRESET / CONFIG BAR
+           ============================================ */
+        .preset-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            border: 1px solid var(--border-light); border-radius: 20px; padding: 14px 20px; margin: 32px 0 0;
+        }
+        .preset-bar label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.65; }
+        .preset-bar select {
+            padding: 9px 14px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600;
+        }
+        .preset-bar .spacer { flex: 1; }
+        .preset-bar .btn-ghost { padding: 8px 16px; }
+
+        /* ============================================
+           SETTINGS PANEL
+           ============================================ */
+        .settings-card {
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 26px 26px 8px;
+            margin: 16px 0 32px;
+        }
+        .settings-section { margin-bottom: 22px; }
+        .settings-section h4 {
+            font-family: var(--font-header); font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.55; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+        .setting-toggle {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .setting-toggle input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: var(--text-primary); cursor: pointer; margin-top: 1px; flex-shrink: 0;
+        }
+        .setting-toggle .setting-name { font-weight: 600; }
+        .setting-toggle .setting-hint { display: block; font-size: 11px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+
+        .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; margin-top: 4px; }
+        .field-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; margin-bottom: 6px; }
+        .field-group input[type="text"], .field-group input[type="number"], .field-group input[type="password"], .field-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body); font-size: 13px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+        .field-group .field-note { font-size: 10.5px; opacity: 0.5; margin-top: 5px; line-height: 1.5; }
+        .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+        .radio-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .radio-opt input[type="radio"] { accent-color: var(--text-primary); cursor: pointer; }
+
+        /* ============================================
+           EDITOR / OUTPUT LAYOUT
+           ============================================ */
+        .tool-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 0 0 24px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .tool-layout { grid-template-columns: 1fr; }
+        }
+
+        .panel-card {
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 24px;
+        }
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .panel-head h3 {
+            font-family: var(--font-inter);
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-ghost, .btn-solid {
+            border-radius: 60px;
+            padding: 9px 18px;
+            font-weight: 700;
+            font-family: var(--font-header);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-ghost { background: transparent; color: var(--text-color); }
+        .btn-ghost:hover { background: var(--hover-bg); color: var(--hover-text); }
+        .btn-solid { background: var(--text-primary); color: var(--bg-primary); }
+        .btn-solid:hover { opacity: 0.85; transform: translateY(-2px); }
+        .btn-ghost:disabled, .btn-solid:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-ghost.small, .btn-solid.small { padding: 7px 14px; font-size: 10px; }
+
+        #passwordInput, #saltInput, #batchInput, #verifyHashInput, #compareHashInput {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-size: 13.5px;
+            line-height: 1.7;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        #passwordInput { min-height: 52px; }
+        #saltInput { min-height: 52px; }
+        #batchInput { min-height: 160px; }
+        #verifyHashInput { min-height: 100px; }
+        #passwordInput:focus, #saltInput:focus, #batchInput:focus, #verifyHashInput:focus, #compareHashInput:focus { outline: none; border-color: var(--border-color); }
+
+        .input-hint { font-size: 11px; opacity: 0.55; margin-top: 10px; line-height: 1.6; }
+        .input-hint code { font-family: var(--font-mono); background: var(--input-bg); border: 1px solid var(--border-light); border-radius: 4px; padding: 1px 5px; }
+
+        .error-box {
+            border: 1px solid var(--danger); color: var(--danger); border-radius: 12px; padding: 10px 14px;
+            font-size: 12.5px; font-weight: 600; margin-top: 12px; display: none;
+        }
+        .error-box.show { display: block; }
+
+        .field-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .field-label-row label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; }
+        .inline-toggle-group { display: flex; gap: 4px; }
+        .inline-toggle-group button {
+            border: 1px solid var(--border-light); background: transparent; color: var(--text-color);
+            padding: 4px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+            border-radius: 30px; cursor: pointer; font-family: var(--font-header);
+        }
+        .inline-toggle-group button.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        /* Output tabs */
+        .output-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .output-tab {
+            border: 1px solid var(--border-light);
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-color);
+            font-family: var(--font-header);
+            transition: all 0.2s;
+        }
+        .output-tab.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+        .output-pane { display: none; min-height: 380px; }
+        .output-pane.active { display: block; }
+
+        .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .kv-table tr { border-bottom: 1px solid var(--border-light); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 9px 4px; vertical-align: top; }
+        .kv-table td.k { font-weight: 700; opacity: 0.6; width: 34%; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 11px; }
+        .kv-table td.v { font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+
+        .badge {
+            display: inline-block; border: 1px solid var(--border-color); border-radius: 30px; padding: 3px 12px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge.public { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .badge.private { background: var(--warn); color: #000; border-color: var(--warn); }
+        .badge.invalid { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .badge.neutral { background: transparent; }
+
+        .mono-box {
+            font-family: var(--font-mono); font-size: 12.5px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 12px 14px; line-height: 1.7; word-break: break-all; white-space: pre-wrap;
+        }
+        .result-hash {
+            font-family: var(--font-mono); font-size: 14px; background: var(--input-bg); border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 16px 18px; word-break: break-all; line-height: 1.6; position: relative;
+        }
+        .result-hash.empty { opacity: 0.4; font-style: italic; }
+
+        .empty-pane { font-size: 13px; opacity: 0.5; padding: 40px 10px; text-align: center; }
+
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); }
+        table.data-table th { text-align: left; font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; padding: 8px 8px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+        table.data-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-light); word-break: break-all; }
+        .table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border-light); border-radius: 12px; }
+
+        /* Utility grid */
+        .utility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        @media (max-width: 1000px) { .utility-grid { grid-template-columns: 1fr; } }
+        .utility-card { border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; }
+        .utility-card h3 { font-family: var(--font-inter); font-size: 1.05rem; font-weight: 800; margin-bottom: 6px; }
+        .utility-card .utility-note { font-size: 11.5px; opacity: 0.6; margin-bottom: 16px; line-height: 1.55; }
+        .utility-card .field-group { margin-bottom: 12px; }
+        .utility-result { margin-top: 14px; font-size: 13px; }
+        .net-warning {
+            border: 1px solid var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 11.5px; margin-top: 10px;
+            display: flex; gap: 8px; align-items: flex-start; line-height: 1.5;
+        }
+        .net-warning.danger-warning { border-color: var(--danger); }
+        .net-warning i { margin-top: 2px; }
+
+        .stat-strip {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+        .stat-strip strong { opacity: 1; }
+
+        .spinner-dot {
+            display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+            animation: pulseDot 1s infinite ease-in-out;
+        }
+        @keyframes pulseDot { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+        /* FAQ strip */
+        .faq-section { margin: 48px 0 56px; }
+        .section-heading {
+            font-family: var(--font-header); font-size: 26px; font-weight: 800; text-transform: uppercase;
+            margin-bottom: 24px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .faq-grid { grid-template-columns: 1fr; } }
+        .faq-item {
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+        }
+        .faq-item h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
+        .faq-item p { font-size: 0.85rem; opacity: 0.75; line-height: 1.55; }
+
+        /* ============================================
+           FOOTER (Preserved)
+           ============================================ */
+        .email-signup {
+            background: var(--bg-secondary); padding: 2.8rem 2rem; border-radius: 32px; text-align: center;
+            margin: 48px 0 40px; border: 1px solid var(--border-light);
+        }
+        .signup-form { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .signup-form input {
+            flex: 1; min-width: 200px; padding: 14px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+            background: var(--input-bg); color: var(--text-primary); font-family: var(--font-body);
+        }
+        .signup-form button {
+            background: var(--text-primary); color: var(--bg-primary); border: none; padding: 14px 32px;
+            border-radius: 60px; font-weight: 700; font-family: var(--font-header); cursor: pointer; transition: all 0.2s;
+        }
+        footer { border-top: 1px solid var(--border-color); width: 100%; margin-top: auto; padding: 40px 0 30px; }
+        .footer-middle {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+            padding: 20px 0; border-top: 1px solid var(--border-light);
+        }
+        .footer-links { display: flex; gap: 24px; font-weight: 600; font-size: 12px; }
+        .footer-bottom { text-align: center; padding: 20px 0 0; border-top: 1px solid var(--border-light); font-size: 11px; }
+        @media (max-width: 768px) {
+            .footer-middle { flex-direction: column; text-align: center; }
+            .signup-form { flex-direction: column; }
+        }
+
+        /* ============================================
+           MOBILE / TABLET REFINEMENTS
+           ============================================ */
+        @media (max-width: 900px) {
+            .settings-card { padding: 20px 18px 4px; border-radius: 18px; }
+            .panel-card, .utility-card { padding: 18px; border-radius: 18px; }
+            .panel-head { flex-direction: column; align-items: flex-start; }
+            .panel-actions button { flex: 1 1 auto; }
+        }
+        @media (max-width: 600px) {
+            header .container { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            nav.main-nav { width: 100%; gap: 14px; font-size: 13px; }
+            .social-icons { display: none; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar .spacer { display: none; }
+            .preset-bar select { width: 100%; }
+            .output-tab { flex: 1 1 calc(50% - 4px); text-align: center; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech Magazine">awjunaid</a>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <a href="https://aw-junaid.github.io/">Home</a>
+                    <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+                    <a href="https://aw-junaid.github.io/page/membership.html">Membership</a>
+                    <div class="dropdown">
+                        <a href="#">Categories <i class="fa-solid fa-caret-down"></i></a>
+                        <div class="dropdown-content">
+                            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+                            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+                            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+                            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+                <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Tool Hero -->
+            <div class="tool-hero">
+                <div class="tool-eyebrow">// FREE TOOL</div>
+                <h1 class="tool-title">Argon2 Hash Generator &amp; Verifier</h1>
+                <div class="tool-dek">Compute Argon2id, Argon2i, or Argon2d password hashes with full control over memory cost, iterations, parallelism, salt, and hash length — the winner of the Password Hashing Competition and the algorithm OWASP recommends first for storing passwords. Includes a parameter auto-tune benchmark to find safe settings for your own hardware, PHC-encoded hash verification, batch hashing, and a random salt generator — computed entirely in your browser via WebAssembly, nothing sent anywhere.</div>
+            </div>
+
+            <!-- Preset bar -->
+            <div class="preset-bar">
+                <label for="presetSelect">Preset</label>
+                <select id="presetSelect">
+                    <option value="custom">Custom</option>
+                    <option value="owaspMin">OWASP Minimum (interactive login)</option>
+                    <option value="rfcLowMem">RFC 9106 2nd Recommendation (low-memory)</option>
+                    <option value="rfcHighMem">RFC 9106 1st Recommendation (high-memory)</option>
+                    <option value="testingOnly">Testing Only (fast, insecure)</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn-ghost" id="savePresetBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Save Preset</button>
+                <button class="btn-ghost" id="exportSettingsBtn" type="button"><i class="fa-solid fa-file-export"></i> Export Config</button>
+                <button class="btn-ghost" id="importSettingsBtn" type="button"><i class="fa-solid fa-file-import"></i> Import Config</button>
+                <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h4>Algorithm &amp; Cost Parameters</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optWarnWeakParams" checked>
+                            <span><span class="setting-name">Warn on below-recommended parameters</span><span class="setting-hint">Flags settings weaker than OWASP's minimum for password storage (m=19456 KiB, t=2, p=1)</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optWarnHighMemory" checked>
+                            <span><span class="setting-name">Warn on very high memory settings</span><span class="setting-hint">Flags memory costs above 1 GiB that may freeze the tab or exceed device limits, especially on mobile</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowMemoryEstimate" checked>
+                            <span><span class="setting-name">Show human-readable memory estimate</span><span class="setting-hint">Displays the memory cost in MiB/GiB alongside the raw KiB value</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowComputeTime" checked>
+                            <span><span class="setting-name">Show computation time</span><span class="setting-hint">Measures and displays how long the hash took to compute in this browser</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="variantSelect">Argon2 variant</label>
+                            <select id="variantSelect">
+                                <option value="argon2id" selected>Argon2id (recommended default)</option>
+                                <option value="argon2i">Argon2i (side-channel resistant)</option>
+                                <option value="argon2d">Argon2d (max GPU/ASIC resistance)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="iterationsInput">Iterations (time cost)</label>
+                            <input type="number" id="iterationsInput" min="1" max="20" value="3">
+                        </div>
+                        <div class="field-group">
+                            <label for="memoryInput">Memory cost (KiB)</label>
+                            <input type="number" id="memoryInput" min="8" max="4194304" step="1" value="65536">
+                            <div class="field-note" id="memoryEstimateNote"></div>
+                        </div>
+                        <div class="field-group">
+                            <label for="parallelismInput">Parallelism (threads)</label>
+                            <input type="number" id="parallelismInput" min="1" max="64" value="4">
+                        </div>
+                        <div class="field-group">
+                            <label for="hashLengthInput">Hash length (bytes)</label>
+                            <input type="number" id="hashLengthInput" min="4" max="128" value="32">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Password Encoding</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optNormalizeUnicode">
+                            <span><span class="setting-name">Normalize Unicode (NFKC) before hashing</span><span class="setting-hint">Prevents "ü" typed two different ways from producing two different hashes — off by default to match most server libraries, which don't normalize either</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowByteLength" checked>
+                            <span><span class="setting-name">Show byte length of password &amp; salt</span><span class="setting-hint">Useful for confirming an encoding was interpreted the way you expected</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group full-width">
+                            <label>Password encoding</label>
+                            <div class="radio-row" id="pwEncodingRadios">
+                                <label class="radio-opt"><input type="radio" name="pwEncoding" value="utf8" checked> UTF-8 Text</label>
+                                <label class="radio-opt"><input type="radio" name="pwEncoding" value="hex"> Hex</label>
+                                <label class="radio-opt"><input type="radio" name="pwEncoding" value="base64"> Base64</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Salt Handling</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optAutoGenerateSalt" checked>
+                            <span><span class="setting-name">Auto-generate a random salt</span><span class="setting-hint">Uses the Web Crypto API's secure random source; uncheck to supply your own salt below (useful for reproducing a known test vector)</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="saltLengthInput">Auto salt length (bytes)</label>
+                            <input type="number" id="saltLengthInput" min="8" max="64" value="16">
+                        </div>
+                        <div class="field-group full-width">
+                            <label>Custom salt encoding <span style="opacity:0.5;font-weight:500;text-transform:none;">(used only when auto-generate is off)</span></label>
+                            <div class="radio-row" id="saltEncodingRadios">
+                                <label class="radio-opt"><input type="radio" name="saltEncoding" value="utf8" checked> UTF-8 Text</label>
+                                <label class="radio-opt"><input type="radio" name="saltEncoding" value="hex"> Hex</label>
+                                <label class="radio-opt"><input type="radio" name="saltEncoding" value="base64"> Base64</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Output Format</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optOutputLowercase" checked>
+                            <span><span class="setting-name">Lowercase hex output</span><span class="setting-hint">Uncheck for uppercase hex digits</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optShowAllFormats" checked>
+                            <span><span class="setting-name">Show PHC-encoded, hex, and Base64</span><span class="setting-hint">The PHC-encoded string is what most servers store; hex/Base64 give you the raw hash bytes alone</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Security &amp; UX</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optMaskPassword" checked>
+                            <span><span class="setting-name">Mask password input field</span><span class="setting-hint">Displays the password as dots, like a password field — toggle visibility with the eye icon</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optClearPasswordOnLoad" checked>
+                            <span><span class="setting-name">Never persist password in browser storage</span><span class="setting-hint">When on, the password is excluded from draft autosave — only parameters and settings persist</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Batch Mode</h4>
+                    <div class="settings-grid">
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchRandomSaltPerLine" checked>
+                            <span><span class="setting-name">Generate a fresh random salt per line</span><span class="setting-hint">Strongly recommended — reusing one salt across passwords defeats the point of salting. Uncheck only for reproducible test fixtures</span></span>
+                        </label>
+                        <label class="setting-toggle">
+                            <input type="checkbox" id="optBatchIncludeIndex">
+                            <span><span class="setting-name">Include line index in batch output</span><span class="setting-hint">Adds a row number column to the batch table and export</span></span>
+                        </label>
+                    </div>
+                    <div class="field-row" style="margin-top:14px;">
+                        <div class="field-group">
+                            <label for="maxBatchLinesInput">Max lines per batch run</label>
+                            <input type="number" id="maxBatchLinesInput" min="1" max="500" value="25">
+                            <div class="field-note">Kept low by default — each line runs a full Argon2 computation at your chosen memory/iteration cost, so a large batch at strong settings can take a while.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor / Output Layout -->
+            <div class="tool-layout">
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Password &amp; Salt</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="clearBtn" type="button"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="field-label-row">
+                        <label for="passwordInput">Password / Message</label>
+                        <button class="btn-ghost small" id="togglePasswordVisibilityBtn" type="button" style="padding:4px 10px;font-size:10px;"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                    <textarea id="passwordInput" spellcheck="false" placeholder="correct-horse-battery-staple" style="-webkit-text-security: disc;"></textarea>
+
+                    <div id="customSaltWrap" style="margin-top:16px;display:none;">
+                        <label for="saltInput" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:8px;">Custom Salt</label>
+                        <textarea id="saltInput" spellcheck="false" placeholder="Enter salt using the encoding selected above"></textarea>
+                    </div>
+
+                    <div class="input-hint">Argon2 is deliberately slow and memory-hungry — that's the point. High memory/iteration settings can take several seconds and will temporarily freeze this tab while computing. The salt encoding and password encoding are set in the settings panel above.</div>
+                    <div class="error-box" id="errorBox"></div>
+                    <div class="stat-strip" id="statStrip"></div>
+                    <div style="margin-top:16px;">
+                        <button class="btn-solid" id="computeBtn" type="button" style="width:100%;justify-content:center;"><i class="fa-solid fa-lock"></i> Compute Argon2 Hash</button>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-head">
+                        <h3>Output</h3>
+                        <div class="panel-actions">
+                            <button class="btn-ghost" id="copyEncodedBtn" type="button"><i class="fa-solid fa-copy"></i> Copy Encoded</button>
+                            <button class="btn-solid" id="downloadJsonBtn" type="button"><i class="fa-solid fa-download"></i> Download JSON</button>
+                        </div>
+                    </div>
+                    <div class="output-tabs">
+                        <button class="output-tab active" data-tab="result" type="button">Result</button>
+                        <button class="output-tab" data-tab="verify" type="button">Verify</button>
+                        <button class="output-tab" data-tab="batch" type="button">Batch Table</button>
+                        <button class="output-tab" data-tab="json" type="button">JSON</button>
+                    </div>
+
+                    <div class="output-pane active" id="pane-result"><div class="empty-pane">Enter a password above and click "Compute Argon2 Hash" to see results.</div></div>
+                    <div class="output-pane" id="pane-verify"></div>
+                    <div class="output-pane" id="pane-batch"><div class="empty-pane">Use the Batch Hashing utility below to see results here.</div></div>
+                    <div class="output-pane" id="pane-json"><div class="mono-box" id="jsonOut">Enter a password above and click "Compute Argon2 Hash" to see results.</div></div>
+                </div>
+            </div>
+
+            <!-- Utility tools -->
+            <div class="utility-grid">
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-list-ol"></i> Batch Hashing</h3>
+                    <div class="utility-note">Hash multiple passwords against the current cost parameters at once — useful for pre-generating test fixtures or migrating a small user list to Argon2.</div>
+                    <div class="field-group">
+                        <label for="batchInput">One password per line</label>
+                        <textarea id="batchInput" spellcheck="false" placeholder="hunter2
+correct-horse-battery-staple
+Tr0ub4dor&3"></textarea>
+                    </div>
+                    <button class="btn-solid small" id="batchHashBtn" type="button">Hash All</button>
+                    <div class="utility-result" id="batchUtilResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-stopwatch"></i> Parameter Auto-Tune</h3>
+                    <div class="utility-note">The hardest part of using Argon2 correctly is picking parameters — too weak and it's not protecting anything, too strong and it stalls your login endpoint. This benchmarks your actual browser/device and suggests iterations to hit a target response time at your chosen memory and parallelism.</div>
+                    <div class="field-group">
+                        <label for="targetTimeInput">Target time (ms)</label>
+                        <input type="number" id="targetTimeInput" min="50" max="10000" value="500">
+                    </div>
+                    <div class="field-group">
+                        <label for="tuneMemoryInput">Memory cost (KiB)</label>
+                        <input type="number" id="tuneMemoryInput" min="8" max="4194304" value="65536">
+                    </div>
+                    <div class="field-group">
+                        <label for="tuneParallelismInput">Parallelism</label>
+                        <input type="number" id="tuneParallelismInput" min="1" max="64" value="4">
+                    </div>
+                    <button class="btn-solid small" id="tuneBtn" type="button">Run Benchmark</button>
+                    <div class="utility-result" id="tuneResult"></div>
+                </div>
+
+                <div class="utility-card">
+                    <h3><i class="fa-solid fa-dice"></i> Random Salt Generator</h3>
+                    <div class="utility-note">Generates a cryptographically random salt using the Web Crypto API's secure random source — the same source you should use server-side for every new password hash.</div>
+                    <div class="field-group">
+                        <label for="genSaltLengthInput">Salt length (bytes)</label>
+                        <input type="number" id="genSaltLengthInput" min="8" max="64" value="16">
+                    </div>
+                    <button class="btn-solid small" id="genSaltBtn" type="button">Generate</button>
+                    <div class="utility-result" id="genSaltResult"></div>
+                </div>
+            </div>
+
+            <!-- FAQ Strip -->
+            <div class="faq-section">
+                <div class="section-heading">✦ How This Tool Works</div>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <h4>What problem does this actually solve?</h4>
+                        <p>Choosing Argon2 parameters is genuinely hard: too light and you're not slowing down an attacker at all, too heavy and you stall your own login endpoint or exhaust memory on shared hosting. This tool lets you experiment with real parameters against real passwords, see the actual PHC-encoded output your server would store, verify a hash you already have, and — via the auto-tune benchmark — get a concrete iteration count for a memory budget and response-time target on your own hardware.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>How is this actually computed?</h4>
+                        <p>Via hash-wasm, a WebAssembly build of the reference Argon2 implementation, running the exact same C code path production libraries use — nothing is simulated or approximated in JavaScript.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Argon2id, Argon2i, or Argon2d — which should I pick?</h4>
+                        <p>Argon2id is the hybrid variant and OWASP's default recommendation for password storage: it resists both GPU cracking (like Argon2d) and side-channel timing attacks (like Argon2i). Use Argon2i specifically if you need side-channel resistance above all else, and Argon2d only in contexts with no side-channel risk, such as offline cryptocurrency mining or key derivation with no timing-observable attacker.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What do memory, iterations, and parallelism actually control?</h4>
+                        <p>Memory cost (in KiB) is how much RAM the algorithm forces an attacker to use per guess — this is Argon2's main defense, since large parallel memory is expensive at scale for attackers using GPUs or ASICs. Iterations control how many passes are made over that memory, adding time cost. Parallelism controls how many independent memory lanes run concurrently, which speeds up hashing on multi-core hardware but must scale with available memory, since it's split across lanes.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Why does the same password give a different hash every time?</h4>
+                        <p>Because a new random salt is generated by default on every run. That's intentional: salting means two users with the same password get completely different stored hashes, which defeats precomputed rainbow-table attacks. To get a reproducible hash for testing, disable auto-generate salt and supply a fixed one.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is the PHC-encoded string, and why does it contain the parameters?</h4>
+                        <p>It's a self-describing format like <code>$argon2id$v=19$m=65536,t=3,p=4$&lt;salt&gt;$&lt;hash&gt;</code> that bundles the algorithm, version, cost parameters, salt, and hash together. Storing this single string means you can verify a login years later even after changing your default parameters for new hashes, since each stored hash still carries the settings it was created with.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is anything sent to a server?</h4>
+                        <p>No. Every computation — hashing, verification, batch hashing, benchmarking, and random salt generation — runs entirely in your browser via WebAssembly. Nothing you type, including your password, ever leaves the page. If "Never persist password" is enabled, it's also excluded from local draft autosave.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="email-signup">
+                <h3 style="font-weight: 800;">✉️ Subscribe to The Byteforge</h3>
+                <p>Get the latest blog posts, offensive research, and quantum security insights — straight to your inbox.</p>
+                <form class="signup-form" id="emailSignupForm"><input type="email" placeholder="your@email.com" required id="footerEmailInput"><button type="submit">Subscribe →</button></form>
+                <small>No spam, only quality content. Unsubscribe anytime.</small>
+            </div>
+            <div class="footer-middle">
+                <div class="footer-links"><a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a><a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a><a href="https://aw-junaid.github.io/page/contact.html">Contact</a><a href="https://aw-junaid.github.io/page/about.html">About</a><a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a></div>
+                <div class="social-icons">
+                    <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+                    <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 AWJUNAID.COM | All Rights Reserved</div>
+        </div>
+    </footer>
+
+    <!-- hash-wasm: WebAssembly Argon2id/Argon2i/Argon2d, loaded into the global `hashwasm` object -->
+    <script src="https://cdn.jsdelivr.net/npm/hash-wasm@4"></script>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        window.addEventListener('load', () => { if(localStorage.getItem('theme') === 'light') document.body.classList.remove('dark-mode'); });
+
+        document.getElementById('emailSignupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.reset();
+        });
+
+        // ============================================
+        // ARGON2 GENERATOR & VERIFIER — ENGINE (hash-wasm / WebAssembly)
+        // ============================================
+
+        const OWASP_MIN = { memorySize: 19456, iterations: 2, parallelism: 1 };
+        const HIGH_MEMORY_WARN_KIB = 1048576; // 1 GiB
+
+        function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ---------- Encoding helpers ----------
+        function utf8ToBytes(str) { return new TextEncoder().encode(str); }
+        function bytesToHex(bytes, uppercase) {
+            let hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            return uppercase ? hex.toUpperCase() : hex;
+        }
+        function hexToBytes(hex) {
+            const clean = hex.trim().replace(/^0x/i, '').replace(/\s+/g, '');
+            if (clean.length % 2 !== 0) throw new Error('Hex string must have an even number of characters');
+            if (!/^[0-9a-fA-F]*$/.test(clean)) throw new Error('Invalid hex characters');
+            const bytes = new Uint8Array(clean.length / 2);
+            for (let i = 0; i < clean.length; i += 2) bytes[i / 2] = parseInt(clean.substr(i, 2), 16);
+            return bytes;
+        }
+        function base64ToBytes(b64) {
+            const clean = b64.trim();
+            const bin = atob(clean);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return bytes;
+        }
+        function bytesToBase64(bytes) {
+            let bin = '';
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            return btoa(bin);
+        }
+        function base64NoPadToBytes(b64) {
+            let clean = b64.replace(/-/g, '+').replace(/_/g, '/');
+            while (clean.length % 4 !== 0) clean += '=';
+            return base64ToBytes(clean);
+        }
+        function decodeByEncoding(str, encoding) {
+            if (encoding === 'hex') return hexToBytes(str);
+            if (encoding === 'base64') return base64ToBytes(str);
+            return utf8ToBytes(str);
+        }
+        function normalizeIfNeeded(str, doNormalize) { return doNormalize ? str.normalize('NFKC') : str; }
+        function formatBytes(kib) {
+            if (kib >= 1048576) return (kib / 1048576).toFixed(2) + ' GiB';
+            if (kib >= 1024) return (kib / 1024).toFixed(1) + ' MiB';
+            return kib + ' KiB';
+        }
+        function parseEncodedHash(encoded) {
+            // $argon2id$v=19$m=65536,t=3,p=4$<saltB64NoPad>$<hashB64NoPad>
+            const parts = encoded.split('$').filter(Boolean);
+            if (parts.length < 5) throw new Error('Unrecognized encoded hash format');
+            const variant = parts[0];
+            const params = {};
+            parts[2].split(',').forEach(kv => { const [k, v] = kv.split('='); params[k] = v; });
+            const saltBytes = base64NoPadToBytes(parts[3]);
+            const hashBytes = base64NoPadToBytes(parts[4]);
+            return { variant, version: parts[1], params, saltBytes, hashBytes };
+        }
+
+        function libReady() { return typeof hashwasm !== 'undefined' && hashwasm && typeof hashwasm.argon2id === 'function'; }
+
+        // ---------- Options ----------
+        function getOptions() {
+            return {
+                warnWeakParams: document.getElementById('optWarnWeakParams').checked,
+                warnHighMemory: document.getElementById('optWarnHighMemory').checked,
+                showMemoryEstimate: document.getElementById('optShowMemoryEstimate').checked,
+                showComputeTime: document.getElementById('optShowComputeTime').checked,
+                variant: document.getElementById('variantSelect').value,
+                iterations: parseInt(document.getElementById('iterationsInput').value, 10) || 1,
+                memorySize: parseInt(document.getElementById('memoryInput').value, 10) || 8,
+                parallelism: parseInt(document.getElementById('parallelismInput').value, 10) || 1,
+                hashLength: parseInt(document.getElementById('hashLengthInput').value, 10) || 32,
+                normalizeUnicode: document.getElementById('optNormalizeUnicode').checked,
+                showByteLength: document.getElementById('optShowByteLength').checked,
+                pwEncoding: (document.querySelector('input[name="pwEncoding"]:checked') || {}).value || 'utf8',
+                autoGenerateSalt: document.getElementById('optAutoGenerateSalt').checked,
+                saltLength: parseInt(document.getElementById('saltLengthInput').value, 10) || 16,
+                saltEncoding: (document.querySelector('input[name="saltEncoding"]:checked') || {}).value || 'utf8',
+                outputLowercase: document.getElementById('optOutputLowercase').checked,
+                showAllFormats: document.getElementById('optShowAllFormats').checked,
+                maskPassword: document.getElementById('optMaskPassword').checked,
+                clearPasswordOnLoad: document.getElementById('optClearPasswordOnLoad').checked,
+                batchRandomSaltPerLine: document.getElementById('optBatchRandomSaltPerLine').checked,
+                batchIncludeIndex: document.getElementById('optBatchIncludeIndex').checked,
+                maxBatchLines: parseInt(document.getElementById('maxBatchLinesInput').value, 10) || 25
+            };
+        }
+
+        document.getElementById('optAutoGenerateSalt').addEventListener('change', (e) => {
+            document.getElementById('customSaltWrap').style.display = e.target.checked ? 'none' : 'block';
+        });
+
+        function updateMemoryNote() {
+            const opts = getOptions();
+            document.getElementById('memoryEstimateNote').textContent = opts.showMemoryEstimate ? ('≈ ' + formatBytes(opts.memorySize)) : '';
+        }
+        document.getElementById('memoryInput').addEventListener('input', updateMemoryNote);
+        document.getElementById('optShowMemoryEstimate').addEventListener('change', updateMemoryNote);
+        updateMemoryNote();
+
+        let lastResult = null;
+
+        async function computeArgon2() {
+            const opts = getOptions();
+            const errorBox = document.getElementById('errorBox');
+            const computeBtn = document.getElementById('computeBtn');
+            errorBox.classList.remove('show');
+            document.getElementById('statStrip').innerHTML = '';
+
+            const pwRaw = normalizeIfNeeded(document.getElementById('passwordInput').value, opts.normalizeUnicode);
+            if (!pwRaw) {
+                errorBox.textContent = 'Enter a password to hash.';
+                errorBox.classList.add('show');
+                return;
+            }
+            if (!libReady()) {
+                errorBox.textContent = 'The Argon2 WebAssembly library has not finished loading yet (or failed to load — check your network/CDN access). Try again in a moment.';
+                errorBox.classList.add('show');
+                return;
+            }
+            if (opts.parallelism > opts.memorySize / 8) {
+                errorBox.textContent = 'Memory cost is too low for the chosen parallelism. Argon2 requires memory (KiB) ≥ 8 × parallelism.';
+                errorBox.classList.add('show');
+                return;
+            }
+
+            let pwBytes, saltBytes;
+            try { pwBytes = decodeByEncoding(pwRaw, opts.pwEncoding); }
+            catch (err) { errorBox.textContent = 'Password: ' + err.message; errorBox.classList.add('show'); return; }
+
+            if (opts.autoGenerateSalt) {
+                saltBytes = new Uint8Array(opts.saltLength);
+                crypto.getRandomValues(saltBytes);
+            } else {
+                const saltRaw = document.getElementById('saltInput').value;
+                if (!saltRaw) { errorBox.textContent = 'Enter a custom salt, or re-enable auto-generate salt.'; errorBox.classList.add('show'); return; }
+                try { saltBytes = decodeByEncoding(saltRaw, opts.saltEncoding); }
+                catch (err) { errorBox.textContent = 'Salt: ' + err.message; errorBox.classList.add('show'); return; }
+            }
+
+            if (opts.showByteLength) {
+                document.getElementById('statStrip').innerHTML =
+                    '<span>Password: <strong>' + pwBytes.length + '</strong> bytes</span><span>Salt: <strong>' + saltBytes.length + '</strong> bytes</span>';
+            }
+
+            computeBtn.disabled = true;
+            computeBtn.innerHTML = '<span class="spinner-dot"></span> Computing…';
+
+            // yield a frame so the "Computing…" state paints before the blocking WASM call
+            await new Promise(r => setTimeout(r, 20));
+
+            try {
+                const fn = hashwasm[opts.variant];
+                const t0 = performance.now();
+                const encoded = await fn({
+                    password: pwBytes,
+                    salt: saltBytes,
+                    iterations: opts.iterations,
+                    parallelism: opts.parallelism,
+                    memorySize: opts.memorySize,
+                    hashLength: opts.hashLength,
+                    outputType: 'encoded'
+                });
+                const elapsedMs = performance.now() - t0;
+
+                const parsed = parseEncodedHash(encoded);
+                const hex = bytesToHex(parsed.hashBytes, !opts.outputLowercase);
+                const base64 = bytesToBase64(parsed.hashBytes);
+
+                lastResult = { opts, pwBytes, saltBytes, encoded, hex, base64, elapsedMs, hashBytes: parsed.hashBytes };
+                renderResult(opts, lastResult);
+                renderVerify(opts);
+                renderJson(opts, lastResult);
+            } catch (err) {
+                errorBox.textContent = 'Argon2 computation failed: ' + err.message + ' (very high memory/parallelism settings can exceed what this device or browser tab allows)';
+                errorBox.classList.add('show');
+                lastResult = null;
+            } finally {
+                computeBtn.disabled = false;
+                computeBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Compute Argon2 Hash';
+            }
+        }
+
+        function paneEmpty(id, msg) { document.getElementById(id).innerHTML = '<div class="empty-pane">' + escapeHtml(msg) + '</div>'; }
+
+        function renderResult(opts, r) {
+            let html = '';
+            if (opts.warnWeakParams && (opts.iterations < OWASP_MIN.iterations || opts.memorySize < OWASP_MIN.memorySize)) {
+                html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>These parameters are below OWASP\'s recommended minimum for password storage (m=19456 KiB, t=2, p=1). Fine for testing, not for production password hashing.</span></div>';
+            }
+            if (opts.warnHighMemory && opts.memorySize > HIGH_MEMORY_WARN_KIB) {
+                html += '<div class="net-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>Memory cost is above 1 GiB — this can freeze the tab for several seconds and may fail entirely on memory-constrained or mobile devices.</span></div>';
+            }
+            const variantLabel = opts.variant.replace('argon2', 'Argon2').replace(/(id|i|d)$/, m => m.toUpperCase());
+            html += '<div style="margin:14px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">' + escapeHtml(variantLabel) + ' — PHC Encoded (store this)</div>';
+            html += '<div class="result-hash">' + escapeHtml(r.encoded) + '</div>';
+            if (opts.showAllFormats) {
+                html += '<div style="margin:16px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Raw Hash (Hex)</div>';
+                html += '<div class="result-hash">' + escapeHtml(r.hex) + '</div>';
+                html += '<div style="margin:16px 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;">Raw Hash (Base64)</div>';
+                html += '<div class="result-hash">' + escapeHtml(r.base64) + '</div>';
+            }
+            let footer = 'Output length: ' + r.hashBytes.length + ' bytes (' + (r.hashBytes.length * 8) + ' bits) · Memory: ' + formatBytes(opts.memorySize) + ' · Iterations: ' + opts.iterations + ' · Parallelism: ' + opts.parallelism;
+            if (opts.showComputeTime) footer += ' · Computed in ' + r.elapsedMs.toFixed(0) + ' ms';
+            html += '<div style="margin-top:14px;font-size:11px;opacity:0.55;">' + escapeHtml(footer) + '</div>';
+            document.getElementById('pane-result').innerHTML = html;
+        }
+
+        function renderVerify(opts) {
+            let html = '<div class="field-group"><label for="verifyHashInput">PHC-encoded hash to verify against</label><textarea id="verifyHashInput" spellcheck="false" placeholder="$argon2id$v=19$m=65536,t=3,p=4$..."></textarea></div>';
+            html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px;">';
+            html += '<button class="btn-ghost small" id="useLastResultBtn" type="button"' + (lastResult ? '' : ' disabled') + '>Use Last Result</button>';
+            html += '</div>';
+            html += '<div class="field-group"><label for="verifyPasswordInput">Candidate password</label><input type="text" id="verifyPasswordInput" placeholder="Password to test against the hash above" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border-light);background:var(--input-bg);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;"></div>';
+            html += '<button class="btn-solid small" id="verifyBtn" type="button">Verify</button>';
+            html += '<div id="verifyResultInner" style="margin-top:14px;"></div>';
+            document.getElementById('pane-verify').innerHTML = html;
+
+            const useLastBtn = document.getElementById('useLastResultBtn');
+            if (useLastBtn) {
+                useLastBtn.addEventListener('click', () => {
+                    document.getElementById('verifyHashInput').value = lastResult.encoded;
+                });
+            }
+
+            document.getElementById('verifyBtn').addEventListener('click', async () => {
+                const resultEl = document.getElementById('verifyResultInner');
+                const encoded = document.getElementById('verifyHashInput').value.trim();
+                const pwRaw = normalizeIfNeeded(document.getElementById('verifyPasswordInput').value, opts.normalizeUnicode);
+                if (!encoded || !pwRaw) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Enter both a PHC-encoded hash and a candidate password.</div>'; return; }
+                if (!libReady()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Argon2 library not loaded yet.</div>'; return; }
+                resultEl.innerHTML = '<div style="font-size:12px;opacity:0.6;"><span class="spinner-dot"></span> Verifying…</div>';
+                try {
+                    const isValid = await hashwasm.argon2Verify({ password: normalizeIfNeeded(pwRaw, false), hash: encoded });
+                    resultEl.innerHTML = '<span class="badge ' + (isValid ? 'public' : 'invalid') + '">' + (isValid ? 'Password Matches' : 'No Match') + '</span>';
+                } catch (err) {
+                    resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Could not verify: ' + escapeHtml(err.message) + '</div>';
+                }
+            });
+        }
+
+        function renderJson(opts, r) {
+            const out = {
+                variant: opts.variant,
+                parameters: { iterations: opts.iterations, memorySize: opts.memorySize, parallelism: opts.parallelism, hashLength: opts.hashLength },
+                encoded: r.encoded,
+                hashHex: r.hex,
+                hashBase64: r.base64,
+                elapsedMs: Math.round(r.elapsedMs)
+            };
+            document.getElementById('jsonOut').textContent = JSON.stringify(out, null, 2);
+        }
+
+        // ---------- Wiring: main compute ----------
+        document.getElementById('computeBtn').addEventListener('click', computeArgon2);
+        document.getElementById('passwordInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) computeArgon2(); });
+        document.querySelectorAll('.settings-card input, .settings-card select').forEach(el => {
+            el.addEventListener('change', () => { document.getElementById('presetSelect').value = 'custom'; saveDraft(); });
+        });
+        document.getElementById('passwordInput').addEventListener('input', saveDraft);
+
+        document.querySelectorAll('.output-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+                if (tab.dataset.tab === 'verify' && !document.getElementById('verifyHashInput')) renderVerify(getOptions());
+            });
+        });
+        // initialize verify pane once on load so the tab isn't empty before a first compute
+        renderVerify(getOptions());
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('saltInput').value = '';
+            document.getElementById('errorBox').classList.remove('show');
+            document.getElementById('statStrip').innerHTML = '';
+            paneEmpty('pane-result', 'Enter a password above and click "Compute Argon2 Hash" to see results.');
+            document.getElementById('jsonOut').textContent = 'Enter a password above and click "Compute Argon2 Hash" to see results.';
+            lastResult = null;
+            renderVerify(getOptions());
+            saveDraft();
+            document.getElementById('passwordInput').focus();
+        });
+
+        document.getElementById('togglePasswordVisibilityBtn').addEventListener('click', () => {
+            const el = document.getElementById('passwordInput');
+            const btn = document.getElementById('togglePasswordVisibilityBtn');
+            const isMasked = el.style.webkitTextSecurity === 'disc' || el.style.webkitTextSecurity === '';
+            if (isMasked) { el.style.webkitTextSecurity = 'none'; btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>'; }
+            else { el.style.webkitTextSecurity = 'disc'; btn.innerHTML = '<i class="fa-solid fa-eye"></i>'; }
+        });
+        document.getElementById('optMaskPassword').addEventListener('change', () => {
+            const masked = document.getElementById('optMaskPassword').checked;
+            document.getElementById('passwordInput').style.webkitTextSecurity = masked ? 'disc' : 'none';
+        });
+
+        document.getElementById('copyEncodedBtn').addEventListener('click', async () => {
+            if (!lastResult) return;
+            try { await navigator.clipboard.writeText(lastResult.encoded); } catch (err) { /* ignore */ }
+        });
+
+        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+            if (!lastResult) return;
+            const opts = lastResult.opts;
+            const out = {
+                variant: opts.variant,
+                parameters: { iterations: opts.iterations, memorySize: opts.memorySize, parallelism: opts.parallelism, hashLength: opts.hashLength },
+                encoded: lastResult.encoded,
+                hashHex: lastResult.hex,
+                hashBase64: lastResult.base64,
+                elapsedMs: Math.round(lastResult.elapsedMs)
+            };
+            const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'argon2-result.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // ---------- Utility: Batch Hashing ----------
+        document.getElementById('batchHashBtn').addEventListener('click', async () => {
+            const opts = getOptions();
+            const resultEl = document.getElementById('batchUtilResult');
+            if (!libReady()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Argon2 library not loaded yet.</div>'; return; }
+            if (opts.parallelism > opts.memorySize / 8) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Memory cost is too low for the chosen parallelism (need ≥ 8 × parallelism KiB).</div>'; return; }
+
+            let lines = document.getElementById('batchInput').value.split('\n').filter(l => l.trim() !== '');
+            lines = lines.slice(0, opts.maxBatchLines);
+            if (lines.length === 0) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Add at least one password line.</div>'; return; }
+
+            const btn = document.getElementById('batchHashBtn');
+            btn.disabled = true;
+            const sharedSalt = new Uint8Array(opts.saltLength);
+            crypto.getRandomValues(sharedSalt);
+
+            const rows = [];
+            for (let i = 0; i < lines.length; i++) {
+                resultEl.innerHTML = '<div style="font-size:12px;opacity:0.6;"><span class="spinner-dot"></span> Hashing ' + (i + 1) + ' of ' + lines.length + '…</div>';
+                await new Promise(r => setTimeout(r, 10));
+                const line = lines[i];
+                try {
+                    const pwBytes = utf8ToBytes(normalizeIfNeeded(line, opts.normalizeUnicode));
+                    let saltBytes;
+                    if (opts.batchRandomSaltPerLine) { saltBytes = new Uint8Array(opts.saltLength); crypto.getRandomValues(saltBytes); }
+                    else { saltBytes = sharedSalt; }
+                    const fn = hashwasm[opts.variant];
+                    const encoded = await fn({ password: pwBytes, salt: saltBytes, iterations: opts.iterations, parallelism: opts.parallelism, memorySize: opts.memorySize, hashLength: opts.hashLength, outputType: 'encoded' });
+                    rows.push({ line, encoded });
+                } catch (err) {
+                    rows.push({ line, error: err.message });
+                }
+            }
+            btn.disabled = false;
+
+            let cols = opts.batchIncludeIndex ? ['#', 'Password', 'PHC-Encoded Hash'] : ['Password', 'PHC-Encoded Hash'];
+            function buildTable(maxLen) {
+                let h = '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+                rows.forEach((r, i) => {
+                    let cells = [];
+                    if (opts.batchIncludeIndex) cells.push(String(i + 1));
+                    cells.push(escapeHtml(r.line.length > 40 ? r.line.slice(0, 40) + '…' : r.line));
+                    cells.push(r.error ? '<span style="color:var(--danger);">' + escapeHtml(r.error) + '</span>' : escapeHtml(r.encoded.length > maxLen ? r.encoded.slice(0, maxLen) + '…' : r.encoded));
+                    h += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+                });
+                h += '</tbody></table></div>';
+                return h;
+            }
+            resultEl.innerHTML = buildTable(60);
+            document.getElementById('pane-batch').innerHTML = buildTable(90);
+            window._lastBatchRows = rows;
+        });
+
+        // ---------- Utility: Parameter Auto-Tune ----------
+        document.getElementById('tuneBtn').addEventListener('click', async () => {
+            const resultEl = document.getElementById('tuneResult');
+            if (!libReady()) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Argon2 library not loaded yet.</div>'; return; }
+            const targetMs = Math.max(50, parseInt(document.getElementById('targetTimeInput').value, 10) || 500);
+            const memorySize = Math.max(8, parseInt(document.getElementById('tuneMemoryInput').value, 10) || 65536);
+            const parallelism = Math.max(1, parseInt(document.getElementById('tuneParallelismInput').value, 10) || 4);
+            if (parallelism > memorySize / 8) { resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Memory cost is too low for the chosen parallelism (need ≥ 8 × parallelism KiB).</div>'; return; }
+
+            const btn = document.getElementById('tuneBtn');
+            btn.disabled = true;
+            resultEl.innerHTML = '<div style="font-size:12px;opacity:0.6;"><span class="spinner-dot"></span> Measuring one iteration…</div>';
+            await new Promise(r => setTimeout(r, 10));
+
+            try {
+                const salt = new Uint8Array(16);
+                crypto.getRandomValues(salt);
+                const pw = utf8ToBytes('benchmark-probe');
+
+                const t0 = performance.now();
+                await hashwasm.argon2id({ password: pw, salt, iterations: 1, parallelism, memorySize, hashLength: 32, outputType: 'hex' });
+                const perIterationMs = performance.now() - t0;
+
+                let suggestedIterations = Math.max(1, Math.round(targetMs / perIterationMs));
+
+                resultEl.innerHTML = '<div style="font-size:12px;opacity:0.6;"><span class="spinner-dot"></span> Confirming with ' + suggestedIterations + ' iteration(s)…</div>';
+                await new Promise(r => setTimeout(r, 10));
+                const salt2 = new Uint8Array(16);
+                crypto.getRandomValues(salt2);
+                const t1 = performance.now();
+                await hashwasm.argon2id({ password: pw, salt: salt2, iterations: suggestedIterations, parallelism, memorySize, hashLength: 32, outputType: 'hex' });
+                const confirmedMs = performance.now() - t1;
+
+                resultEl.innerHTML =
+                    '<table class="kv-table">' +
+                    '<tr><td class="k">Suggested Iterations</td><td class="v">' + suggestedIterations + '</td></tr>' +
+                    '<tr><td class="k">At Memory</td><td class="v">' + formatBytes(memorySize) + ' / Parallelism ' + parallelism + '</td></tr>' +
+                    '<tr><td class="k">Single Iteration Took</td><td class="v">' + perIterationMs.toFixed(0) + ' ms</td></tr>' +
+                    '<tr><td class="k">Confirmed Run Took</td><td class="v">' + confirmedMs.toFixed(0) + ' ms (target was ' + targetMs + ' ms)</td></tr>' +
+                    '</table>' +
+                    (memorySize < OWASP_MIN.memorySize ? '<div class="net-warning" style="margin-top:12px;"><i class="fa-solid fa-triangle-exclamation"></i><span>This memory cost is below OWASP\'s 19456 KiB minimum — consider raising memory and re-tuning rather than relying on iterations alone.</span></div>' : '') +
+                    '<button class="btn-ghost small" id="applyTuneBtn" type="button" style="margin-top:10px;">Apply to Main Panel</button>';
+
+                document.getElementById('applyTuneBtn').addEventListener('click', () => {
+                    document.getElementById('iterationsInput').value = suggestedIterations;
+                    document.getElementById('memoryInput').value = memorySize;
+                    document.getElementById('parallelismInput').value = parallelism;
+                    document.getElementById('presetSelect').value = 'custom';
+                    updateMemoryNote();
+                    document.getElementById('passwordInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+            } catch (err) {
+                resultEl.innerHTML = '<div style="color:var(--danger);font-size:12.5px;">Benchmark failed: ' + escapeHtml(err.message) + '</div>';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // ---------- Utility: Random Salt Generator ----------
+        document.getElementById('genSaltBtn').addEventListener('click', () => {
+            const len = Math.max(8, Math.min(64, parseInt(document.getElementById('genSaltLengthInput').value, 10) || 16));
+            const bytes = new Uint8Array(len);
+            crypto.getRandomValues(bytes);
+            const hex = bytesToHex(bytes, false);
+            const b64 = bytesToBase64(bytes);
+            const resultEl = document.getElementById('genSaltResult');
+            resultEl.innerHTML =
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin-bottom:6px;">Hex</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(hex) + '</div>' +
+                '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6;margin:10px 0 6px;">Base64</div><div class="mono-box" style="font-size:11.5px;">' + escapeHtml(b64) + '</div>' +
+                '<button class="btn-ghost small" id="useGeneratedSaltBtn" type="button" style="margin-top:10px;">Use as Custom Salt (Hex)</button>';
+            document.getElementById('useGeneratedSaltBtn').addEventListener('click', () => {
+                document.getElementById('optAutoGenerateSalt').checked = false;
+                document.getElementById('customSaltWrap').style.display = 'block';
+                document.querySelector('input[name="saltEncoding"][value="hex"]').checked = true;
+                document.getElementById('saltInput').value = hex;
+                document.getElementById('presetSelect').value = 'custom';
+                document.getElementById('saltInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // ============================================
+        // SETTINGS: presets / export / import / persistence
+        // ============================================
+        const SETTING_IDS = {
+            checkboxes: ['optWarnWeakParams', 'optWarnHighMemory', 'optShowMemoryEstimate', 'optShowComputeTime', 'optNormalizeUnicode', 'optShowByteLength', 'optAutoGenerateSalt', 'optOutputLowercase', 'optShowAllFormats', 'optMaskPassword', 'optClearPasswordOnLoad', 'optBatchRandomSaltPerLine', 'optBatchIncludeIndex'],
+            text: ['iterationsInput', 'memoryInput', 'parallelismInput', 'hashLengthInput', 'saltLengthInput', 'maxBatchLinesInput'],
+            select: ['variantSelect'],
+            radio: ['pwEncoding', 'saltEncoding']
+        };
+        function getRawSettingsForPersist() {
+            const raw = {};
+            SETTING_IDS.checkboxes.forEach(id => raw[id] = document.getElementById(id).checked);
+            SETTING_IDS.text.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.select.forEach(id => raw[id] = document.getElementById(id).value);
+            SETTING_IDS.radio.forEach(name => { const c = document.querySelector('input[name="' + name + '"]:checked'); raw[name] = c ? c.value : null; });
+            return raw;
+        }
+        function applySettingsObject(settings) {
+            if (!settings) return;
+            SETTING_IDS.checkboxes.forEach(id => { if (id in settings) document.getElementById(id).checked = !!settings[id]; });
+            SETTING_IDS.text.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.select.forEach(id => { if (id in settings) document.getElementById(id).value = settings[id]; });
+            SETTING_IDS.radio.forEach(name => {
+                if (settings[name]) {
+                    const el = document.querySelector('input[name="' + name + '"][value="' + settings[name] + '"]');
+                    if (el) el.checked = true;
+                }
+            });
+            const masked = document.getElementById('optMaskPassword').checked;
+            document.getElementById('passwordInput').style.webkitTextSecurity = masked ? 'disc' : 'none';
+            document.getElementById('customSaltWrap').style.display = document.getElementById('optAutoGenerateSalt').checked ? 'none' : 'block';
+            updateMemoryNote();
+        }
+
+        const BUILTIN_PRESETS = {
+            owaspMin: {
+                optWarnWeakParams: true, optWarnHighMemory: true, optShowMemoryEstimate: true, optShowComputeTime: true,
+                variantSelect: 'argon2id', iterationsInput: '2', memoryInput: '19456', parallelismInput: '1', hashLengthInput: '32',
+                optNormalizeUnicode: false, optShowByteLength: true, pwEncoding: 'utf8',
+                optAutoGenerateSalt: true, saltLengthInput: '16', saltEncoding: 'utf8',
+                optOutputLowercase: true, optShowAllFormats: true,
+                optMaskPassword: true, optClearPasswordOnLoad: true,
+                optBatchRandomSaltPerLine: true, optBatchIncludeIndex: false, maxBatchLinesInput: '25'
+            },
+            rfcLowMem: {
+                optWarnWeakParams: true, optWarnHighMemory: true, optShowMemoryEstimate: true, optShowComputeTime: true,
+                variantSelect: 'argon2id', iterationsInput: '3', memoryInput: '65536', parallelismInput: '4', hashLengthInput: '32',
+                optNormalizeUnicode: false, optShowByteLength: true, pwEncoding: 'utf8',
+                optAutoGenerateSalt: true, saltLengthInput: '16', saltEncoding: 'utf8',
+                optOutputLowercase: true, optShowAllFormats: true,
+                optMaskPassword: true, optClearPasswordOnLoad: true,
+                optBatchRandomSaltPerLine: true, optBatchIncludeIndex: false, maxBatchLinesInput: '25'
+            },
+            rfcHighMem: {
+                optWarnWeakParams: true, optWarnHighMemory: true, optShowMemoryEstimate: true, optShowComputeTime: true,
+                variantSelect: 'argon2id', iterationsInput: '1', memoryInput: '2097152', parallelismInput: '4', hashLengthInput: '32',
+                optNormalizeUnicode: false, optShowByteLength: true, pwEncoding: 'utf8',
+                optAutoGenerateSalt: true, saltLengthInput: '16', saltEncoding: 'utf8',
+                optOutputLowercase: true, optShowAllFormats: true,
+                optMaskPassword: true, optClearPasswordOnLoad: true,
+                optBatchRandomSaltPerLine: true, optBatchIncludeIndex: false, maxBatchLinesInput: '5'
+            },
+            testingOnly: {
+                optWarnWeakParams: true, optWarnHighMemory: true, optShowMemoryEstimate: true, optShowComputeTime: true,
+                variantSelect: 'argon2id', iterationsInput: '1', memoryInput: '1024', parallelismInput: '1', hashLengthInput: '16',
+                optNormalizeUnicode: false, optShowByteLength: true, pwEncoding: 'utf8',
+                optAutoGenerateSalt: true, saltLengthInput: '8', saltEncoding: 'utf8',
+                optOutputLowercase: true, optShowAllFormats: true,
+                optMaskPassword: false, optClearPasswordOnLoad: false,
+                optBatchRandomSaltPerLine: true, optBatchIncludeIndex: true, maxBatchLinesInput: '100'
+            }
+        };
+
+        const CUSTOM_PRESETS_KEY = 'argon2GenCustomPresets';
+        function loadCustomPresets() { try { return JSON.parse(localStorage.getItem(CUSTOM_PRESETS_KEY) || '{}'); } catch (err) { return {}; } }
+        function saveCustomPresets(p) { try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(p)); } catch (err) { /* ignore */ } }
+        function refreshPresetOptions() {
+            const select = document.getElementById('presetSelect');
+            document.querySelectorAll('#presetSelect option[data-custom="1"]').forEach(o => o.remove());
+            const custom = loadCustomPresets();
+            Object.keys(custom).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = 'custom:' + name; opt.textContent = name + ' (saved)'; opt.dataset.custom = '1';
+                select.appendChild(opt);
+            });
+        }
+        refreshPresetOptions();
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') return;
+            if (val.startsWith('custom:')) {
+                const name = val.slice('custom:'.length);
+                const custom = loadCustomPresets();
+                if (custom[name]) applySettingsObject(custom[name]);
+            } else if (BUILTIN_PRESETS[val]) {
+                applySettingsObject(BUILTIN_PRESETS[val]);
+            }
+            saveDraft();
+        });
+
+        document.getElementById('savePresetBtn').addEventListener('click', () => {
+            const name = prompt('Name this preset:');
+            if (!name) return;
+            const custom = loadCustomPresets();
+            custom[name] = getRawSettingsForPersist();
+            saveCustomPresets(custom);
+            refreshPresetOptions();
+            document.getElementById('presetSelect').value = 'custom:' + name;
+        });
+
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(getRawSettingsForPersist(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'argon2-generator-config.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        const importSettingsInput = document.getElementById('importSettingsInput');
+        document.getElementById('importSettingsBtn').addEventListener('click', () => importSettingsInput.click());
+        importSettingsInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    applySettingsObject(settings);
+                    document.getElementById('presetSelect').value = 'custom';
+                    saveDraft();
+                } catch (err) { alert('That file is not a valid config JSON.'); }
+            };
+            reader.readAsText(file);
+            importSettingsInput.value = '';
+        });
+
+        // ---------- Draft autosave (password excluded when optClearPasswordOnLoad is on) ----------
+        const DRAFT_PW_KEY = 'argon2GenDraftPassword';
+        const DRAFT_SETTINGS_KEY = 'argon2GenLastSettings';
+        let draftTimer;
+        function saveDraft() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(() => {
+                try {
+                    const opts = getOptions();
+                    if (opts.clearPasswordOnLoad) localStorage.removeItem(DRAFT_PW_KEY);
+                    else localStorage.setItem(DRAFT_PW_KEY, document.getElementById('passwordInput').value);
+                    localStorage.setItem(DRAFT_SETTINGS_KEY, JSON.stringify(getRawSettingsForPersist()));
+                } catch (err) { /* ignore */ }
+            }, 400);
+        }
+
+        (function restoreDraft() {
+            try {
+                const savedSettings = localStorage.getItem(DRAFT_SETTINGS_KEY);
+                if (savedSettings) applySettingsObject(JSON.parse(savedSettings));
+                const savedPw = localStorage.getItem(DRAFT_PW_KEY);
+                if (savedPw !== null) document.getElementById('passwordInput').value = savedPw;
+                const masked = document.getElementById('optMaskPassword').checked;
+                document.getElementById('passwordInput').style.webkitTextSecurity = masked ? 'disc' : 'none';
+                document.getElementById('customSaltWrap').style.display = document.getElementById('optAutoGenerateSalt').checked ? 'none' : 'block';
+            } catch (err) { /* ignore */ }
+        })();
+    </script>
+</body>
+</html>
