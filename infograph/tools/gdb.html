@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>awjunaid - GDB: GNU Debugger Commands & Tutorial (Kali Linux)</title>
+
+<!-- ── SEO META TAGS ── -->
+<meta name="description" content="Generate copy-paste ready GDB commands for Kali Linux: breakpoints, stepping, register and memory inspection, disassembly, core dump analysis, attaching to processes, remote debugging and exploit development workflows. Includes a full how-to-use guide and FAQ."/>
+<meta name="keywords" content="gdb, gdb kali linux, gdb commands, gdb tutorial, how to use gdb, gdb cheat sheet, gdb breakpoints, gdb backtrace, gdb disassemble, gdb memory examination, gdb core dump, gdb attach process, gdbserver, gdb exploit development, gnu debugger, binary exploitation, pwndbg, gef, reverse engineering, ctf debugging, linux debugger, awjunaid"/>
+<meta name="author" content="awjunaid"/>
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
+<meta name="theme-color" content="#000000"/>
+<!-- TODO: replace with your live page URL -->
+<link rel="canonical" href="https://aw-junaid.github.io/gdb/"/>
+
+<!-- Open Graph -->
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="awjunaid"/>
+<meta property="og:title" content="awjunaid - GDB: GNU Debugger Commands & Tutorial (Kali Linux)"/>
+<meta property="og:description" content="Enter a binary path and get copy-paste ready GDB commands: breakpoints, stepping, memory inspection, disassembly, core dump analysis, remote debugging and exploit development workflows."/>
+<meta property="og:url" content="https://aw-junaid.github.io/gdb/"/>
+<!-- TODO: replace with your real preview image -->
+<meta property="og:image" content="https://aw-junaid.github.io/images/gdb-debugger.png"/>
+<meta property="og:image:alt" content="GDB GNU Debugger command generator for Kali Linux"/>
+<meta property="og:locale" content="en_US"/>
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="awjunaid - GDB: GNU Debugger Commands & Tutorial (Kali Linux)"/>
+<meta name="twitter:description" content="Generate copy-paste ready GDB commands: breakpoints, stepping, memory inspection, disassembly, core dumps, remote debugging. With how-to guide and FAQ."/>
+<meta name="twitter:image" content="https://aw-junaid.github.io/images/gdb-debugger.png"/>
+<meta name="twitter:creator" content="@awjunaid_"/>
+
+<!-- Structured Data -->
+<script type="application/ld+json">
+{
+ "@context":"https://schema.org",
+ "@graph":[
+  {
+   "@type":"WebApplication",
+   "name":"GDB Command Generator",
+   "url":"https://aw-junaid.github.io/gdb/",
+   "applicationCategory":"DeveloperApplication",
+   "operatingSystem":"Kali Linux",
+   "description":"Free online generator for GDB (GNU Debugger) commands on Kali Linux: breakpoints, stepping, register and memory inspection, disassembly, core dump analysis, remote debugging and exploit development workflows.",
+   "author":{"@type":"Person","name":"awjunaid"}
+  },
+  {
+   "@type":"FAQPage",
+   "mainEntity":[
+    {"@type":"Question","name":"What is GDB?","acceptedAnswer":{"@type":"Answer","text":"GDB, the GNU Debugger, is the standard debugger on Linux and ships with Kali Linux. It lets you pause a program mid-execution, inspect registers and memory, step through source or assembly, analyze crashes and core dumps, and even patch live process memory. It supports C, C++, Rust, Go, Fortran, assembly and more."}},
+    {"@type":"Question","name":"Why does GDB say 'no debugging symbols found'?","acceptedAnswer":{"@type":"Answer","text":"The binary was compiled without debug symbols. Recompile with the -g flag, e.g. gcc -g -O0 -o program program.c. Without symbols, GDB can still disassemble and debug at the machine-instruction level, but source lines, variable names and breakpoints by name won't work."}},
+    {"@type":"Question","name":"How is GDB different from pwndbg and GEF?","acceptedAnswer":{"@type":"Answer","text":"pwndbg and GEF are plugins layered on top of GDB that add exploit-development niceties: colorized context, checksec, heap analysis and cyclic offset helpers. Under the hood they are still GDB — every command on this page works with or without them installed."}},
+    {"@type":"Question","name":"Does GDB need root (sudo)?","acceptedAnswer":{"@type":"Answer","text":"No — debugging your own programs works as a normal user. You only need sudo to attach to processes owned by other users, or when Linux's ptrace restrictions (kernel.yama.ptrace_scope) block attaching to unrelated processes."}},
+    {"@type":"Question","name":"What is the difference between step and next?","acceptedAnswer":{"@type":"Answer","text":"next (n) executes one source line and steps OVER function calls — the call runs to completion. step (s) also executes one line but steps INTO any called function, letting you debug it line by line. For assembly-level precision use stepi and nexti, which advance exactly one machine instruction."}},
+    {"@type":"Question","name":"How do I pass arguments to the debugged program?","acceptedAnswer":{"@type":"Answer","text":"Either start GDB with gdb --args ./program arg1 arg2 (everything after --args is passed to the program), or set arguments from inside the session with set args arg1 arg2 followed by run."}},
+    {"@type":"Question","name":"Why are addresses different when I run the program outside GDB?","acceptedAnswer":{"@type":"Answer","text":"GDB disables ASLR (address space layout randomization) by default so addresses stay constant between debugging runs — check with 'show disable-randomization'. Outside GDB, ASLR randomizes the stack, heap and (on PIE binaries) the code base on every run. Test final exploits with 'set disable-randomization off'."}},
+    {"@type":"Question","name":"How do I debug a program that crashes instantly?","acceptedAnswer":{"@type":"Answer","text":"Use one batch command: gdb -q ./program -batch -ex run -ex 'bt full' -ex 'info registers'. It reproduces the crash, prints the full call stack with local variables, and dumps the registers — an instant crash report without any interaction."}},
+    {"@type":"Question","name":"Can GDB attach to a running process?","acceptedAnswer":{"@type":"Answer","text":"Yes. Start with gdb -p PID (sudo required for other users' processes) or use 'attach PID' inside a session. The process is frozen the moment GDB attaches — plan for that pause on production systems, and always 'detach' rather than quit to keep the process alive."}},
+    {"@type":"Question","name":"What does the x command do in GDB?","acceptedAnswer":{"@type":"Answer","text":"x examines raw memory. The syntax is x/COUNT FORMAT SIZE ADDRESS: x/s prints a string, x/16wx prints 16 hex words, x/32bx prints 32 bytes, x/10i disassembles 10 instructions. It is the single most important command for exploit development and crash analysis."}},
+    {"@type":"Question","name":"Can GDB analyze core dumps?","acceptedAnswer":{"@type":"Answer","text":"Yes. Enable core files with 'ulimit -c unlimited' first, then open them with gdb ./program core. The bt command immediately shows the exact call chain that crashed — full post-mortem debugging without re-running anything."}},
+    {"@type":"Question","name":"Is GDB useful for exploit development and CTFs?","acceptedAnswer":{"@type":"Answer","text":"Absolutely. GDB is the backbone of binary exploitation: crash a vulnerable binary under GDB with a cyclic pattern, read the overwritten EIP/RIP, calculate the exact overflow offset, inspect the stack for payload placement, verify mitigations with checksec (pwndbg/GEF), and test shellcode by writing it directly into process memory before delivery."}}
+   ]
+  }
+ ]
+}
+</script>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Poppins:wght@300;400;600&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+  rel="stylesheet"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg-primary:#ffffff;
+  --bg-secondary:#f5f5f5;
+  --text-primary:#000000;
+  --text-secondary:#666666;
+  --border-color:#000000;
+  --border-light:#e0e0e0;
+  --input-bg:#ffffff;
+  --hover-bg:#000000;
+  --hover-text:#ffffff;
+  --code-bg:#f4f4f4;
+  --term-bg:#f4f4f4;
+  --term-text:#000000;
+
+  --font-header:'League Spartan',sans-serif;
+  --font-body:'Poppins',sans-serif;
+  --mono:'Fira Code','JetBrains Mono',monospace;
+  --r:10px;--rs:6px;
+
+  /* the ONLY non-monochrome colors on the page: risk levels + tip/warn */
+  --grn:#3fb950;--ylw:#e3b341;--org:#ffa657;--red:#f85149;--acc:#2e6fd9;
+}
+body.dark-mode{
+  --bg-primary:#000000;
+  --bg-secondary:#111111;
+  --text-primary:#ffffff;
+  --text-secondary:#999999;
+  --border-color:#ffffff;
+  --border-light:#2a2a2a;
+  --input-bg:#0a0a0a;
+  --hover-bg:#ffffff;
+  --hover-text:#000000;
+  --code-bg:#141414;
+  --term-bg:#0a0a0a;
+  --term-text:#e5e5e5;
+}
+
+html{scroll-behavior:smooth}
+body{
+  background-color:var(--bg-primary);
+  color:var(--text-primary);
+  font-family:var(--font-body);
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  line-height:1.6;
+  transition:background-color .25s,color .25s;
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg-primary)}
+::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:3px}
+a{color:inherit;text-decoration:none;transition:all .2s ease}
+.container{max-width:1200px;margin:0 auto;width:100%;padding:0 20px}
+
+/* ── HEADER ── */
+header{
+  border-bottom:1px solid var(--border-color);
+  padding:12px 0;width:100%;z-index:1000;position:sticky;top:0;
+  background-color:var(--bg-primary);
+  transition:all .3s ease;
+}
+header .container{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px}
+.logo a{
+  font-family:var(--font-header);
+  font-size:clamp(18px,5vw,24px);
+  font-weight:800;text-transform:lowercase;letter-spacing:-1px;
+  color:var(--text-primary);
+}
+.logo a:hover{opacity:.7}
+.header-right{display:flex;align-items:center;gap:clamp(8px,1.5vw,15px);flex-wrap:wrap}
+nav.main-nav{display:flex;gap:clamp(10px,2vw,15px);font-weight:600;font-size:clamp(12px,2vw,14px);flex-wrap:wrap}
+nav.main-nav a{position:relative;padding-bottom:2px;color:var(--text-primary)}
+nav.main-nav a:hover{opacity:.7}
+.dropdown{position:relative;display:inline-block}
+.dropdown-content{
+  display:none;position:absolute;background-color:var(--bg-primary);min-width:180px;
+  border:1px solid var(--border-color);z-index:100;top:100%;left:0;
+}
+.dropdown-content a{padding:10px 14px;display:block;border-bottom:1px solid var(--border-color);font-size:13px}
+.dropdown-content a:last-child{border-bottom:none}
+.dropdown-content a:hover{background-color:var(--hover-bg);color:var(--hover-text);padding-left:16px}
+.dropdown:hover .dropdown-content{display:block}
+.social-icons{display:flex;gap:4px;font-size:16px;align-items:center}
+.social-icons a{
+  display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+  padding:0;margin:0;line-height:1;color:var(--text-primary);
+}
+.social-icons a:hover{transform:translateY(-2px);opacity:.7}
+.theme-switcher{
+  background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);
+  padding:6px 10px;cursor:pointer;font-family:var(--font-header);font-weight:700;
+  text-transform:uppercase;font-size:clamp(8px,1.5vw,10px);transition:all .2s;border-radius:2px;white-space:nowrap;
+}
+.theme-switcher:hover{background-color:var(--hover-bg);color:var(--hover-text)}
+
+main{flex:1;width:100%}
+
+/* ── HERO / TOOL PANEL ── */
+.hero{position:relative;z-index:10;max-width:860px;margin:2.5rem auto 2rem;padding:0 1.2rem;text-align:center}
+.chip{
+  display:inline-flex;align-items:center;gap:.4rem;font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--text-primary);background:var(--code-bg);border:1px solid var(--border-color);
+  padding:.26rem .85rem;border-radius:2rem;margin-bottom:.9rem;font-weight:700;
+}
+.hero h2{font-size:2rem;font-weight:800;color:var(--text-primary);line-height:1.2;font-family:var(--font-header)}
+.hero p{color:var(--text-secondary);margin-top:.55rem;font-size:.88rem;max-width:640px;margin-inline:auto;line-height:1.6}
+.panel{
+  margin-top:1.6rem;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:14px;
+  padding:1.2rem 1.3rem;
+}
+.irow{display:flex;gap:.45rem;flex-wrap:wrap}
+.ipfx{
+  display:flex;align-items:center;padding:.68rem .85rem;background:var(--code-bg);
+  border:1px solid var(--border-color);border-radius:var(--rs);color:var(--text-secondary);
+  font-family:var(--mono);font-size:.8rem;white-space:nowrap;
+}
+#targetInput{
+  flex:1;min-width:160px;padding:.7rem .95rem;border:1px solid var(--border-color);border-radius:var(--rs);
+  background:var(--input-bg);color:var(--text-primary);font-size:.93rem;outline:none;font-family:var(--mono);
+  transition:box-shadow .18s;
+}
+#targetInput:focus{box-shadow:0 0 0 2px var(--text-primary)}
+#targetInput::placeholder{color:var(--text-secondary)}
+#generateBtn{
+  padding:.7rem 1.5rem;border:1px solid var(--border-color);border-radius:var(--rs);
+  background:var(--text-primary);color:var(--bg-primary);font-size:.88rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:opacity .18s,transform .1s;font-family:var(--font-body);
+}
+#generateBtn:hover{opacity:.8}
+#generateBtn:active{transform:scale(.97)}
+.errbox{
+  display:none;margin-top:.55rem;background:transparent;border:1px solid var(--red);
+  border-radius:var(--rs);padding:.42rem .65rem;font-size:.78rem;color:var(--red);
+}
+.statsbar{display:none;gap:1rem;margin-top:.75rem;flex-wrap:wrap}
+.sc{display:flex;align-items:center;gap:.3rem;font-size:.73rem;color:var(--text-secondary)}
+.sc strong{color:var(--text-primary)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--text-primary)}
+
+#toolbar{
+  display:none;position:relative;z-index:500;max-width:1360px;margin:.7rem auto .3rem;
+  padding:0 1.2rem;gap:.4rem;flex-wrap:wrap;align-items:center;
+}
+.vbtn{
+  padding:.3rem .75rem;font-size:.73rem;border:1px solid var(--border-color);border-radius:var(--rs);
+  background:var(--bg-primary);color:var(--text-secondary);cursor:pointer;transition:all .14s;font-family:var(--font-body);
+}
+.vbtn.on{background:var(--text-primary);color:var(--bg-primary);font-weight:700}
+.vbtn:hover{opacity:.8}
+.srch{position:relative;margin-left:auto}
+#searchInput{
+  display:block;width:260px;padding:.4rem .9rem .4rem 2.1rem;background:var(--input-bg);
+  border:1px solid var(--border-color);border-radius:var(--rs);color:var(--text-primary);font-size:.8rem;
+  font-family:inherit;outline:none;
+}
+#searchInput::placeholder{color:var(--text-secondary)}
+.sico{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);font-size:.75rem;pointer-events:none}
+
+#pills{display:none;max-width:1360px;margin:0 auto .55rem;padding:0 1.2rem;gap:.35rem;flex-wrap:wrap}
+.pill{
+  padding:.26rem .72rem;border-radius:2rem;border:1px solid var(--border-color);background:var(--bg-primary);
+  color:var(--text-primary);font-size:.72rem;cursor:pointer;transition:all .14s;user-select:none;
+}
+.pill:hover{opacity:.7}
+.pill.on{background:var(--text-primary);color:var(--bg-primary);font-weight:700}
+
+#mainLayout{display:none;max-width:1360px;margin:0 auto 4rem;padding:0 1.2rem;gap:1.1rem;grid-template-columns:215px 1fr}
+@media(max-width:820px){#mainLayout{grid-template-columns:1fr}}
+#sidebar{position:sticky;top:72px;height:fit-content;display:flex;flex-direction:column;gap:.2rem}
+@media(max-width:820px){#sidebar{display:none}}
+.sbt{font-size:.61rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-secondary);padding:.3rem .48rem;margin-top:.3rem}
+.sbtn{
+  display:flex;align-items:center;gap:.45rem;padding:.38rem .55rem;border-radius:var(--rs);
+  border:none;background:none;color:var(--text-secondary);font-size:.77rem;cursor:pointer;width:100%;text-align:left;
+  transition:all .14s;border-left:2px solid transparent;font-family:var(--font-body);
+}
+.sbtn:hover{color:var(--text-primary)}
+.sbtn.on{background:var(--code-bg);color:var(--text-primary);border-left-color:var(--text-primary);font-weight:600}
+.sblbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbcnt{
+  font-size:.61rem;padding:.06rem .35rem;border-radius:2rem;background:var(--bg-primary);
+  border:1px solid var(--border-light);color:var(--text-secondary);flex-shrink:0;
+}
+.sbtn.on .sbcnt{border-color:var(--border-color);color:var(--text-primary)}
+.sbsep{height:1px;background:var(--border-light);margin:.28rem 0}
+
+#content{position:relative;z-index:1}
+.sec{margin-bottom:1.8rem}
+.sechdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;padding-bottom:.65rem;border-bottom:1px solid var(--border-color)}
+.sectitle{font-size:.92rem;font-weight:700;color:var(--text-primary);font-family:var(--font-header)}
+.secsub{font-size:.72rem;color:var(--text-secondary);margin-top:1px;line-height:1.5}
+.seccnt{
+  margin-left:auto;font-size:.65rem;padding:.15rem .48rem;border-radius:2rem;
+  background:var(--code-bg);border:1px solid var(--border-light);color:var(--text-secondary);white-space:nowrap;flex-shrink:0;
+}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:.85rem}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{
+  background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;transition:transform .18s;
+}
+.card:hover{transform:translateY(-3px)}
+.ch{padding:.85rem 1rem .65rem;border-bottom:1px solid var(--border-color);background:var(--code-bg)}
+.ctrow{display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.45rem}
+.cname{font-weight:700;font-size:.9rem;color:var(--text-primary);flex:1;line-height:1.3}
+.cbadges{display:flex;gap:.28rem;flex-wrap:wrap;flex-shrink:0}
+.bdg{
+  font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid var(--border-color);
+  color:var(--text-secondary);background:var(--bg-primary);
+}
+.rb{font-size:.59rem;padding:.1rem .44rem;border-radius:2rem;border:1px solid;font-weight:700}
+.r-info{color:var(--acc);border-color:var(--acc)}
+.r-low{color:var(--grn);border-color:var(--grn)}
+.r-medium{color:var(--ylw);border-color:var(--ylw)}
+.r-high{color:var(--org);border-color:var(--org)}
+.r-critical{color:var(--red);border-color:var(--red)}
+
+.what{
+  background:var(--bg-primary);border:1px solid var(--border-light);border-radius:var(--rs);
+  padding:.45rem .65rem;font-size:.73rem;color:var(--text-primary);line-height:1.58;
+}
+.wlbl{font-size:.6rem;letter-spacing:.8px;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-bottom:.18rem}
+
+.cb{padding:.8rem 1rem;display:flex;flex-direction:column;gap:.6rem}
+.dblk{background:var(--term-bg);border:1px solid var(--border-color);border-radius:var(--rs);overflow:hidden}
+.dbar{
+  display:flex;align-items:center;justify-content:space-between;padding:.28rem .65rem;
+  border-bottom:1px solid var(--border-color);background:var(--code-bg);
+}
+.dbar-l{display:flex;align-items:center;gap:.45rem}
+.dots{display:flex;gap:3px}
+.dots span{width:8px;height:8px;border-radius:50%;background:var(--text-secondary);opacity:.5}
+.dbar-r{display:flex;align-items:center;gap:.35rem}
+.cbtn{
+  background:none;border:1px solid var(--border-color);color:var(--text-secondary);font-size:.65rem;
+  padding:.13rem .5rem;border-radius:3px;cursor:pointer;transition:all .14s;font-family:var(--mono);
+}
+.cbtn:hover{background:var(--text-primary);color:var(--bg-primary)}
+.cbtn.ok{border-color:var(--grn)!important;color:var(--grn)!important;background:none!important}
+.dpre{
+  padding:.65rem .9rem;font-family:var(--mono);font-size:.78rem;color:var(--term-text);
+  line-height:1.75;white-space:pre-wrap;word-break:break-all;margin:0;
+}
+.dpre .fl{font-weight:600;text-decoration:underline;text-decoration-style:dotted}
+.dpre .tgt{font-weight:700;text-decoration:underline}
+
+.ptog{
+  display:flex;align-items:center;justify-content:space-between;background:var(--code-bg);
+  border:1px solid var(--border-light);border-radius:var(--rs);padding:.34rem .65rem;
+  font-size:.7rem;color:var(--text-secondary);cursor:pointer;transition:all .14s;width:100%;text-align:left;font-family:var(--font-body);
+}
+.ptog:hover{color:var(--text-primary)}
+.ptog .arr{transition:transform .18s;font-size:.58rem;margin-left:auto;padding-left:.5rem}
+.ptog.open .arr{transform:rotate(180deg)}
+.pwrap{display:none;border:1px solid var(--border-light);border-top:none;border-radius:0 0 var(--rs) var(--rs);overflow:hidden}
+.pwrap.open{display:block}
+.ptbl{width:100%;border-collapse:collapse;font-size:.7rem}
+.ptbl th{
+  text-align:left;padding:.32rem .58rem;background:var(--bg-secondary);color:var(--text-secondary);
+  font-size:.61rem;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border-light);
+}
+.ptbl td{padding:.32rem .58rem;border-bottom:1px solid var(--border-light);vertical-align:top}
+.ptbl tr:last-child td{border-bottom:none}
+.pf{font-family:var(--mono);color:var(--text-primary);font-size:.68rem}
+.pd{color:var(--text-secondary);font-size:.68rem}
+
+.tip{
+  background:transparent;border:1px solid var(--acc);border-radius:var(--rs);
+  padding:.44rem .65rem;font-size:.71rem;color:var(--acc);display:flex;gap:.42rem;line-height:1.5;align-items:flex-start;
+}
+.wrn{
+  background:transparent;border:1px solid var(--red);border-radius:var(--rs);
+  padding:.44rem .65rem;font-size:.71rem;color:var(--red);display:flex;gap:.42rem;line-height:1.5;align-items:flex-start;
+}
+.tip .lbl,.wrn .lbl{font-weight:700;flex-shrink:0}
+
+.ctable{background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--r);overflow:hidden}
+.chdr{
+  display:grid;grid-template-columns:200px 1fr 82px 80px;gap:.4rem;padding:.36rem .75rem;
+  background:var(--code-bg);border-bottom:1px solid var(--border-color);font-size:.62rem;color:var(--text-secondary);
+  letter-spacing:.5px;text-transform:uppercase;
+}
+.crow{
+  display:grid;grid-template-columns:200px 1fr 82px 80px;gap:.4rem;padding:.44rem .75rem;
+  border-bottom:1px solid var(--border-light);align-items:center;transition:background .14s;
+}
+.crow:last-child{border-bottom:none}
+.crow:hover{background:var(--code-bg)}
+.cr-name{font-size:.75rem;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-cmd{font-family:var(--mono);font-size:.68rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-act{display:flex;gap:.28rem;align-items:center}
+.crc{
+  background:none;border:1px solid var(--border-color);color:var(--text-secondary);font-size:.62rem;
+  padding:.1rem .38rem;border-radius:3px;cursor:pointer;transition:all .14s;
+}
+.crc:hover{background:var(--text-primary);color:var(--bg-primary)}
+.crc.ok{border-color:var(--grn)!important;color:var(--grn)!important;background:none!important}
+@media(max-width:640px){.chdr,.crow{grid-template-columns:130px 1fr 70px}}
+
+.nores{text-align:center;padding:3.5rem;color:var(--text-secondary)}
+.nores h3{font-size:.95rem;color:var(--text-primary);margin-bottom:.4rem;font-family:var(--font-header)}
+
+/* ── HOW TO USE + FAQ (sections, reuses existing styles) ── */
+.doc{max-width:1360px;margin:0 auto 3rem;padding:0 1.2rem}
+.doc-head{margin-bottom:1.3rem}
+.doc-head h2{font-family:var(--font-header);font-size:1.45rem;font-weight:800;color:var(--text-primary);line-height:1.25;margin-top:.2rem}
+.doc-head p{color:var(--text-secondary);font-size:.85rem;max-width:760px;margin-top:.45rem;line-height:1.65}
+.doc-h3{
+  font-family:var(--font-header);font-size:1rem;font-weight:700;color:var(--text-primary);
+  margin:1.7rem 0 .75rem;display:flex;align-items:center;gap:.55rem;
+}
+.doc-h3::before{content:"";width:8px;height:8px;background:var(--text-primary);border-radius:2px;flex-shrink:0}
+.steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.85rem}
+.step{background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--r);padding:.95rem}
+.stepnum{
+  width:26px;height:26px;border-radius:50%;border:1px solid var(--border-color);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;
+  margin-bottom:.6rem;color:var(--text-primary);font-family:var(--mono);
+}
+.step h4{font-size:.83rem;font-weight:700;color:var(--text-primary);margin-bottom:.3rem;font-family:var(--font-header)}
+.step p{font-size:.74rem;color:var(--text-secondary);line-height:1.6}
+.instgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:.85rem;align-items:start}
+.instcap{font-size:.75rem;font-weight:700;font-family:var(--font-header);margin-bottom:.45rem;color:var(--text-primary)}
+.gapnote{margin-top:.85rem}
+.cheat{border:1px solid var(--border-color);border-radius:var(--r);overflow:hidden}
+.faq{border:1px solid var(--border-color);border-radius:var(--rs);margin-bottom:.55rem;overflow:hidden;background:var(--bg-primary)}
+.faq summary{
+  cursor:pointer;padding:.72rem .95rem;font-size:.82rem;font-weight:600;color:var(--text-primary);
+  list-style:none;display:flex;align-items:center;gap:.55rem;user-select:none;transition:background .14s;
+}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:hover{background:var(--code-bg)}
+.faq summary::before{content:"+";font-family:var(--mono);font-weight:700;margin-left:auto;flex-shrink:0}
+.faq[open] summary::before{content:"\2212"}
+.faq[open] summary{background:var(--code-bg)}
+.fa-body{padding:.2rem 1rem .85rem;font-size:.78rem;color:var(--text-secondary);line-height:1.7}
+.fa-body code{
+  font-family:var(--mono);font-size:.72rem;background:var(--code-bg);
+  border:1px solid var(--border-light);border-radius:3px;padding:.05rem .3rem;color:var(--text-primary);
+}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border-color);width:100%;margin-top:auto;padding:clamp(30px,5vw,50px) 0}
+.footer-legal{
+  border:1px solid var(--red);border-radius:8px;padding:1rem 1.4rem;margin-bottom:2rem;
+  color:var(--red);font-size:.78rem;line-height:1.6;
+}
+.footer-legal strong{color:var(--red)}
+.footer-middle{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;
+  padding:20px 0;border-top:1px solid var(--border-light);
+}
+.footer-links{display:flex;gap:20px;font-weight:600;font-size:12px;flex-wrap:wrap}
+.footer-links a{color:var(--text-secondary)}
+.footer-links a:hover{color:var(--text-primary)}
+.footer-brand{font-family:var(--font-header);font-weight:800;font-size:1rem;color:var(--text-primary)}
+.footer-bottom{
+  text-align:center;padding:15px 0;border-top:1px solid var(--border-light);
+  font-size:11px;color:var(--text-secondary);margin-top:10px;
+}
+@media(max-width:768px){.footer-middle{flex-direction:column;text-align:center}}
+</style>
+</head>
+<body class="dark-mode">
+
+<header>
+  <div class="container">
+    <div class="logo">
+      <a href="https://aw-junaid.github.io/" title="awjunaid - Cyber Security & Tech">awjunaid</a>
+    </div>
+    <div class="header-right">
+      <nav class="main-nav">
+        <a href="https://aw-junaid.github.io/">Home</a>
+        <a href="https://aw-junaid.github.io/page/blog.html">Blog</a>
+        <a href="https://buymeacoffee.com/awjunaid/membership">Membership</a>
+        <div class="dropdown">
+          <a href="#categories">Categories <i class="fa-solid fa-caret-down"></i></a>
+          <div class="dropdown-content">
+            <a href="https://aw-junaid.github.io/posts/cyber-security.html">Cyber Security</a>
+            <a href="https://aw-junaid.github.io/posts/linux.html">Linux</a>
+            <a href="https://aw-junaid.github.io/posts/networking.html">Networking</a>
+            <a href="https://aw-junaid.github.io/posts/kali-linux.html">Kali Linux</a>
+            <a href="https://aw-junaid.github.io/posts/hardware.html">Hardware</a>
+          </div>
+        </div>
+      </nav>
+      <div class="social-icons">
+        <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+        <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+        <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+        <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+        <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+        <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+      </div>
+      <button class="theme-switcher" onclick="toggleTheme()">Invert</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="chip">GDB Debugger &mdash; Kali Linux</div>
+  <h2>Enter Binary &rarr; Get GDB Commands</h2>
+  <p>Type any binary path and instantly get copy-paste ready GDB commands for breakpoints, stepping, register and memory inspection, disassembly, core dump analysis, remote debugging, and exploit development.</p>
+  <div class="panel">
+    <div class="irow">
+      <div class="ipfx">binary:</div>
+      <input id="targetInput" type="text" placeholder="./program or /bin/ls" autocomplete="off" spellcheck="false"/>
+      <button id="generateBtn">Generate</button>
+    </div>
+    <div class="errbox" id="errbox">Please enter a valid binary path e.g. <strong>./program</strong> or <strong>/bin/ls</strong></div>
+    <div class="statsbar" id="statsbar">
+      <div class="sc"><div class="sdot"></div>Categories: <strong id="sc1">0</strong></div>
+      <div class="sc"><div class="sdot"></div>Commands: <strong id="sc2">0</strong></div>
+      <div class="sc"><div class="sdot"></div>Binary: <strong id="sc3">-</strong></div>
+    </div>
+  </div>
+</section>
+
+<div id="toolbar">
+  <button class="vbtn on" id="vcard">Cards</button>
+  <button class="vbtn" id="vcomp">Compact</button>
+  <div class="srch">
+    <span class="sico">&#9906;</span>
+    <input type="text" id="searchInput" placeholder="Search commands, flags..." autocomplete="off" spellcheck="false"/>
+  </div>
+</div>
+
+<div id="pills"></div>
+
+<div id="mainLayout">
+  <aside id="sidebar"></aside>
+  <main id="content"></main>
+</div>
+
+<!-- ═══ HOW TO USE THIS TOOL ═══ -->
+<section class="doc" id="how-to-use">
+  <div class="doc-head">
+    <div class="chip">Guide &mdash; GDB Kali Linux</div>
+    <h2>How to Use This GDB Tool</h2>
+    <p>Follow these five steps to generate, filter, and run GDB commands against your binaries &ndash; plus everything you need to install GDB (and pwndbg/GEF) on Kali Linux and build complete debugging and exploit-development workflows.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <span class="stepnum">1</span>
+      <h4>Enter Your Binary</h4>
+      <p>Type a binary path like <code style="font-family:var(--mono);font-size:.7rem">./program</code> or <code style="font-family:var(--mono);font-size:.7rem">/bin/ls</code> into the box above. No shell metacharacters allowed.</p>
+    </div>
+    <div class="step">
+      <span class="stepnum">2</span>
+      <h4>Generate Commands</h4>
+      <p>Click <strong>Generate</strong> &ndash; every GDB command on this page is instantly rebuilt with your binary path inserted automatically.</p>
+    </div>
+    <div class="step">
+      <span class="stepnum">3</span>
+      <h4>Browse &amp; Filter</h4>
+      <p>Jump between categories in the sidebar or pills, or search commands by keyword, command name, or purpose with the search box.</p>
+    </div>
+    <div class="step">
+      <span class="stepnum">4</span>
+      <h4>Check the Risk Level</h4>
+      <p>Badges rate intrusiveness: <span class="rb r-info">info</span> = read-only facts, <span class="rb r-low">low</span> = passive inspection, <span class="rb r-medium">medium</span> = alters program state or flow, <span class="rb r-high">high</span> = touches live processes / remote systems, <span class="rb r-critical">critical</span> = writes raw memory or hijacks control flow.</p>
+    </div>
+    <div class="step">
+      <span class="stepnum">5</span>
+      <h4>Copy &amp; Run</h4>
+      <p>Hit <strong>Copy</strong> and paste the command into your Kali Linux terminal. Commands starting with <code style="font-family:var(--mono);font-size:.7rem">gdb</code> run in the shell; pure prompt commands (break, step) run inside an active GDB session.</p>
+    </div>
+  </div>
+
+  <h3 class="doc-h3">Install GDB on Kali Linux</h3>
+  <div class="instgrid">
+    <div>
+      <div class="instcap">Method 1 &mdash; Kali APT (recommended)</div>
+      <div class="dblk" id="blk_inst_apt">
+        <div class="dbar">
+          <div class="dbar-l">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span style="font-family:var(--mono);font-size:.66rem;color:var(--text-secondary)">terminal</span>
+          </div>
+          <div class="dbar-r">
+            <button class="cbtn" onclick="copyFromBlock('blk_inst_apt',this)">Copy</button>
+          </div>
+        </div>
+        <pre class="dpre">sudo apt update
+sudo apt install gdb -y
+gdb --version</pre>
+      </div>
+    </div>
+    <div>
+      <div class="instcap">Method 2 &mdash; Build from source (latest)</div>
+      <div class="dblk" id="blk_inst_src">
+        <div class="dbar">
+          <div class="dbar-l">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span style="font-family:var(--mono);font-size:.66rem;color:var(--text-secondary)">terminal</span>
+          </div>
+          <div class="dbar-r">
+            <button class="cbtn" onclick="copyFromBlock('blk_inst_src',this)">Copy</button>
+          </div>
+        </div>
+        <pre class="dpre">wget https://ftp.gnu.org/gnu/gdb/gdb-14.2.tar.xz
+tar -xf gdb-14.2.tar.xz &amp;&amp; cd gdb-14.2
+./configure --with-python --disable-werror
+make -j$(nproc) &amp;&amp; sudo make install</pre>
+      </div>
+      <p class="pd" style="margin-top:.4rem">Replace <span class="pf">gdb-14.2</span> with the latest release from the GDB website.</p>
+    </div>
+    <div>
+      <div class="instcap">Method 3 &mdash; pwndbg (exploit-dev enhanced)</div>
+      <div class="dblk" id="blk_inst_pwndbg">
+        <div class="dbar">
+          <div class="dbar-l">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span style="font-family:var(--mono);font-size:.66rem;color:var(--text-secondary)">terminal</span>
+          </div>
+          <div class="dbar-r">
+            <button class="cbtn" onclick="copyFromBlock('blk_inst_pwndbg',this)">Copy</button>
+          </div>
+        </div>
+        <pre class="dpre">git clone https://github.com/pwndbg/pwndbg
+cd pwndbg &amp;&amp; ./setup.sh</pre>
+      </div>
+    </div>
+    <div>
+      <div class="instcap">Method 4 &mdash; GEF (exploit-dev enhanced)</div>
+      <div class="dblk" id="blk_inst_gef">
+        <div class="dbar">
+          <div class="dbar-l">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span style="font-family:var(--mono);font-size:.66rem;color:var(--text-secondary)">terminal</span>
+          </div>
+          <div class="dbar-r">
+            <button class="cbtn" onclick="copyFromBlock('blk_inst_gef',this)">Copy</button>
+          </div>
+        </div>
+        <pre class="dpre">bash -c "$(curl -fsSL https://gef.blah.cat/sh)"</pre>
+      </div>
+    </div>
+  </div>
+  <div class="tip gapnote"><span class="lbl">Tip:</span><span>gdbserver ships with the gdb package on Kali &ndash; you get remote debugging for free. Compile your own targets with <span class="pf">gcc -g -O0</span> so GDB can map source lines and variables.</span></div>
+
+  <h3 class="doc-h3">Your First Debug Session</h3>
+  <div class="dblk" id="blk_first">
+    <div class="dbar">
+      <div class="dbar-l">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span style="font-family:var(--mono);font-size:.66rem;color:var(--text-secondary)">terminal</span>
+      </div>
+      <div class="dbar-r">
+        <button class="cbtn" onclick="copyFromBlock('blk_first',this)">Copy</button>
+      </div>
+    </div>
+    <pre class="dpre"># Start GDB on your binary (quiet mode hides the banner)
+gdb <span class="fl">-q</span> ./program
+
+# ---- now inside the (gdb) prompt ----
+(gdb) break main          # stop at the start of main
+(gdb) run                 # launch the program
+(gdb) next                # step one line (over calls)
+(gdb) print buffer        # inspect a variable
+(gdb) bt                  # show the call stack
+(gdb) quit                # leave GDB</pre>
+  </div>
+
+  <h3 class="doc-h3">Classic Crash-Debugging Workflow (Copy-Paste)</h3>
+  <div class="dblk" id="blk_workflow">
+    <div class="dbar">
+      <div class="dbar-l">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span style="font-family:var(--mono);font-size:.66rem;color:var(--text-secondary)">terminal</span>
+      </div>
+      <div class="dbar-r">
+        <button class="cbtn" onclick="copyFromBlock('blk_workflow',this)">Copy</button>
+      </div>
+    </div>
+    <pre class="dpre"># 1) Compile the target WITH debug symbols and no optimization
+gcc <span class="fl">-g</span> <span class="fl">-O0</span> -o program program.c
+
+# 2) Reproduce the crash and capture a full report in one command
+gdb <span class="fl">-q</span> ./program <span class="fl">-batch</span> <span class="fl">-ex</span> run <span class="fl">-ex</span> 'bt full' <span class="fl">-ex</span> 'info registers' &gt; crash_report.txt
+
+# 3) Reproduce interactively: stop where it dies and inspect the stack
+gdb <span class="fl">-q</span> ./program <span class="fl">-ex</span> 'run' <span class="fl">-ex</span> 'x/16wx $rsp' <span class="fl">-ex</span> 'bt'</pre>
+  </div>
+
+  <h3 class="doc-h3">Exploit Development Workflow (Copy-Paste)</h3>
+  <div class="dblk" id="blk_pwn">
+    <div class="dbar">
+      <div class="dbar-l">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span style="font-family:var(--mono);font-size:.66rem;color:var(--text-secondary)">terminal</span>
+      </div>
+      <div class="dbar-r">
+        <button class="cbtn" onclick="copyFromBlock('blk_pwn',this)">Copy</button>
+      </div>
+    </div>
+    <pre class="dpre"># 1) Compile a deliberately vulnerable lab binary (lab only!)
+gcc <span class="fl">-g</span> <span class="fl">-O0</span> <span class="fl">-fno-stack-protector</span> <span class="fl">-z</span> execstack -o vuln vuln.c
+
+# 2) Generate a De Bruijn cyclic pattern (pwntools)
+python3 -c "from pwn import *; print(cyclic(200).decode())"
+
+# 3) Crash the binary under GDB and feed it the pattern as input
+gdb <span class="fl">-q</span> ./vuln <span class="fl">-ex</span> 'run'
+# then, after the crash:  info registers eip   and   x/wx $eip
+
+# 4) Convert the crashed EIP value back to the exact overflow offset
+python3 -c "from pwn import *; print(cyclic_find(0x6161616c))"</pre>
+  </div>
+  <div class="wrn gapnote"><span class="lbl">Warning:</span><span>Never compile with protections off or run GDB memory-writes outside an isolated lab. GDB disables ASLR by default &ndash; final exploits must be re-tested with <span class="pf">set disable-randomization off</span>.</span></div>
+
+  <h3 class="doc-h3">GDB Commands Cheat Sheet</h3>
+  <div class="cheat">
+    <table class="ptbl">
+      <thead><tr><th>Command</th><th>What It Does</th></tr></thead>
+      <tbody>
+        <tr><td class="pf">file &lt;binary&gt;</td><td class="pd">Load a program into GDB</td></tr>
+        <tr><td class="pf">run / r</td><td class="pd">Start (or restart) the program</td></tr>
+        <tr><td class="pf">break &lt;loc&gt; / b</td><td class="pd">Breakpoint at function, line or *address</td></tr>
+        <tr><td class="pf">tbreak &lt;loc&gt;</td><td class="pd">Temporary breakpoint (deleted after one hit)</td></tr>
+        <tr><td class="pf">watch &lt;expr&gt;</td><td class="pd">Stop when a variable or address is written</td></tr>
+        <tr><td class="pf">condition &lt;n&gt; &lt;expr&gt;</td><td class="pd">Make breakpoint n conditional</td></tr>
+        <tr><td class="pf">continue / c</td><td class="pd">Resume execution until the next stop</td></tr>
+        <tr><td class="pf">next / n</td><td class="pd">One source line, stepping over calls</td></tr>
+        <tr><td class="pf">step / s</td><td class="pd">One source line, stepping into calls</td></tr>
+        <tr><td class="pf">stepi / si</td><td class="pd">Exactly one machine instruction</td></tr>
+        <tr><td class="pf">finish / f</td><td class="pd">Run until the current function returns</td></tr>
+        <tr><td class="pf">until &lt;line&gt;</td><td class="pd">Continue until reaching a source line</td></tr>
+        <tr><td class="pf">bt</td><td class="pd">Print the call-stack backtrace</td></tr>
+        <tr><td class="pf">bt full</td><td class="pd">Backtrace with all local variables</td></tr>
+        <tr><td class="pf">frame &lt;n&gt;</td><td class="pd">Switch to stack frame n</td></tr>
+        <tr><td class="pf">info locals</td><td class="pd">Local variables of the current frame</td></tr>
+        <tr><td class="pf">info registers</td><td class="pd">Dump all CPU registers</td></tr>
+        <tr><td class="pf">print &lt;expr&gt; / p</td><td class="pd">Evaluate and print any expression</td></tr>
+        <tr><td class="pf">x/&lt;n&gt;&lt;fmt&gt;&lt;sz&gt; &lt;addr&gt;</td><td class="pd">Examine memory (x/s, x/16wx, x/10i...)</td></tr>
+        <tr><td class="pf">display &lt;expr&gt;</td><td class="pd">Auto-print the expression at every stop</td></tr>
+        <tr><td class="pf">set var &lt;v&gt;=&lt;val&gt;</td><td class="pd">Change a variable at runtime</td></tr>
+        <tr><td class="pf">list / l</td><td class="pd">Show source code around a location</td></tr>
+        <tr><td class="pf">disassemble &lt;fn&gt;</td><td class="pd">Disassemble a function</td></tr>
+        <tr><td class="pf">info breakpoints</td><td class="pd">List breakpoints, hit counts, conditions</td></tr>
+        <tr><td class="pf">delete &lt;n&gt;</td><td class="pd">Delete breakpoint n</td></tr>
+        <tr><td class="pf">kill</td><td class="pd">Terminate the debugged program</td></tr>
+        <tr><td class="pf">attach &lt;pid&gt;</td><td class="pd">Attach to a running process</td></tr>
+        <tr><td class="pf">detach</td><td class="pd">Release the process without killing it</td></tr>
+        <tr><td class="pf">quit / q</td><td class="pd">Exit GDB</td></tr>
+        <tr><td class="pf">gdb -ex &lt;cmd&gt;</td><td class="pd">Run one GDB command on startup</td></tr>
+        <tr><td class="pf">gdb -x &lt;file&gt;</td><td class="pd">Execute a GDB command script</td></tr>
+        <tr><td class="pf">gdb -batch</td><td class="pd">Non-interactive mode for scripting</td></tr>
+        <tr><td class="pf">set disassembly-flavor intel</td><td class="pd">Use Intel syntax instead of AT&amp;T</td></tr>
+        <tr><td class="pf">set disable-randomization off</td><td class="pd">Re-enable ASLR inside the session</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ FAQ ═══ -->
+<section class="doc" id="faq">
+  <div class="doc-head">
+    <div class="chip">FAQ &mdash; GDB Debugger</div>
+    <h2>Frequently Asked Questions</h2>
+    <p>Quick answers to the most common questions about GDB on Kali Linux &ndash; debug symbols, sudo requirements, step vs next, ASLR, core dumps, attaching to processes, and exploit development.</p>
+  </div>
+
+  <details class="faq">
+    <summary>What is GDB?</summary>
+    <div class="fa-body">GDB, the GNU Debugger, is the standard debugger on Linux and ships with Kali Linux. It lets you pause a program mid-execution, inspect registers and memory, step through source or assembly, analyze crashes and core dumps, and even patch live process memory. It supports C, C++, Rust, Go, Fortran, assembly and more.</div>
+  </details>
+  <details class="faq">
+    <summary>Why does GDB say "no debugging symbols found"?</summary>
+    <div class="fa-body">The binary was compiled without debug symbols. Recompile with the <code>-g</code> flag, e.g. <code>gcc -g -O0 -o program program.c</code>. Without symbols, GDB can still disassemble and debug at the machine-instruction level, but source lines, variable names and breakpoints by name won't work.</div>
+  </details>
+  <details class="faq">
+    <summary>How is GDB different from pwndbg and GEF?</summary>
+    <div class="fa-body">pwndbg and GEF are plugins layered on top of GDB that add exploit-development niceties: colorized context, <code>checksec</code>, heap analysis and cyclic offset helpers. Under the hood they are still GDB &ndash; every command on this page works with or without them installed.</div>
+  </details>
+  <details class="faq">
+    <summary>Does GDB need root (sudo)?</summary>
+    <div class="fa-body">No &ndash; debugging your own programs works as a normal user. You only need sudo to attach to processes owned by other users, or when Linux's ptrace restrictions (<code>kernel.yama.ptrace_scope</code>) block attaching to unrelated processes.</div>
+  </details>
+  <details class="faq">
+    <summary>What is the difference between step and next?</summary>
+    <div class="fa-body"><code>next</code> (n) executes one source line and steps <strong>over</strong> function calls &ndash; the call runs to completion. <code>step</code> (s) also executes one line but steps <strong>into</strong> any called function, letting you debug it line by line. For assembly-level precision use <code>stepi</code> and <code>nexti</code>, which advance exactly one machine instruction.</div>
+  </details>
+  <details class="faq">
+    <summary>How do I pass arguments to the debugged program?</summary>
+    <div class="fa-body">Either start GDB with <code>gdb --args ./program arg1 arg2</code> (everything after <code>--args</code> is passed to the program), or set arguments from inside the session with <code>set args arg1 arg2</code> followed by <code>run</code>.</div>
+  </details>
+  <details class="faq">
+    <summary>Why are addresses different when I run the program outside GDB?</summary>
+    <div class="fa-body">GDB disables ASLR (address space layout randomization) by default so addresses stay constant between debugging runs &ndash; check with <code>show disable-randomization</code>. Outside GDB, ASLR randomizes the stack, heap and (on PIE binaries) the code base on every run. Test final exploits with <code>set disable-randomization off</code>.</div>
+  </details>
+  <details class="faq">
+    <summary>How do I debug a program that crashes instantly?</summary>
+    <div class="fa-body">Use one batch command: <code>gdb -q ./program -batch -ex run -ex 'bt full' -ex 'info registers'</code>. It reproduces the crash, prints the full call stack with local variables, and dumps the registers &ndash; an instant crash report without any interaction.</div>
+  </details>
+  <details class="faq">
+    <summary>Can GDB attach to a running process?</summary>
+    <div class="fa-body">Yes. Start with <code>gdb -p PID</code> (sudo required for other users' processes) or use <code>attach PID</code> inside a session. The process is frozen the moment GDB attaches &ndash; plan for that pause on production systems, and always <code>detach</code> rather than quit to keep the process alive.</div>
+  </details>
+  <details class="faq">
+    <summary>What does the x command do in GDB?</summary>
+    <div class="fa-body"><code>x</code> examines raw memory. The syntax is <code>x/COUNT FORMAT SIZE ADDRESS</code>: <code>x/s</code> prints a string, <code>x/16wx</code> prints 16 hex words, <code>x/32bx</code> prints 32 bytes, <code>x/10i</code> disassembles 10 instructions. It is the single most important command for exploit development and crash analysis.</div>
+  </details>
+  <details class="faq">
+    <summary>Can GDB analyze core dumps?</summary>
+    <div class="fa-body">Yes. Enable core files with <code>ulimit -c unlimited</code> first, then open them with <code>gdb ./program core</code>. The <code>bt</code> command immediately shows the exact call chain that crashed &ndash; full post-mortem debugging without re-running anything.</div>
+  </details>
+  <details class="faq">
+    <summary>Is GDB useful for exploit development and CTFs?</summary>
+    <div class="fa-body">Absolutely. GDB is the backbone of binary exploitation: crash a vulnerable binary under GDB with a cyclic pattern, read the overwritten EIP/RIP, calculate the exact overflow offset, inspect the stack for payload placement, verify mitigations with <code>checksec</code> (pwndbg/GEF), and test shellcode by writing it directly into process memory before delivery.</div>
+  </details>
+</section>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-legal">
+      <strong>Legal Disclaimer:</strong> These GDB commands and techniques are for <strong>analyzing software you own or are explicitly authorized to test</strong>.
+      Attaching to processes you do not own, bypassing software protections, or reverse engineering licensed software may violate law or license agreements.
+    </div>
+    <div class="footer-middle">
+      <div class="footer-links">
+        <a href="https://aw-junaid.github.io/page/privacy.html">Privacy</a>
+        <a href="https://aw-junaid.github.io/page/terms.html">T&C'S</a>
+        <a href="https://aw-junaid.github.io/page/contact.html">Contact</a>
+        <a href="https://aw-junaid.github.io/page/about.html">About</a>
+        <a href="https://aw-junaid.github.io/page/sitemap.html">Site Map</a>
+      </div>
+      <div class="social-icons">
+        <a href="https://github.com/aw-junaid/" target="_blank"><i class="fa-brands fa-github"></i></a>
+        <a href="https://x.com/awjunaid_" target="_blank"><i class="fa-brands fa-twitter"></i></a>
+        <a href="https://www.linkedin.com/in/aw-junaid/" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
+        <a href="https://www.youtube.com/@awjunaid/featured" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+        <a href="https://www.facebook.com/awjuna1d" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+        <a href="https://instagram.com/awjunaid_" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-brand">awjunaid</span> &mdash; Copyright &copy; 2026
+      <a href="https://awjunaid.com" target="_blank" rel="noopener">awjunaid.com</a>. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── DATA (GDB only, unchanged tool structure) ── */
+var CATS = [
+{id:"basic",badge:"bdg",
+ title:"Starting & Running Programs",
+ desc:"Fundamental GDB commands for loading binaries, passing arguments, and launching programs under the debugger.",
+ tip:"Compile your targets with gcc -g -O0 &ndash; the -g flag embeds debug symbols and -O0 stops the optimizer from scrambling your source lines.",
+ warn:"GDB pauses the program on every signal, including SIGPIPE and SIGALRM &ndash; some network daemons behave differently under the debugger than in production.",
+ flags:[
+   {f:"-q, --quiet",d:"Suppress the version banner on startup"},
+   {f:"--args <prog> <args>",d:"Everything after this is the program plus its arguments"},
+   {f:"-x <file>",d:"Execute GDB commands from a script file"},
+   {f:"-ex <command>",d:"Execute a single GDB command after loading"},
+   {f:"-batch",d:"Run non-interactively and exit when done"},
+   {f:"-tui",d:"Launch the terminal user interface"},
+   {f:"-p, --pid <pid>",d:"Attach to a running process"}
+ ],
+ cmds:[
+   {l:"Open a binary in GDB",r:"low",c:"gdb -q {T}",e:"Loads the binary and its symbols, then drops you at the (gdb) prompt. The -q flag hides the version banner for a clean start."},
+   {l:"Run the program under the debugger",r:"low",c:"gdb -q {T} -ex 'run'",e:"Launches the program immediately. If it segfaults, GDB freezes the process at the crash so you can inspect registers, stack and memory."},
+   {l:"Run with command-line arguments",r:"low",c:"gdb -q -ex 'run' --args {T} argument1 argument2",e:"Everything after --args is passed to the program exactly as it would be from the shell &ndash; replace argument1/argument2 with your real arguments."},
+   {l:"Break on main and run (quick start)",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run'",e:"The standard debugging start: break on main, run, and land stopped at the very beginning of the program."},
+   {l:"Start in visual TUI mode",r:"low",c:"gdb -tui {T}",e:"Splits the terminal into live source/assembly and register panes. Ctrl+X then O cycles windows, Ctrl+X+A exits TUI."},
+   {l:"Inspect the loaded binary",r:"info",c:"gdb -q {T} -ex 'info files'",e:"Lists the entry point, sections and symbol tables &ndash; confirm GDB actually found your debug symbols before you start."},
+   {l:"List every function in one shot",r:"medium",c:"gdb -q {T} -batch -ex 'info functions'",e:"Prints all functions the binary exposes and exits &ndash; a perfect first look at an unknown binary for reverse engineering."}
+ ]
+},
+{id:"breakpoints",badge:"bdg",
+ title:"Breakpoints & Watchpoints",
+ desc:"Stop execution exactly where you need it: function breakpoints, line breakpoints, conditional stops and hardware watchpoints.",
+ tip:"Breakpoints by line need debug symbols &ndash; on stripped binaries break on *0xADDRESS instead, using the addresses from your disassembly.",
+ warn:"rbreak .* stops on every function call &ndash; expect scans of large binaries to take minutes and generate huge traces.",
+ flags:[
+   {f:"break <loc> (b)",d:"Break at function, line or *address"},
+   {f:"tbreak <loc>",d:"Temporary breakpoint, deleted after first hit"},
+   {f:"rbreak <regex>",d:"Break on all functions matching regex"},
+   {f:"watch <expr>",d:"Stop when a variable or address is written"},
+   {f:"rwatch <expr>",d:"Stop when it is read"},
+   {f:"awatch <expr>",d:"Stop on read or write"},
+   {f:"condition <n> <expr>",d:"Make breakpoint n conditional"},
+   {f:"ignore <n> <count>",d:"Skip the first N hits"},
+   {f:"delete <n>",d:"Delete breakpoint n (all if none given)"},
+   {f:"info breakpoints",d:"List all breakpoints and hit counts"}
+ ],
+ cmds:[
+   {l:"Break at the start of main",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run'",e:"Sets a breakpoint at the first instruction of main and runs &ndash; execution stops the moment main begins."},
+   {l:"Break inside a target function",r:"low",c:"gdb -q {T} -ex 'break vulnerable_function' -ex 'run'",e:"Execution halts the moment the named function is entered &ndash; inspect its arguments with info args right after."},
+   {l:"Break at a specific source line",r:"low",c:"gdb -q {T} -ex 'break vuln.c:42' -ex 'run'",e:"Stops at line 42 of vuln.c &ndash; requires the binary to be compiled with -g debug symbols."},
+   {l:"Temporary one-hit breakpoint",r:"low",c:"gdb -q {T} -ex 'tbreak main' -ex 'run'",e:"Stops exactly once, then the breakpoint removes itself &ndash; ideal for quick peeks without breakpoint clutter."},
+   {l:"Break only when a condition is true",r:"medium",c:"gdb -q {T} -ex 'break main if argc > 2' -ex 'run'",e:"Skips every hit where the condition fails &ndash; how you catch rare states deep inside loops without pressing continue a thousand times."},
+   {l:"Watch a variable for changes",r:"medium",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'watch counter'",e:"A hardware watchpoint halts the program the instant counter is modified, printing the old and new values at the exact guilty instruction."},
+   {l:"Watch a raw memory address",r:"medium",c:"gdb -q {T} -ex 'watch *(int*)0x804a100'",e:"Flags any write to a raw address &ndash; catch buffer overflows corrupting adjacent globals in the act."},
+   {l:"Break on every function (full trace)",r:"high",c:"gdb -q {T} -ex 'rbreak .*' -ex 'run'",e:"Sets a breakpoint on every known function &ndash; extremely slow, but produces a complete call trace that reveals program structure."}
+ ]
+},
+{id:"execution",badge:"bdg",
+ title:"Stepping & Execution Flow",
+ desc:"Control exactly how the program advances: line-by-line, instruction-by-instruction, or straight to interesting locations.",
+ tip:"Use stepi with x/i $pc after each step &ndash; it shows the exact next instruction, which is how you walk assembly in tight loops.",
+ warn:"jump forces the instruction pointer to an arbitrary address &ndash; the process crashes instantly if the stack and registers are inconsistent.",
+ flags:[
+   {f:"next (n)",d:"Run one source line, step over calls"},
+   {f:"step (s)",d:"Run one source line, step into calls"},
+   {f:"nexti (ni)",d:"One machine instruction, over calls"},
+   {f:"stepi (si)",d:"One machine instruction, into calls"},
+   {f:"continue (c)",d:"Resume until the next stop"},
+   {f:"finish (f)",d:"Run until the current function returns"},
+   {f:"until <line>",d:"Continue until reaching a line"},
+   {f:"advance <loc>",d:"Continue until entering a location"},
+   {f:"jump <loc>",d:"Force execution to an address (dangerous)"},
+   {f:"kill",d:"Terminate the debugged program"}
+ ],
+ cmds:[
+   {l:"Step over function calls",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'next'",e:"Executes one source line, treating function calls as a single step &ndash; the normal day-to-day single-step through code."},
+   {l:"Step into function calls",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'step'",e:"Drops you inside every called function so you can debug library and helper code line by line."},
+   {l:"Single-step one machine instruction",r:"medium",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'stepi'",e:"Advances exactly one CPU instruction &ndash; the precision you need when walking shellcode, stripped binaries or self-modifying code."},
+   {l:"Run until the function returns",r:"low",c:"gdb -q {T} -ex 'break vulnerable_function' -ex 'run' -ex 'finish'",e:"Completes the current function at full speed, prints its return value, and stops back in the caller."},
+   {l:"Continue to the next breakpoint",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'continue'",e:"Resumes full-speed execution until the next breakpoint, watchpoint, signal or program exit."},
+   {l:"Skip ahead to a specific line",r:"medium",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'until 50'",e:"Runs forward without stopping until execution reaches line 50 &ndash; escape boring initialization loops."},
+   {l:"Force a jump to an address",r:"critical",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'jump *0x08048500'",e:"Rips control flow to an arbitrary address &ndash; the process dies instantly unless registers and stack are consistent. An exploit-development and control-flow-hijack testing tool."}
+ ]
+},
+{id:"data",badge:"bdg",
+ title:"Inspecting Data & Registers",
+ desc:"Read the live state of the process: variables, CPU registers, the call stack, and raw memory at any address.",
+ tip:"bt after a crash is the single most valuable GDB command &ndash; it names the exact function chain that died, before you read a single line of code.",
+ warn:"set var changes live process state &ndash; results you produce this way do not reflect normal program behavior.",
+ flags:[
+   {f:"print <expr> (p)",d:"Evaluate and print any expression"},
+   {f:"print/x <expr>",d:"Print the value in hexadecimal"},
+   {f:"info registers",d:"Dump all CPU registers"},
+   {f:"x/<n><fmt><sz> <addr>",d:"Examine n memory items (x/s, x/16wx...)"},
+   {f:"info locals",d:"Show the frame's local variables"},
+   {f:"info args",d:"Show the frame's arguments"},
+   {f:"bt",d:"Print the call-stack backtrace"},
+   {f:"bt full",d:"Backtrace with all locals"},
+   {f:"ptype <type>",d:"Print a type's full definition"},
+   {f:"set var <name>=<value>",d:"Modify a variable at runtime"}
+ ],
+ cmds:[
+   {l:"Print a variable's value",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'print buffer'",e:"Evaluates any in-scope expression &ndash; variables, pointers, struct members, or arithmetic on all of them."},
+   {l:"Dump every CPU register",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'info registers'",e:"Shows all general-purpose registers &ndash; the first stop after any crash to see where execution died and what it was doing."},
+   {l:"Backtrace the call stack after a crash",r:"low",c:"gdb -q {T} -ex 'run' -ex 'bt'",e:"Runs the program until it faults, then prints the exact chain of function calls that led to the crash &ndash; the classic post-mortem."},
+   {l:"Full backtrace with all locals",r:"medium",c:"gdb -q {T} -ex 'run' -ex 'bt full'",e:"Adds every local variable and argument of every frame to the backtrace &ndash; a complete snapshot of the dying moment."},
+   {l:"Read memory as a string",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'x/s $rsp'",e:"Interprets memory at the stack pointer as a null-terminated string &ndash; see exactly what data is stored there."},
+   {l:"Dump the stack as hex words",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'x/16wx $rsp'",e:"Prints 16 hex words starting at the stack pointer &ndash; spot saved return addresses, pointers and your input data."},
+   {l:"Inspect a structure's layout",r:"low",c:"gdb -q {T} -ex 'ptype node_t'",e:"Prints the full definition of any type &ndash; field names, offsets and sizes &ndash; as long as debug symbols are present."},
+   {l:"Change a variable at runtime",r:"medium",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'set var counter = 999'",e:"Patches a variable in the live process &ndash; test how the code behaves under values you can't produce from normal input."}
+ ]
+},
+{id:"assembly",badge:"bdg",
+ title:"Disassembly & Source Navigation",
+ desc:"Work at the machine level: disassemble functions, walk instructions from the program counter, and bridge source lines to addresses.",
+ tip:"set disassembly-flavor intel switches from default AT&T to Intel syntax &ndash; put it in your .gdbinit so every session starts in the format tutorials use.",
+ warn:"Disassembly of optimized (-O2) binaries often bears little resemblance to the source &ndash; debug with -O0 builds when possible.",
+ flags:[
+   {f:"disassemble <fn>",d:"Show a function's instructions"},
+   {f:"disassemble /r <fn>",d:"Include raw opcode bytes"},
+   {f:"x/<n>i <addr>",d:"Disassemble n instructions from address"},
+   {f:"x/i $pc",d:"Show the next instruction to execute"},
+   {f:"list <loc> (l)",d:"Print source code around a location"},
+   {f:"info line <loc>",d:"Map a source line to its address"},
+   {f:"print &<function>",d:"Runtime address of a function"},
+   {f:"set disassembly-flavor intel",d:"Use Intel syntax (not AT&T)"}
+ ],
+ cmds:[
+   {l:"Disassemble a function",r:"low",c:"gdb -q {T} -ex 'disassemble main'",e:"Prints every instruction of main with its addresses &ndash; the core command for binary analysis and exploit development."},
+   {l:"Disassemble in Intel syntax",r:"low",c:"gdb -q {T} -ex 'set disassembly-flavor intel' -ex 'disassemble main'",e:"Switches from default AT&T to Intel syntax &ndash; the format most exploit tutorials and CTF write-ups use."},
+   {l:"Disassembly with raw opcode bytes",r:"low",c:"gdb -q {T} -ex 'disassemble /r main'",e:"Adds the machine bytes beside each instruction &ndash; count exact instruction lengths when hand-crafting shellcode or jumps."},
+   {l:"See the next instructions to execute",r:"low",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'x/10i $pc'",e:"Disassembles 10 instructions forward from the program counter &ndash; exactly what the CPU is about to run next."},
+   {l:"Show source code in GDB",r:"low",c:"gdb -q {T} -ex 'list main'",e:"Prints the source around main &ndash; requires -g debug symbols and the original source files on disk."},
+   {l:"Map a source line to an address",r:"info",c:"gdb -q {T} -ex 'info line vuln.c:42'",e:"Reveals the exact compiled memory address for line 42 &ndash; the bridge between the source view and the disassembly view."},
+   {l:"Find a function's runtime address",r:"info",c:"gdb -q {T} -ex 'print &main'",e:"Returns main's load address &ndash; the reference point for jump targets, offsets and payload calculations."}
+ ]
+},
+{id:"pwn",badge:"bdg",
+ title:"Exploit Development & Pwn",
+ desc:"The GDB workflow for binary exploitation: find overflow offsets, inspect the crashed stack, handle ASLR, and stage shellcode.",
+ tip:"GDB disables ASLR by default &ndash; addresses stay identical between runs while you build the exploit, then re-enable it to test reliability.",
+ warn:"Writing raw memory and hijacking control flow will crash processes &ndash; only ever do this in isolated lab environments against binaries you own.",
+ flags:[
+   {f:"checksec",d:"Mitigation summary (pwndbg/GEF plugin)"},
+   {f:"find <start>, <end>, <value>",d:"Search a memory range for a value"},
+   {f:"set disable-randomization off",d:"Re-enable ASLR in the session"},
+   {f:"set {type}<addr> = <value>",d:"Write raw memory into the process"},
+   {f:"set follow-fork-mode child",d:"Keep debugging forked children"},
+   {f:"catch signal <signum>",d:"Stop on a specific signal"},
+   {f:"cyclic / cyclic_find",d:"pwntools offset helpers (external)"}
+ ],
+ cmds:[
+   {l:"Check binary security mitigations",r:"info",c:"gdb -q {T} -ex 'checksec'",e:"Summarizes NX, stack canary, PIE and RELRO status &ndash; the mandatory first step of any exploit assessment (requires pwndbg or GEF installed)."},
+   {l:"Find the crash offset after a buffer overflow",r:"high",c:"gdb -q {T} -ex 'run' -ex 'info registers eip' -ex 'x/wx $eip'",e:"Feed the program a pwntools cyclic pattern, let it crash &ndash; these commands reveal the value that overwrote EIP so cyclic_find can compute the exact overflow offset."},
+   {l:"Examine the stack at crash time",r:"medium",c:"gdb -q {T} -ex 'run' -ex 'x/32wx $esp'",e:"Dumps 32 stack words at the moment of the segfault &ndash; locate your payload, saved frame pointers and return addresses in one view."},
+   {l:"Search memory for your payload marker",r:"medium",c:"gdb -q {T} -ex 'run' -ex 'find $esp, +4096, 0x41414141'",e:"Scans 4 KB of stack for a marker value from your input &ndash; proves exactly where your data lands in memory."},
+   {l:"Test the exploit against real-world ASLR",r:"medium",c:"gdb -q {T} -ex 'set disable-randomization off' -ex 'run'",e:"GDB disables ASLR by default while you build the exploit &ndash; this re-enables randomization so you can validate the exploit works under realistic conditions."},
+   {l:"Write raw bytes into process memory",r:"critical",c:"gdb -q {T} -ex 'break main' -ex 'run' -ex 'set {int}0x804a100 = 0x90909090'",e:"Patches four bytes directly into the live process &ndash; the classic way to stage and test shellcode before delivering it in the real exploit."},
+   {l:"Debug a forking network daemon",r:"medium",c:"gdb -q {T} -ex 'set follow-fork-mode child' -ex 'run'",e:"Keeps GDB attached to the forked child that handles your connection instead of the listening parent &ndash; required for exploiting server software."},
+   {l:"Halt exactly on the faulting instruction",r:"medium",c:"gdb -q {T} -ex 'catch signal SIGSEGV' -ex 'run'",e:"Stops at the precise instruction that raised SIGSEGV rather than at the handler or exit &ndash; see the crash in the act."}
+ ]
+},
+{id:"attach",badge:"bdg",
+ title:"Attach, Core Dumps & Remote Debugging",
+ desc:"Debug after the fact with core dumps, attach to live running processes, and drive remote targets with gdbserver.",
+ tip:"Run ulimit -c unlimited before a crash happens &ndash; a core file is a perfect frozen snapshot you can autopsy offline any time.",
+ warn:"GDB freezes a process the instant it attaches &ndash; never attach to production services without planning for the pause, and always detach instead of killing.",
+ flags:[
+   {f:"gdb <program> <core>",d:"Load a core dump for post-mortem analysis"},
+   {f:"gdb -p <pid>",d:"Attach to a running process"},
+   {f:"attach <pid>",d:"Attach from inside a session"},
+   {f:"detach",d:"Release the process unharmed"},
+   {f:"gdbserver <host:port> <program>",d:"Start a remote debug server"},
+   {f:"target remote <host:port>",d:"Connect GDB to a gdbserver"},
+   {f:"thread apply all bt",d:"Backtrace every thread"}
+ ],
+ cmds:[
+   {l:"Autopsy a core dump",r:"medium",c:"gdb -q {T} core",e:"Loads the post-mortem memory image left by a crash &ndash; bt immediately shows the exact dying call chain without re-running anything."},
+   {l:"Enable core dumps before a crash",r:"low",c:"ulimit -c unlimited",e:"Raises the core-file size limit in your shell so the next crash leaves a full memory image you can debug offline."},
+   {l:"Attach to a running process",r:"high",c:"sudo gdb -q -p $(pidof {T})",e:"Attaches to the live process by name (root required for other users' processes). GDB freezes the process the moment it attaches."},
+   {l:"Backtrace every thread of a live process",r:"high",c:"sudo gdb -q -p $(pidof {T}) -ex 'thread apply all bt' -batch",e:"Attaches briefly and dumps a backtrace of every thread &ndash; the go-to diagnosis for hung or wedged server processes."},
+   {l:"Start a remote debug server",r:"medium",c:"gdbserver :1234 {T}",e:"Runs the target on the debuggee host, waiting for a GDB client to connect on port 1234 &ndash; debug embedded or isolated systems."},
+   {l:"Connect GDB to the remote target",r:"high",c:"gdb -q {T} -ex 'target remote 127.0.0.1:1234'",e:"Your local GDB (with local symbols) drives the remote gdbserver process &ndash; set breakpoints and step as if it were local."},
+   {l:"Detach without killing the process",r:"low",c:"gdb -q -p 1234 -ex 'detach' -ex 'quit'",e:"Releases the process back to normal execution &ndash; always detach instead of quitting when debugging anything that must keep running."}
+ ]
+},
+{id:"automation",badge:"bdg",
+ title:"Scripting, Batch & Automation",
+ desc:"Turn GDB into a pipeline tool: command scripts, batch one-liners, session logging, and the embedded Python interpreter.",
+ tip:"Put set disassembly-flavor intel and set pagination off in ~/.gdbinit &ndash; every future session starts clean and script-friendly.",
+ warn:"Batch mode runs the program for real &ndash; automate only against lab binaries or you will repeatedly execute whatever the program does.",
+ flags:[
+   {f:"-x <file>",d:"Execute a GDB command script"},
+   {f:"-ex <command>",d:"Run one command on startup"},
+   {f:"-batch",d:"Non-interactive mode"},
+   {f:"source <file>",d:"Run a script mid-session"},
+   {f:"set logging on",d:"Record the session to gdb.txt"},
+   {f:"set pagination off",d:"Disable the --More-- pager"},
+   {f:"python <code>",d:"Run Python inside GDB"},
+   {f:"~/.gdbinit",d:"Config auto-loaded at startup"}
+ ],
+ cmds:[
+   {l:"Run a GDB command script",r:"low",c:"gdb -q {T} -x commands.gdb",e:"Executes every line of commands.gdb at startup &ndash; store your standard breakpoint-and-inspect routine once and reuse it everywhere."},
+   {l:"One-line batch disassembly",r:"low",c:"gdb -q {T} -batch -ex 'disassemble main'",e:"Prints main's disassembly and exits &ndash; clean, scriptable output with no interactive prompt noise."},
+   {l:"Automated crash report",r:"medium",c:"gdb -q {T} -batch -ex run -ex 'bt full' -ex 'info registers'",e:"Reproduces the crash, then captures registers and a full backtrace &ndash; pipe it to a file for an instant crash report."},
+   {l:"Set Intel syntax permanently",r:"low",c:"echo \"set disassembly-flavor intel\" >> ~/.gdbinit",e:"Writes the setting into .gdbinit so every future GDB session starts in Intel syntax automatically."},
+   {l:"Use the embedded Python API",r:"medium",c:"gdb -q {T} -ex 'python print(gdb.execute(\"info proc mappings\", to_string=True))'",e:"GDB ships with a full Python interpreter &ndash; automate complex inspection, searching and even live patching from scripts."},
+   {l:"Log the whole session to a file",r:"low",c:"gdb -q {T} -ex 'set logging on' -ex 'run'",e:"Copies the entire session into gdb.txt &ndash; capture evidence while you work, then share or attach it to reports."},
+   {l:"Disable the pager for clean scripts",r:"low",c:"gdb -q {T} -ex 'set pagination off' -batch -ex 'info functions'",e:"Stops the --More-- pager from interrupting long scripted output &ndash; always pair with -batch."},
+   {l:"Full binary profile in one line",r:"medium",c:"gdb -q {T} -batch -ex 'info functions' -ex 'disassemble main' -ex 'print &main' > recon.txt",e:"Dumps the function list, main's disassembly and its address into a single file &ndash; an instant target profile for reverse engineering."}
+ ]
+}
+];
+
+/* ── STATE ── */
+var TARGET = "";
+var FILTER = "all";
+var QUERY  = "";
+var VIEW   = "cards";
+
+/* ── THEME ── */
+function toggleTheme() {
+  document.body.classList.toggle("dark-mode");
+  localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light");
+}
+window.addEventListener("load", function(){
+  if (localStorage.getItem("theme") === "light") { document.body.classList.remove("dark-mode"); }
+});
+
+/* ── HELPERS ── */
+function esc(s) {
+  return String(s)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+function validTarget(t) {
+  var d = t.trim();
+  /* binary path: letters, digits, dot, slash, dash, underscore — no shell metacharacters */
+  return d.length > 0 && d.length <= 200 && /^[A-Za-z0-9_\-\.\/]+$/.test(d);
+}
+function cleanTarget(t) {
+  return t.trim();
+}
+function fillCmd(c) { return c.replace(/\{T\}/g, TARGET); }
+function totalCmds() {
+  var n = 0;
+  for (var i = 0; i < CATS.length; i++) { n += CATS[i].cmds.length; }
+  return n;
+}
+function colorize(raw) {
+  var s = esc(fillCmd(raw));
+  s = s.replace(/(\s)(--?[a-zA-Z][a-zA-Z0-9\-_\.]*)/g,'$1<span class="fl">$2</span>');
+  if (TARGET) {
+    var et = esc(TARGET);
+    var re = new RegExp(et.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g");
+    s = s.replace(re,'<span class="tgt">'+et+"</span>");
+  }
+  return s;
+}
+
+/* ── FILTER / SEARCH ── */
+function getVisibleCats() {
+  return CATS.filter(function(cat) {
+    if (FILTER !== "all" && cat.id !== FILTER) { return false; }
+    if (!QUERY) { return true; }
+    var q = QUERY.toLowerCase();
+    if (cat.title.toLowerCase().indexOf(q) >= 0) { return true; }
+    if (cat.desc.toLowerCase().indexOf(q) >= 0) { return true; }
+    for (var i = 0; i < cat.cmds.length; i++) {
+      var cm = cat.cmds[i];
+      if (cm.l.toLowerCase().indexOf(q) >= 0 ||
+          cm.c.toLowerCase().indexOf(q) >= 0 ||
+          cm.e.toLowerCase().indexOf(q) >= 0) { return true; }
+    }
+    return false;
+  });
+}
+function getFilteredCmds(cat) {
+  if (!QUERY) { return cat.cmds; }
+  var q = QUERY.toLowerCase();
+  return cat.cmds.filter(function(cm) {
+    return cm.l.toLowerCase().indexOf(q) >= 0 ||
+           cm.c.toLowerCase().indexOf(q) >= 0 ||
+           cm.e.toLowerCase().indexOf(q) >= 0;
+  });
+}
+
+/* ── COPY ── */
+function doCopy(text, btn) {
+  var orig = btn.textContent;
+  function ok() {
+    btn.textContent = "Copied!";
+    btn.classList.add("ok");
+    setTimeout(function(){ btn.textContent = orig; btn.classList.remove("ok"); }, 2000);
+  }
+  function fb() {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0;";
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand("copy"); ok(); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(ok, fb);
+  } else { fb(); }
+}
+function copyFromBlock(bid, btn) {
+  var el = document.getElementById(bid);
+  if (!el) { return; }
+  var pre = el.querySelector(".dpre");
+  if (!pre) { return; }
+  doCopy(pre.innerText.trim(), btn);
+}
+function copyInline(btn) { doCopy(btn.getAttribute("data-v"), btn); }
+
+/* ── GENERATE ── */
+function doGenerate() {
+  var raw = document.getElementById("targetInput").value;
+  var errBox = document.getElementById("errbox");
+  if (!raw || !raw.trim() || !validTarget(raw)) {
+    errBox.style.display = "block";
+    return;
+  }
+  errBox.style.display = "none";
+  TARGET = cleanTarget(raw);
+  FILTER = "all";
+  QUERY  = "";
+  var si = document.getElementById("searchInput");
+  if (si) { si.value = ""; }
+  document.getElementById("sc1").textContent = CATS.length;
+  document.getElementById("sc2").textContent = totalCmds();
+  document.getElementById("sc3").textContent = TARGET;
+  document.getElementById("statsbar").style.display = "flex";
+  document.getElementById("toolbar").style.display  = "flex";
+  document.getElementById("pills").style.display    = "flex";
+  document.getElementById("mainLayout").style.display = "grid";
+  buildSidebar(); buildPills(); render();
+  setTimeout(function(){
+    document.getElementById("mainLayout").scrollIntoView({behavior:"smooth",block:"start"});
+  }, 100);
+}
+
+/* ── SIDEBAR ── */
+function buildSidebar() {
+  var h = '<div class="sbt">Navigation</div>';
+  h += '<button class="sbtn on" data-cat="all">';
+  h += '<span class="sblbl">All Categories</span>';
+  h += '<span class="sbcnt">'+CATS.length+"</span></button>";
+  h += '<div class="sbsep"></div>';
+  h += '<div class="sbt">GDB Techniques</div>';
+  for (var i = 0; i < CATS.length; i++) {
+    var c = CATS[i];
+    h += '<button class="sbtn" data-cat="'+c.id+'">';
+    h += '<span class="sblbl">'+esc(c.title)+"</span>";
+    h += '<span class="sbcnt">'+c.cmds.length+"</span></button>";
+  }
+  var sb = document.getElementById("sidebar");
+  sb.innerHTML = h;
+  var btns = sb.querySelectorAll(".sbtn[data-cat]");
+  for (var j = 0; j < btns.length; j++) {
+    btns[j].addEventListener("click", function(){
+      setFilter(this.getAttribute("data-cat"));
+    });
+  }
+}
+
+/* ── PILLS ── */
+function buildPills() {
+  var h = '<span class="pill on" data-cat="all">All</span>';
+  for (var i = 0; i < CATS.length; i++) {
+    var c = CATS[i];
+    h += '<span class="pill" data-cat="'+c.id+'">'+esc(c.title)+"</span>";
+  }
+  var container = document.getElementById("pills");
+  container.innerHTML = h;
+  var pills = container.querySelectorAll(".pill");
+  for (var j = 0; j < pills.length; j++) {
+    pills[j].addEventListener("click", function(){
+      setFilter(this.getAttribute("data-cat"));
+    });
+  }
+}
+
+/* ── SET FILTER / VIEW ── */
+function setFilter(id) {
+  FILTER = id;
+  var pills = document.querySelectorAll(".pill");
+  for (var i = 0; i < pills.length; i++) {
+    pills[i].classList.toggle("on", pills[i].getAttribute("data-cat") === id);
+  }
+  var btns = document.querySelectorAll(".sbtn[data-cat]");
+  for (var j = 0; j < btns.length; j++) {
+    btns[j].classList.toggle("on", btns[j].getAttribute("data-cat") === id);
+  }
+  render();
+}
+function setView(v) {
+  VIEW = v;
+  document.getElementById("vcard").classList.toggle("on", v === "cards");
+  document.getElementById("vcomp").classList.toggle("on", v === "compact");
+  render();
+}
+function togParams(wid, tid) {
+  var w = document.getElementById(wid);
+  var t = document.getElementById(tid);
+  if (!w || !t) { return; }
+  var o = w.classList.contains("open");
+  w.classList.toggle("open", !o);
+  t.classList.toggle("open", !o);
+}
+
+/* ── RENDER ── */
+function render() {
+  var content = document.getElementById("content");
+  var cats = getVisibleCats();
+  if (!cats.length) {
+    content.innerHTML = '<div class="nores"><h3>No commands found</h3><p>Try a different search term or select a different category.</p></div>';
+    return;
+  }
+  if (VIEW === "compact") { renderCompact(content, cats); }
+  else { renderCards(content, cats); }
+}
+
+function renderCards(content, cats) {
+  var html = "";
+  for (var i = 0; i < cats.length; i++) {
+    var cat = cats[i];
+    var cmds = getFilteredCmds(cat);
+    if (!cmds.length) { continue; }
+    html += '<div class="sec" id="sec-'+cat.id+'">';
+    html += '<div class="sechdr">';
+    html += "<div>";
+    html += '<div class="sectitle">'+esc(cat.title)+"</div>";
+    html += '<div class="secsub">'+esc(cat.desc)+"</div>";
+    html += "</div>";
+    html += '<span class="seccnt">'+cmds.length+' cmd'+(cmds.length!==1?"s":"")+"</span>";
+    html += "</div>";
+    html += '<div class="grid">';
+    for (var j = 0; j < cmds.length; j++) {
+      html += buildCard(cat, cmds[j], cat.id+"_"+j);
+    }
+    html += "</div></div>";
+  }
+  content.innerHTML = html;
+}
+
+function buildCard(cat, cm, uid) {
+  var bid   = "blk_"+uid;
+  var ptid  = "pt_"+uid;
+  var togid = "ptog_"+uid;
+  var risk  = cm.r || "info";
+  var h = "";
+  h += '<div class="card">';
+  h += '<div class="ch">';
+  h += '<div class="ctrow">';
+  h += '<span class="cname">'+esc(cm.l)+"</span>";
+  h += '<div class="cbadges">';
+  h += '<span class="bdg">'+esc(cat.id)+"</span>";
+  h += '<span class="rb r-'+risk+'">'+risk+"</span>";
+  h += "</div></div>";
+  h += '<div class="what">';
+  h += '<div class="wlbl">What This Command Does</div>';
+  h += esc(cm.e);
+  h += "</div>";
+  h += "</div>";
+  h += '<div class="cb">';
+  h += '<div class="dblk" id="'+bid+'">';
+  h += '<div class="dbar">';
+  h += '<div class="dbar-l">';
+  h += '<div class="dots"><span></span><span></span><span></span></div>';
+  h += '<span style="font-family:var(--mono);font-size:.66rem;color:var(--text-secondary)">terminal</span>';
+  h += "</div>";
+  h += '<div class="dbar-r">';
+  h += '<span class="rb r-'+risk+'">'+risk+"</span>";
+  h += '<button class="cbtn" onclick="copyFromBlock(\''+bid+'\',this)">Copy</button>';
+  h += "</div></div>";
+  h += '<pre class="dpre">'+colorize(cm.c)+"</pre>";
+  h += "</div>";
+  if (cat.flags && cat.flags.length) {
+    h += '<button class="ptog" id="'+togid+'" onclick="togParams(\''+ptid+'\',\''+togid+'\')">';
+    h += "<span>Flags Reference ("+cat.flags.length+")</span>";
+    h += '<span class="arr">&#9660;</span>';
+    h += "</button>";
+    h += '<div class="pwrap" id="'+ptid+'">';
+    h += '<table class="ptbl"><thead><tr><th>Flag</th><th>Description</th></tr></thead><tbody>';
+    for (var k = 0; k < cat.flags.length; k++) {
+      h += "<tr>";
+      h += '<td class="pf">'+esc(cat.flags[k].f)+"</td>";
+      h += '<td class="pd">'+esc(cat.flags[k].d)+"</td>";
+      h += "</tr>";
+    }
+    h += "</tbody></table></div>";
+  }
+  if (cat.tip) {
+    h += '<div class="tip"><span class="lbl">Tip:</span><span>'+esc(cat.tip)+"</span></div>";
+  }
+  if (cat.warn) {
+    h += '<div class="wrn"><span class="lbl">Warning:</span><span>'+esc(cat.warn)+"</span></div>";
+  }
+  h += "</div>";
+  h += "</div>";
+  return h;
+}
+
+function renderCompact(content, cats) {
+  var html = '<div class="ctable">';
+  html += '<div class="chdr"><div>Command Name</div><div>Command</div><div>Risk</div><div>Copy</div></div>';
+  for (var i = 0; i < cats.length; i++) {
+    var cmds = getFilteredCmds(cats[i]);
+    for (var j = 0; j < cmds.length; j++) {
+      var cm   = cmds[j];
+      var risk = cm.r || "info";
+      var filled = fillCmd(cm.c);
+      html += '<div class="crow">';
+      html += '<span class="cr-name" title="'+esc(cm.e)+'">'+esc(cm.l)+"</span>";
+      html += '<span class="cr-cmd" title="'+esc(filled)+'">'+esc(filled)+"</span>";
+      html += '<span><span class="rb r-'+risk+'">'+risk+"</span></span>";
+      html += '<span class="cr-act"><button class="crc" data-v="'+esc(filled)+'" onclick="copyInline(this)">Copy</button></span>';
+      html += "</div>";
+    }
+  }
+  html += "</div>";
+  content.innerHTML = html;
+}
+
+/* ── BOOT ── */
+(function() {
+  var btn = document.getElementById("generateBtn");
+  if (btn) {
+    btn.addEventListener("click", function(e){ e.preventDefault(); doGenerate(); });
+  }
+  var inp = document.getElementById("targetInput");
+  if (inp) {
+    inp.addEventListener("keydown", function(e){ if (e.key==="Enter"){ e.preventDefault(); doGenerate(); } });
+  }
+  var si = document.getElementById("searchInput");
+  if (si) {
+    function doSearch(){ QUERY = si.value.trim(); if (TARGET) { render(); } }
+    si.addEventListener("input",  doSearch);
+    si.addEventListener("keyup",  doSearch);
+    si.addEventListener("change", doSearch);
+  }
+  var vc = document.getElementById("vcard");
+  var vp = document.getElementById("vcomp");
+  if (vc) { vc.addEventListener("click", function(){ setView("cards"); }); }
+  if (vp) { vp.addEventListener("click", function(){ setView("compact"); }); }
+})();
+</script>
+</body>
+</html>
