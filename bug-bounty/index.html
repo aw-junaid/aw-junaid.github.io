@@ -3795,5 +3795,358 @@ window.addEventListener('hashchange', route);
 route();
 </script>
 
+<!-- ============================================================
+     ADD-ON: full-page translation · PDF download · full width
+     Paste this block immediately before </body>, AFTER every
+     existing <script> on the page. Nothing else needs editing.
+     ============================================================ -->
+<style>
+  .chip.busy { opacity: .6; pointer-events: none; }
+  #trChip { border-color: var(--accent); opacity: 1; }
+  #trChip.tr-err { border-color: var(--danger); color: var(--danger); }
+
+  /* off-screen clone used to rasterise the PDF */
+  .pdf-export { width: 794px; padding: 26px 34px; background: #ffffff; color: #111111;
+                font-family: 'Inter', Arial, sans-serif; font-size: 13.4px; line-height: 1.62; }
+  .pdf-export .pdf-title { font-size: 25px; font-weight: 800; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .pdf-export .pdf-sub { font-size: 10px; color: #666; word-break: break-all; margin: 0 0 22px;
+                         padding-bottom: 14px; border-bottom: 1px solid #ddd; }
+  .pdf-export h1, .pdf-export h2, .pdf-export h3, .pdf-export h4 { color: #111; margin: 1.5em 0 .5em; line-height: 1.25; page-break-after: avoid; }
+  .pdf-export h2 { border-bottom: 1px solid #ddd; padding-bottom: .25em; }
+  .pdf-export a { color: #1a4fd6; text-decoration: none; border: none; }
+  .pdf-export p, .pdf-export li { color: #111; }
+  .pdf-export blockquote { border-left: 3px solid #bbb; background: #f7f7f7; border-radius: 0; margin: 1.2em 0; padding: 4px 16px; }
+  .pdf-export .code-block, .pdf-export pre, .pdf-export .figure, .pdf-export .table-wrap {
+      background: #f6f6f6 !important; border: 1px solid #ddd !important; border-radius: 8px; page-break-inside: avoid; }
+  .pdf-export pre, .pdf-export code, .pdf-export .hljs, .pdf-export .hljs * {
+      color: #16181d !important; background: transparent !important; }
+  .pdf-export code { border: none !important; }
+  .pdf-export pre { padding: 12px 14px; white-space: pre-wrap; word-break: break-word; }
+  .pdf-export table { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+  .pdf-export th, .pdf-export td { border: 1px solid #ccc !important; padding: 6px 9px; color: #111 !important; }
+  .pdf-export th { background: #eee !important; }
+  .pdf-export img, .pdf-export svg { max-width: 100%; height: auto; }
+  .pdf-export svg text, .pdf-export svg tspan { fill: #111 !important; }
+  .pdf-export .figure-body { padding: 14px; text-align: center; }
+</style>
+
+<script>
+/* ============================================================
+   0 · i18n additions
+   ============================================================ */
+(function () {
+  const EXTRA = {
+    en: { translateBody: 'Translate document text', translating: 'Translating…', machineTr: 'Machine translated',
+          trFail: 'Translation unavailable', downloadPdf: 'PDF', preparingPdf: 'Building PDF…' },
+    fr: { translateBody: 'Traduire le texte du document', translating: 'Traduction…', machineTr: 'Traduction automatique',
+          trFail: 'Traduction indisponible', downloadPdf: 'PDF', preparingPdf: 'Création du PDF…' },
+    es: { translateBody: 'Traducir el texto del documento', translating: 'Traduciendo…', machineTr: 'Traducción automática',
+          trFail: 'Traducción no disponible', downloadPdf: 'PDF', preparingPdf: 'Generando PDF…' },
+    ur: { translateBody: 'دستاویز کا متن ترجمہ کریں', translating: 'ترجمہ ہو رہا ہے…', machineTr: 'مشینی ترجمہ',
+          trFail: 'ترجمہ دستیاب نہیں', downloadPdf: 'PDF', preparingPdf: 'PDF بن رہا ہے…' },
+    zh: { translateBody: '翻译正文内容', translating: '翻译中…', machineTr: '机器翻译',
+          trFail: '翻译不可用', downloadPdf: 'PDF', preparingPdf: '正在生成 PDF…' },
+    ja: { translateBody: '本文を翻訳する', translating: '翻訳中…', machineTr: '機械翻訳',
+          trFail: '翻訳を利用できません', downloadPdf: 'PDF', preparingPdf: 'PDF を作成中…' }
+  };
+  Object.keys(EXTRA).forEach(k => { if (I18N[k]) Object.assign(I18N[k], EXTRA[k]); });
+})();
+
+/* ============================================================
+   1 · defaults — content width FULL, translation ON
+   ============================================================ */
+(function () {
+  SET_DEFAULTS.translate = true;
+  SET_DEFAULTS.width = 'full';
+  if (SETTINGS.translate === undefined) SETTINGS.translate = true;
+  try {
+    if (!localStorage.getItem('kbWidthFullV2')) {   // one-time migration for returning readers
+      SETTINGS.width = 'full';
+      localStorage.setItem('kbWidthFullV2', '1');
+    }
+  } catch (e) { SETTINGS.width = 'full'; }
+})();
+
+/* ============================================================
+   2 · settings toggle  ·  "Translate document text"
+   ============================================================ */
+(function () {
+  const anchor = document.querySelector('.set-toggle[data-toggle="wrap"]');
+  if (!anchor) return;
+  const el = document.createElement('div');
+  el.className = 'set-toggle';
+  el.dataset.toggle = 'translate';
+  el.setAttribute('role', 'switch');
+  el.setAttribute('tabindex', '0');
+  el.innerHTML = '<span class="sw"></span><span data-i18n="translateBody"></span>';
+  anchor.parentNode.insertBefore(el, anchor);
+  const flip = () => { SETTINGS.translate = !SETTINGS.translate; applySettings(true); };
+  el.addEventListener('click', flip);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+})();
+
+/* ============================================================
+   3 · TRANSLATION ENGINE
+   Free Google translate endpoint (no key). Text nodes only, so
+   layout, links, code, diagrams and math are never touched.
+   ============================================================ */
+const TR_LANG  = { en: 'en', fr: 'fr', es: 'es', ur: 'ur', zh: 'zh-CN', ja: 'ja' };
+const TR_CACHE = new Map();
+let   trToken  = 0;
+
+function trBucket(lang) {
+  if (!TR_CACHE.has(lang)) TR_CACHE.set(lang, new Map());
+  return TR_CACHE.get(lang);
+}
+function trHasWords(s) { try { return /[\p{L}]{2,}/u.test(s); } catch (e) { return /[a-zA-Z]{2,}/.test(s); } }
+
+const TR_BLOCK = 'code, pre, kbd, samp, .mermaid, .figure-src, .math-block, .chart-block, .katex, .code-bar, .figure-bar, .view-tabs, .crumbs';
+
+function trTextNodes(root) {
+  const out = [];
+  if (!root) return out;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const p = node.parentElement;
+      if (!p || p.closest(TR_BLOCK)) return NodeFilter.FILTER_REJECT;
+      const v = node.__trOrig !== undefined ? node.__trOrig : node.nodeValue;
+      if (!v || !trHasWords(v)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  let n;
+  while ((n = walker.nextNode())) out.push(n);
+  return out;
+}
+
+async function trRaw(q, tl) {
+  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' +
+              encodeURIComponent(tl) + '&dt=t&q=' + encodeURIComponent(q);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  return (data[0] || []).map(s => (s && s[0]) ? s[0] : '').join('');
+}
+async function trLines(lines, tl) {
+  const joined = await trRaw(lines.join('\n'), tl);
+  const out = joined.split('\n');
+  return out.length === lines.length ? out : null;   // segmentation drifted — caller retries singly
+}
+function trSplitLong(text, max) {
+  if (text.length <= max) return [text];
+  const parts = [];
+  let buf = '';
+  text.split(/(?<=[.!?;:。！？])\s+/).forEach(s => {
+    if (s.length > max) {
+      if (buf) { parts.push(buf); buf = ''; }
+      for (let i = 0; i < s.length; i += max) parts.push(s.slice(i, i + max));
+      return;
+    }
+    if (buf && buf.length + s.length + 1 > max) { parts.push(buf); buf = ''; }
+    buf = buf ? buf + ' ' + s : s;
+  });
+  if (buf) parts.push(buf);
+  return parts;
+}
+async function trBatch(pairs, tl) {
+  const bucket = trBucket(tl);
+  let res = null;
+  try { res = await trLines(pairs.map(p => p.norm), tl); } catch (e) { res = null; }
+  if (res) { pairs.forEach((p, i) => bucket.set(p.src, res[i])); return; }
+  for (const p of pairs) {                       // fall back: one string at a time
+    try {
+      const chunks = trSplitLong(p.norm, 1100);
+      const out = [];
+      for (const c of chunks) out.push(await trRaw(c, tl));
+      bucket.set(p.src, out.join(' '));
+    } catch (e) { /* leave this string in its original language */ }
+  }
+}
+async function trPool(tasks, limit) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+    while (i < tasks.length) { const idx = i++; await tasks[idx](); }
+  }));
+}
+function trPaint(nodes, tl) {
+  const bucket = trBucket(tl);
+  nodes.forEach(n => {
+    const src = n.__trOrig;
+    const dst = bucket.get(src);
+    if (!dst) return;
+    const lead = (src.match(/^\s*/) || [''])[0];
+    const tail = (src.match(/\s*$/) || [''])[0];
+    const next = lead + dst + tail;
+    if (n.nodeValue !== next) n.nodeValue = next;
+  });
+}
+async function trApply(nodes, tl, onStep) {
+  nodes.forEach(n => { if (n.__trOrig === undefined) n.__trOrig = n.nodeValue; });
+  const bucket = trBucket(tl);
+  const seen = new Set();
+  const pairs = [];
+  nodes.forEach(n => {
+    const src = n.__trOrig;
+    if (bucket.has(src) || seen.has(src)) return;
+    seen.add(src);
+    pairs.push({ src: src, norm: src.replace(/\s+/g, ' ').trim() });
+  });
+  trPaint(nodes, tl);                                  // anything already cached shows instantly
+  const batches = [];
+  let cur = [], len = 0;
+  pairs.forEach(p => {
+    if (p.norm.length > 900) { batches.push([p]); return; }
+    if (cur.length >= 25 || len + p.norm.length > 1200) { batches.push(cur); cur = []; len = 0; }
+    cur.push(p); len += p.norm.length + 1;
+  });
+  if (cur.length) batches.push(cur);
+  if (!batches.length) return;
+
+  const mine = trToken;
+  let done = 0;
+  await trPool(batches.map(b => async () => {
+    if (mine !== trToken) return;                      // language changed mid-flight — abandon
+    await trBatch(b, tl);
+    done++;
+    if (mine !== trToken) return;
+    trPaint(nodes, tl);                                // progressive: paragraphs land as they arrive
+    if (onStep) onStep(done, batches.length);
+  }), 4);
+}
+
+async function translateView() {
+  trToken++;
+  const mine = trToken;
+  const chip = document.getElementById('trChip');
+  const tl = TR_LANG[SETTINGS.lang] || 'en';
+
+  if (!SETTINGS.translate || SETTINGS.lang === 'en' || !currentUrl) {
+    if (chip) chip.style.display = 'none';
+    return;
+  }
+  const nodes = []
+    .concat(trTextNodes(document.getElementById('postTitle')))
+    .concat(trTextNodes(document.getElementById('doc')))
+    .concat(trTextNodes(document.getElementById('tocList')))
+    .concat(trTextNodes(document.getElementById('tocListMobile')))
+    .concat(trTextNodes(document.getElementById('postNav')));
+  if (!nodes.length) { if (chip) chip.style.display = 'none'; return; }
+
+  const set = (icon, label, err) => {
+    if (!chip || mine !== trToken) return;
+    chip.style.display = '';
+    chip.classList.toggle('tr-err', !!err);
+    chip.innerHTML = '<i class="fa-solid ' + icon + '"></i> ' + escapeHtml(label);
+  };
+  set('fa-language fa-fade', t('translating'));
+  try {
+    await trApply(nodes, tl, (d, total) =>
+      set('fa-language fa-fade', t('translating') + ' ' + Math.round(d / total * 100) + '%'));
+    set('fa-language', t('machineTr'));
+  } catch (e) {
+    set('fa-triangle-exclamation', t('trFail'), true);
+  }
+  if (mine === trToken) { try { updateSpy(); updateProgress(); } catch (e) {} }
+}
+
+/* ============================================================
+   4 · PDF DOWNLOAD
+   ============================================================ */
+CDN.html2pdf = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+
+function pdfFileName() {
+  const raw = (document.getElementById('postTitle').textContent || 'document').trim();
+  return (raw.replace(/[\\/:*?"<>|#]+/g, '-').replace(/\s+/g, ' ').slice(0, 90) || 'document') + '.pdf';
+}
+function buildPdfNode() {
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-12000px;top:0;z-index:-1;';
+  const page = document.createElement('div');
+  page.className = 'pdf-export';
+  page.innerHTML =
+    '<h1 class="pdf-title">' + escapeHtml(document.getElementById('postTitle').textContent) + '</h1>' +
+    '<div class="pdf-sub">' + escapeHtml(currentUrl || location.href) + '</div>' +
+    document.getElementById('doc').innerHTML;
+  page.querySelectorAll('button, .figure-bar, .view-tabs, .figure-src, .anchor, .skeleton').forEach(el => el.remove());
+  page.querySelectorAll('.view-pane').forEach(p => { if (p.dataset.pane === 'source') p.remove(); else p.style.display = ''; });
+  page.querySelectorAll('iframe').forEach(f => f.remove());
+  holder.appendChild(page);
+  document.body.appendChild(holder);
+  return { holder: holder, page: page };
+}
+function pdfPrintFallback(html) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' +
+    escapeHtml(document.title) + '</title><style>' +
+    'body{font-family:Inter,Arial,sans-serif;color:#111;max-width:900px;margin:26px auto;padding:0 18px;line-height:1.65}' +
+    'pre{background:#f5f5f5;padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-word}' +
+    'code{font-family:ui-monospace,monospace}table{border-collapse:collapse;width:100%}' +
+    'th,td{border:1px solid #ccc;padding:6px}img,svg{max-width:100%}</style></head><body>' +
+    html + '</body></html>');
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 500);
+}
+async function downloadPdf() {
+  const btn = document.getElementById('pdfBtn');
+  const label = btn ? btn.innerHTML : '';
+  if (btn) { btn.classList.add('busy'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + escapeHtml(t('preparingPdf')); }
+  const built = buildPdfNode();
+  try {
+    await loadScript(CDN.html2pdf);
+    await html2pdf().set({
+      margin: [12, 10, 14, 10],
+      filename: pdfFileName(),
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 794, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['.code-block', '.figure', 'table', 'pre', 'img', 'blockquote'] }
+    }).from(built.page).save();
+  } catch (e) {
+    pdfPrintFallback(built.page.innerHTML);
+  } finally {
+    built.holder.remove();
+    if (btn) { btn.classList.remove('busy'); btn.innerHTML = label; }
+  }
+}
+
+/* ============================================================
+   5 · wire into the existing reader
+   ============================================================ */
+(function () {
+  const _setPostHero = setPostHero;
+  setPostHero = function (item, url, extra) {
+    _setPostHero(item, url, extra);
+    const meta = document.getElementById('postMeta');
+    if (!meta) return;
+    const share = document.getElementById('shareBtn');
+    const pdf = document.createElement('button');
+    pdf.className = 'chip';
+    pdf.type = 'button';
+    pdf.id = 'pdfBtn';
+    pdf.innerHTML = '<i class="fa-solid fa-file-pdf"></i> ' + escapeHtml(t('downloadPdf'));
+    pdf.addEventListener('click', downloadPdf);
+    if (share) share.insertAdjacentElement('beforebegin', pdf); else meta.appendChild(pdf);
+
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.id = 'trChip';
+    chip.style.display = 'none';
+    meta.appendChild(chip);
+  };
+
+  const _renderDoc = renderDoc;
+  renderDoc = async function (url) {
+    trToken++;                       // cancel any translation still running for the old page
+    await _renderDoc(url);
+    await translateView();
+  };
+})();
+
+/* apply the new defaults and repaint straight away */
+applySettings(true);
+</script>
+    
 </body>
 </html>
