@@ -3846,35 +3846,258 @@ route();
 </script>
 
 <!-- ============================================================
-     PDF BOOK ENGINE  ·  replaces "4 · PDF DOWNLOAD" in the add-on
-     ------------------------------------------------------------
-     DELETE the whole "4 · PDF DOWNLOAD" section from the previous
-     add-on (downloadPdf / buildPdfNode / pdfFileName /
-     pdfPrintFallback and the .pdf-export CSS), then paste this in
-     its place. Section 5 keeps working — this still exposes a
-     function called downloadPdf().
-
-     Why the old output looked bad: html2pdf rasterises the page
-     with html2canvas, so you got a screenshot of dark-theme HTML —
-     blurry, unselectable, unsearchable, broken mid-word at page
-     edges. This draws real vector text with jsPDF instead: a
-     typeset book with a cover, running heads, folios and a
-     copyright line. Text stays selectable and copyable.
+     ADD-ON (fixed): i18n · defaults · translation · PDF book engine · reader wiring
+     Paste after the main reader script. The old html2pdf "4 · PDF DOWNLOAD"
+     section is gone; only ONE downloadPdf / pdfFileName / pdfPrintFallback exists.
      ============================================================ -->
 <script>
 CDN.jspdf = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
-/* ---- book design tokens (mm) ------------------------------- */
+/* ============================================================
+   0 · i18n additions
+   ============================================================ */
+(function () {
+  const EXTRA = {
+    en: { translateBody: 'Translate document text', translating: 'Translating…', machineTr: 'Machine translated',
+          trFail: 'Translation unavailable', downloadPdf: 'PDF', preparingPdf: 'Building PDF…' },
+    fr: { translateBody: 'Traduire le texte du document', translating: 'Traduction…', machineTr: 'Traduction automatique',
+          trFail: 'Traduction indisponible', downloadPdf: 'PDF', preparingPdf: 'Création du PDF…' },
+    es: { translateBody: 'Traducir el texto del documento', translating: 'Traduciendo…', machineTr: 'Traducción automática',
+          trFail: 'Traducción no disponible', downloadPdf: 'PDF', preparingPdf: 'Generando PDF…' },
+    ur: { translateBody: 'دستاویز کا متن ترجمہ کریں', translating: 'ترجمہ ہو رہا ہے…', machineTr: 'مشینی ترجمہ',
+          trFail: 'ترجمہ دستیاب نہیں', downloadPdf: 'PDF', preparingPdf: 'PDF بن رہا ہے…' },
+    zh: { translateBody: '翻译正文内容', translating: '翻译中…', machineTr: '机器翻译',
+          trFail: '翻译不可用', downloadPdf: 'PDF', preparingPdf: '正在生成 PDF…' },
+    ja: { translateBody: '本文を翻訳する', translating: '翻訳中…', machineTr: '機械翻訳',
+          trFail: '翻訳を利用できません', downloadPdf: 'PDF', preparingPdf: 'PDF を作成中…' }
+  };
+  Object.keys(EXTRA).forEach(k => { if (I18N[k]) Object.assign(I18N[k], EXTRA[k]); });
+})();
+
+/* ============================================================
+   1 · defaults — content width FULL, translation ON
+   ============================================================ */
+(function () {
+  SET_DEFAULTS.translate = true;
+  SET_DEFAULTS.width = 'full';
+  if (SETTINGS.translate === undefined) SETTINGS.translate = true;
+  try {
+    if (!localStorage.getItem('kbWidthFullV2')) {
+      SETTINGS.width = 'full';
+      localStorage.setItem('kbWidthFullV2', '1');
+    }
+  } catch (e) { SETTINGS.width = 'full'; }
+})();
+
+/* ============================================================
+   2 · settings toggle  ·  "Translate document text"
+   ============================================================ */
+(function () {
+  const anchor = document.querySelector('.set-toggle[data-toggle="wrap"]');
+  if (!anchor) return;
+  const el = document.createElement('div');
+  el.className = 'set-toggle';
+  el.dataset.toggle = 'translate';
+  el.setAttribute('role', 'switch');
+  el.setAttribute('tabindex', '0');
+  el.innerHTML = '<span class="sw"></span><span data-i18n="translateBody"></span>';
+  anchor.parentNode.insertBefore(el, anchor);
+  const flip = () => { SETTINGS.translate = !SETTINGS.translate; applySettings(true); };
+  el.addEventListener('click', flip);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+})();
+
+/* ============================================================
+   3 · TRANSLATION ENGINE
+   ============================================================ */
+const TR_LANG  = { en: 'en', fr: 'fr', es: 'es', ur: 'ur', zh: 'zh-CN', ja: 'ja' };
+const TR_CACHE = new Map();
+let   trToken  = 0;
+
+function trBucket(lang) {
+  if (!TR_CACHE.has(lang)) TR_CACHE.set(lang, new Map());
+  return TR_CACHE.get(lang);
+}
+function trHasWords(s) { try { return /[\p{L}]{2,}/u.test(s); } catch (e) { return /[a-zA-Z]{2,}/.test(s); } }
+
+const TR_BLOCK = 'code, pre, kbd, samp, .mermaid, .figure-src, .math-block, .chart-block, .katex, .code-bar, .figure-bar, .view-tabs, .crumbs';
+
+function trTextNodes(root) {
+  const out = [];
+  if (!root) return out;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const p = node.parentElement;
+      if (!p || p.closest(TR_BLOCK)) return NodeFilter.FILTER_REJECT;
+      const v = node.__trOrig !== undefined ? node.__trOrig : node.nodeValue;
+      if (!v || !trHasWords(v)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  let n;
+  while ((n = walker.nextNode())) out.push(n);
+  return out;
+}
+
+async function trRaw(q, tl) {
+  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' +
+              encodeURIComponent(tl) + '&dt=t&q=' + encodeURIComponent(q);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  return (data[0] || []).map(s => (s && s[0]) ? s[0] : '').join('');
+}
+async function trLines(lines, tl) {
+  const joined = await trRaw(lines.join('\n'), tl);
+  const out = joined.split('\n');
+  return out.length === lines.length ? out : null;
+}
+/* FIX: no regex look-behind (crashes the whole script on Safari < 16.4) */
+function trSplitLong(text, max) {
+  if (text.length <= max) return [text];
+  const parts = [];
+  let buf = '';
+  const sentences = text.match(/[^.!?;:。！？]+[.!?;:。！？]*\s*/g) || [text];
+  sentences.forEach(raw => {
+    const s = raw.trim();
+    if (!s) return;
+    if (s.length > max) {
+      if (buf) { parts.push(buf); buf = ''; }
+      for (let i = 0; i < s.length; i += max) parts.push(s.slice(i, i + max));
+      return;
+    }
+    if (buf && buf.length + s.length + 1 > max) { parts.push(buf); buf = ''; }
+    buf = buf ? buf + ' ' + s : s;
+  });
+  if (buf) parts.push(buf);
+  return parts;
+}
+async function trBatch(pairs, tl) {
+  const bucket = trBucket(tl);
+  let res = null;
+  try { res = await trLines(pairs.map(p => p.norm), tl); } catch (e) { res = null; }
+  if (res) { pairs.forEach((p, i) => bucket.set(p.src, res[i])); return; }
+  for (const p of pairs) {
+    try {
+      const chunks = trSplitLong(p.norm, 1100);
+      const out = [];
+      for (const c of chunks) out.push(await trRaw(c, tl));
+      bucket.set(p.src, out.join(' '));
+    } catch (e) { /* leave this string untranslated */ }
+  }
+}
+async function trPool(tasks, limit) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+    while (i < tasks.length) { const idx = i++; await tasks[idx](); }
+  }));
+}
+function trPaint(nodes, tl) {
+  const bucket = trBucket(tl);
+  nodes.forEach(n => {
+    const src = n.__trOrig;
+    const dst = bucket.get(src);
+    if (!dst) return;
+    const lead = (src.match(/^\s*/) || [''])[0];
+    const tail = (src.match(/\s*$/) || [''])[0];
+    const next = lead + dst + tail;
+    if (n.nodeValue !== next) n.nodeValue = next;
+  });
+}
+async function trApply(nodes, tl, onStep) {
+  nodes.forEach(n => { if (n.__trOrig === undefined) n.__trOrig = n.nodeValue; });
+  const bucket = trBucket(tl);
+  const seen = new Set();
+  const pairs = [];
+  nodes.forEach(n => {
+    const src = n.__trOrig;
+    if (bucket.has(src) || seen.has(src)) return;
+    seen.add(src);
+    pairs.push({ src: src, norm: src.replace(/\s+/g, ' ').trim() });
+  });
+  trPaint(nodes, tl);
+  const batches = [];
+  let cur = [], len = 0;
+  pairs.forEach(p => {
+    if (p.norm.length > 900) { batches.push([p]); return; }
+    if (cur.length >= 25 || len + p.norm.length > 1200) { batches.push(cur); cur = []; len = 0; }
+    cur.push(p); len += p.norm.length + 1;
+  });
+  if (cur.length) batches.push(cur);
+  if (!batches.length) return;
+
+  const mine = trToken;
+  let done = 0;
+  await trPool(batches.map(b => async () => {
+    if (mine !== trToken) return;
+    await trBatch(b, tl);
+    done++;
+    if (mine !== trToken) return;
+    trPaint(nodes, tl);
+    if (onStep) onStep(done, batches.length);
+  }), 4);
+}
+
+async function translateView() {
+  trToken++;
+  const mine = trToken;
+  const chip = document.getElementById('trChip');
+  const tl = TR_LANG[SETTINGS.lang] || 'en';
+
+  if (!SETTINGS.translate || SETTINGS.lang === 'en' || !currentUrl) {
+    if (chip) chip.style.display = 'none';
+    return;
+  }
+  const nodes = []
+    .concat(trTextNodes(document.getElementById('postTitle')))
+    .concat(trTextNodes(document.getElementById('doc')))
+    .concat(trTextNodes(document.getElementById('tocList')))
+    .concat(trTextNodes(document.getElementById('tocListMobile')))
+    .concat(trTextNodes(document.getElementById('postNav')));
+  if (!nodes.length) { if (chip) chip.style.display = 'none'; return; }
+
+  const set = (icon, label, err) => {
+    if (!chip || mine !== trToken) return;
+    chip.style.display = '';
+    chip.classList.toggle('tr-err', !!err);
+    chip.innerHTML = '<i class="fa-solid ' + icon + '"></i> ' + escapeHtml(label);
+  };
+  set('fa-language fa-fade', t('translating'));
+  try {
+    await trApply(nodes, tl, (d, total) =>
+      set('fa-language fa-fade', t('translating') + ' ' + Math.round(d / total * 100) + '%'));
+    set('fa-language', t('machineTr'));
+  } catch (e) {
+    set('fa-triangle-exclamation', t('trFail'), true);
+  }
+  if (mine === trToken) { try { updateSpy(); updateProgress(); } catch (e) {} }
+}
+
+/* ============================================================
+   4 · PDF BOOK ENGINE (jsPDF, real vector text)
+   ============================================================ */
 const BOOK = {
   W: 210, H: 297, ml: 20, mr: 18, mt: 24, mb: 22,
-  author: 'awjunaid', handle: '@awjunaid', site: 'awjunaid.com',
-  series: 'awjunaid field notes'
+  author: 'Abdul Wahab Juniad', handle: '@aw-junaid', site: 'awjunaid.com',
+  series: 'bug bounty'
 };
 const BW = () => BOOK.W - BOOK.ml - BOOK.mr;
 const LH = (pt, mult) => pt * 0.3528 * (mult || 1.42);
 const INK = [26, 28, 33], MUTE = [110, 114, 122], RULE = [214, 216, 222];
 
-/* ---- 1 · turn the rendered DOM into a flat block list ------ */
+/* FIX: jsPDF's built-in fonts only cover WinAnsi; anything else prints as garbage */
+function pdfClean(s) {
+  return String(s)
+    .replace(/[\u2032\u201A]/g, "'")
+    .replace(/[\u2033]/g, '"')
+    .replace(/[\u2010\u2011\u2012\u2212]/g, '-')
+    .replace(/\u2192/g, '->').replace(/\u2190/g, '<-').replace(/\u21D2/g, '=>')
+    .replace(/[\u2713\u2714]/g, 'v').replace(/[\u2717\u2718]/g, 'x')
+    .replace(/[\u200B-\u200F\u2028\u2029\uFEFF]/g, '')
+    .replace(/[^\u0009\u000A\u0020-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026\u20AC\u2122]/g, '?');
+}
+
+/* ---- 1 · rendered DOM -> flat block list ---- */
 function pdfList(el, ordered, depth, push) {
   let i = 1;
   [...el.children].forEach(li => {
@@ -3934,7 +4157,7 @@ function pdfExtract(root) {
   return blocks;
 }
 
-/* ---- 2 · raster helpers for diagrams and images ------------ */
+/* ---- 2 · raster helpers ---- */
 function svgToPng(svg, scale) {
   return new Promise((resolve, reject) => {
     const rect = svg.getBoundingClientRect();
@@ -3948,12 +4171,14 @@ function svgToPng(svg, scale) {
     const xml = new XMLSerializer().serializeToString(clone);
     const img = new Image();
     img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = w * scale; c.height = h * scale;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      resolve({ data: c.toDataURL('image/png'), w: w, h: h });
+      try {
+        const c = document.createElement('canvas');
+        c.width = w * scale; c.height = h * scale;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        resolve({ data: c.toDataURL('image/png'), w: w, h: h });
+      } catch (e) { reject(e); }
     };
     img.onerror = reject;
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
@@ -3991,7 +4216,7 @@ async function pdfRaster(block) {
   } catch (e) { return null; }
 }
 
-/* ---- 3 · typesetting primitives ---------------------------- */
+/* ---- 3 · typesetting primitives ---- */
 function pdfNeed(doc, st, h) {
   if (st.y + h > BOOK.H - BOOK.mb) { doc.addPage(); st.y = BOOK.mt; return true; }
   return false;
@@ -4002,7 +4227,7 @@ function pdfText(doc, st, str, o) {
   const indent = o.indent || 0, lead = o.lead || 1.45;
   doc.setFont(font, style); doc.setFontSize(size);
   doc.setTextColor.apply(doc, o.color || INK);
-  const lines = doc.splitTextToSize(str, BW() - indent - (o.rightPad || 0));
+  const lines = doc.splitTextToSize(pdfClean(str), BW() - indent - (o.rightPad || 0));
   const lh = LH(size, lead);
   lines.forEach((ln, i) => {
     pdfNeed(doc, st, lh);
@@ -4016,7 +4241,7 @@ function pdfHeading(doc, st, lvl, str) {
   const spec = { 1: [17, 'bold', 7, 3.5], 2: [13.2, 'bold', 6, 2.8], 3: [11.2, 'bold', 4.6, 2],
                  4: [10.4, 'bolditalic', 4, 1.6], 5: [10, 'bolditalic', 3.4, 1.4], 6: [10, 'italic', 3.4, 1.4] }[lvl] || [11, 'bold', 4, 2];
   st.y += spec[2];
-  pdfNeed(doc, st, LH(spec[0]) * 2 + 10);          // keep with the line that follows
+  pdfNeed(doc, st, LH(spec[0]) * 2 + 10);
   pdfText(doc, st, str, { size: spec[0], style: spec[1], lead: 1.3 });
   if (lvl <= 2) {
     st.y += 1.4;
@@ -4031,12 +4256,12 @@ function pdfCode(doc, st, code) {
   const size = 8.2, pad = 3.2, lh = LH(size, 1.5);
   doc.setFont('courier', 'normal'); doc.setFontSize(size);
   const lines = [];
-  String(code).replace(/\t/g, '    ').split('\n').forEach(l =>
+  pdfClean(code).replace(/\t/g, '    ').split('\n').forEach(l =>
     doc.splitTextToSize(l.length ? l : ' ', BW() - pad * 2 - 2).forEach(x => lines.push(x)));
   st.y += 2.2;
   let i = 0;
   while (i < lines.length) {
-    let avail = Math.floor((BOOK.H - BOOK.mb - st.y - pad * 2) / lh);
+    const avail = Math.floor((BOOK.H - BOOK.mb - st.y - pad * 2) / lh);
     if (avail < 2) { doc.addPage(); st.y = BOOK.mt; continue; }
     const take = Math.min(avail, lines.length - i);
     const h = take * lh + pad * 2;
@@ -4055,11 +4280,12 @@ function pdfCode(doc, st, code) {
 function pdfQuote(doc, st, str) {
   const size = 10, lh = LH(size, 1.45), pad = 5;
   doc.setFont('times', 'italic'); doc.setFontSize(size);
-  const lines = doc.splitTextToSize(str, BW() - pad - 4);
+  const lines = doc.splitTextToSize(pdfClean(str), BW() - pad - 4);
   st.y += 1.8;
   let i = 0;
   while (i < lines.length) {
-    let avail = Math.max(1, Math.floor((BOOK.H - BOOK.mb - st.y - 4) / lh));
+    /* FIX: was Math.max(1, …), so a quote could overflow the bottom margin */
+    const avail = Math.floor((BOOK.H - BOOK.mb - st.y - 4) / lh);
     if (avail < 1) { doc.addPage(); st.y = BOOK.mt; continue; }
     const take = Math.min(avail, lines.length - i);
     const h = take * lh + 3;
@@ -4075,7 +4301,7 @@ function pdfQuote(doc, st, str) {
 }
 function pdfTable(doc, st, tbl) {
   const rows = [...tbl.querySelectorAll('tr')]
-    .map(tr => [...tr.children].map(td => td.innerText.replace(/\s+/g, ' ').trim()))
+    .map(tr => [...tr.children].map(td => pdfClean(td.innerText.replace(/\s+/g, ' ').trim())))
     .filter(r => r.length);
   if (!rows.length) return;
   const cols = Math.max.apply(null, rows.map(r => r.length));
@@ -4127,7 +4353,7 @@ function pdfImage(doc, st, png) {
   st.y += h + 5;
 }
 
-/* ---- 4 · cover, running heads, folios ---------------------- */
+/* ---- 4 · cover, running heads, folios ---- */
 function pdfCover(doc, meta) {
   const cx = BOOK.ml;
   doc.setDrawColor(30, 32, 38); doc.setLineWidth(1.1);
@@ -4139,13 +4365,13 @@ function pdfCover(doc, meta) {
   doc.text(BOOK.series.toUpperCase(), cx, 44);
 
   doc.setFont('times', 'bold'); doc.setFontSize(30); doc.setTextColor.apply(doc, INK);
-  const title = doc.splitTextToSize(meta.title || 'Document', BW());
+  const title = doc.splitTextToSize(pdfClean(meta.title || 'Document'), BW());
   let y = 84;
   title.forEach(ln => { doc.text(ln, cx, y); y += LH(30, 1.2); });
 
   if (meta.group) {
     doc.setFont('times', 'italic'); doc.setFontSize(12.5); doc.setTextColor.apply(doc, MUTE);
-    doc.text(doc.splitTextToSize(meta.group, BW()), cx, y + 5);
+    doc.text(doc.splitTextToSize(pdfClean(meta.group), BW()), cx, y + 5);
   }
   doc.setDrawColor(30, 32, 38); doc.setLineWidth(0.6);
   doc.line(cx, BOOK.H - 78, cx + 46, BOOK.H - 78);
@@ -4155,13 +4381,13 @@ function pdfCover(doc, meta) {
   doc.text(BOOK.author, cx, BOOK.H - 68);
   doc.setFontSize(8.6); doc.setTextColor.apply(doc, MUTE);
   doc.text(BOOK.handle + '  \u00b7  ' + BOOK.site, cx, BOOK.H - 62);
-  if (meta.src) doc.text(doc.splitTextToSize('Source: ' + meta.src, BW()), cx, BOOK.H - 50);
+  if (meta.src) doc.text(doc.splitTextToSize('Source: ' + pdfClean(meta.src), BW()), cx, BOOK.H - 50);
   doc.text('\u00a9 ' + new Date().getFullYear() + ' ' + BOOK.author + '. All rights reserved. ' +
            'Generated ' + new Date().toISOString().slice(0, 10) + '.', cx, BOOK.H - 32);
 }
 function pdfChrome(doc, meta) {
   const total = doc.getNumberOfPages();
-  const head = (meta.title || '').slice(0, 74);
+  const head = pdfClean(meta.title || '').slice(0, 74);
   for (let p = 2; p <= total; p++) {
     doc.setPage(p);
     const folio = p - 1, folios = total - 1;
@@ -4180,7 +4406,7 @@ function pdfChrome(doc, meta) {
   }
 }
 
-/* ---- 5 · non-Latin fallback (Urdu / CJK) ------------------- */
+/* ---- 5 · non-Latin fallback (Urdu / CJK) -> browser print ---- */
 function pdfIsLatin(text) {
   const bad = (text.match(/[^\u0000-\u024F\u2010-\u206F\u20A0-\u20CF\s]/g) || []).length;
   return bad / Math.max(1, text.length) < 0.02;
@@ -4205,7 +4431,7 @@ function pdfPrintFallback() {
   setTimeout(() => w.print(), 600);
 }
 
-/* ---- 6 · the export ---------------------------------------- */
+/* ---- 6 · the export ---- */
 function pdfFileName(title) {
   return ((title || 'document').replace(/[\\/:*?"<>|#]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 90) || 'document') + '.pdf';
 }
@@ -4221,7 +4447,7 @@ async function downloadPdf() {
   const item = (typeof BY_URL !== 'undefined' && currentUrl) ? BY_URL.get(currentUrl) : null;
   const meta = { title: title, group: item ? item.group : '', src: item ? item.blob : (currentUrl || '') };
 
-  if (!pdfIsLatin(docEl.textContent.slice(0, 4000) + title)) {   // Urdu / CJK → browser print path
+  if (!pdfIsLatin(docEl.textContent.slice(0, 4000) + title)) {
     pdfPrintFallback();
     if (btn) { btn.classList.remove('busy'); btn.innerHTML = label; }
     return;
@@ -4275,291 +4501,10 @@ async function downloadPdf() {
     pdfChrome(doc, meta);
     doc.save(pdfFileName(title));
   } catch (e) {
+    console.error('PDF build failed, using print fallback:', e);
     pdfPrintFallback();
   } finally {
     if (prevTheme !== currentTheme) applyTheme(prevTheme);
-    if (btn) { btn.classList.remove('busy'); btn.innerHTML = label; }
-  }
-}
-</script>
-
-<script>
-/* ============================================================
-   0 · i18n additions
-   ============================================================ */
-(function () {
-  const EXTRA = {
-    en: { translateBody: 'Translate document text', translating: 'Translating…', machineTr: 'Machine translated',
-          trFail: 'Translation unavailable', downloadPdf: 'PDF', preparingPdf: 'Building PDF…' },
-    fr: { translateBody: 'Traduire le texte du document', translating: 'Traduction…', machineTr: 'Traduction automatique',
-          trFail: 'Traduction indisponible', downloadPdf: 'PDF', preparingPdf: 'Création du PDF…' },
-    es: { translateBody: 'Traducir el texto del documento', translating: 'Traduciendo…', machineTr: 'Traducción automática',
-          trFail: 'Traducción no disponible', downloadPdf: 'PDF', preparingPdf: 'Generando PDF…' },
-    ur: { translateBody: 'دستاویز کا متن ترجمہ کریں', translating: 'ترجمہ ہو رہا ہے…', machineTr: 'مشینی ترجمہ',
-          trFail: 'ترجمہ دستیاب نہیں', downloadPdf: 'PDF', preparingPdf: 'PDF بن رہا ہے…' },
-    zh: { translateBody: '翻译正文内容', translating: '翻译中…', machineTr: '机器翻译',
-          trFail: '翻译不可用', downloadPdf: 'PDF', preparingPdf: '正在生成 PDF…' },
-    ja: { translateBody: '本文を翻訳する', translating: '翻訳中…', machineTr: '機械翻訳',
-          trFail: '翻訳を利用できません', downloadPdf: 'PDF', preparingPdf: 'PDF を作成中…' }
-  };
-  Object.keys(EXTRA).forEach(k => { if (I18N[k]) Object.assign(I18N[k], EXTRA[k]); });
-})();
-
-/* ============================================================
-   1 · defaults — content width FULL, translation ON
-   ============================================================ */
-(function () {
-  SET_DEFAULTS.translate = true;
-  SET_DEFAULTS.width = 'full';
-  if (SETTINGS.translate === undefined) SETTINGS.translate = true;
-  try {
-    if (!localStorage.getItem('kbWidthFullV2')) {   // one-time migration for returning readers
-      SETTINGS.width = 'full';
-      localStorage.setItem('kbWidthFullV2', '1');
-    }
-  } catch (e) { SETTINGS.width = 'full'; }
-})();
-
-/* ============================================================
-   2 · settings toggle  ·  "Translate document text"
-   ============================================================ */
-(function () {
-  const anchor = document.querySelector('.set-toggle[data-toggle="wrap"]');
-  if (!anchor) return;
-  const el = document.createElement('div');
-  el.className = 'set-toggle';
-  el.dataset.toggle = 'translate';
-  el.setAttribute('role', 'switch');
-  el.setAttribute('tabindex', '0');
-  el.innerHTML = '<span class="sw"></span><span data-i18n="translateBody"></span>';
-  anchor.parentNode.insertBefore(el, anchor);
-  const flip = () => { SETTINGS.translate = !SETTINGS.translate; applySettings(true); };
-  el.addEventListener('click', flip);
-  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
-})();
-
-/* ============================================================
-   3 · TRANSLATION ENGINE
-   Free Google translate endpoint (no key). Text nodes only, so
-   layout, links, code, diagrams and math are never touched.
-   ============================================================ */
-const TR_LANG  = { en: 'en', fr: 'fr', es: 'es', ur: 'ur', zh: 'zh-CN', ja: 'ja' };
-const TR_CACHE = new Map();
-let   trToken  = 0;
-
-function trBucket(lang) {
-  if (!TR_CACHE.has(lang)) TR_CACHE.set(lang, new Map());
-  return TR_CACHE.get(lang);
-}
-function trHasWords(s) { try { return /[\p{L}]{2,}/u.test(s); } catch (e) { return /[a-zA-Z]{2,}/.test(s); } }
-
-const TR_BLOCK = 'code, pre, kbd, samp, .mermaid, .figure-src, .math-block, .chart-block, .katex, .code-bar, .figure-bar, .view-tabs, .crumbs';
-
-function trTextNodes(root) {
-  const out = [];
-  if (!root) return out;
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      const p = node.parentElement;
-      if (!p || p.closest(TR_BLOCK)) return NodeFilter.FILTER_REJECT;
-      const v = node.__trOrig !== undefined ? node.__trOrig : node.nodeValue;
-      if (!v || !trHasWords(v)) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    }
-  });
-  let n;
-  while ((n = walker.nextNode())) out.push(n);
-  return out;
-}
-
-async function trRaw(q, tl) {
-  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' +
-              encodeURIComponent(tl) + '&dt=t&q=' + encodeURIComponent(q);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const data = await res.json();
-  return (data[0] || []).map(s => (s && s[0]) ? s[0] : '').join('');
-}
-async function trLines(lines, tl) {
-  const joined = await trRaw(lines.join('\n'), tl);
-  const out = joined.split('\n');
-  return out.length === lines.length ? out : null;   // segmentation drifted — caller retries singly
-}
-function trSplitLong(text, max) {
-  if (text.length <= max) return [text];
-  const parts = [];
-  let buf = '';
-  text.split(/(?<=[.!?;:。！？])\s+/).forEach(s => {
-    if (s.length > max) {
-      if (buf) { parts.push(buf); buf = ''; }
-      for (let i = 0; i < s.length; i += max) parts.push(s.slice(i, i + max));
-      return;
-    }
-    if (buf && buf.length + s.length + 1 > max) { parts.push(buf); buf = ''; }
-    buf = buf ? buf + ' ' + s : s;
-  });
-  if (buf) parts.push(buf);
-  return parts;
-}
-async function trBatch(pairs, tl) {
-  const bucket = trBucket(tl);
-  let res = null;
-  try { res = await trLines(pairs.map(p => p.norm), tl); } catch (e) { res = null; }
-  if (res) { pairs.forEach((p, i) => bucket.set(p.src, res[i])); return; }
-  for (const p of pairs) {                       // fall back: one string at a time
-    try {
-      const chunks = trSplitLong(p.norm, 1100);
-      const out = [];
-      for (const c of chunks) out.push(await trRaw(c, tl));
-      bucket.set(p.src, out.join(' '));
-    } catch (e) { /* leave this string in its original language */ }
-  }
-}
-async function trPool(tasks, limit) {
-  let i = 0;
-  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, async () => {
-    while (i < tasks.length) { const idx = i++; await tasks[idx](); }
-  }));
-}
-function trPaint(nodes, tl) {
-  const bucket = trBucket(tl);
-  nodes.forEach(n => {
-    const src = n.__trOrig;
-    const dst = bucket.get(src);
-    if (!dst) return;
-    const lead = (src.match(/^\s*/) || [''])[0];
-    const tail = (src.match(/\s*$/) || [''])[0];
-    const next = lead + dst + tail;
-    if (n.nodeValue !== next) n.nodeValue = next;
-  });
-}
-async function trApply(nodes, tl, onStep) {
-  nodes.forEach(n => { if (n.__trOrig === undefined) n.__trOrig = n.nodeValue; });
-  const bucket = trBucket(tl);
-  const seen = new Set();
-  const pairs = [];
-  nodes.forEach(n => {
-    const src = n.__trOrig;
-    if (bucket.has(src) || seen.has(src)) return;
-    seen.add(src);
-    pairs.push({ src: src, norm: src.replace(/\s+/g, ' ').trim() });
-  });
-  trPaint(nodes, tl);                                  // anything already cached shows instantly
-  const batches = [];
-  let cur = [], len = 0;
-  pairs.forEach(p => {
-    if (p.norm.length > 900) { batches.push([p]); return; }
-    if (cur.length >= 25 || len + p.norm.length > 1200) { batches.push(cur); cur = []; len = 0; }
-    cur.push(p); len += p.norm.length + 1;
-  });
-  if (cur.length) batches.push(cur);
-  if (!batches.length) return;
-
-  const mine = trToken;
-  let done = 0;
-  await trPool(batches.map(b => async () => {
-    if (mine !== trToken) return;                      // language changed mid-flight — abandon
-    await trBatch(b, tl);
-    done++;
-    if (mine !== trToken) return;
-    trPaint(nodes, tl);                                // progressive: paragraphs land as they arrive
-    if (onStep) onStep(done, batches.length);
-  }), 4);
-}
-
-async function translateView() {
-  trToken++;
-  const mine = trToken;
-  const chip = document.getElementById('trChip');
-  const tl = TR_LANG[SETTINGS.lang] || 'en';
-
-  if (!SETTINGS.translate || SETTINGS.lang === 'en' || !currentUrl) {
-    if (chip) chip.style.display = 'none';
-    return;
-  }
-  const nodes = []
-    .concat(trTextNodes(document.getElementById('postTitle')))
-    .concat(trTextNodes(document.getElementById('doc')))
-    .concat(trTextNodes(document.getElementById('tocList')))
-    .concat(trTextNodes(document.getElementById('tocListMobile')))
-    .concat(trTextNodes(document.getElementById('postNav')));
-  if (!nodes.length) { if (chip) chip.style.display = 'none'; return; }
-
-  const set = (icon, label, err) => {
-    if (!chip || mine !== trToken) return;
-    chip.style.display = '';
-    chip.classList.toggle('tr-err', !!err);
-    chip.innerHTML = '<i class="fa-solid ' + icon + '"></i> ' + escapeHtml(label);
-  };
-  set('fa-language fa-fade', t('translating'));
-  try {
-    await trApply(nodes, tl, (d, total) =>
-      set('fa-language fa-fade', t('translating') + ' ' + Math.round(d / total * 100) + '%'));
-    set('fa-language', t('machineTr'));
-  } catch (e) {
-    set('fa-triangle-exclamation', t('trFail'), true);
-  }
-  if (mine === trToken) { try { updateSpy(); updateProgress(); } catch (e) {} }
-}
-
-/* ============================================================
-   4 · PDF DOWNLOAD
-   ============================================================ */
-CDN.html2pdf = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-
-function pdfFileName() {
-  const raw = (document.getElementById('postTitle').textContent || 'document').trim();
-  return (raw.replace(/[\\/:*?"<>|#]+/g, '-').replace(/\s+/g, ' ').slice(0, 90) || 'document') + '.pdf';
-}
-function buildPdfNode() {
-  const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-12000px;top:0;z-index:-1;';
-  const page = document.createElement('div');
-  page.className = 'pdf-export';
-  page.innerHTML =
-    '<h1 class="pdf-title">' + escapeHtml(document.getElementById('postTitle').textContent) + '</h1>' +
-    '<div class="pdf-sub">' + escapeHtml(currentUrl || location.href) + '</div>' +
-    document.getElementById('doc').innerHTML;
-  page.querySelectorAll('button, .figure-bar, .view-tabs, .figure-src, .anchor, .skeleton').forEach(el => el.remove());
-  page.querySelectorAll('.view-pane').forEach(p => { if (p.dataset.pane === 'source') p.remove(); else p.style.display = ''; });
-  page.querySelectorAll('iframe').forEach(f => f.remove());
-  holder.appendChild(page);
-  document.body.appendChild(holder);
-  return { holder: holder, page: page };
-}
-function pdfPrintFallback(html) {
-  const w = window.open('', '_blank');
-  if (!w) return;
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' +
-    escapeHtml(document.title) + '</title><style>' +
-    'body{font-family:Inter,Arial,sans-serif;color:#111;max-width:900px;margin:26px auto;padding:0 18px;line-height:1.65}' +
-    'pre{background:#f5f5f5;padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-word}' +
-    'code{font-family:ui-monospace,monospace}table{border-collapse:collapse;width:100%}' +
-    'th,td{border:1px solid #ccc;padding:6px}img,svg{max-width:100%}</style></head><body>' +
-    html + '</body></html>');
-  w.document.close();
-  w.focus();
-  setTimeout(() => w.print(), 500);
-}
-async function downloadPdf() {
-  const btn = document.getElementById('pdfBtn');
-  const label = btn ? btn.innerHTML : '';
-  if (btn) { btn.classList.add('busy'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + escapeHtml(t('preparingPdf')); }
-  const built = buildPdfNode();
-  try {
-    await loadScript(CDN.html2pdf);
-    await html2pdf().set({
-      margin: [12, 10, 14, 10],
-      filename: pdfFileName(),
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 794, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'], avoid: ['.code-block', '.figure', 'table', 'pre', 'img', 'blockquote'] }
-    }).from(built.page).save();
-  } catch (e) {
-    pdfPrintFallback(built.page.innerHTML);
-  } finally {
-    built.holder.remove();
     if (btn) { btn.classList.remove('busy'); btn.innerHTML = label; }
   }
 }
@@ -4591,15 +4536,18 @@ async function downloadPdf() {
 
   const _renderDoc = renderDoc;
   renderDoc = async function (url) {
-    trToken++;                       // cancel any translation still running for the old page
+    trToken++;
     await _renderDoc(url);
     await translateView();
   };
 })();
 
-/* apply the new defaults and repaint straight away */
 applySettings(true);
-    <script>
+</script>
+<!-- FIX: the block above was never closed in the original, so the SEO <script> was
+     swallowed as JavaScript text (syntax error) and the whole add-on died. -->
+
+<script>
 const SEO = {
   base: 'https://aw-junaid.github.io/bug-bounty.html',
   site: 'awjunaid',
@@ -4607,7 +4555,7 @@ const SEO = {
   personId: 'https://aw-junaid.github.io/#person',
   image: 'https://raw.githubusercontent.com/aw-junaid/aw-junaid/refs/heads/main/awjunaid.png'
 };
- 
+
 function seoMeta(sel, attr, val) {
   let el = document.head.querySelector(sel);
   if (!el) {
@@ -4631,7 +4579,7 @@ function seoApply() {
     ? seoSummary(body) || (title + ' — notes by ' + SEO.site + '.')
     : 'Field notes, cheatsheets and write-ups on recon, web application testing, API security and SQL injection.';
   const full = inDoc ? title + ' — ' + SEO.label + ' | ' + SEO.site : SEO.label + ' — ' + SEO.site;
- 
+
   document.title = full;
   seoMeta('meta[name="description"]', 'content', desc);
   seoMeta('meta[property="og:title"]', 'content', full);
@@ -4640,11 +4588,11 @@ function seoApply() {
   seoMeta('meta[property="og:type"]', 'content', inDoc ? 'article' : 'website');
   seoMeta('meta[name="twitter:title"]', 'content', full);
   seoMeta('meta[name="twitter:description"]', 'content', desc);
- 
+
   let link = document.head.querySelector('link[rel="canonical"]');
   if (!link) { link = document.createElement('link'); link.rel = 'canonical'; document.head.appendChild(link); }
   link.href = canonical;
- 
+
   const slot = document.getElementById('ldDoc');
   if (!slot) return;
   if (!inDoc) { slot.textContent = '{}'; return; }
@@ -4676,12 +4624,12 @@ function seoApply() {
     ]
   });
 }
- 
+
 /* crawlable ?doc= URLs, both directions */
 (function () {
   const q = new URLSearchParams(location.search).get('doc');
   if (q && !location.hash) location.hash = 'doc=' + encodeURIComponent(q);
- 
+
   const _route = route;
   route = function () {
     _route();
@@ -4691,15 +4639,15 @@ function seoApply() {
       history.replaceState(null, '', clean);
     } catch (e) { /* ignore */ }
   };
- 
+
   const _renderDoc = renderDoc;
   renderDoc = async function (url) { await _renderDoc(url); seoApply(); };
- 
+
   window.addEventListener('hashchange', () => setTimeout(seoApply, 60));
   setTimeout(seoApply, 120);
 })();
 </script>
-</script>
+<!-- FIX: removed the stray extra </script> that followed this block. -->
     
 </body>
 </html>
